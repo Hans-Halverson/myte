@@ -143,9 +143,9 @@ let mir_value_of_constant constant =
 
 (* Perform iterative passes to calculate folded constants for all instructions.
    Additionally prune dead branches, some of which may be exposed by constant folding. *)
-class calc_constants_visitor ~ocx =
+class calc_constants_visitor ~program =
   object (this)
-    inherit IRVisitor.t ~program:ocx.Ocx.program
+    inherit IRVisitor.t ~program
 
     val mutable instr_constants : folded_constant IMap.t = IMap.empty
 
@@ -168,7 +168,7 @@ class calc_constants_visitor ~ocx =
     method add_global_constant name value =
       global_constants <- SMap.add name value global_constants;
       has_new_constant <- true;
-      ocx.program.globals <- SMap.remove name ocx.program.globals
+      program.globals <- SMap.remove name program.globals
 
     method lookup_constant instr_id = IMap.find_opt instr_id instr_constants
 
@@ -186,13 +186,13 @@ class calc_constants_visitor ~ocx =
         IMap.iter
           (fun _ block ->
             if not (BlockSet.mem block visited_blocks) then (
-              Ocx.remove_block ~ocx block;
+              Ocx.remove_block ~program block;
               (* Collect all removed instructions so they can be excluded from constant folding *)
-              let gatherer = new Mir_normalizer.var_gatherer ~program:ocx.program in
+              let gatherer = new Mir_normalizer.var_gatherer ~program in
               gatherer#visit_instructions ~block;
               removed_instr_ids <- ISet.union gatherer#value_ids removed_instr_ids
             ))
-          ocx.program.blocks;
+          program.blocks;
         if has_new_constant then
           iter ()
         else
@@ -223,22 +223,22 @@ class calc_constants_visitor ~ocx =
             | Function lit -> this#add_global_constant name (FunctionConstant lit)
             | _ -> ())
           | _ -> ())
-        ocx.program.globals
+        program.globals
 
     (* Constant folding may determine that globals are initialized to a constant. These take the
        form of stores to globals in the init function, which should be removed. *)
     method fold_global_inits () =
-      match SMap.find_opt init_func_name ocx.Ocx.program.funcs with
+      match SMap.find_opt init_func_name program.funcs with
       | None -> ()
       | Some init_func ->
         let mapper =
           object (mapper)
-            inherit Mir_mapper.InstructionsMapper.t ~program:ocx.Ocx.program
+            inherit Mir_mapper.InstructionsMapper.t ~program
 
             method! map_instruction instruction =
               match instruction.instr with
               | Store (Lit (Pointer (_, name)), value) ->
-                (match (SMap.find_opt name ocx.program.globals, value) with
+                (match (SMap.find_opt name program.globals, value) with
                 | (Some global, Instr { id = instr_id; _ }) ->
                   (match IMap.find_opt instr_id instr_constants with
                   | Some constant ->
@@ -288,8 +288,8 @@ class calc_constants_visitor ~ocx =
                 (jump, continue)
             in
             (* Remove block link and set to continue to unpruned block *)
-            Ocx.remove_block_link ~ocx block.id to_prune.id;
-            Ocx.remove_phi_backreferences_for_block ~ocx block to_prune.id;
+            Ocx.remove_block_link block to_prune;
+            Ocx.remove_phi_backreferences_for_block block to_prune;
             block.next <- Continue to_continue;
             has_new_constant <- true;
             (* Only contine to remaining unpruned block *)
@@ -389,10 +389,10 @@ class calc_constants_visitor ~ocx =
       | _ -> ()
   end
 
-class update_constants_mapper ~ocx instr_constants =
+class update_constants_mapper ~program instr_constants =
   let var_map = IMap.map mir_value_of_constant instr_constants in
   object (this)
-    inherit Mir_mapper.rewrite_vals_mapper ~program:ocx.Ocx.program var_map as super
+    inherit Mir_mapper.rewrite_vals_mapper ~program var_map as super
 
     (* Remove instructions that have been folded to constants *)
     method! map_instruction instr =
@@ -400,9 +400,9 @@ class update_constants_mapper ~ocx instr_constants =
       super#map_instruction instr
   end
 
-let fold_constants_and_prune ~ocx =
-  let calc_visitor = new calc_constants_visitor ~ocx in
+let fold_constants_and_prune ~program =
+  let calc_visitor = new calc_constants_visitor ~program in
   ignore (calc_visitor#run ());
   let instr_constants = calc_visitor#get_instr_constants () in
-  let update_constants_mapper = new update_constants_mapper ~ocx instr_constants in
-  IMap.iter (fun _ block -> update_constants_mapper#map_block block) ocx.Ocx.program.blocks
+  let update_constants_mapper = new update_constants_mapper ~program instr_constants in
+  IMap.iter (fun _ block -> update_constants_mapper#map_block block) program.blocks

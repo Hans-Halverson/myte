@@ -150,7 +150,13 @@ let emit_ ~ecx (inst : Instruction.t) : unit = ignore (emit ~ecx inst)
 
 let mk_block ~ecx =
   let block =
-    { Block.id = mk_block_id (); func = ecx.current_func; instructions = None; next = Halt }
+    {
+      Block.id = mk_block_id ();
+      func = ecx.current_func;
+      instructions = None;
+      next = Halt;
+      prev_blocks = BlockSet.empty;
+    }
   in
   ecx.blocks <- IMap.add block.id block ecx.blocks;
   block
@@ -163,11 +169,6 @@ let start_new_block ~ecx =
   block
 
 let finish_block ~ecx next =
-  let next =
-    match ecx.current_block with
-    | Some { instructions = Some { last = { instr = Ret _; _ }; _ }; _ } -> Block.Halt
-    | _ -> next
-  in
   match ecx.current_block with
   | None -> ()
   | Some block ->
@@ -175,10 +176,20 @@ let finish_block ~ecx next =
     ecx.current_block <- None;
     if ecx.in_init then ecx.last_init_block <- Some block
 
-let finish_block_branch ~ecx test continue jump =
-  finish_block ~ecx (Branch { test; continue; jump })
+let finish_block_branch ~ecx (test : Value.t) (continue : Block.t) (jump : Block.t) =
+  match ecx.current_block with
+  | None -> ()
+  | Some current_block ->
+    continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
+    jump.prev_blocks <- BlockSet.add current_block jump.prev_blocks;
+    finish_block ~ecx (Branch { test; continue; jump })
 
-let finish_block_continue ~ecx continue = finish_block ~ecx (Continue continue)
+let finish_block_continue ~ecx (continue : Block.t) =
+  match ecx.current_block with
+  | None -> ()
+  | Some current_block ->
+    continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
+    finish_block ~ecx (Continue continue)
 
 let finish_block_halt ~ecx = finish_block ~ecx Halt
 
@@ -217,7 +228,9 @@ let emit_init_section ~ecx f =
 
   (* If an init section has already been created, link its last block to the new init section *)
   (match ecx.last_init_block with
-  | Some last_init_block -> last_init_block.next <- Continue init_block
+  | Some last_init_block ->
+    last_init_block.next <- Continue init_block;
+    init_block.prev_blocks <- BlockSet.add last_init_block init_block.prev_blocks
   | None -> ());
 
   (* Run callback to generate init instructions and finish block *)

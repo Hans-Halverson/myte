@@ -36,29 +36,8 @@ let split_edges ~(ir : Program.t) =
       let prev_to_new_block =
         BlockMMap.VSet.fold
           (fun prev_block prev_to_new_block ->
-            match prev_block.next with
-            | Branch { test; continue; jump } ->
-              (* Create new empty block and insert between previous block and this block *)
-              let new_block_id = mk_block_id () in
-              let new_block =
-                {
-                  Block.id = new_block_id;
-                  func = block.func;
-                  instructions = None;
-                  next = Continue block;
-                }
-              in
-              ir.blocks <- IMap.add new_block_id new_block ir.blocks;
-              let map_next_block next_block =
-                if next_block == block then
-                  new_block
-                else
-                  next_block
-              in
-              prev_block.next <-
-                Branch { test; continue = map_next_block continue; jump = map_next_block jump };
-              BlockMap.add prev_block new_block prev_to_new_block
-            | _ -> failwith "Only blocks which branch need to be split")
+            let new_block = split_block_edge ~program:ir prev_block block in
+            BlockMap.add prev_block new_block prev_to_new_block)
           prev_blocks
           BlockMap.empty
       in

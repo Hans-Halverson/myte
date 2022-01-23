@@ -58,13 +58,13 @@ label @2:
 func void @test.inexhaustiveBreakAndContinue() {
   continue @0
 label @0:
-  %0 := Phi int @test.inexhaustiveBreakAndContinue:1, @2:4, @3:3
+  %0 := Phi int @test.inexhaustiveBreakAndContinue:1, @2:3, @3:4
   branch false, @1, @4
 label @1:
   %1 := Gt int %0, 1
   branch %1, @4, @2
 label @2:
-  branch true, @3, @0
+  branch true, @0, @3
 label @3:
   continue @0
 label @4:

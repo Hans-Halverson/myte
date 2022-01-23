@@ -180,6 +180,7 @@ and Block : sig
     func: Function.t;
     mutable instructions: instructions option;
     mutable next: next;
+    mutable prev_blocks: BlockSet.t;
   }
 
   (* Circular doubly linked list of all instructions in block *)
@@ -206,6 +207,7 @@ end = struct
     func: Function.t;
     mutable instructions: instructions option;
     mutable next: next;
+    mutable prev_blocks: BlockSet.t;
   }
 
   and instructions = {
@@ -289,7 +291,13 @@ let rec null_function : Function.t =
 
 (* A placeholder block, to avoid having to represent Option<Block> with its extra allocation *)
 and null_block : Block.t =
-  { Block.id = mk_block_id (); func = null_function; instructions = None; next = Halt }
+  {
+    Block.id = mk_block_id ();
+    func = null_function;
+    instructions = None;
+    next = Halt;
+    prev_blocks = BlockSet.empty;
+  }
 
 let rec type_of_value (v : Value.t) : Type.t =
   match v with
@@ -411,11 +419,9 @@ let filter_stdlib (program : Program.t) =
         (not (Std_lib.has_std_lib_prefix name)) && not (has_std_lib_string_prefix name))
       smap
   in
-  {
-    program with
-    Program.globals = filter_stdlib_names program.globals;
-    funcs = filter_stdlib_names program.funcs;
-  }
+  program.globals <- filter_stdlib_names program.globals;
+  program.funcs <- filter_stdlib_names program.funcs;
+  program
 
 let has_no_instructions (block : Block.t) : bool = block.instructions = None
 
@@ -546,6 +552,53 @@ let block_fold_phis
       | _ -> acc)
 
 let block_clear_phis (block : Block.t) = block_filter_phis block (fun _ _ -> false)
+
+(* Return the set of all blocks that this block branches to *)
+let get_next_blocks (block : Block.t) : BlockSet.t =
+  match block.next with
+  | Halt -> BlockSet.empty
+  | Continue continue -> BlockSet.singleton continue
+  | Branch { test = _; jump; continue } -> BlockSet.add jump (BlockSet.singleton continue)
+
+(* Map block's next block from a block to another block. Do not update any phi references. *)
+and map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
+  let map_next_block maybe_from =
+    if maybe_from == from then (
+      from.prev_blocks <- BlockSet.remove block from.prev_blocks;
+      to_.prev_blocks <- BlockSet.add block to_.prev_blocks;
+      to_
+    ) else
+      maybe_from
+  in
+  block.next <-
+    (match block.next with
+    | Halt -> Halt
+    | Continue continue_block -> Continue (map_next_block continue_block)
+    | Branch { test; continue; jump } ->
+      let new_continue = map_next_block continue in
+      let new_jump = map_next_block jump in
+      (* If both branches point to same label convert to continue *)
+      if new_continue == new_jump then
+        Continue new_continue
+      else
+        (* Otherwise create branch to new block *)
+        Branch { test; continue = new_continue; jump = new_jump })
+
+(* Split an edge between two blocks, inserting an empty block in the middle *)
+let split_block_edge ~(program : Program.t) (prev_block : Block.t) (next_block : Block.t) : Block.t
+    =
+  let new_block =
+    {
+      Block.id = mk_block_id ();
+      func = prev_block.func;
+      instructions = None;
+      next = Continue next_block;
+      prev_blocks = BlockSet.singleton prev_block;
+    }
+  in
+  program.blocks <- IMap.add new_block.id new_block program.blocks;
+  map_next_block prev_block ~from:next_block ~to_:new_block;
+  new_block
 
 module VSet = Set.Make (Value)
 module VMap = Map.Make (Value)

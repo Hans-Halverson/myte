@@ -72,7 +72,6 @@ type source =
   | PhiChainJoin of PhiChainNode.id
 
 type cx = {
-  mutable blocks: Block.t IMap.t;
   mutable visited_blocks: BlockSet.t;
   mutable stack_alloc_ids: Type.t IMap.t;
   mutable phi_chain_nodes: PhiChainNode.t IMap.t;
@@ -82,20 +81,16 @@ type cx = {
   mutable realized_phis: BlockIMMap.t;
   (* Function name to the local source for each load instruction id *)
   mutable use_sources: source IMap.t SMap.t;
-  (* Block to the set of blocks that precede that block *)
-  mutable prev_blocks: BlockMMap.t;
 }
 
 let mk_cx () =
   {
-    blocks = IMap.empty;
     visited_blocks = BlockSet.empty;
     stack_alloc_ids = IMap.empty;
     phi_chain_nodes = IMap.empty;
     block_nodes = BlockMap.empty;
     realized_phis = BlockIMMap.empty;
     use_sources = SMap.empty;
-    prev_blocks = BlockMMap.empty;
   }
 
 let max_phi_chain_node_id = ref 0
@@ -122,9 +117,6 @@ let mk_phi_chain_node ~cx block =
   id
 
 let get_node ~cx node_id = IMap.find node_id cx.phi_chain_nodes
-
-let add_block_link ~cx (prev_block : Block.t) (next_block : Block.t) =
-  cx.prev_blocks <- BlockMMap.add next_block prev_block cx.prev_blocks
 
 let rec promote_variables_to_registers ir =
   let cx = mk_cx () in
@@ -182,12 +174,8 @@ and find_join_points ~cx program =
     iter_instructions block visitor#visit_instruction;
     match block.next with
     | Halt -> ()
-    | Continue continue ->
-      add_block_link ~cx block continue;
-      maybe_visit_block !sources continue
+    | Continue continue -> maybe_visit_block !sources continue
     | Branch { continue; jump; _ } ->
-      add_block_link ~cx block continue;
-      add_block_link ~cx block jump;
       maybe_visit_block !sources continue;
       maybe_visit_block !sources jump
   in
@@ -357,17 +345,12 @@ and rewrite_program ~cx program =
           when IMap.mem id cx.stack_alloc_ids ->
           false
         | _ -> true);
-    block.next <-
-      (match block.next with
-      | Halt -> Halt
-      | Continue continue ->
-        maybe_visit_block continue;
-        Continue continue
-      | Branch { test; continue; jump } ->
-        maybe_visit_block continue;
-        maybe_visit_block jump;
-        Branch { test; continue; jump });
-    cx.blocks <- IMap.add block.id block cx.blocks
+    match block.next with
+    | Halt -> ()
+    | Continue continue -> maybe_visit_block continue
+    | Branch { test = _; continue; jump } ->
+      maybe_visit_block continue;
+      maybe_visit_block jump
   (* Traverse phi chain graph to gather all previous block/value pairs for a given phi node. The phi
      chain graph is deeply traversed until realized nodes are encountered. *)
   and gather_phi_args (node_id : PhiChainNode.id) : Value.t BlockMap.t =
@@ -416,61 +399,9 @@ and rewrite_program ~cx program =
 
   (* Strip empty blocks *)
   IMap.iter
-    (fun block_id ({ Block.next; func; _ } as block) ->
-      match next with
-      (* A block can only be removed if it has no instructions, and if its next block has no phis
-         (as the phis may reference this block). *)
-      | Continue continue when has_no_instructions block && not (block_has_phis continue) ->
-        let prev_blocks = BlockMMap.find_all block cx.prev_blocks in
-        (* Block may be first block of function, reset body start block if so *)
-        if func.start_block == block then func.start_block <- continue;
-        (* Previous nodes point to next node *)
-        BlockMMap.VSet.iter
-          (fun prev_block ->
-            let map_next next_block =
-              if next_block == block then
-                continue
-              else
-                next_block
-            in
-            let next' =
-              match prev_block.next with
-              | Halt -> Block.Halt
-              | Continue continue -> Continue (map_next continue)
-              | Branch { test; continue; jump } ->
-                let new_continue = map_next continue in
-                let new_jump = map_next jump in
-                (* If both branches points to same label convert to continue *)
-                if new_continue == new_jump then
-                  Continue new_continue
-                else
-                  (* Otherwise create branch to new block *)
-                  Branch { test; continue = new_continue; jump = new_jump }
-            in
-            prev_block.next <- next')
-          prev_blocks;
-        (* Next node may have phis that point the removed block. Rewrite them to instead point to
-           previous blocks. *)
-        block_iter_phis continue (fun ({ args; _ } as phi) ->
-            match BlockMap.find_opt block args with
-            | None -> ()
-            | Some arg_value ->
-              let args' = BlockMap.remove block args in
-              phi.args <-
-                BlockMMap.VSet.fold
-                  (fun prev_block -> BlockMap.add prev_block arg_value)
-                  prev_blocks
-                  args');
-        (* Remove this empty node *)
-        cx.blocks <- IMap.remove block_id cx.blocks;
-        cx.prev_blocks <- BlockMMap.remove_key block cx.prev_blocks;
-        (* Remove the empty node from continue block's prev blocks *)
-        let continue_prev_blocks = BlockMMap.find_all continue cx.prev_blocks in
-        let new_continue_prev_blocks =
-          BlockMMap.VSet.union prev_blocks (BlockMMap.VSet.remove block continue_prev_blocks)
-        in
-        cx.prev_blocks <- BlockMMap.KMap.add continue new_continue_prev_blocks cx.prev_blocks
-      | _ -> ())
-    cx.blocks;
+    (fun _ block ->
+      if Mir_optimize_context.can_remove_block block then
+        Mir_optimize_context.remove_block ~program block)
+    program.blocks;
 
-  { program with blocks = cx.blocks }
+  program

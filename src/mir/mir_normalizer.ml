@@ -18,9 +18,9 @@ class var_gatherer ~program =
     method! visit_instruction instr = value_ids <- ISet.add instr.id value_ids
   end
 
-let rec normalize ~ocx =
+let rec normalize ~program =
   (* Gather all vars defined in program *)
-  let gatherer = new var_gatherer ~program:ocx.Ocx.program in
+  let gatherer = new var_gatherer ~program in
   gatherer#run ();
   let value_ids = gatherer#value_ids in
 
@@ -41,12 +41,12 @@ let rec normalize ~ocx =
           let has_args = not (BlockMap.is_empty args') in
           if has_args then phi.args <- args';
           has_args))
-    ocx.program.blocks;
+    program.blocks;
 
   (* Find and remove empty blocks *)
   IMap.iter
-    (fun _ block -> if Ocx.can_remove_block ~ocx block then Ocx.remove_block ~ocx block)
-    ocx.program.blocks;
+    (fun _ block -> if Ocx.can_remove_block block then Ocx.remove_block ~program block)
+    program.blocks;
 
   (* Remove trivial phis and rewrite references to these phi vars in program, requires iteration
      to a fixpoint *)
@@ -61,48 +61,45 @@ let rec normalize ~ocx =
               false
             ) else
               true))
-      ocx.program.blocks;
+      program.blocks;
     if IMap.is_empty !rewrite_map then
       ()
     else
-      let rewrite_mapper = new Mir_mapper.rewrite_vals_mapper ~program:ocx.program !rewrite_map in
-      let all_blocks = ocx.Ocx.program.blocks in
-      IMap.iter (fun _ block -> rewrite_mapper#map_block block) all_blocks;
+      let rewrite_mapper = new Mir_mapper.rewrite_vals_mapper ~program !rewrite_map in
+      IMap.iter (fun _ block -> rewrite_mapper#map_block block) program.blocks;
       rewrite_map := IMap.empty;
       iter ()
   in
   iter ();
 
-  consolidate_adjacent_blocks ~ocx;
-  remove_empty_init_func ~ocx
+  consolidate_adjacent_blocks ~program;
+  remove_empty_init_func ~program
 
 (* Consolidate adjacent blocks into a single large block when possible *)
-and consolidate_adjacent_blocks ~ocx =
+and consolidate_adjacent_blocks ~program =
   let removed_blocks = ref BlockSet.empty in
   (* Iterate to fixpoint *)
   let rec iter () =
     IMap.iter
-      (fun _ block ->
-        let open Block in
+      (fun _ (block : Block.t) ->
         (* Can only consolidate this block if it continues to a block with no other previous blocks,
            and the next block has no phis (as phi arg vars may have been defined in this block). *)
         match block.next with
         | Continue next_block when block != next_block && not (BlockSet.mem block !removed_blocks)
           ->
+          let next_block_is_start = next_block.func.start_block == next_block in
           (* The next block could be the start block for the global or function, in which case it cannot
              be merged with the previous block. *)
-          let next_block_is_start = next_block.func.start_block == next_block in
-          let prev_blocks = IMap.find next_block.id ocx.prev_blocks in
           if
-            ISet.cardinal prev_blocks = 1
+            BlockSet.cardinal next_block.prev_blocks = 1
             && (not (block_has_phis next_block))
             && not next_block_is_start
           then (
             removed_blocks := BlockSet.add next_block !removed_blocks;
-            Ocx.merge_adjacent_blocks ~ocx block next_block
+            Ocx.merge_adjacent_blocks ~program block next_block
           )
         | _ -> ())
-      ocx.program.blocks;
+      program.blocks;
     if BlockSet.is_empty !removed_blocks then
       ()
     else (
@@ -113,11 +110,11 @@ and consolidate_adjacent_blocks ~ocx =
   iter ()
 
 (* Strip init function if it is empty *)
-and remove_empty_init_func ~ocx =
-  match SMap.find_opt init_func_name ocx.program.funcs with
+and remove_empty_init_func ~program =
+  match SMap.find_opt init_func_name program.funcs with
   | None -> ()
   | Some init_func ->
     (* Init function is empty if it consists of a single block with a single instruction (Ret) *)
     let init_start_block = init_func.start_block in
     if has_single_instruction init_start_block && init_start_block.next = Halt then
-      ocx.program.funcs <- SMap.remove init_func_name ocx.program.funcs
+      program.funcs <- SMap.remove init_func_name program.funcs
