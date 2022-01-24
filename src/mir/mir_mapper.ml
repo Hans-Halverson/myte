@@ -16,29 +16,7 @@ module InstructionsMapper = struct
 
       method mark_instruction_removed () = current_instruction_edit <- Remove
 
-      method map_function (func : Function.t) =
-        let visited_blocks = ref BlockSet.empty in
-        let rec check_visited_block block =
-          if BlockSet.mem block !visited_blocks then
-            true
-          else (
-            visited_blocks := BlockSet.add block !visited_blocks;
-            false
-          )
-        and visit_block (block : Block.t) =
-          if check_visited_block block then
-            ()
-          else (
-            this#map_block block;
-            match block.next with
-            | Halt -> ()
-            | Continue continue -> visit_block continue
-            | Branch { test = _; continue; jump } ->
-              visit_block continue;
-              visit_block jump
-          )
-        in
-        visit_block func.start_block
+      method map_function (func : Function.t) = BlockSet.iter this#map_block func.blocks
 
       method map_block (block : Block.t) =
         this#map_instructions block;

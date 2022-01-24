@@ -1,4 +1,3 @@
-open Basic_collections
 open Mir
 
 let add_block_link (prev_block : Block.t) (next_block : Block.t) =
@@ -61,13 +60,12 @@ let can_remove_block (block : Block.t) =
     let function_start_self_loop = is_start_block && continue_block == block in
     (not block_needed_for_phi) && not function_start_self_loop
 
-let remove_block ~(program : Program.t) (block : Block.t) =
+let remove_block (block : Block.t) =
   (* This may be the first block in a function. If so, update the function to point to the
      next block as the start. *)
+  let func = block.func in
   (match block.next with
-  | Continue continue_block ->
-    let func = block.func in
-    if func.start_block == block then func.start_block <- continue_block
+  | Continue continue_block -> if func.start_block == block then func.start_block <- continue_block
   | _ -> ());
   (match block.next with
   (* Only when removing unreachable blocks from branch pruning, which could include return block.
@@ -108,11 +106,11 @@ let remove_block ~(program : Program.t) (block : Block.t) =
     (fun next_block -> next_block.prev_blocks <- BlockSet.remove block next_block.prev_blocks)
     next_blocks;
   (* Remove block from remaining maps in context *)
-  program.blocks <- IMap.remove block.id program.blocks
+  func.blocks <- BlockSet.remove block func.blocks
 
 (* Merge adjacent blocks b1 and b2. Must only be called if b1 and b2 can be merged, meaning
    b1 only continues to b2 and b2 has no other previous blocks. *)
-let merge_adjacent_blocks ~(program : Program.t) block1 block2 =
+let merge_adjacent_blocks block1 block2 =
   let open Block in
   let map_block block =
     if block == block2 then
@@ -143,4 +141,5 @@ let merge_adjacent_blocks ~(program : Program.t) block1 block2 =
     next_blocks;
   remove_block_link block1 block2;
   (* Remove b2 from remaining maps in context *)
-  program.blocks <- IMap.remove block2.id program.blocks
+  let func = block2.func in
+  func.blocks <- BlockSet.remove block2 func.blocks

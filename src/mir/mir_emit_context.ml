@@ -32,7 +32,6 @@ type t = {
   pcx: Program_context.t;
   (* Data structures for MIR *)
   mutable main_label: label;
-  mutable blocks: Block.t IMap.t;
   mutable globals: Global.t SMap.t;
   mutable funcs: Function.t SMap.t;
   mutable types: Aggregate.t SMap.t;
@@ -96,7 +95,6 @@ let mk ~pcx =
   {
     pcx;
     main_label = "";
-    blocks = IMap.empty;
     globals = SMap.empty;
     funcs = SMap.empty;
     types = SMap.empty;
@@ -149,16 +147,17 @@ let emit ~ecx (instr : Instruction.t) : Value.t =
 let emit_ ~ecx (inst : Instruction.t) : unit = ignore (emit ~ecx inst)
 
 let mk_block ~ecx =
+  let func = ecx.current_func in
   let block =
     {
       Block.id = mk_block_id ();
-      func = ecx.current_func;
+      func;
       instructions = None;
       next = Halt;
       prev_blocks = BlockSet.empty;
     }
   in
-  ecx.blocks <- IMap.add block.id block ecx.blocks;
+  func.blocks <- BlockSet.add block func.blocks;
   block
 
 let set_current_block ~ecx block = ecx.current_block <- Some block
@@ -324,7 +323,9 @@ let add_immutable_string_literal ~ecx string =
 
 let start_function ~ecx ~loc ~name ~params ~return_type =
   (* Create and set current function *)
-  let func = { Function.loc; name; params; return_type; start_block = null_block } in
+  let func =
+    { Function.loc; name; params; return_type; start_block = null_block; blocks = BlockSet.empty }
+  in
   ecx.funcs <- SMap.add name func ecx.funcs;
   ecx.current_func <- func;
   (* Create start block for function *)

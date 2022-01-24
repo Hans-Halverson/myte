@@ -183,16 +183,14 @@ class calc_constants_visitor ~program =
         this#visit_program ();
         this#fold_global_inits ();
         (* Remove pruned blocks *)
-        IMap.iter
-          (fun _ block ->
+        program_iter_blocks program (fun block ->
             if not (BlockSet.mem block visited_blocks) then (
-              Ocx.remove_block ~program block;
+              Ocx.remove_block block;
               (* Collect all removed instructions so they can be excluded from constant folding *)
               let gatherer = new Mir_normalizer.var_gatherer ~program in
               gatherer#visit_instructions ~block;
               removed_instr_ids <- ISet.union gatherer#value_ids removed_instr_ids
-            ))
-          program.blocks;
+            ));
         if has_new_constant then
           iter ()
         else
@@ -405,4 +403,4 @@ let fold_constants_and_prune ~program =
   ignore (calc_visitor#run ());
   let instr_constants = calc_visitor#get_instr_constants () in
   let update_constants_mapper = new update_constants_mapper ~program instr_constants in
-  IMap.iter (fun _ block -> update_constants_mapper#map_block block) program.blocks
+  program_iter_blocks program (fun block -> update_constants_mapper#map_block block)

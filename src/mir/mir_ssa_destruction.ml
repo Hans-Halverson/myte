@@ -1,4 +1,3 @@
-open Basic_collections
 open Mir
 
 (* SSA destruction - remove all phi nodes in program and replace with explicit move instructions.
@@ -18,16 +17,14 @@ let split_edges ~(ir : Program.t) =
 
   (* Mark all edges that should be split. An edge from block A to block B should be split if
      block B contains a phi node that references A, but block A branches at the end. *)
-  IMap.iter
-    (fun _ block ->
+  program_iter_blocks ir (fun block ->
       block_iter_phis block (fun { args; _ } ->
           BlockMap.iter
             (fun prev_block _ ->
               match prev_block.next with
               | Branch _ -> edges_to_split := BlockMMap.add block prev_block !edges_to_split
               | _ -> ())
-            args))
-    ir.blocks;
+            args));
 
   (* Split all marked edges *)
   BlockMMap.iter
@@ -36,7 +33,7 @@ let split_edges ~(ir : Program.t) =
       let prev_to_new_block =
         BlockMMap.VSet.fold
           (fun prev_block prev_to_new_block ->
-            let new_block = split_block_edge ~program:ir prev_block block in
+            let new_block = split_block_edge prev_block block in
             BlockMap.add prev_block new_block prev_to_new_block)
           prev_blocks
           BlockMap.empty
@@ -119,8 +116,7 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
 
 (* Remove phis, and replace with explicit move instructions in the previous block *)
 let lower_phis_to_copies ~(ir : Program.t) =
-  IMap.iter
-    (fun _ block ->
+  program_iter_blocks ir (fun block ->
       (* Collect all copies to create from phi nodes in each previous block *)
       let block_to_parallel_copies =
         block_fold_phis block BlockMap.empty (fun instr { args } acc ->
@@ -150,7 +146,6 @@ let lower_phis_to_copies ~(ir : Program.t) =
         block_to_parallel_copies;
 
       block_clear_phis block)
-    ir.blocks
 
 let destruct_ssa (ir : Program.t) : Program.t =
   split_edges ~ir;

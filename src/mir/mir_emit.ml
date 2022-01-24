@@ -25,7 +25,6 @@ let rec emit (pcx : Pcx.t) : Program.t =
   finish_init_function ~ecx;
   {
     Program.main_label = ecx.main_label;
-    blocks = ecx.blocks;
     globals = ecx.globals;
     funcs = ecx.funcs;
     types = ecx.types;

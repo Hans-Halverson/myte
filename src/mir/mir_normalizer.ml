@@ -25,8 +25,7 @@ let rec normalize ~program =
   let value_ids = gatherer#value_ids in
 
   (* Update and potentially prune phi nodes with missing vars *)
-  IMap.iter
-    (fun _ block ->
+  program_iter_blocks program (fun block ->
       block_filter_phis block (fun _ ({ args } as phi) ->
           let args' =
             BlockMap.filter
@@ -40,33 +39,29 @@ let rec normalize ~program =
           in
           let has_args = not (BlockMap.is_empty args') in
           if has_args then phi.args <- args';
-          has_args))
-    program.blocks;
+          has_args));
 
   (* Find and remove empty blocks *)
-  IMap.iter
-    (fun _ block -> if Ocx.can_remove_block block then Ocx.remove_block ~program block)
-    program.blocks;
+  program_iter_blocks program (fun block ->
+      if Ocx.can_remove_block block then Ocx.remove_block block);
 
   (* Remove trivial phis and rewrite references to these phi vars in program, requires iteration
      to a fixpoint *)
   let rewrite_map = ref IMap.empty in
   let rec iter () =
-    IMap.iter
-      (fun _ block ->
+    program_iter_blocks program (fun block ->
         block_filter_phis block (fun instr_id { args } ->
             let (_, arg_val) = BlockMap.choose args in
             if BlockMap.for_all (fun _ arg -> values_equal arg arg_val) args then (
               rewrite_map := IMap.add instr_id arg_val !rewrite_map;
               false
             ) else
-              true))
-      program.blocks;
+              true));
     if IMap.is_empty !rewrite_map then
       ()
     else
       let rewrite_mapper = new Mir_mapper.rewrite_vals_mapper ~program !rewrite_map in
-      IMap.iter (fun _ block -> rewrite_mapper#map_block block) program.blocks;
+      program_iter_blocks program rewrite_mapper#map_block;
       rewrite_map := IMap.empty;
       iter ()
   in
@@ -80,8 +75,7 @@ and consolidate_adjacent_blocks ~program =
   let removed_blocks = ref BlockSet.empty in
   (* Iterate to fixpoint *)
   let rec iter () =
-    IMap.iter
-      (fun _ (block : Block.t) ->
+    program_iter_blocks program (fun (block : Block.t) ->
         (* Can only consolidate this block if it continues to a block with no other previous blocks,
            and the next block has no phis (as phi arg vars may have been defined in this block). *)
         match block.next with
@@ -96,10 +90,9 @@ and consolidate_adjacent_blocks ~program =
             && not next_block_is_start
           then (
             removed_blocks := BlockSet.add next_block !removed_blocks;
-            Ocx.merge_adjacent_blocks ~program block next_block
+            Ocx.merge_adjacent_blocks block next_block
           )
-        | _ -> ())
-      program.blocks;
+        | _ -> ());
     if BlockSet.is_empty !removed_blocks then
       ()
     else (

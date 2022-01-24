@@ -164,7 +164,6 @@ end =
 and Program : sig
   type t = {
     mutable main_label: label;
-    mutable blocks: Block.t IMap.t;
     mutable globals: Global.t SMap.t;
     mutable funcs: Function.t SMap.t;
     mutable types: Aggregate.t SMap.t;
@@ -245,6 +244,7 @@ and Function : sig
     params: Argument.t list;
     return_type: Type.t option;
     mutable start_block: Block.t;
+    mutable blocks: BlockSet.t;
   }
 end =
   Function
@@ -287,6 +287,7 @@ let rec null_function : Function.t =
     params = [];
     return_type = None;
     start_block = null_block;
+    blocks = BlockSet.empty;
   }
 
 (* A placeholder block, to avoid having to represent Option<Block> with its extra allocation *)
@@ -397,8 +398,6 @@ let cast_to_phi (instr : Instruction.t) : Instruction.Phi.t =
 let mk_continue continue = Block.Continue continue
 
 let mk_branch test continue jump = Block.Branch { test; continue; jump }
-
-let get_block ~ir block_id = IMap.find block_id ir.Program.blocks
 
 let int64_of_literal lit =
   match lit with
@@ -560,8 +559,13 @@ let get_next_blocks (block : Block.t) : BlockSet.t =
   | Continue continue -> BlockSet.singleton continue
   | Branch { test = _; jump; continue } -> BlockSet.add jump (BlockSet.singleton continue)
 
+let func_iter_blocks (func : Function.t) (f : Block.t -> unit) = BlockSet.iter f func.blocks
+
+let program_iter_blocks (program : Program.t) (f : Block.t -> unit) =
+  SMap.iter (fun _ func -> func_iter_blocks func f) program.funcs
+
 (* Map block's next block from a block to another block. Do not update any phi references. *)
-and map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
+let map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
   let map_next_block maybe_from =
     if maybe_from == from then (
       from.prev_blocks <- BlockSet.remove block from.prev_blocks;
@@ -585,20 +589,29 @@ and map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
         Branch { test; continue = new_continue; jump = new_jump })
 
 (* Split an edge between two blocks, inserting an empty block in the middle *)
-let split_block_edge ~(program : Program.t) (prev_block : Block.t) (next_block : Block.t) : Block.t
-    =
+let split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
+  let func = prev_block.func in
   let new_block =
     {
       Block.id = mk_block_id ();
-      func = prev_block.func;
+      func;
       instructions = None;
       next = Continue next_block;
       prev_blocks = BlockSet.singleton prev_block;
     }
   in
-  program.blocks <- IMap.add new_block.id new_block program.blocks;
+  func.blocks <- BlockSet.add new_block func.blocks;
   map_next_block prev_block ~from:next_block ~to_:new_block;
   new_block
+
+let string_of_block_set (blocks : BlockSet.t) : string =
+  let elements =
+    BlockSet.to_seq blocks
+    |> List.of_seq
+    |> List.map (fun block -> string_of_int block.Block.id)
+    |> String.concat ", "
+  in
+  "(" ^ elements ^ ")"
 
 module VSet = Set.Make (Value)
 module VMap = Map.Make (Value)
