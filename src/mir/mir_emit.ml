@@ -23,12 +23,7 @@ let rec emit (pcx : Pcx.t) : Program.t =
   register_function_declarations ~ecx;
   emit_pending ~ecx;
   finish_init_function ~ecx;
-  {
-    Program.main_label = ecx.main_label;
-    globals = ecx.globals;
-    funcs = ecx.funcs;
-    types = ecx.types;
-  }
+  ecx.program
 
 and iter_toplevels ~ecx f =
   List.iter (fun (_, m) -> List.iter f m.Ast.Module.toplevels) ecx.Ecx.pcx.modules
@@ -144,7 +139,7 @@ and emit_pending ~ecx =
 and emit_global_variable_declaration ~ecx name decl =
   let { Statement.VariableDeclaration.init; _ } = decl in
   (* Build IR for variable init *)
-  let global = SMap.find name ecx.globals in
+  let global = SMap.find name ecx.program.globals in
   let binding = Bindings.get_value_binding ecx.pcx.bindings global.loc in
   let init_val =
     Ecx.emit_init_section ~ecx (fun _ ->
@@ -213,14 +208,17 @@ and emit_function_body ~ecx name decl =
   in
 
   (* The main function must always return an Int *)
+  let is_main_func = loc = Option.get ecx.pcx.main_loc in
   let return_ty = Ecx.find_rep_non_generic_type ~ecx func_decl.return in
   let return_type =
-    if ecx.main_label = name then
+    if is_main_func then
       Some Type.Int
     else
       Ecx.to_mir_type ~ecx return_ty
   in
   Ecx.start_function ~ecx ~loc ~name ~params ~return_type;
+
+  if is_main_func then ecx.program.main_func <- ecx.current_func;
 
   (* Set up return value and return block *)
   let return_block = Ecx.mk_block ~ecx in
@@ -251,7 +249,7 @@ and emit_function_body ~ecx name decl =
     (match ecx.current_block with
     | Some { next = Halt; _ } ->
       (* Handle implicit return from main *)
-      ( if name = ecx.main_label then
+      ( if is_main_func then
         let return_pointer = Option.get return_pointer in
         Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:(mk_int_lit_of_int32 Int32.zero)) );
       Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
@@ -269,7 +267,7 @@ and emit_function_body ~ecx name decl =
 
 and emit_trampoline_function ~(ecx : Ecx.t) name =
   (* Trampolines are created after wrapped function, so we can always lookup the function IR object *)
-  let func = SMap.find name ecx.funcs in
+  let func = SMap.find name ecx.program.funcs in
   let trampoline_name = Ecx.mk_trampoline_name name in
 
   (* Copy parameters to new parameters with same type but for trampoline function, except receiver
@@ -1984,7 +1982,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     let arg = Option_utils.flat_map (emit_expression ~ecx) arg in
     (* Handle implicit return from main function *)
     let arg =
-      if arg = None && ecx.current_func.name = ecx.main_label then
+      if arg = None && ecx.current_func == ecx.program.main_func then
         Some (mk_int_lit_of_int32 0l)
       else
         arg

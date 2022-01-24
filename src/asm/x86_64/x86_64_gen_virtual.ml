@@ -98,7 +98,7 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
 and gen_function_instruction_builder ~gcx ~ir func =
   let func_ = Gcx.start_function ~gcx [] 0 in
   let label =
-    if func.name = ir.main_label then
+    if func == ir.main_func then
       main_label
     else
       label_of_mir_label func.name

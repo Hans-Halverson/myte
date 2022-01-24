@@ -163,10 +163,10 @@ end =
 
 and Program : sig
   type t = {
-    mutable main_label: label;
     mutable globals: Global.t SMap.t;
     mutable funcs: Function.t SMap.t;
     mutable types: Aggregate.t SMap.t;
+    mutable main_func: Function.t;
   }
 end =
   Program

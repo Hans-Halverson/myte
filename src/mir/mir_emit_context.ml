@@ -30,11 +30,8 @@ end
 
 type t = {
   pcx: Program_context.t;
-  (* Data structures for MIR *)
+  mutable program: Program.t;
   mutable main_label: label;
-  mutable globals: Global.t SMap.t;
-  mutable funcs: Function.t SMap.t;
-  mutable types: Aggregate.t SMap.t;
   mutable current_block: Block.t option;
   mutable current_func: Function.t;
   mutable current_func_context: FunctionContext.t;
@@ -85,19 +82,25 @@ type t = {
 
 let mk_aggregate ~ecx name loc elements =
   let aggregate = { Aggregate.id = mk_aggregate_id (); name; loc; elements } in
-  ecx.types <- SMap.add name aggregate ecx.types;
+  ecx.program.types <- SMap.add name aggregate ecx.program.types;
   aggregate
 
 (* Create a placeholder aggregate (during type instantiation) that will be filled in later *)
 let mk_placeholder_aggregate ~ecx name loc = mk_aggregate ~ecx name loc []
 
 let mk ~pcx =
+  let program =
+    {
+      Program.globals = SMap.empty;
+      funcs = SMap.empty;
+      types = SMap.empty;
+      main_func = null_function;
+    }
+  in
   {
     pcx;
+    program;
     main_label = "";
-    globals = SMap.empty;
-    funcs = SMap.empty;
-    types = SMap.empty;
     current_block = None;
     current_func = null_function;
     current_func_context = FunctionContext.null;
@@ -134,7 +137,7 @@ let mk_trampoline_name name = "_trampoline$" ^ name
 
 let add_global ~ecx global =
   let name = global.Global.name in
-  ecx.globals <- SMap.add name global ecx.globals
+  ecx.program.globals <- SMap.add name global ecx.program.globals
 
 (* Emit and return an instruction value, adding instruction to end of current block *)
 let emit ~ecx (instr : Instruction.t) : Value.t =
@@ -221,7 +224,7 @@ let emit_init_section ~ecx f =
   let old_in_init = ecx.in_init in
   let old_func = ecx.current_func in
   ecx.in_init <- true;
-  ecx.current_func <- SMap.find init_func_name ecx.funcs;
+  ecx.current_func <- SMap.find init_func_name ecx.program.funcs;
 
   let init_block = start_new_block ~ecx in
 
@@ -326,7 +329,7 @@ let start_function ~ecx ~loc ~name ~params ~return_type =
   let func =
     { Function.loc; name; params; return_type; start_block = null_block; blocks = BlockSet.empty }
   in
-  ecx.funcs <- SMap.add name func ecx.funcs;
+  ecx.program.funcs <- SMap.add name func ecx.program.funcs;
   ecx.current_func <- func;
   (* Create start block for function *)
   let start_block = start_new_block ~ecx in
@@ -395,7 +398,7 @@ and instantiate_mir_adt_layout
          placeholder aggregate that was temporarily created. This is safe, meaning no other types
          can reference the placeholder aggregate, because if they did this would not have had only
          zero size elements. *)
-      ecx.types <- SMap.remove parameterized_name ecx.types;
+      ecx.program.types <- SMap.remove parameterized_name ecx.program.types;
       set_layout ZeroSize;
       ZeroSize
     )
@@ -739,7 +742,7 @@ and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
 
 and get_zero_size_type ~ecx =
   (* Add zero size type if it does not already exist *)
-  match SMap.find_opt zero_size_name ecx.types with
+  match SMap.find_opt zero_size_name ecx.program.types with
   | None ->
     let agg = mk_placeholder_aggregate ~ecx zero_size_name Loc.none in
     Aggregate agg
@@ -748,7 +751,7 @@ and get_zero_size_type ~ecx =
 and get_zero_size_global_pointer ~ecx =
   (* Add zero size global if it does not already exist *)
   let zero_size_type = get_zero_size_type ~ecx in
-  if not (SMap.mem zero_size_name ecx.globals) then
+  if not (SMap.mem zero_size_name ecx.program.globals) then
     add_global
       ~ecx
       {
@@ -765,7 +768,7 @@ and get_zero_size_global_pointer ~ecx =
  *)
 and get_nongeneric_function_value ~(ecx : t) (name : label) : Value.t =
   (* Mark function as pending if it has not yet been generated *)
-  (match SMap.find_opt name ecx.funcs with
+  (match SMap.find_opt name ecx.program.funcs with
   | None -> ecx.pending_nongeneric_funcs <- SSet.add name ecx.pending_nongeneric_funcs
   | Some _ -> ());
   Mir_builders.mk_func_lit name
@@ -785,7 +788,7 @@ and mark_pending_nongeneric_function_completed ~ecx name =
  *)
 and get_trampoline_function ~(ecx : t) (name : label) : label =
   (* Mark function as pending if it has not yet been generated *)
-  (match SMap.find_opt name ecx.funcs with
+  (match SMap.find_opt name ecx.program.funcs with
   | None -> ecx.pending_trampoline_funcs <- SSet.add name ecx.pending_trampoline_funcs
   | Some _ -> ());
   mk_trampoline_name name
@@ -956,7 +959,7 @@ let pop_pending_generic_func_instantiation ~ecx =
 let get_global_pointer ~ecx binding : Value.t option =
   let loc = binding.Bindings.ValueBinding.loc in
   let name = mk_value_binding_name binding in
-  match SMap.find_opt name ecx.globals with
+  match SMap.find_opt name ecx.program.globals with
   (* Global will be in MIR globals map if it has already been created or is pending *)
   | Some global -> Some (Mir_builders.mk_ptr_lit global.ty global.name)
   | None ->
