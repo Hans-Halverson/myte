@@ -13,7 +13,7 @@ let mk_int_lit_of_int32 (n : Int32.t) : Value.t = Lit (Int n)
 
 let mk_long_lit (n : Int64.t) : Value.t = Lit (Long n)
 
-let mk_ptr_lit (type_ : Type.t) (label : label) : Value.t = Lit (Pointer (type_, label))
+let mk_global_lit (global : Global.t) : Value.t = Lit (Global global)
 
 let mk_null_ptr_lit (type_ : Type.t) : Value.t = Lit (NullPointer type_)
 

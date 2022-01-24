@@ -235,14 +235,14 @@ class calc_constants_visitor ~program =
 
             method! map_instruction instruction =
               match instruction.instr with
-              | Store (Lit (Pointer (_, name)), value) ->
-                (match (SMap.find_opt name program.globals, value) with
-                | (Some global, Instr { id = instr_id; _ }) ->
+              | Store (Lit (Global global), value) ->
+                (match value with
+                | Instr { id = instr_id; _ } ->
                   (match IMap.find_opt instr_id instr_constants with
                   | Some constant ->
                     mapper#mark_instruction_removed ();
                     if global.is_constant then
-                      this#add_global_constant name constant
+                      this#add_global_constant global.name constant
                     else
                       global.init_val <- Some (mir_value_of_constant constant)
                   | None -> ())
@@ -379,8 +379,8 @@ class calc_constants_visitor ~program =
       | Trunc arg -> try_fold_conversion instr.id arg (TruncOp instr.type_)
       | SExt arg -> try_fold_conversion instr.id arg (SExtOp instr.type_)
       (* Propagate global constants through pointers *)
-      | Load (Lit (Pointer (_, label))) ->
-        (match SMap.find_opt label global_constants with
+      | Load (Lit (Global global)) ->
+        (match SMap.find_opt global.name global_constants with
         | None -> ()
         | Some constant -> this#add_constant instr.id constant)
       | Phi phi -> this#visit_phi_node instr phi

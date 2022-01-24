@@ -156,7 +156,7 @@ and emit_global_variable_declaration ~ecx name decl =
             Some init_val
           else (
             (* Otherwise value must be calculated and stored at runtime *)
-            Ecx.emit_ ~ecx (mk_store ~ptr:(mk_ptr_lit global.ty name) ~value:init_val);
+            Ecx.emit_ ~ecx (mk_store ~ptr:(mk_global_lit global) ~value:init_val);
             None
           ))
   in

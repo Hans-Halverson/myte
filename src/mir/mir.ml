@@ -36,7 +36,7 @@ and Literal : sig
     | Byte of int
     | Int of Int32.t
     | Long of Int64.t
-    | Pointer of Type.t * label
+    | Global of Global.t
     | NullPointer of Type.t
     | Function of label
     | ArrayString of string
@@ -230,7 +230,7 @@ and Global : sig
   type t = {
     name: label;
     loc: Loc.t;
-    ty: Type.t;
+    type_: Type.t;
     mutable init_val: Value.t option;
     is_constant: bool;
   }
@@ -313,7 +313,7 @@ and type_of_literal (lit : Literal.t) : Type.t =
   | Int _ -> Int
   | Long _ -> Long
   | Function _ -> Function
-  | Pointer (ty, _) -> Pointer ty
+  | Global global -> Pointer global.type_
   | NullPointer ty -> Pointer ty
   | ArrayString str -> Array (Byte, String.length str)
   | ArrayVtable (size, _) -> Array (Function, size)
@@ -368,7 +368,7 @@ and literals_equal (lit1 : Literal.t) (lit2 : Literal.t) : bool =
   | (Int i1, Int i2) -> Int32.equal i1 i2
   | (Long l1, Long l2) -> Int64.equal l1 l2
   | (Function label1, Function label2) -> label1 = label2
-  | (Pointer (_, label1), Pointer (_, label2)) -> label1 = label2
+  | (Global global1, Global global2) -> global1 == global2
   | (ArrayString str1, ArrayString str2) -> String.equal str1 str2
   | (ArrayVtable (size1, labels1), ArrayVtable (size2, labels2)) ->
     size1 = size2 && List.for_all2 String.equal labels1 labels2
@@ -581,7 +581,7 @@ let map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
     | Branch { test; continue; jump } ->
       let new_continue = map_next_block continue in
       let new_jump = map_next_block jump in
-      (* If both branches point to same label convert to continue *)
+      (* If both branches point to same block convert to continue *)
       if new_continue == new_jump then
         Continue new_continue
       else

@@ -92,7 +92,9 @@ and pp_global ~cx global =
     | Some init_val -> pp_value ~cx init_val
   in
   let open Global in
-  let global_label = Printf.sprintf "global %s @%s = %s\n" (pp_type global.ty) global.name init in
+  let global_label =
+    Printf.sprintf "global %s @%s = %s\n" (pp_type global.type_) global.name init
+  in
   global_label
 
 and pp_func ~cx func =
@@ -221,7 +223,7 @@ and pp_literal lit =
   | Int i -> Int32.to_string i
   | Long i -> Int64.to_string i
   | Function label
-  | Pointer (_, label) ->
+  | Global { name = label; _ } ->
     "@" ^ label
   | NullPointer _ -> "null"
   | ArrayString str -> "\"" ^ str ^ "\""

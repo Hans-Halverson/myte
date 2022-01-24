@@ -64,9 +64,9 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
   | _ when global.name = zero_size_name -> ()
   (* If uninitialized, place global variable in bss section *)
   | None ->
-    let size = Gcx.size_of_mir_type ~gcx global.ty in
-    let align = Gcx.alignment_of_mir_type ~gcx global.ty in
-    let is_pointer = is_pointer_type global.ty in
+    let size = Gcx.size_of_mir_type ~gcx global.type_ in
+    let align = Gcx.alignment_of_mir_type ~gcx global.type_ in
+    let is_pointer = is_pointer_type global.type_ in
     Gcx.add_bss ~gcx { label; value = (); size; is_pointer } align
   (* Array literal is known at compile time, so insert into initialized data section *)
   | Some (Lit (ArrayString data)) ->
@@ -77,9 +77,9 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     let size = List.length label_values * pointer_size in
     Gcx.add_data ~gcx { label; value = LabelData label_values; size; is_pointer = false }
   (* Pointer and function literals are labels, so insert into initialized data section *)
-  | Some (Lit (Pointer (_, init_label)))
+  | Some (Lit (Global { name = init_label; _ }))
   | Some (Lit (Function init_label)) ->
-    let is_pointer = is_pointer_type global.ty in
+    let is_pointer = is_pointer_type global.type_ in
     let data = { label; value = LabelData [init_label]; size = pointer_size; is_pointer } in
     Gcx.add_data ~gcx data
   (* Global is initialized to immediate, so insert into initialized data section *)
@@ -87,7 +87,7 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     (match resolve_ir_value ~gcx ~allow_imm64:true init_val with
     | SImm imm ->
       let size = bytes_of_size (size_of_immediate imm) in
-      let is_pointer = is_pointer_type global.ty in
+      let is_pointer = is_pointer_type global.type_ in
       let data = { label; value = ImmediateData imm; size; is_pointer } in
       Gcx.add_data ~gcx data
     | SAddr _
@@ -502,7 +502,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
     let src =
       match pointer with
-      | Lit (Pointer (_, label)) -> mk_label_memory_address label
+      | Lit (Global { name; _ }) -> mk_label_memory_address name
       | _ ->
         (match resolve_ir_value pointer with
         | SVReg (vreg, _) ->
@@ -537,7 +537,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let value = resolve_ir_value ~allow_imm64:true value in
     let dest =
       match pointer with
-      | Lit (Pointer (_, label)) -> mk_label_memory_address label
+      | Lit (Global { Global.name; _ }) -> mk_label_memory_address name
       | _ ->
         (match resolve_ir_value pointer with
         | SVReg (vreg, _) ->
@@ -1122,8 +1122,8 @@ and gen_get_pointer
 
   (* Add address of root pointer *)
   (match pointer with
-  | Lit (Pointer (_, label)) ->
-    offset := Some (LabelOffset (label_of_mir_label label));
+  | Lit (Global global) ->
+    offset := Some (LabelOffset (label_of_mir_label global.name));
     base := IPBase
   | _ ->
     (match resolve_ir_value ~gcx pointer with
@@ -1257,7 +1257,7 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
       Gcx.emit ~gcx Instruction.(MovIM (Size64, Imm64 l, Reg vreg));
       SVReg (vreg, Size64)
   | Lit (Function name) -> SAddr (mk_label_memory_address name)
-  | Lit (Pointer (_, label)) -> SAddr (mk_label_memory_address label)
+  | Lit (Global { name; _ }) -> SAddr (mk_label_memory_address name)
   | Lit (NullPointer _) -> SImm (Imm64 0L)
   | Lit (ArrayString _)
   | Lit (ArrayVtable _) ->
@@ -1320,5 +1320,5 @@ and label_of_mir_label label = Str.global_replace invalid_label_chars "$" label
 
 and is_zero_size_global value =
   match value with
-  | Lit (Pointer (_, name)) when name = zero_size_name -> true
+  | Lit (Global { name; _ }) when name = zero_size_name -> true
   | _ -> false

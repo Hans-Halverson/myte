@@ -260,18 +260,17 @@ let add_mutable_string_literal ~ecx loc string =
     prefix ^ string_of_int id
   in
   let length = String.length string in
-  let ty = Type.Array (Byte, length) in
   let global =
     {
       Global.loc;
       name;
-      ty;
+      type_ = Type.Array (Byte, length);
       init_val = Some (Mir_builders.mk_array_string_lit string);
       is_constant = true;
     }
   in
   add_global ~ecx global;
-  Mir_builders.mk_ptr_lit ty name
+  Mir_builders.mk_global_lit global
 
 let add_immutable_string_literal ~ecx string =
   match SMap.find_opt string ecx.immutable_string_literals with
@@ -290,7 +289,7 @@ let add_immutable_string_literal ~ecx string =
       {
         Global.loc = Loc.none;
         name = value_name;
-        ty = value_ty;
+        type_ = value_ty;
         init_val = Some (Mir_builders.mk_array_string_lit string);
         is_constant = true;
       }
@@ -303,7 +302,7 @@ let add_immutable_string_literal ~ecx string =
       {
         Global.loc = Loc.none;
         name = size_name;
-        ty = Int;
+        type_ = Int;
         init_val = Some (Mir_builders.mk_int_lit size);
         is_constant = true;
       }
@@ -313,8 +312,8 @@ let add_immutable_string_literal ~ecx string =
     (* Intern globals for new immutable string *)
     let imm_string =
       {
-        ImmutableString.value_global_val = Mir_builders.mk_ptr_lit value_ty value_name;
-        size_global_val = Mir_builders.mk_ptr_lit Int size_name;
+        ImmutableString.value_global_val = Mir_builders.mk_global_lit value_global;
+        size_global_val = Mir_builders.mk_global_lit size_global;
       }
     in
     ecx.immutable_string_literals <- SMap.add string imm_string ecx.immutable_string_literals;
@@ -673,16 +672,17 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
 
     (* Create global for vtable and save pointer to it *)
     let vtable_label = Printf.sprintf "_vtable$%s$%s" full_adt_name full_trait_name in
-    add_global
-      ~ecx
+    let vtable_global =
       {
         Global.loc = adt_sig.loc;
         name = vtable_label;
-        ty = vtable_mir_type;
+        type_ = vtable_mir_type;
         init_val = Some vtable_val;
         is_constant = true;
-      };
-    let vtable = Mir_builders.mk_ptr_lit vtable_mir_type vtable_label in
+      }
+    in
+    add_global ~ecx vtable_global;
+    let vtable = Mir_builders.mk_global_lit vtable_global in
 
     (* Create aggregate type for type's trait object *)
     let agg_label = Printf.sprintf "_object$%s$%s" full_adt_name full_trait_name in
@@ -751,17 +751,23 @@ and get_zero_size_type ~ecx =
 and get_zero_size_global_pointer ~ecx =
   (* Add zero size global if it does not already exist *)
   let zero_size_type = get_zero_size_type ~ecx in
-  if not (SMap.mem zero_size_name ecx.program.globals) then
-    add_global
-      ~ecx
-      {
-        Global.loc = Loc.none;
-        name = zero_size_name;
-        ty = zero_size_type;
-        init_val = None;
-        is_constant = false;
-      };
-  Mir_builders.mk_ptr_lit zero_size_type zero_size_name
+  let zero_size_global =
+    match SMap.find_opt zero_size_name ecx.program.globals with
+    | Some global -> global
+    | None ->
+      let global =
+        {
+          Global.loc = Loc.none;
+          name = zero_size_name;
+          type_ = zero_size_type;
+          init_val = None;
+          is_constant = false;
+        }
+      in
+      add_global ~ecx global;
+      global
+  in
+  Mir_builders.mk_global_lit zero_size_global
 
 (*
  * Nongeneric Functions
@@ -961,23 +967,24 @@ let get_global_pointer ~ecx binding : Value.t option =
   let name = mk_value_binding_name binding in
   match SMap.find_opt name ecx.program.globals with
   (* Global will be in MIR globals map if it has already been created or is pending *)
-  | Some global -> Some (Mir_builders.mk_ptr_lit global.ty global.name)
+  | Some global -> Some (Mir_builders.mk_global_lit global)
   | None ->
     let var_decl = Bindings.get_var_decl binding in
     (match to_mir_type ~ecx (find_rep_non_generic_type ~ecx (TVar var_decl.tvar)) with
     (* Global does not exist if it has zero size type *)
     | None -> None
-    | Some ty ->
+    | Some type_ ->
       (* Add global to pending globals queue *)
       let decl_node = LocMap.find loc ecx.global_variable_decl_nodes in
       ecx.pending_globals <- SMap.add name decl_node ecx.pending_globals;
 
       (* Add global to MIR globals map *)
-      add_global
-        ~ecx
-        { Global.loc; name; ty; init_val = None; is_constant = decl_node.kind = Immutable };
+      let global =
+        { Global.loc; name; type_; init_val = None; is_constant = decl_node.kind = Immutable }
+      in
+      add_global ~ecx global;
 
-      Some (Mir_builders.mk_ptr_lit ty name))
+      Some (Mir_builders.mk_global_lit global))
 
 let pop_pending_global ~ecx =
   match SMap.choose_opt ecx.pending_globals with
