@@ -38,9 +38,14 @@ and Literal : sig
     | Long of Int64.t
     | Global of Global.t
     | NullPointer of Type.t
-    | Function of label
+    | Function of Function.t
+    (* A builtin MIR function *)
+    | MirBuiltin of Builtin.t
+    (* A builtin Myte function that may be translated into a MIR function or inlined
+       as a series of instructions *)
+    | MyteBuiltin of string
     | ArrayString of string
-    | ArrayVtable of int * label list
+    | ArrayVtable of int * Function.t list
 end =
   Literal
 
@@ -79,16 +84,12 @@ and Instruction : sig
 
   module Call : sig
     type t = {
-      func: func;
+      func: Value.t;
       args: Value.t list;
       (* If true then instruction's type_ is call's return type. If false then instruction's
          type_ is undefined *)
       has_return: bool;
     }
-
-    and func =
-      | Value of (* Function *) Value.t
-      | Builtin of Builtin.t
   end
 
   type comparison =
@@ -240,14 +241,26 @@ end =
 and Function : sig
   type t = {
     name: label;
-    loc: Loc.t;
-    params: Argument.t list;
-    return_type: Type.t option;
+    mutable loc: Loc.t;
+    mutable params: Argument.t list;
+    mutable return_type: Type.t option;
     mutable start_block: Block.t;
     mutable blocks: BlockSet.t;
   }
-end =
-  Function
+
+  val compare : t -> t -> int
+end = struct
+  type t = {
+    name: label;
+    mutable loc: Loc.t;
+    mutable params: Argument.t list;
+    mutable return_type: Type.t option;
+    mutable start_block: Block.t;
+    mutable blocks: BlockSet.t;
+  }
+
+  let compare f1 f2 = String.compare f1.name f2.name
+end
 
 and Builtin : sig
   type t = {
@@ -259,6 +272,7 @@ end =
 
 and BlockSet : (Set.S with type elt = Block.t) = Set.Make (Block)
 and BlockMap : (Map.S with type key = Block.t) = Map.Make (Block)
+and FunctionSet : (Set.S with type elt = Function.t) = Set.Make (Function)
 
 and BlockMMap : (MultiMap.S with type key = Block.t and type value = Block.t) =
   MultiMap.Make (Block) (Block)
@@ -312,7 +326,10 @@ and type_of_literal (lit : Literal.t) : Type.t =
   | Byte _ -> Byte
   | Int _ -> Int
   | Long _ -> Long
-  | Function _ -> Function
+  | Function _
+  | MirBuiltin _
+  | MyteBuiltin _ ->
+    Function
   | Global global -> Pointer global.type_
   | NullPointer ty -> Pointer ty
   | ArrayString str -> Array (Byte, String.length str)
@@ -323,9 +340,9 @@ let pointer_value_element_type (ptr : Value.t) : Type.t =
   | Pointer element_type -> element_type
   | _ -> failwith "Expected pointer type"
 
-let cast_to_function_literal (func : Value.t) : label =
+let cast_to_function_literal (func : Value.t) : Function.t =
   match func with
-  | Lit (Function label) -> label
+  | Lit (Function func) -> func
   | _ -> failwith "Expected function literal"
 
 let is_literal (v : Value.t) : bool =
@@ -367,11 +384,11 @@ and literals_equal (lit1 : Literal.t) (lit2 : Literal.t) : bool =
   | (Byte b1, Byte b2) -> b1 = b2
   | (Int i1, Int i2) -> Int32.equal i1 i2
   | (Long l1, Long l2) -> Int64.equal l1 l2
-  | (Function label1, Function label2) -> label1 = label2
+  | (Function func1, Function func2) -> func1 == func2
   | (Global global1, Global global2) -> global1 == global2
   | (ArrayString str1, ArrayString str2) -> String.equal str1 str2
-  | (ArrayVtable (size1, labels1), ArrayVtable (size2, labels2)) ->
-    size1 = size2 && List.for_all2 String.equal labels1 labels2
+  | (ArrayVtable (size1, funcs1), ArrayVtable (size2, funcs2)) ->
+    size1 = size2 && List.for_all2 (fun func1 func2 -> func1 == func2) funcs1 funcs2
   | _ -> false
 
 let values_have_same_type (v1 : Value.t) (v2 : Value.t) : bool =

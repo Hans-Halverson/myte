@@ -9,7 +9,7 @@ type folded_constant =
   | IntConstant of Int32.t
   | LongConstant of Int64.t
   | BoolConstant of bool
-  | FunctionConstant of string
+  | FunctionConstant of Function.t
 
 type conversion_op =
   | TruncOp of Type.t
@@ -129,7 +129,7 @@ let folded_constants_equal c1 c2 =
   | (IntConstant i1, IntConstant i2) -> Int32.equal i1 i2
   | (LongConstant i1, LongConstant i2) -> Int64.equal i1 i2
   | (BoolConstant b1, BoolConstant b2) -> b1 = b2
-  | (FunctionConstant s1, FunctionConstant s2) -> s1 = s2
+  | (FunctionConstant f1, FunctionConstant f2) -> f1 == f2
   | _ -> false
 
 let mir_value_of_constant constant =

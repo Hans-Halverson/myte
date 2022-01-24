@@ -222,13 +222,15 @@ and pp_literal lit =
   | Byte i -> string_of_int i
   | Int i -> Int32.to_string i
   | Long i -> Int64.to_string i
-  | Function label
-  | Global { name = label; _ } ->
-    "@" ^ label
+  | Function { name; _ }
+  | Global { name; _ } ->
+    "@" ^ name
+  | MirBuiltin { name; _ } -> name
+  | MyteBuiltin _ -> failwith "TODO: MyteBuiltins cannot appear in MIR"
   | NullPointer _ -> "null"
   | ArrayString str -> "\"" ^ str ^ "\""
   | ArrayVtable (_, funcs) ->
-    let funcs = List.map (fun func -> "@" ^ func) funcs in
+    let funcs = List.map (fun func -> "@" ^ func.Function.name) funcs in
     "[" ^ String.concat ", " funcs ^ "]"
 
 and pp_type ty = type_to_string ty
@@ -281,11 +283,7 @@ and pp_instruction ~cx instr =
       in
       pp_instr (Printf.sprintf "Phi %s %s" (pp_type instr.type_) args_string)
     | Call { func; args; has_return } ->
-      let func_string =
-        match func with
-        | Value func -> pp_value ~cx func
-        | Builtin { name; _ } -> name
-      in
+      let func_string = pp_value ~cx func in
       let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
       if has_return then
         pp_instr (Printf.sprintf "Call %s %s(%s)" (pp_type instr.type_) func_string args_string)

@@ -49,20 +49,22 @@ type t = {
   (* Trait signature id to its corresponding trait object vtables *)
   mutable trait_sig_to_trait_object_layout: MirTraitObjectLayout.t IMap.t;
   (* Names for all nongeneric functions that are pending generation *)
-  mutable pending_nongeneric_funcs: SSet.t;
+  mutable pending_nongeneric_funcs: FunctionSet.t;
   (* Names for all trampoline functions that are pending generation *)
-  mutable pending_trampoline_funcs: SSet.t;
+  mutable pending_trampoline_funcs: FunctionSet.t;
   (* All AST nodes for all globals that should be generated, indexed by their full name *)
   mutable pending_globals: Ast.Statement.VariableDeclaration.t SMap.t;
   (* All tuple types used in this program, keyed by their type arguments *)
   mutable tuple_instantiations: Aggregate.t TypeArgsHashtbl.t;
   (* All instances of generic functions used in this program that have been generated so far,
      uniquely identifier by the generic function name and its type arguments. *)
-  mutable generic_func_instantiations: unit TypeArgsHashtbl.t SMap.t;
+  mutable generic_func_instantiations: Function.t TypeArgsHashtbl.t SMap.t;
   (* All instances of generic functions that must still be generated. This must be empty for the
-     emit pass to be complete. Keys are the generic function name and its type arguments, and
-     value is a map of type parameter bindings to be used when generating the function instance. *)
-  mutable pending_generic_func_instantiations: Types.Type.t IMap.t TypeArgsHashtbl.t SMap.t;
+     emit pass to be complete. Keys are the generic function name and its type arguments, and value
+     is the function and a map of type parameter bindings to be used when generating the function
+     instance. *)
+  mutable pending_generic_func_instantiations:
+    (Function.t * Types.Type.t IMap.t) TypeArgsHashtbl.t SMap.t;
   (* Concrete types bound to type parameters in the current context. This is used when generating
      generic functions. *)
   mutable current_type_param_bindings: Types.Type.t IMap.t;
@@ -117,8 +119,8 @@ let mk ~pcx =
     param_to_argument = LocMap.empty;
     adt_sig_to_mir_layout = IMap.empty;
     trait_sig_to_trait_object_layout = IMap.empty;
-    pending_nongeneric_funcs = SSet.empty;
-    pending_trampoline_funcs = SSet.empty;
+    pending_nongeneric_funcs = FunctionSet.empty;
+    pending_trampoline_funcs = FunctionSet.empty;
     pending_globals = SMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
     generic_func_instantiations = SMap.empty;
@@ -133,7 +135,14 @@ let mk ~pcx =
     immutable_string_literals = SMap.empty;
   }
 
-let mk_trampoline_name name = "_trampoline$" ^ name
+let trampoline_prefix = "_trampoline$"
+
+let mk_trampoline_name name = trampoline_prefix ^ name
+
+let strip_trampoline_name name =
+  let name_length = String.length name in
+  let prefix_length = String.length trampoline_prefix in
+  String.sub name prefix_length (name_length - prefix_length)
 
 let add_global ~ecx global =
   let name = global.Global.name in
@@ -323,13 +332,26 @@ let add_immutable_string_literal ~ecx string =
  * Functions
  *)
 
-let start_function ~ecx ~loc ~name ~params ~return_type =
-  (* Create and set current function *)
+let mk_empty_function ~(ecx : t) ~(name : string) : Function.t =
   let func =
-    { Function.loc; name; params; return_type; start_block = null_block; blocks = BlockSet.empty }
+    {
+      Function.name;
+      loc = Loc.none;
+      params = [];
+      return_type = None;
+      start_block = null_block;
+      blocks = BlockSet.empty;
+    }
   in
   ecx.program.funcs <- SMap.add name func ecx.program.funcs;
+  func
+
+let start_function ~(ecx : t) ~(func : Function.t) ~loc ~params ~return_type =
   ecx.current_func <- func;
+  (* Set properties of current function *)
+  func.loc <- loc;
+  func.params <- params;
+  func.return_type <- return_type;
   (* Create start block for function *)
   let start_block = start_new_block ~ecx in
   func.start_block <- start_block
@@ -769,43 +791,81 @@ and get_zero_size_global_pointer ~ecx =
   in
   Mir_builders.mk_global_lit zero_size_global
 
+and builtin_functions =
+  lazy
+    ( [
+        Std_lib.std_bool_bool_equals;
+        Std_lib.std_byte_byte_equals;
+        Std_lib.std_byte_byte_toInt;
+        Std_lib.std_byte_byte_toLong;
+        Std_lib.std_gc_getHeapSize;
+        Std_lib.std_int_int_equals;
+        Std_lib.std_int_int_toByte;
+        Std_lib.std_int_int_toLong;
+        Std_lib.std_long_long_equals;
+        Std_lib.std_long_long_toByte;
+        Std_lib.std_long_long_toInt;
+        Std_lib.std_memory_array_copy;
+        Std_lib.std_memory_array_isNull;
+        Std_lib.std_memory_array_new;
+        Std_lib.std_io_file_builtin_close;
+        Std_lib.std_io_file_builtin_open;
+        Std_lib.std_io_file_builtin_read;
+        Std_lib.std_io_file_builtin_unlink;
+        Std_lib.std_io_file_builtin_write;
+        Std_lib.std_sys_exit;
+      ]
+    |> SSet.of_list )
+
 (*
  * Nongeneric Functions
  *)
 and get_nongeneric_function_value ~(ecx : t) (name : label) : Value.t =
-  (* Mark function as pending if it has not yet been generated *)
-  (match SMap.find_opt name ecx.program.funcs with
-  | None -> ecx.pending_nongeneric_funcs <- SSet.add name ecx.pending_nongeneric_funcs
-  | Some _ -> ());
-  Mir_builders.mk_func_lit name
+  let builtin_functions = Lazy.force_val builtin_functions in
+  if SSet.mem name builtin_functions then
+    Mir_builders.mk_myte_builtin_lit name
+  else
+    (* Mark function as pending if it has not yet been generated *)
+    let func =
+      match SMap.find_opt name ecx.program.funcs with
+      | Some func -> func
+      | None ->
+        let func = mk_empty_function ~ecx ~name in
+        ecx.pending_nongeneric_funcs <- FunctionSet.add func ecx.pending_nongeneric_funcs;
+        func
+    in
+    Mir_builders.mk_func_lit func
 
 and pop_pending_nongeneric_function ~ecx =
-  match SSet.choose_opt ecx.pending_nongeneric_funcs with
+  match FunctionSet.choose_opt ecx.pending_nongeneric_funcs with
   | None -> None
-  | Some name ->
-    let func_decl = SMap.find name ecx.func_decl_nodes in
-    Some (name, func_decl)
+  | Some func ->
+    let func_decl = SMap.find func.name ecx.func_decl_nodes in
+    Some (func, func_decl)
 
-and mark_pending_nongeneric_function_completed ~ecx name =
-  ecx.pending_nongeneric_funcs <- SSet.remove name ecx.pending_nongeneric_funcs
+and mark_pending_nongeneric_function_completed ~ecx func =
+  ecx.pending_nongeneric_funcs <- FunctionSet.remove func ecx.pending_nongeneric_funcs
 
 (*
  * Trampoline Functions
  *)
-and get_trampoline_function ~(ecx : t) (name : label) : label =
+and get_trampoline_function ~(ecx : t) (inner_func : Function.t) : Function.t =
   (* Mark function as pending if it has not yet been generated *)
-  (match SMap.find_opt name ecx.program.funcs with
-  | None -> ecx.pending_trampoline_funcs <- SSet.add name ecx.pending_trampoline_funcs
-  | Some _ -> ());
-  mk_trampoline_name name
+  let name = mk_trampoline_name inner_func.name in
+  let func =
+    match SMap.find_opt name ecx.program.funcs with
+    | Some func -> func
+    | None ->
+      let func = mk_empty_function ~ecx ~name in
+      ecx.pending_trampoline_funcs <- FunctionSet.add func ecx.pending_trampoline_funcs;
+      func
+  in
+  func
 
-and pop_pending_trampoline_function ~ecx =
-  match SSet.choose_opt ecx.pending_trampoline_funcs with
-  | None -> None
-  | Some name -> Some name
+and pop_pending_trampoline_function ~ecx = FunctionSet.choose_opt ecx.pending_trampoline_funcs
 
-and mark_pending_trampoline_function_completed ~ecx name =
-  ecx.pending_trampoline_funcs <- SSet.remove name ecx.pending_trampoline_funcs
+and mark_pending_trampoline_function_completed ~ecx func =
+  ecx.pending_trampoline_funcs <- FunctionSet.remove func ecx.pending_trampoline_funcs
 
 (*
  * Generic Functions
@@ -828,41 +888,43 @@ and get_generic_function_value
     (key_type_params : Types.TypeParam.t list)
     (key_type_args : Types.Type.t list) : Value.t =
   let key_type_args = List.map (find_rep_non_generic_type ~ecx) key_type_args in
-  let name_with_args =
-    let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx key_type_args in
-    Printf.sprintf "%s%s" name type_args_string
-  in
-  let already_instantiated =
+
+  let already_instantiated_func_opt =
     match SMap.find_opt name ecx.generic_func_instantiations with
-    | None -> false
-    | Some instantiated_type_args ->
-      (match TypeArgsHashtbl.find_opt instantiated_type_args key_type_args with
-      | None -> false
-      | Some _ -> true)
+    | None -> None
+    | Some instantiated_type_args -> TypeArgsHashtbl.find_opt instantiated_type_args key_type_args
   in
-  ( if already_instantiated then
-    ()
-  else
-    let pending_type_args =
-      match SMap.find_opt name ecx.pending_generic_func_instantiations with
-      | None -> TypeArgsHashtbl.create 2
-      | Some pending_instantiation_type_args -> pending_instantiation_type_args
-    in
-    match TypeArgsHashtbl.find_opt pending_type_args key_type_args with
-    | Some _ -> ()
+  let func =
+    match already_instantiated_func_opt with
+    | Some func -> func
     | None ->
-      let instantiated_type_param_bindings =
-        List.fold_left2
-          (fun type_param_bindings { Types.TypeParam.id; _ } arg_rep_ty ->
-            IMap.add id arg_rep_ty type_param_bindings)
-          ecx.current_type_param_bindings
-          key_type_params
-          key_type_args
+      let pending_type_args =
+        match SMap.find_opt name ecx.pending_generic_func_instantiations with
+        | None -> TypeArgsHashtbl.create 2
+        | Some pending_instantiation_type_args -> pending_instantiation_type_args
       in
-      TypeArgsHashtbl.add pending_type_args key_type_args instantiated_type_param_bindings;
-      ecx.pending_generic_func_instantiations <-
-        SMap.add name pending_type_args ecx.pending_generic_func_instantiations );
-  Mir_builders.mk_func_lit name_with_args
+      (match TypeArgsHashtbl.find_opt pending_type_args key_type_args with
+      | Some (func, _) -> func
+      | None ->
+        let name_with_args =
+          let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx key_type_args in
+          Printf.sprintf "%s%s" name type_args_string
+        in
+        let func = mk_empty_function ~ecx ~name:name_with_args in
+        let instantiated_type_param_bindings =
+          List.fold_left2
+            (fun type_param_bindings { Types.TypeParam.id; _ } arg_rep_ty ->
+              IMap.add id arg_rep_ty type_param_bindings)
+            ecx.current_type_param_bindings
+            key_type_params
+            key_type_args
+        in
+        TypeArgsHashtbl.add pending_type_args key_type_args (func, instantiated_type_param_bindings);
+        ecx.pending_generic_func_instantiations <-
+          SMap.add name pending_type_args ecx.pending_generic_func_instantiations;
+        func)
+  in
+  Mir_builders.mk_func_lit func
 
 and get_method_function_value
     ~ecx
@@ -928,6 +990,8 @@ let pop_pending_generic_func_instantiation ~ecx =
       | _ -> failwith "Pending type args table must be nonempty"
     in
 
+    let (func, _) = TypeArgsHashtbl.find pending_type_args type_args in
+
     (* Remove from pending instantiations table *)
     if TypeArgsHashtbl.length pending_type_args = 1 then
       ecx.pending_generic_func_instantiations <-
@@ -945,13 +1009,9 @@ let pop_pending_generic_func_instantiation ~ecx =
           SMap.add name completed_type_args ecx.generic_func_instantiations;
         completed_type_args
     in
-    TypeArgsHashtbl.add instantiations type_args ();
+    TypeArgsHashtbl.add instantiations type_args func;
 
-    let name_with_args =
-      let type_args_string = TypeArgs.to_string ~pcx:ecx.pcx type_args in
-      Printf.sprintf "%s%s" name type_args_string
-    in
-    Some (name, name_with_args, type_param_bindings)
+    Some (name, type_param_bindings)
 
 (*
  * Global Variables

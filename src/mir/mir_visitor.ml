@@ -60,9 +60,7 @@ module IRVisitor = struct
         match instr.instr with
         | Phi phi -> this#visit_phi_node instr phi
         | Call { func; args; has_return = _ } ->
-          (match func with
-          | Value func -> this#visit_value func
-          | Builtin _ -> ());
+          this#visit_value func;
           List.iter this#visit_value args
         | Ret arg_opt -> Option.iter this#visit_value arg_opt
         | StackAlloc _type -> ()

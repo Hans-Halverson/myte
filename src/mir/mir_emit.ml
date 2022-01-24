@@ -98,9 +98,9 @@ and emit_pending ~ecx =
   let rec emit_pending_nongeneric_functions () =
     match Ecx.pop_pending_nongeneric_function ~ecx with
     | None -> ()
-    | Some (name, func_decl) ->
-      emit_nongeneric_function ~ecx name func_decl;
-      Ecx.mark_pending_nongeneric_function_completed ~ecx name;
+    | Some (func, func_decl) ->
+      emit_nongeneric_function ~ecx func func_decl;
+      Ecx.mark_pending_nongeneric_function_completed ~ecx func;
       complete := false;
       emit_pending_nongeneric_functions ()
   in
@@ -119,9 +119,9 @@ and emit_pending ~ecx =
   let rec emit_pending_trampoline_functions () =
     match Ecx.pop_pending_trampoline_function ~ecx with
     | None -> ()
-    | Some name ->
-      emit_trampoline_function ~ecx name;
-      Ecx.mark_pending_trampoline_function_completed ~ecx name;
+    | Some func ->
+      emit_trampoline_function ~ecx func;
+      Ecx.mark_pending_trampoline_function_completed ~ecx func;
       complete := false;
       emit_pending_trampoline_functions ()
   in
@@ -162,15 +162,15 @@ and emit_global_variable_declaration ~ecx name decl =
   in
   global.init_val <- init_val
 
-and emit_nongeneric_function ~ecx name func_decl =
-  if not func_decl.builtin then emit_function_body ~ecx name func_decl
+and emit_nongeneric_function ~ecx func func_decl =
+  if not func_decl.builtin then emit_function_body ~ecx func func_decl
 
-and emit_generic_function_instantiation ~ecx (name, name_with_args, type_param_bindings) =
+and emit_generic_function_instantiation ~ecx (name, (func, type_param_bindings)) =
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
-      if not func_decl_node.builtin then emit_function_body ~ecx name_with_args func_decl_node)
+      if not func_decl_node.builtin then emit_function_body ~ecx func func_decl_node)
 
-and emit_function_body ~ecx name decl =
+and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
   let open Ast.Function in
   let { loc = full_loc; name = { Identifier.loc; _ }; params; body; _ } = decl in
   let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
@@ -186,7 +186,7 @@ and emit_function_body ~ecx name decl =
     List_utils.filter_map2
       (fun { Param.name = { Identifier.loc; _ }; _ } ty ->
         match type_to_mir_type ~ecx ty with
-        | Some mir_type -> Some (Ecx.add_function_argument ~ecx ~func:name loc mir_type)
+        | Some mir_type -> Some (Ecx.add_function_argument ~ecx ~func:func.name loc mir_type)
         | None -> None)
       params
       func_decl.params
@@ -203,7 +203,7 @@ and emit_function_body ~ecx name decl =
         | Some this_type -> this_type
         | None -> Pointer (Ecx.get_zero_size_type ~ecx)
       in
-      Ecx.add_function_argument ~ecx ~func:name full_loc this_type :: params
+      Ecx.add_function_argument ~ecx ~func:func.name full_loc this_type :: params
     | _ -> params
   in
 
@@ -216,7 +216,7 @@ and emit_function_body ~ecx name decl =
     else
       Ecx.to_mir_type ~ecx return_ty
   in
-  Ecx.start_function ~ecx ~loc ~name ~params ~return_type;
+  Ecx.start_function ~ecx ~func ~loc ~params ~return_type;
 
   if is_main_func then ecx.program.main_func <- ecx.current_func;
 
@@ -265,10 +265,10 @@ and emit_function_body ~ecx name decl =
   | Signature -> failwith "Cannot emit function signature");
   Ecx.finish_block_halt ~ecx
 
-and emit_trampoline_function ~(ecx : Ecx.t) name =
+and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   (* Trampolines are created after wrapped function, so we can always lookup the function IR object *)
-  let func = SMap.find name ecx.program.funcs in
-  let trampoline_name = Ecx.mk_trampoline_name name in
+  let func_name = Ecx.strip_trampoline_name trampoline_func.name in
+  let func = SMap.find func_name ecx.program.funcs in
 
   (* Copy parameters to new parameters with same type but for trampoline function, except receiver
      has pointer type since it is boxed. *)
@@ -276,7 +276,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) name =
   let receiver_ptr_arg =
     {
       Argument.id = mk_value_id ();
-      func = trampoline_name;
+      func = trampoline_func.name;
       type_ = Pointer receiver_param.type_;
       decl_loc = receiver_param.decl_loc;
     }
@@ -284,18 +284,18 @@ and emit_trampoline_function ~(ecx : Ecx.t) name =
   let rest_args =
     List.map
       (fun { Argument.type_; decl_loc; _ } ->
-        { Argument.id = mk_value_id (); func = trampoline_name; type_; decl_loc })
+        { Argument.id = mk_value_id (); func = trampoline_func.name; type_; decl_loc })
       rest_params
   in
   let params = receiver_ptr_arg :: rest_args in
 
-  Ecx.start_function ~ecx ~loc:func.loc ~name:trampoline_name ~params ~return_type:func.return_type;
+  Ecx.start_function ~ecx ~func:trampoline_func ~loc:func.loc ~params ~return_type:func.return_type;
 
   (* Load receiver and call the wrapped function, passing original args with loaded receiver *)
   let receiver_arg = Ecx.emit ~ecx (mk_load ~ptr:(Argument receiver_ptr_arg)) in
   let args = receiver_arg :: (List.map (fun arg -> Value.Argument arg)) rest_args in
   let return_val =
-    Ecx.emit ~ecx (mk_call ~func:(mk_func_lit name) ~args ~return:func.return_type)
+    Ecx.emit ~ecx (mk_call ~func:(mk_func_lit func) ~args ~return:func.return_type)
   in
 
   (* Return value from call if applicable *)
@@ -305,7 +305,8 @@ and emit_trampoline_function ~(ecx : Ecx.t) name =
   Ecx.finish_block_halt ~ecx
 
 and start_init_function ~ecx =
-  Ecx.start_function ~ecx ~loc:Loc.none ~name:init_func_name ~params:[] ~return_type:None;
+  let func = Ecx.mk_empty_function ~ecx ~name:init_func_name in
+  Ecx.start_function ~ecx ~func ~loc:Loc.none ~params:[] ~return_type:None;
   ecx.last_init_block <- Some ecx.current_func.start_block
 
 and finish_init_function ~ecx =
@@ -509,7 +510,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       let ty = type_of_loc ~ecx loc in
       let func_val =
         if is_builtin then
-          mk_func_lit func_name
+          mk_myte_builtin_lit func_name
         else if type_params = [] then
           Ecx.get_nongeneric_function_value ~ecx func_name
         else
@@ -1297,19 +1298,14 @@ and emit_call
     | None -> arg_vals
     | Some receiver_val -> receiver_val :: arg_vals
   in
-  (* Generate builtin function *)
   let builtin_functions = Lazy.force_val builtin_functions in
-  let builtin_ret_opt =
-    match func_val with
-    | Lit (Function name) ->
-      (match SMap.find_opt name builtin_functions with
-      | None -> None
-      | Some mk_func -> Some (mk_func ~ecx arg_vals ret_type))
-    | _ -> None
-  in
-  match builtin_ret_opt with
-  | Some ret_val -> ret_val
-  | None ->
+  match func_val with
+  (* Generate Myte builtin function *)
+  | Lit (MyteBuiltin name) ->
+    let mk_func = SMap.find name builtin_functions in
+    mk_func ~ecx arg_vals ret_type
+  (* Generate regular calls *)
+  | _ ->
     (match ret_type with
     | None ->
       Ecx.emit_ ~ecx (mk_call ~func:func_val ~args:arg_vals ~return:None);

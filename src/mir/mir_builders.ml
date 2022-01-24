@@ -17,13 +17,15 @@ let mk_global_lit (global : Global.t) : Value.t = Lit (Global global)
 
 let mk_null_ptr_lit (type_ : Type.t) : Value.t = Lit (NullPointer type_)
 
-let mk_func_lit (label : label) : Value.t = Lit (Function label)
+let mk_func_lit (func : Function.t) : Value.t = Lit (Function func)
+
+let mk_myte_builtin_lit (func : string) : Value.t = Lit (MyteBuiltin func)
 
 let mk_array_string_lit (string : string) : Value.t = Lit (ArrayString string)
 
-let mk_array_vtable_lit (func_labels : label list) : Value.t =
-  let size = List.length func_labels in
-  Lit (ArrayVtable (size, func_labels))
+let mk_array_vtable_lit (funcs : Function.t list) : Value.t =
+  let size = List.length funcs in
+  Lit (ArrayVtable (size, funcs))
 
 (* Instructions *)
 
@@ -74,7 +76,7 @@ let mk_call ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) =
     | Some type_ -> (type_, true)
     | None -> (no_return_type, false)
   in
-  mk_instr ~type_ ~instr:(Call { func = Value func; args; has_return })
+  mk_instr ~type_ ~instr:(Call { func; args; has_return })
 
 let mk_ret ~(arg : Value.t option) = mk_instr ~type_:no_return_type ~instr:(Ret arg)
 

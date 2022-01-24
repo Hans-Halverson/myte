@@ -73,12 +73,14 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     let size = String.length data in
     Gcx.add_data ~gcx { label; value = AsciiData data; size; is_pointer = false }
   | Some (Lit (ArrayVtable (_, func_labels))) ->
-    let label_values = List.map label_of_mir_label func_labels in
+    let label_values =
+      List.map (fun { Mir.Function.name; _ } -> label_of_mir_label name) func_labels
+    in
     let size = List.length label_values * pointer_size in
     Gcx.add_data ~gcx { label; value = LabelData label_values; size; is_pointer = false }
   (* Pointer and function literals are labels, so insert into initialized data section *)
   | Some (Lit (Global { name = init_label; _ }))
-  | Some (Lit (Function init_label)) ->
+  | Some (Lit (Function { name = init_label; _ })) ->
     let is_pointer = is_pointer_type global.type_ in
     let data = { label; value = LabelData [init_label]; size = pointer_size; is_pointer } in
     Gcx.add_data ~gcx data
@@ -440,16 +442,19 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | {
       id = return_id;
       type_ = return_type;
-      instr = Call { func = Value func_val; args = arg_vals; has_return };
+      instr = Call { func = func_val; args = arg_vals; has_return };
       _;
     }
-    :: rest_instructions ->
+    :: rest_instructions
+    when match func_val with
+         | Lit (MirBuiltin _) -> false
+         | _ -> true ->
     (* Emit arguments for call *)
     gen_call_arguments arg_vals;
     (* Emit call instruction *)
     let inst =
       match func_val with
-      | Lit (Function label) -> CallL (label_of_mir_label label)
+      | Lit (Function { name = label; _ }) -> CallL (label_of_mir_label label)
       | _ ->
         let func_mem = emit_mem (resolve_ir_value func_val) in
         CallM (Size64, func_mem)
@@ -838,14 +843,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                Call Builtin
    * ===========================================
    *)
-  | {
-      id = return_id;
-      type_ = return_type;
-      instr = Call { func = Builtin { Builtin.name; _ }; args; _ };
-      _;
-    }
-    :: rest_instructions ->
+  | { id = return_id; type_ = return_type; instr = Call { func; args; _ }; _ } :: rest_instructions
+    ->
     let open Mir_builtin in
+    let name =
+      match func with
+      | Lit (MirBuiltin { name; _ }) -> name
+      | _ -> failwith "Expected MIR builtin"
+    in
     let ret_vreg () = vreg_of_result_value_id return_id in
     (*
      * ===========================================
@@ -1256,8 +1261,10 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
       let vreg = VReg.mk ~resolution:Unresolved in
       Gcx.emit ~gcx Instruction.(MovIM (Size64, Imm64 l, Reg vreg));
       SVReg (vreg, Size64)
-  | Lit (Function name) -> SAddr (mk_label_memory_address name)
+  | Lit (Function { name; _ }) -> SAddr (mk_label_memory_address name)
   | Lit (Global { name; _ }) -> SAddr (mk_label_memory_address name)
+  | Lit (MirBuiltin _) -> failwith "TODO: Cannot compile MIR builtin"
+  | Lit (MyteBuiltin _) -> failwith "TODO: Cannot compile Myte builtin"
   | Lit (NullPointer _) -> SImm (Imm64 0L)
   | Lit (ArrayString _)
   | Lit (ArrayVtable _) ->
