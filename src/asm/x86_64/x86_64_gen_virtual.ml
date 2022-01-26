@@ -442,13 +442,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | {
       id = return_id;
       type_ = return_type;
-      instr = Call { func = func_val; args = arg_vals; has_return };
+      instr = Call { func = Value func_val; args = arg_vals; has_return };
       _;
     }
-    :: rest_instructions
-    when match func_val with
-         | Lit (MirBuiltin _) -> false
-         | _ -> true ->
+    :: rest_instructions ->
     (* Emit arguments for call *)
     gen_call_arguments arg_vals;
     (* Emit call instruction *)
@@ -843,14 +840,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                Call Builtin
    * ===========================================
    *)
-  | { id = return_id; type_ = return_type; instr = Call { func; args; _ }; _ } :: rest_instructions
-    ->
+  | {
+      id = return_id;
+      type_ = return_type;
+      instr = Call { func = MirBuiltin { name; _ }; args; _ };
+      _;
+    }
+    :: rest_instructions ->
     let open Mir_builtin in
-    let name =
-      match func with
-      | Lit (MirBuiltin { name; _ }) -> name
-      | _ -> failwith "Expected MIR builtin"
-    in
     let ret_vreg () = vreg_of_result_value_id return_id in
     (*
      * ===========================================
@@ -1263,7 +1260,6 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
       SVReg (vreg, Size64)
   | Lit (Function { name; _ }) -> SAddr (mk_label_memory_address name)
   | Lit (Global { name; _ }) -> SAddr (mk_label_memory_address name)
-  | Lit (MirBuiltin _) -> failwith "TODO: Cannot compile MIR builtin"
   | Lit (MyteBuiltin _) -> failwith "TODO: Cannot compile Myte builtin"
   | Lit (NullPointer _) -> SImm (Imm64 0L)
   | Lit (ArrayString _)

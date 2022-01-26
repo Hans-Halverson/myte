@@ -68,9 +68,9 @@ let myte_get_heap_size =
 let mk_call_builtin builtin args mk_return_ty_args : Instruction.t =
   let open Builtin in
   let return_type = builtin.mk_return_ty mk_return_ty_args |> Option.get in
-  let instr = Instruction.Call { func = Lit (MirBuiltin builtin); args; has_return = true } in
+  let instr = Instruction.Call { func = MirBuiltin builtin; args; has_return = true } in
   Mir_builders.mk_instr ~type_:return_type ~instr
 
 let mk_call_builtin_no_return builtin args =
-  let instr = Instruction.Call { func = Lit (MirBuiltin builtin); args; has_return = false } in
+  let instr = Instruction.Call { func = MirBuiltin builtin; args; has_return = false } in
   Mir_builders.mk_instr ~type_:Mir_type.no_return_type ~instr

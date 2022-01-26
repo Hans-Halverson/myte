@@ -46,7 +46,11 @@ module InstructionsMapper = struct
           if arg != arg' then instruction.instr <- Mov arg'
         | Phi ({ args } as phi) -> phi.args <- BlockMap.map this#map_value args
         | Call { func; args; has_return } ->
-          let func' = this#map_value func in
+          let func' =
+            match func with
+            | Value v -> id_map this#map_value v func (fun v' -> Call.Value v')
+            | MirBuiltin _ -> func
+          in
           let args' = id_map_list this#map_value args in
           if func != func' || args != args' then
             instruction.instr <- Call { func = func'; args = args'; has_return }

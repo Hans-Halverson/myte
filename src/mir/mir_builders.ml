@@ -76,7 +76,7 @@ let mk_call ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) =
     | Some type_ -> (type_, true)
     | None -> (no_return_type, false)
   in
-  mk_instr ~type_ ~instr:(Call { func; args; has_return })
+  mk_instr ~type_ ~instr:(Call { func = Value func; args; has_return })
 
 let mk_ret ~(arg : Value.t option) = mk_instr ~type_:no_return_type ~instr:(Ret arg)
 

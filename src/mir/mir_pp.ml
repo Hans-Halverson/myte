@@ -225,7 +225,6 @@ and pp_literal lit =
   | Function { name; _ }
   | Global { name; _ } ->
     "@" ^ name
-  | MirBuiltin { name; _ } -> name
   | MyteBuiltin _ -> failwith "TODO: MyteBuiltins cannot appear in MIR"
   | NullPointer _ -> "null"
   | ArrayString str -> "\"" ^ str ^ "\""
@@ -283,7 +282,11 @@ and pp_instruction ~cx instr =
       in
       pp_instr (Printf.sprintf "Phi %s %s" (pp_type instr.type_) args_string)
     | Call { func; args; has_return } ->
-      let func_string = pp_value ~cx func in
+      let func_string =
+        match func with
+        | Value func -> pp_value ~cx func
+        | MirBuiltin { name; _ } -> name
+      in
       let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
       if has_return then
         pp_instr (Printf.sprintf "Call %s %s(%s)" (pp_type instr.type_) func_string args_string)

@@ -39,8 +39,6 @@ and Literal : sig
     | Global of Global.t
     | NullPointer of Type.t
     | Function of Function.t
-    (* A builtin MIR function *)
-    | MirBuiltin of Builtin.t
     (* A builtin Myte function that may be translated into a MIR function or inlined
        as a series of instructions *)
     | MyteBuiltin of string
@@ -84,12 +82,16 @@ and Instruction : sig
 
   module Call : sig
     type t = {
-      func: Value.t;
+      func: func;
       args: Value.t list;
       (* If true then instruction's type_ is call's return type. If false then instruction's
          type_ is undefined *)
       has_return: bool;
     }
+
+    and func =
+      | Value of (* Function *) Value.t
+      | MirBuiltin of Builtin.t
   end
 
   type comparison =
@@ -327,7 +329,6 @@ and type_of_literal (lit : Literal.t) : Type.t =
   | Int _ -> Int
   | Long _ -> Long
   | Function _
-  | MirBuiltin _
   | MyteBuiltin _ ->
     Function
   | Global global -> Pointer global.type_
