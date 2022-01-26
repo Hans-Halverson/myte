@@ -258,10 +258,9 @@ class calc_constants_visitor ~program =
       else (
         iter_instructions block this#visit_instruction;
         (* Check for branches that can be pruned *)
-        match block.next with
-        | Halt -> ()
-        | Continue continue -> this#visit_block continue
-        | Branch { test; continue; jump } ->
+        match get_terminator block with
+        | Some { instr = Continue continue; _ } -> this#visit_block continue
+        | Some ({ instr = Branch { test; continue; jump }; _ } as term_instr) ->
           (* Determine whether test is a constant value *)
           let test_constant_opt =
             match test with
@@ -288,10 +287,11 @@ class calc_constants_visitor ~program =
             (* Remove block link and set to continue to unpruned block *)
             Ocx.remove_block_link block to_prune;
             Ocx.remove_phi_backreferences_for_block block to_prune;
-            block.next <- Continue to_continue;
+            term_instr.instr <- Continue to_continue;
             has_new_constant <- true;
             (* Only contine to remaining unpruned block *)
             this#visit_block to_continue)
+        | _ -> ()
       )
 
     (* Visit all phi nodes and propagate constants through if possible *)

@@ -1,4 +1,5 @@
 open Mir
+open Mir_builders
 
 let add_block_link (prev_block : Block.t) (next_block : Block.t) =
   next_block.prev_blocks <- BlockSet.add prev_block next_block.prev_blocks
@@ -30,13 +31,10 @@ let map_phi_backreferences_for_block old_block new_blocks block_to_edit =
 (* An empty block can be removed only if it continues to a single block, and is not needed by any
    phi nodes in its succeeding block. *)
 let can_remove_block (block : Block.t) =
-  has_no_instructions block
+  has_single_instruction block
   &&
-  match block.next with
-  | Halt
-  | Branch _ ->
-    false
-  | Continue continue_block ->
+  match get_terminator block with
+  | Some { instr = Continue continue_block; _ } ->
     (* A block is needed if any of its previous blocks appear in a phi node of the next block, with
        a different value than the value from this block. A block is also needed if it is the start
        block and the next block has any phi nodes. If we were to remove this block, the value from
@@ -59,35 +57,36 @@ let can_remove_block (block : Block.t) =
     in
     let function_start_self_loop = is_start_block && continue_block == block in
     (not block_needed_for_phi) && not function_start_self_loop
+  | _ -> false
 
 let remove_block (block : Block.t) =
   (* This may be the first block in a function. If so, update the function to point to the
      next block as the start. *)
   let func = block.func in
-  (match block.next with
-  | Continue continue_block -> if func.start_block == block then func.start_block <- continue_block
+  (match get_terminator block with
+  | Some { instr = Continue continue_block; _ } ->
+    if func.start_block == block then func.start_block <- continue_block
   | _ -> ());
-  (match block.next with
+  (match get_terminator block with
   (* Only when removing unreachable blocks from branch pruning, which could include return block.
      Remove any instances of block from previous blocks. *)
-  | Halt ->
+  | Some { instr = Unreachable; _ } ->
     BlockSet.iter
       (fun prev_block ->
-        prev_block.next <-
-          (match prev_block.next with
-          | Halt
-          | Continue _ ->
-            Halt
-          | Branch { test = _; continue; jump } ->
-            if continue == block then
+        match get_terminator prev_block with
+        | Some ({ instr = Continue _; _ } as term_instr) -> term_instr.instr <- Unreachable
+        | Some ({ instr = Branch { test = _; continue; jump }; _ } as term_instr) ->
+          term_instr.instr <-
+            ( if continue == block then
               if jump == block then
-                Halt
+                Unreachable
               else
                 Continue jump
             else
-              Continue continue))
+              Continue continue )
+        | _ -> failwith "Previous block must have branching terminator")
       block.prev_blocks
-  | Continue next_block ->
+  | Some { instr = Continue next_block; _ } ->
     (* Update phis in next block to reference previous blocks instead of removed block *)
     map_phi_backreferences_for_block block block.prev_blocks next_block;
 
@@ -95,7 +94,7 @@ let remove_block (block : Block.t) =
     BlockSet.iter
       (fun prev_block -> map_next_block prev_block ~from:block ~to_:next_block)
       block.prev_blocks
-  | Branch _ -> ());
+  | _ -> ());
 
   (* Remove references to this removed block from phi nodes of next blocks *)
   let next_blocks = get_next_blocks block in
@@ -118,14 +117,14 @@ let merge_adjacent_blocks block1 block2 =
     else
       block
   in
-  concat_instructions block1 block2;
   (* Use b2's next, but take care to reference b1 instead of b2 in the case of self references *)
-  block1.next <-
-    (match block2.next with
-    | Halt -> Halt
-    | Continue continue -> Continue (map_block continue)
-    | Branch ({ continue; jump; _ } as branch) ->
-      Branch { branch with continue = map_block continue; jump = map_block jump });
+  (match get_terminator block2 with
+  | Some ({ instr = Continue continue; _ } as term_instr) ->
+    term_instr.instr <- Continue (map_block continue)
+  | Some ({ instr = Branch { test; continue; jump }; _ } as term_instr) ->
+    term_instr.instr <- Branch { test; continue = map_block continue; jump = map_block jump }
+  | _ -> ());
+  concat_instructions block1 block2;
   (* References to the b2 block in phi nodes of blocks that succeed b2 should be rewritten
      to now reference b1 instead. *)
   let next_blocks = get_next_blocks block2 in
@@ -143,3 +142,19 @@ let merge_adjacent_blocks block1 block2 =
   (* Remove b2 from remaining maps in context *)
   let func = block2.func in
   func.blocks <- BlockSet.remove block2 func.blocks
+
+(* Split an edge between two blocks, inserting an empty block in the middle *)
+let split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
+  let func = prev_block.func in
+  let new_block =
+    {
+      Block.id = Block.mk_id ();
+      func;
+      instructions = None;
+      prev_blocks = BlockSet.singleton prev_block;
+    }
+  in
+  append_instruction new_block (mk_continue ~continue:next_block);
+  func.blocks <- BlockSet.add new_block func.blocks;
+  map_next_block prev_block ~from:next_block ~to_:new_block;
+  new_block

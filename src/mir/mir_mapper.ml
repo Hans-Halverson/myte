@@ -18,17 +18,7 @@ module InstructionsMapper = struct
 
       method map_function (func : Function.t) = BlockSet.iter this#map_block func.blocks
 
-      method map_block (block : Block.t) =
-        this#map_instructions block;
-        block.next <- this#map_block_next block.next
-
-      method map_block_next next =
-        let open Block in
-        match next with
-        | Halt
-        | Continue _ ->
-          next
-        | Branch ({ test; _ } as branch) -> Branch { branch with test = this#map_value test }
+      method map_block (block : Block.t) = this#map_instructions block
 
       method map_instructions (block : Block.t) =
         iter_instructions block (fun instruction ->
@@ -105,6 +95,11 @@ module InstructionsMapper = struct
         | SExt arg ->
           let arg' = this#map_value arg in
           if arg != arg' then instruction.instr <- SExt arg'
+        | Unreachable -> ()
+        | Continue _ -> ()
+        | Branch { test; jump; continue } ->
+          let test' = this#map_value test in
+          if test != test' then instruction.instr <- Branch { test = test'; jump; continue }
 
       method map_value value = value
     end

@@ -78,9 +78,9 @@ and consolidate_adjacent_blocks ~program =
     program_iter_blocks program (fun (block : Block.t) ->
         (* Can only consolidate this block if it continues to a block with no other previous blocks,
            and the next block has no phis (as phi arg vars may have been defined in this block). *)
-        match block.next with
-        | Continue next_block when block != next_block && not (BlockSet.mem block !removed_blocks)
-          ->
+        match get_terminator block with
+        | Some { instr = Continue next_block; _ }
+          when block != next_block && not (BlockSet.mem block !removed_blocks) ->
           let next_block_is_start = next_block.func.start_block == next_block in
           (* The next block could be the start block for the global or function, in which case it cannot
              be merged with the previous block. *)
@@ -109,5 +109,10 @@ and remove_empty_init_func ~program =
   | Some init_func ->
     (* Init function is empty if it consists of a single block with a single instruction (Ret) *)
     let init_start_block = init_func.start_block in
-    if has_single_instruction init_start_block && init_start_block.next = Halt then
+    let is_ret_terminator =
+      match get_terminator init_start_block with
+      | Some { instr = Ret _; _ } -> true
+      | _ -> false
+    in
+    if is_ret_terminator && has_single_instruction init_start_block then
       program.funcs <- SMap.remove init_func_name program.funcs

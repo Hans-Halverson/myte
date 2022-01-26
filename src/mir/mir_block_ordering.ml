@@ -1,6 +1,13 @@
 open Basic_collections
 open Mir
 
+(* Return the set of all blocks that this block branches to in a logical order *)
+let get_ordered_next_blocks (block : Block.t) : Block.t list =
+  match get_terminator block with
+  | Some { instr = Continue continue; _ } -> [continue]
+  | Some { instr = Branch { test = _; jump; continue }; _ } -> [continue; jump]
+  | _ -> []
+
 (* Run Tarjan's strongly connected components algorithm on a set of blocks. Return a pair containing
    a set of all SCCs, as well as a map from block to the SCC it is a part of. *)
 let tarjans_scc blocks =
@@ -26,13 +33,9 @@ let tarjans_scc blocks =
     Stack.push block stack;
     blocks_on_stack := BlockSet.add block !blocks_on_stack;
 
-    let next_blocks =
-      match block.next with
-      | Halt -> []
-      | Continue continue -> [continue]
-      | Branch { test = _; continue; jump } -> [continue; jump]
-    in
-    List.iter
+    (* Get next blocks manually to preserve order *)
+    let next_blocks = get_next_blocks block in
+    BlockSet.iter
       (fun (next_block : Block.t) ->
         if not (is_visited next_block) then (
           strong_connect next_block;
@@ -83,15 +86,10 @@ let order_blocks start_block =
   (* Depth-first traversal to gather all blocks *)
   let all_blocks = ref BlockSet.empty in
   let rec visit_block block =
-    let open Block in
     if not (BlockSet.mem block !all_blocks) then begin
       all_blocks := BlockSet.add block !all_blocks;
-      match block.next with
-      | Halt -> ()
-      | Continue continue -> visit_block continue
-      | Branch { test = _; continue; jump } ->
-        visit_block continue;
-        visit_block jump
+      let next_blocks = get_next_blocks block in
+      BlockSet.iter visit_block next_blocks
     end
   in
   visit_block start_block;
@@ -130,16 +128,12 @@ let order_blocks start_block =
   BlockSet.iter
     (fun block ->
       let scc_id = BlockMap.find block !block_to_scc_id in
-      match block.next with
-      | Halt -> ()
-      | Continue continue ->
-        inc_block_pred continue;
-        add_scc_pred scc_id continue
-      | Branch { test = _; jump; continue } ->
-        inc_block_pred continue;
-        inc_block_pred jump;
-        add_scc_pred scc_id continue;
-        add_scc_pred scc_id jump)
+      let next_blocks = get_next_blocks block in
+      BlockSet.iter
+        (fun next_block ->
+          inc_block_pred next_block;
+          add_scc_pred scc_id next_block)
+        next_blocks)
     !all_blocks;
 
   let blocks = ref [] in
@@ -180,19 +174,13 @@ let order_blocks start_block =
   and visit_block ~scc_id block =
     visited_blocks := BlockSet.add block !visited_blocks;
     blocks := block :: !blocks;
-    match block.next with
-    | Halt -> ()
-    | Continue continue ->
-      dec_block_pred continue;
-      remove_scc_pred scc_id continue;
-      visit_or_enqueue ~prev_scc_id:scc_id continue
-    | Branch { test = _; continue; jump } ->
-      dec_block_pred continue;
-      dec_block_pred jump;
-      remove_scc_pred scc_id continue;
-      remove_scc_pred scc_id jump;
-      visit_or_enqueue ~prev_scc_id:scc_id continue;
-      visit_or_enqueue ~prev_scc_id:scc_id jump
+    let ordered_next_blocks = get_ordered_next_blocks block in
+    List.iter
+      (fun next_block ->
+        dec_block_pred next_block;
+        remove_scc_pred scc_id next_block;
+        visit_or_enqueue ~prev_scc_id:scc_id next_block)
+      ordered_next_blocks
   and visit_or_enqueue ~prev_scc_id next_block =
     let next_scc_id = BlockMap.find next_block !block_to_scc_id in
     if is_visited next_block then

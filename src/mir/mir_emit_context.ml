@@ -161,13 +161,7 @@ let emit_ ~ecx (inst : Instruction.t) : unit = ignore (emit ~ecx inst)
 let mk_block ~ecx =
   let func = ecx.current_func in
   let block =
-    {
-      Block.id = Block.mk_id ();
-      func;
-      instructions = None;
-      next = Halt;
-      prev_blocks = BlockSet.empty;
-    }
+    { Block.id = Block.mk_id (); func; instructions = None; prev_blocks = BlockSet.empty }
   in
   func.blocks <- BlockSet.add block func.blocks;
   block
@@ -179,30 +173,35 @@ let start_new_block ~ecx =
   set_current_block ~ecx block;
   block
 
-let finish_block ~ecx next =
+let finish_block ~ecx f =
   match ecx.current_block with
   | None -> ()
-  | Some block ->
-    block.next <- next;
-    ecx.current_block <- None;
-    if ecx.in_init then ecx.last_init_block <- Some block
+  | Some current_block ->
+    (match get_terminator current_block with
+    | Some _ -> ()
+    | None ->
+      f current_block;
+      ecx.current_block <- None;
+      if ecx.in_init then ecx.last_init_block <- Some current_block)
+
+let finish_block_ret ~ecx ~(arg : Value.t option) =
+  finish_block ~ecx (fun current_block ->
+      append_instruction current_block (Mir_builders.mk_ret ~arg))
 
 let finish_block_branch ~ecx (test : Value.t) (continue : Block.t) (jump : Block.t) =
-  match ecx.current_block with
-  | None -> ()
-  | Some current_block ->
-    continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
-    jump.prev_blocks <- BlockSet.add current_block jump.prev_blocks;
-    finish_block ~ecx (Branch { test; continue; jump })
+  finish_block ~ecx (fun current_block ->
+      continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
+      jump.prev_blocks <- BlockSet.add current_block jump.prev_blocks;
+      append_instruction current_block (Mir_builders.mk_branch ~test ~continue ~jump))
 
 let finish_block_continue ~ecx (continue : Block.t) =
-  match ecx.current_block with
-  | None -> ()
-  | Some current_block ->
-    continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
-    finish_block ~ecx (Continue continue)
+  finish_block ~ecx (fun current_block ->
+      continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
+      append_instruction current_block (Mir_builders.mk_continue ~continue))
 
-let finish_block_halt ~ecx = finish_block ~ecx Halt
+let finish_block_unreachable ~ecx =
+  finish_block ~ecx (fun current_block ->
+      append_instruction current_block (Mir_builders.mk_unreachable ()))
 
 let push_loop_context ~ecx break_block continue_block =
   ecx.current_loop_contexts <- (break_block, continue_block) :: ecx.current_loop_contexts
@@ -240,13 +239,15 @@ let emit_init_section ~ecx f =
   (* If an init section has already been created, link its last block to the new init section *)
   (match ecx.last_init_block with
   | Some last_init_block ->
-    last_init_block.next <- Continue init_block;
+    (match get_terminator last_init_block with
+    | Some term_instr -> term_instr.instr <- Continue init_block
+    | None -> append_instruction last_init_block (Mir_builders.mk_continue ~continue:init_block));
     init_block.prev_blocks <- BlockSet.add last_init_block init_block.prev_blocks
   | None -> ());
 
   (* Run callback to generate init instructions and finish block *)
   let result = f () in
-  finish_block_halt ~ecx;
+  finish_block_ret ~ecx ~arg:None;
 
   ecx.in_init <- old_in_init;
   ecx.current_func <- old_func;

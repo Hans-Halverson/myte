@@ -145,27 +145,7 @@ and pp_block ~cx ~label block =
   let instruction_lines =
     fold_instructions block [] (fun instr acc -> pp_instruction ~cx instr :: acc) |> List.rev
   in
-  let next_lines =
-    match block.next with
-    | Halt -> []
-    | Continue block ->
-      let debug_id =
-        if Opts.dump_debug () then
-          Printf.sprintf "(Block #%s) " (Block.id_to_string block.id)
-        else
-          ""
-      in
-      [Printf.sprintf "  continue %s%s" debug_id (pp_block_id ~cx block)]
-    | Branch { test; jump; continue } ->
-      [
-        Printf.sprintf
-          "  branch %s, %s, %s"
-          (pp_value ~cx test)
-          (pp_block_id ~cx continue)
-          (pp_block_id ~cx jump);
-      ]
-  in
-  let lines = List.concat [label_lines; instruction_lines; next_lines] in
+  let lines = List.concat [label_lines; instruction_lines] in
   String.concat "\n" lines
 
 and pp_value_id ~cx value_id =
@@ -377,5 +357,21 @@ and pp_instruction ~cx instr =
            (pp_type_of_value arg)
            (pp_value ~cx arg)
            (pp_numeric_type instr.type_))
+    | Continue continue ->
+      let debug_id =
+        if Opts.dump_debug () then
+          Printf.sprintf "(Block #%s) " (Block.id_to_string continue.id)
+        else
+          ""
+      in
+      (Printf.sprintf "continue %s%s") debug_id (pp_block_id ~cx continue)
+    | Branch { test; jump; continue } ->
+      Printf.sprintf
+        "branch %s, %s, %s"
+        (pp_value ~cx test)
+        (pp_block_id ~cx continue)
+        (pp_block_id ~cx jump)
+    | Unreachable -> "unreachable"
   in
+
   "  " ^ instr_string

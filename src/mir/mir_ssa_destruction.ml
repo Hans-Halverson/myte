@@ -12,7 +12,6 @@ open Mir
 (* Split edges where Mov instructions will need to be created. Edges are split by inserting an empty
    block between them, which will be filled with Mov instructions later. *)
 let split_edges ~(ir : Program.t) =
-  let open Block in
   let edges_to_split = ref BlockMMap.empty in
 
   (* Mark all edges that should be split. An edge from block A to block B should be split if
@@ -21,8 +20,9 @@ let split_edges ~(ir : Program.t) =
       block_iter_phis block (fun { args; _ } ->
           BlockMap.iter
             (fun prev_block _ ->
-              match prev_block.next with
-              | Branch _ -> edges_to_split := BlockMMap.add block prev_block !edges_to_split
+              match get_terminator prev_block with
+              | Some { instr = Branch _; _ } ->
+                edges_to_split := BlockMMap.add block prev_block !edges_to_split
               | _ -> ())
             args));
 
@@ -33,7 +33,7 @@ let split_edges ~(ir : Program.t) =
       let prev_to_new_block =
         BlockMMap.VSet.fold
           (fun prev_block prev_to_new_block ->
-            let new_block = split_block_edge prev_block block in
+            let new_block = Mir_optimize_context.split_block_edge prev_block block in
             BlockMap.add prev_block new_block prev_to_new_block)
           prev_blocks
           BlockMap.empty
@@ -134,6 +134,7 @@ let lower_phis_to_copies ~(ir : Program.t) =
       BlockMap.iter
         (fun prev_block parallel_copies ->
           let sequential_copies = sequentialize_parallel_copies (List.rev parallel_copies) in
+          let terminator = get_terminator prev_block |> Option.get in
           List.iter
             (fun (dest_val, arg_val) ->
               (* Destination instructions are all pre-existing Phis or Movs that were created
@@ -141,7 +142,7 @@ let lower_phis_to_copies ~(ir : Program.t) =
                  after this point arg/use references cannot be followed. *)
               let dest_instr = cast_to_instruction dest_val in
               let rec instr = { dest_instr with instr = Mov arg_val; next = instr; prev = instr } in
-              append_instruction prev_block instr)
+              insert_instruction_before ~before:terminator instr)
             sequential_copies)
         block_to_parallel_copies;
 

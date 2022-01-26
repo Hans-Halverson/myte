@@ -382,11 +382,6 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx (SetCC (cc, Reg result_vreg));
     cc
   in
-  let is_cond_jump value_id =
-    match block.next with
-    | Branch { test = Instr { id; _ } | Argument { id; _ }; _ } when id = value_id -> true
-    | _ -> false
-  in
   let gen_cond_jmp cc test_value_id left_val right_val =
     let cc =
       (* If the only use of the comparison is in this branch instruction, only need to generate
@@ -403,8 +398,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
         gen_cmp_set_cc cc test_value_id left_val right_val
     in
     let (continue, jump) =
-      match block.next with
-      | Branch { continue; jump; _ } -> (continue, jump)
+      match get_terminator block with
+      | Some { instr = Branch { continue; jump; _ }; _ } -> (continue, jump)
       | _ -> failwith "Only called on blocks with conditional branches"
     in
     (* Note that the condition code is inverted as we emit a JmpCC to the false branch *)
@@ -413,19 +408,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
   in
   match instructions with
-  | [] ->
-    (* Conditional jump when the condition is in a variable *)
-    (match block.next with
-    | Branch { test = Lit (Bool _); _ } -> failwith "Dead branch pruning must have already occurred"
-    | Continue continue ->
-      (* TODO: Create better structure for tracking relative block locations *)
-      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
-    | Branch { test; continue; jump } ->
-      let vreg = emit_bool_as_reg test in
-      Gcx.emit ~gcx (TestMR (Size8, Reg vreg, vreg));
-      Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block ~gcx jump));
-      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
-    | _ -> ())
+  | [] -> ()
   (*
    * ===========================================
    *                   Mov
@@ -470,7 +453,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Ret
    * ===========================================
    *)
-  | { instr = Ret value; _ } :: rest_instructions ->
+  | [{ instr = Ret value; _ }] ->
     (match value with
     | None -> ()
     | Some value ->
@@ -480,8 +463,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, precolored_vreg))
       | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, Mem mem, Reg precolored_vreg))
       | SVReg (vreg, size) -> Gcx.emit ~gcx (MovMM (size, Reg vreg, Reg precolored_vreg))));
-    Gcx.emit ~gcx Ret;
-    gen_instructions rest_instructions
+    Gcx.emit ~gcx Ret
   (*
    * ===========================================
    *                Load
@@ -828,13 +810,38 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Cmp
    * ===========================================
    *)
-  | [{ id = result_id; instr = Cmp (cmp, left_val, right_val); _ }] when is_cond_jump result_id ->
+  | [
+   { id = result_id; instr = Cmp (cmp, left_val, right_val); _ };
+   { instr = Branch { test = Instr { id = test_id; _ } | Argument { id = test_id; _ }; _ }; _ };
+  ]
+    when result_id == test_id ->
     let cc = cc_of_mir_comparison cmp in
     gen_cond_jmp cc result_id left_val right_val
   | { id = result_id; instr = Cmp (cmp, left_val, right_val); _ } :: rest_instructions ->
     let cc = cc_of_mir_comparison cmp in
     ignore (gen_cmp_set_cc cc result_id left_val right_val);
     gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                Terminators
+   * ===========================================
+   *)
+  | [{ instr = Unreachable; _ }] -> ()
+  | [{ instr = Continue continue; _ }] ->
+    (* TODO: Create better structure for tracking relative block locations *)
+    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+  | [{ instr = Branch { test; continue; jump }; _ }] ->
+    let test =
+      match test with
+      | Lit _ -> failwith "Dead branch pruning must have already occurred"
+      | _ -> test
+    in
+    let vreg = emit_bool_as_reg test in
+    Gcx.emit ~gcx (TestMR (Size8, Reg vreg, vreg));
+    Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block ~gcx jump));
+    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+  | { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ } :: _ ->
+    failwith "Terminator instructions must be last instruction"
   (*
    * ===========================================
    *                Call Builtin

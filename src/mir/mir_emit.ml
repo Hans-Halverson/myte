@@ -22,7 +22,6 @@ let rec emit (pcx : Pcx.t) : Program.t =
   register_toplevel_variable_declarations ~ecx;
   register_function_declarations ~ecx;
   emit_pending ~ecx;
-  finish_init_function ~ecx;
   ecx.program
 
 and iter_toplevels ~ecx f =
@@ -227,7 +226,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
     (* If there is no return value then simply return in return block *)
     | None ->
       Ecx.set_current_block ~ecx return_block;
-      Ecx.emit_ ~ecx (mk_ret ~arg:None);
+      Ecx.finish_block_ret ~ecx ~arg:None;
       None
     (* If there is return value allocate space for it in start block, then load and return it in
        return block. *)
@@ -235,7 +234,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
       let return_pointer = Ecx.emit ~ecx (mk_stack_alloc ~type_) in
       Ecx.set_current_block ~ecx return_block;
       let return_val = Ecx.emit ~ecx (mk_load ~ptr:return_pointer) in
-      Ecx.emit_ ~ecx (mk_ret ~arg:(Some return_val));
+      Ecx.finish_block_ret ~ecx ~arg:(Some return_val);
       Some return_pointer
   in
   Ecx.start_function_context ~ecx ~return_ty ~return_block ~return_pointer;
@@ -245,15 +244,18 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
   (match body with
   | Block block ->
     ignore (emit_block ~ecx ~is_expr:false block);
-    (* Add an implicit return if the last instruction is not a return *)
+    (* Add an implicit return if the last instruction is not a terminator *)
     (match ecx.current_block with
-    | Some { next = Halt; _ } ->
-      (* Handle implicit return from main *)
-      ( if is_main_func then
-        let return_pointer = Option.get return_pointer in
-        Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:(mk_int_lit_of_int32 Int32.zero)) );
-      Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
-    | _ -> ())
+    | Some current_block ->
+      (match get_terminator current_block with
+      | None ->
+        (* Handle implicit return from main *)
+        ( if is_main_func then
+          let return_pointer = Option.get return_pointer in
+          Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:(mk_int_lit_of_int32 Int32.zero)) );
+        Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
+      | Some _ -> ())
+    | None -> ())
   | Expression expr ->
     let return_val_opt = emit_expression ~ecx expr in
     (match return_val_opt with
@@ -263,7 +265,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
       Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:return_val));
     Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
   | Signature -> failwith "Cannot emit function signature");
-  Ecx.finish_block_halt ~ecx
+  Ecx.finish_block_unreachable ~ecx
 
 and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   (* Trampolines are created after wrapped function, so we can always lookup the function IR object *)
@@ -299,20 +301,17 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   in
 
   (* Return value from call if applicable *)
-  (match func.return_type with
-  | None -> Ecx.emit_ ~ecx (mk_ret ~arg:None)
-  | Some _ -> Ecx.emit_ ~ecx (mk_ret ~arg:(Some return_val)));
-  Ecx.finish_block_halt ~ecx
+  let arg =
+    match func.return_type with
+    | None -> None
+    | Some _ -> Some return_val
+  in
+  Ecx.finish_block_ret ~ecx ~arg
 
 and start_init_function ~ecx =
   let func = Ecx.mk_empty_function ~ecx ~name:init_func_name in
   Ecx.start_function ~ecx ~func ~loc:Loc.none ~params:[] ~return_type:None;
   ecx.last_init_block <- Some ecx.current_func.start_block
-
-and finish_init_function ~ecx =
-  let last_init_block = Option.get ecx.last_init_block in
-  Ecx.set_current_block ~ecx last_init_block;
-  Ecx.emit_ ~ecx (mk_ret ~arg:None)
 
 (*
  * Emit an expression, returning the value for that expression if the expression produces a value.
@@ -2408,7 +2407,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
 
           (* Continue to match's overall join block at end of case body if case does not diverge *)
           if diverges then
-            Ecx.finish_block_halt ~ecx
+            Ecx.finish_block_unreachable ~ecx
           else
             Ecx.finish_block_continue ~ecx join_block
         ))

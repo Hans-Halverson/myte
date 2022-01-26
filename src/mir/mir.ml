@@ -131,8 +131,8 @@ and Instruction : sig
     | FuncValue of (* Function *) Value.t
 
   and instr =
+    | Phi of Phi.t
     | Call of Call.t
-    | Ret of Value.t option
     (* Memory operations *)
     | StackAlloc of (* Type of allocated value *) Type.t (* Instruction type is pointer type *)
     | Load of (* Pointer *) Value.t
@@ -149,9 +149,17 @@ and Instruction : sig
     | Cast of Value.t (* Instruction type is type value is cast to *)
     | Trunc of (* Numeric *) Value.t (* Instruction type is type value is truncated to *)
     | SExt of (* Numeric *) Value.t (* Instruction type is type value is sign extended to *)
+    (* Block terminators *)
+    | Ret of Value.t option
+    | Continue of Block.t
+    | Branch of {
+        test: (* Bool *) Value.t;
+        continue: Block.t;
+        jump: Block.t;
+      }
+    | Unreachable
     (* Only generated during MIR destruction *)
     | Mov of Value.t
-    | Phi of Phi.t
 
   and t = {
     id: Value.id;
@@ -181,7 +189,6 @@ and Block : sig
     id: id;
     func: Function.t;
     mutable instructions: instructions option;
-    mutable next: next;
     mutable prev_blocks: BlockSet.t;
   }
 
@@ -190,15 +197,6 @@ and Block : sig
     mutable first: Instruction.t;
     mutable last: Instruction.t;
   }
-
-  and next =
-    | Halt
-    | Continue of Block.t
-    | Branch of {
-        test: (* Bool *) Value.t;
-        continue: Block.t;
-        jump: Block.t;
-      }
 
   val compare : t -> t -> int
 
@@ -212,7 +210,6 @@ end = struct
     id: id;
     func: Function.t;
     mutable instructions: instructions option;
-    mutable next: next;
     mutable prev_blocks: BlockSet.t;
   }
 
@@ -220,15 +217,6 @@ end = struct
     mutable first: Instruction.t;
     mutable last: Instruction.t;
   }
-
-  and next =
-    | Halt
-    | Continue of Block.t
-    | Branch of {
-        test: Value.t;
-        continue: Block.t;
-        jump: Block.t;
-      }
 
   let compare b1 b2 = Int.compare b1.id b2.id
 
@@ -318,7 +306,6 @@ and null_block : Block.t =
     Block.id = Block.mk_id ();
     func = null_function;
     instructions = None;
-    next = Halt;
     prev_blocks = BlockSet.empty;
   }
 
@@ -419,10 +406,6 @@ let cast_to_phi (instr : Instruction.t) : Instruction.Phi.t =
   | { instr = Instruction.Phi phi; _ } -> phi
   | _ -> failwith "Expected phi instruction"
 
-let mk_continue continue = Block.Continue continue
-
-let mk_branch test continue jump = Block.Branch { test; continue; jump }
-
 let int64_of_literal lit =
   match lit with
   | Literal.Byte lit -> Int64.of_int lit
@@ -446,7 +429,19 @@ let filter_stdlib (program : Program.t) =
   program.funcs <- filter_stdlib_names program.funcs;
   program
 
-let has_no_instructions (block : Block.t) : bool = block.instructions = None
+let get_terminator (block : Block.t) : Instruction.t option =
+  match block.instructions with
+  | Some { last = { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ } as last; _ } ->
+    Some last
+  | _ -> None
+
+(* Return the set of all blocks that this block branches to *)
+let get_next_blocks (block : Block.t) : BlockSet.t =
+  match get_terminator block with
+  | Some { instr = Continue continue; _ } -> BlockSet.singleton continue
+  | Some { instr = Branch { test = _; jump; continue }; _ } ->
+    BlockSet.add jump (BlockSet.singleton continue)
+  | _ -> BlockSet.empty
 
 let has_single_instruction (block : Block.t) : bool =
   match block.instructions with
@@ -502,6 +497,18 @@ let append_instruction (block : Block.t) (instr : Instruction.t) =
     add_link instr first;
     list.last <- instr
 
+(* Insert an instruction immediately before another instruction in a block's instruction list *)
+let insert_instruction_before ~(before : Instruction.t) (instr : Instruction.t) =
+  let block = before.block in
+  instr.block <- block;
+  match block.instructions with
+  | None -> failwith "Block must have before instruction"
+  | Some list ->
+    let prev_instr = before.prev in
+    add_link prev_instr instr;
+    add_link instr before;
+    if list.first == before then list.first <- instr
+
 (* Remove an instruction from a block's instruction list *)
 let remove_instruction (block : Block.t) (instr : Instruction.t) =
   if (* Instruction list is circular, so check if single element list *)
@@ -517,8 +524,14 @@ let remove_instruction (block : Block.t) (instr : Instruction.t) =
     if list.last == instr then list.last <- prev
 
 (* Concatenate the instructions in the second block to the end of the first block. 
-   This is a destructive operation on the second block's instructions. *)
+   This is a destructive operation on the second block's instructions. Removes the first block's
+   terminator instruction. *)
 let concat_instructions (b1 : Block.t) (b2 : Block.t) =
+  (* Remove terminator from first block *)
+  (match get_terminator b1 with
+  | Some terminator -> remove_instruction b1 terminator
+  | None -> ());
+  (* Concatenate lists of instructions *)
   iter_instructions b2 (fun instr -> instr.block <- b1);
   match (b1.instructions, b2.instructions) with
   | (_, None) -> ()
@@ -576,13 +589,6 @@ let block_fold_phis
 
 let block_clear_phis (block : Block.t) = block_filter_phis block (fun _ _ -> false)
 
-(* Return the set of all blocks that this block branches to *)
-let get_next_blocks (block : Block.t) : BlockSet.t =
-  match block.next with
-  | Halt -> BlockSet.empty
-  | Continue continue -> BlockSet.singleton continue
-  | Branch { test = _; jump; continue } -> BlockSet.add jump (BlockSet.singleton continue)
-
 let func_iter_blocks (func : Function.t) (f : Block.t -> unit) = BlockSet.iter f func.blocks
 
 let program_iter_blocks (program : Program.t) (f : Block.t -> unit) =
@@ -598,35 +604,19 @@ let map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
     ) else
       maybe_from
   in
-  block.next <-
-    (match block.next with
-    | Halt -> Halt
-    | Continue continue_block -> Continue (map_next_block continue_block)
-    | Branch { test; continue; jump } ->
-      let new_continue = map_next_block continue in
-      let new_jump = map_next_block jump in
-      (* If both branches point to same block convert to continue *)
-      if new_continue == new_jump then
+  match get_terminator block with
+  | Some ({ instr = Continue continue; _ } as term_instr) ->
+    term_instr.instr <- Continue (map_next_block continue)
+  | Some ({ instr = Branch { test; jump; continue }; _ } as term_instr) ->
+    let new_continue = map_next_block continue in
+    let new_jump = map_next_block jump in
+    (* If both branches point to same block convert to continue *)
+    term_instr.instr <-
+      ( if new_continue == new_jump then
         Continue new_continue
       else
-        (* Otherwise create branch to new block *)
-        Branch { test; continue = new_continue; jump = new_jump })
-
-(* Split an edge between two blocks, inserting an empty block in the middle *)
-let split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
-  let func = prev_block.func in
-  let new_block =
-    {
-      Block.id = Block.mk_id ();
-      func;
-      instructions = None;
-      next = Continue next_block;
-      prev_blocks = BlockSet.singleton prev_block;
-    }
-  in
-  func.blocks <- BlockSet.add new_block func.blocks;
-  map_next_block prev_block ~from:next_block ~to_:new_block;
-  new_block
+        Branch { test; continue = new_continue; jump = new_jump } )
+  | _ -> ()
 
 let string_of_block_set (blocks : BlockSet.t) : string =
   let elements =

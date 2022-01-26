@@ -134,6 +134,7 @@ label @1:
   Ret
 label @2:
   Call void myte.builtin.exit(1)
+  unreachable
 }
 
 func void @test.testLoopDivergence(int %0) {

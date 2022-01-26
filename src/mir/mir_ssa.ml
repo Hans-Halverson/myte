@@ -163,12 +163,8 @@ and find_join_points ~cx program =
         | Store ((Instr { id; _ } | Argument { id; _ }), _) when IMap.mem id cx.stack_alloc_ids ->
           sources := IMap.add id instr.id !sources
         | _ -> ());
-    match block.next with
-    | Halt -> ()
-    | Continue continue -> maybe_visit_block !sources continue
-    | Branch { continue; jump; _ } ->
-      maybe_visit_block !sources continue;
-      maybe_visit_block !sources jump
+    let next_blocks = get_next_blocks block in
+    BlockSet.iter (fun next_block -> maybe_visit_block !sources next_block) next_blocks
   in
   (* Visit all function bodies *)
   SMap.iter
@@ -268,12 +264,8 @@ and build_phi_nodes ~cx program =
           | PhiChainJoin node_id ->
             phi_nodes_to_realize := IMap.add node_id id !phi_nodes_to_realize)
         | _ -> ());
-    match block.next with
-    | Halt -> ()
-    | Continue continue -> maybe_visit_block !sources continue
-    | Branch { test = _; continue; jump } ->
-      maybe_visit_block !sources continue;
-      maybe_visit_block !sources jump
+    let next_blocks = get_next_blocks block in
+    BlockSet.iter (fun next_block -> maybe_visit_block !sources next_block) next_blocks
   in
   (* Visit bodies of all functions *)
   cx.visited_blocks <- BlockSet.empty;

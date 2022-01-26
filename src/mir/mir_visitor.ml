@@ -35,23 +35,8 @@ module IRVisitor = struct
           ()
         else (
           this#visit_instructions ~block;
-          this#visit_next ~block block.next
+          get_next_blocks block |> BlockSet.iter this#visit_block
         )
-
-      method visit_next ~block next =
-        match next with
-        | Halt -> ()
-        | Continue continue ->
-          this#visit_edge block continue;
-          this#visit_block continue
-        | Branch { test; continue; jump } ->
-          this#visit_value test;
-          this#visit_edge block continue;
-          this#visit_edge block jump;
-          this#visit_block continue;
-          this#visit_block jump
-
-      method visit_edge _b1 _b2 = ()
 
       method visit_instructions ~block = iter_instructions block this#visit_instruction
 
@@ -89,6 +74,9 @@ module IRVisitor = struct
         | Cmp (_, left, right) ->
           this#visit_value left;
           this#visit_value right
+        | Unreachable -> ()
+        | Continue _ -> ()
+        | Branch { test; _ } -> this#visit_value test
 
       method visit_phi_node _instr phi =
         BlockMap.iter (fun _block arg_val -> this#visit_value arg_val) phi.args

@@ -130,3 +130,11 @@ let mk_sext ~(arg : Value.t) ~(type_ : Type.t) : Instruction.t =
     failwith
       "SExt arguments must be numeric with type argument having larger size than value argument";
   mk_instr ~type_ ~instr:(SExt arg)
+
+let mk_unreachable () : Instruction.t = mk_instr ~type_:no_return_type ~instr:Unreachable
+
+let mk_continue ~(continue : Block.t) : Instruction.t =
+  mk_instr ~type_:no_return_type ~instr:(Continue continue)
+
+let mk_branch ~(test : Value.t) ~(continue : Block.t) ~(jump : Block.t) : Instruction.t =
+  mk_instr ~type_:no_return_type ~instr:(Branch { test; continue; jump })
