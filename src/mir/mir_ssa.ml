@@ -66,7 +66,7 @@ end
 
 type source =
   (* There was a single write at this store instruction in this block, writing this value *)
-  | WriteLocation of Block.t * Value.id * Value.t
+  | WriteLocation of Block.t * Instruction.t * Value.t
   (* Multiple writes were joined by phi chain node *)
   | PhiChainJoin of PhiChainNode.id
 
@@ -218,9 +218,9 @@ and build_phi_nodes ~cx program =
             let node = get_node ~cx node_id in
             (* Propagate mir types from write locations through phi chain nodes *)
             (match source with
-            | WriteLocation (_, store_instr_id, arg_val) ->
-              if not (IMap.mem store_instr_id node.write_locs) then (
-                node.write_locs <- IMap.add store_instr_id (prev_block, arg_val) node.write_locs;
+            | WriteLocation (_, store_instr, arg_val) ->
+              if not (IMap.mem store_instr.id node.write_locs) then (
+                node.write_locs <- IMap.add store_instr.id (prev_block, arg_val) node.write_locs;
                 node.mir_type <- Some (type_of_value arg_val)
               )
             | PhiChainJoin prev_node ->
@@ -257,7 +257,7 @@ and build_phi_nodes ~cx program =
         match instr.instr with
         | Store ((Instr { id; _ } | Argument { id; _ }), arg) when IMap.mem id cx.stack_alloc_ids ->
           (* Source for this variable is now this write location *)
-          sources := IMap.add id (WriteLocation (instr.block, instr.id, arg)) !sources
+          sources := IMap.add id (WriteLocation (instr.block, instr, arg)) !sources
         | Load (Instr { id; _ } | Argument { id; _ }) when IMap.mem id cx.stack_alloc_ids ->
           (* Save source for each use *)
           let source = IMap.find id !sources in

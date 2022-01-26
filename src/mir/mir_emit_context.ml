@@ -162,7 +162,7 @@ let mk_block ~ecx =
   let func = ecx.current_func in
   let block =
     {
-      Block.id = mk_block_id ();
+      Block.id = Block.mk_id ();
       func;
       instructions = None;
       next = Halt;
@@ -204,8 +204,8 @@ let finish_block_continue ~ecx (continue : Block.t) =
 
 let finish_block_halt ~ecx = finish_block ~ecx Halt
 
-let push_loop_context ~ecx break_id continue_id =
-  ecx.current_loop_contexts <- (break_id, continue_id) :: ecx.current_loop_contexts
+let push_loop_context ~ecx break_block continue_block =
+  ecx.current_loop_contexts <- (break_block, continue_block) :: ecx.current_loop_contexts
 
 let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loop_contexts
 

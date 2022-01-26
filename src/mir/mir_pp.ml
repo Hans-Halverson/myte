@@ -131,7 +131,7 @@ and pp_block ~cx ~label block =
   let label_lines =
     let debug_id =
       if Opts.dump_debug () then
-        Printf.sprintf "(Block #%d) " block.id
+        Printf.sprintf "(Block #%s) " (Block.id_to_string block.id)
       else
         ""
     in
@@ -151,7 +151,7 @@ and pp_block ~cx ~label block =
     | Continue block ->
       let debug_id =
         if Opts.dump_debug () then
-          Printf.sprintf "(Block #%d) " block.id
+          Printf.sprintf "(Block #%s) " (Block.id_to_string block.id)
         else
           ""
       in

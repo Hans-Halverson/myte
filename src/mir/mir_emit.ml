@@ -186,7 +186,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
     List_utils.filter_map2
       (fun { Param.name = { Identifier.loc; _ }; _ } ty ->
         match type_to_mir_type ~ecx ty with
-        | Some mir_type -> Some (Ecx.add_function_argument ~ecx ~func:func.name loc mir_type)
+        | Some mir_type -> Some (Ecx.add_function_argument ~ecx ~func loc mir_type)
         | None -> None)
       params
       func_decl.params
@@ -203,7 +203,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
         | Some this_type -> this_type
         | None -> Pointer (Ecx.get_zero_size_type ~ecx)
       in
-      Ecx.add_function_argument ~ecx ~func:func.name full_loc this_type :: params
+      Ecx.add_function_argument ~ecx ~func full_loc this_type :: params
     | _ -> params
   in
 
@@ -276,7 +276,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   let receiver_ptr_arg =
     {
       Argument.id = mk_value_id ();
-      func = trampoline_func.name;
+      func = trampoline_func;
       type_ = Pointer receiver_param.type_;
       decl_loc = receiver_param.decl_loc;
     }
@@ -284,7 +284,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   let rest_args =
     List.map
       (fun { Argument.type_; decl_loc; _ } ->
-        { Argument.id = mk_value_id (); func = trampoline_func.name; type_; decl_loc })
+        { Argument.id = mk_value_id (); func = trampoline_func; type_; decl_loc })
       rest_params
   in
   let params = receiver_ptr_arg :: rest_args in

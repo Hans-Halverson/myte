@@ -50,7 +50,7 @@ end =
 and Argument : sig
   type t = {
     id: Value.id;
-    func: label;
+    func: Function.t;
     type_: Type.t;
     (* Location of argument declaration identifier *)
     decl_loc: Loc.t;
@@ -175,7 +175,7 @@ end =
   Program
 
 and Block : sig
-  type id = int
+  type id
 
   type t = {
     id: id;
@@ -201,6 +201,10 @@ and Block : sig
       }
 
   val compare : t -> t -> int
+
+  val mk_id : unit -> id
+
+  val id_to_string : Block.id -> string
 end = struct
   type id = int
 
@@ -227,6 +231,15 @@ end = struct
       }
 
   let compare b1 b2 = Int.compare b1.id b2.id
+
+  let max_block_id = ref 0
+
+  let mk_id () =
+    let block_id = !max_block_id in
+    max_block_id := block_id + 1;
+    block_id
+
+  let id_to_string id = string_of_int id
 end
 
 and Global : sig
@@ -281,13 +294,6 @@ and BlockMMap : (MultiMap.S with type key = Block.t and type value = Block.t) =
 
 let init_func_name = "_init"
 
-let max_block_id = ref 0
-
-let mk_block_id () =
-  let block_id = !max_block_id in
-  max_block_id := block_id + 1;
-  block_id
-
 let max_value_id : Value.id ref = ref 0
 
 let mk_value_id () : Value.id =
@@ -309,7 +315,7 @@ let rec null_function : Function.t =
 (* A placeholder block, to avoid having to represent Option<Block> with its extra allocation *)
 and null_block : Block.t =
   {
-    Block.id = mk_block_id ();
+    Block.id = Block.mk_id ();
     func = null_function;
     instructions = None;
     next = Halt;
@@ -611,7 +617,7 @@ let split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
   let func = prev_block.func in
   let new_block =
     {
-      Block.id = mk_block_id ();
+      Block.id = Block.mk_id ();
       func;
       instructions = None;
       next = Continue next_block;
@@ -626,7 +632,7 @@ let string_of_block_set (blocks : BlockSet.t) : string =
   let elements =
     BlockSet.to_seq blocks
     |> List.of_seq
-    |> List.map (fun block -> string_of_int block.Block.id)
+    |> List.map (fun block -> Block.(id_to_string block.id))
     |> String.concat ", "
   in
   "(" ^ elements ^ ")"
