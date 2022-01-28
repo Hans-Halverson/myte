@@ -25,9 +25,9 @@ class preprocessor ~ir =
 
     method get_value_num_uses = value_num_uses
 
-    method! visit_value value =
-      match value with
-      | Value.Instr { id; _ }
+    method! visit_use use =
+      match use.value.value with
+      | Instr { id; _ }
       | Argument { id; _ } ->
         let num_uses =
           match IMap.find_opt id value_num_uses with
@@ -69,18 +69,18 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     let is_pointer = is_pointer_type global.type_ in
     Gcx.add_bss ~gcx { label; value = (); size; is_pointer } align
   (* Array literal is known at compile time, so insert into initialized data section *)
-  | Some (Lit (ArrayString data)) ->
+  | Some { value = { value = Lit (ArrayString data); _ }; _ } ->
     let size = String.length data in
     Gcx.add_data ~gcx { label; value = AsciiData data; size; is_pointer = false }
-  | Some (Lit (ArrayVtable (_, func_labels))) ->
+  | Some { value = { value = Lit (ArrayVtable (_, func_labels)); _ }; _ } ->
     let label_values =
       List.map (fun { Mir.Function.name; _ } -> label_of_mir_label name) func_labels
     in
     let size = List.length label_values * pointer_size in
     Gcx.add_data ~gcx { label; value = LabelData label_values; size; is_pointer = false }
   (* Pointer and function literals are labels, so insert into initialized data section *)
-  | Some (Lit (Global { name = init_label; _ }))
-  | Some (Lit (Function { name = init_label; _ })) ->
+  | Some { value = { value = Lit (Global { name = init_label; _ }); _ }; _ }
+  | Some { value = { value = Lit (Function { name = init_label; _ }); _ }; _ } ->
     let is_pointer = is_pointer_type global.type_ in
     let data = { label; value = LabelData [init_label]; size = pointer_size; is_pointer } in
     Gcx.add_data ~gcx data
@@ -111,7 +111,8 @@ and gen_function_instruction_builder ~gcx ~ir func =
   func_.prologue <- prologue_block_id;
   func_.params <-
     List.mapi
-      (fun i { Argument.id = arg_id; type_; _ } ->
+      (fun i param ->
+        let { Argument.id = arg_id; type_; _ } = cast_to_argument param in
         (* First 6 parameters are passed in known registers *)
         let size = register_size_of_mir_value_type type_ in
         let move_from_precolored color =
@@ -198,7 +199,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         let argument_stack_slot = Mem (FunctionArgumentStackSlot argument_stack_slot_vreg) in
         match resolve_ir_value arg_val with
         | SImm imm ->
-          let dest_size = register_size_of_mir_value_type (type_of_value arg_val) in
+          let dest_size = register_size_of_mir_value_type (type_of_use arg_val) in
           Gcx.emit ~gcx (MovIM (dest_size, imm, argument_stack_slot))
         (* Address must be calculated in a register and then moved into stack slot *)
         | SAddr addr ->
@@ -293,11 +294,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
         size
   in
   (* Generate a bit shift instruction from the target and shift arguments *)
-  let gen_shift ~mk_reg_instr ~mk_imm_instr result_value_id target_val shift_val =
+  let gen_shift ~mk_reg_instr ~mk_imm_instr result_value_id target_use shift_use =
     let result_vreg = vreg_of_result_value_id result_value_id in
     (* Do not reduce size of target immediate, as we must know its original size to know what
        size to make the shift operation. *)
-    (match (resolve_ir_value target_val, resolve_ir_value ~allow_imm64:true shift_val) with
+    (match (resolve_ir_value target_use, resolve_ir_value ~allow_imm64:true shift_use) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm target_imm, shift) ->
       let size = register_size_of_svalue shift in
@@ -433,7 +434,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     gen_call_arguments arg_vals;
     (* Emit call instruction *)
     let inst =
-      match func_val with
+      match func_val.value.value with
       | Lit (Function { name = label; _ }) -> CallL (label_of_mir_label label)
       | _ ->
         let func_mem = emit_mem (resolve_ir_value func_val) in
@@ -471,7 +472,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *)
   | { id = result_id; instr = Load pointer; _ } :: rest_instructions ->
     let result_vreg = vreg_of_result_value_id result_id in
-    let pointer_element_type = pointer_value_element_type pointer in
+    let pointer_element_type = pointer_value_element_type pointer.value in
     let size =
       match pointer_element_type with
       | Bool
@@ -485,7 +486,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       | Array _ -> failwith "TODO: Cannot compile array literals"
     in
     let src =
-      match pointer with
+      match pointer.value.value with
       | Lit (Global { name; _ }) -> mk_label_memory_address name
       | _ ->
         (match resolve_ir_value pointer with
@@ -505,7 +506,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { instr = Store (pointer, value); _ } :: rest_instructions ->
-    let pointer_element_type = pointer_value_element_type pointer in
+    let pointer_element_type = pointer_value_element_type pointer.value in
     let size =
       match pointer_element_type with
       | Bool
@@ -520,7 +521,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
     let value = resolve_ir_value ~allow_imm64:true value in
     let dest =
-      match pointer with
+      match pointer.value.value with
       | Lit (Global { Global.name; _ }) -> mk_label_memory_address name
       | _ ->
         (match resolve_ir_value pointer with
@@ -673,7 +674,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Unary (Not, arg); _ } :: rest_instructions ->
-    ( if is_bool_value arg then (
+    ( if is_bool_value arg.value then (
       let arg_vreg = emit_bool_as_reg arg in
       let result_vreg = vreg_of_result_value_id result_id in
       Gcx.emit ~gcx (XorMM (Size32, Reg result_vreg, Reg result_vreg));
@@ -762,32 +763,32 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shl
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Shl, target_val, shift_val); _ } :: rest_instructions ->
+  | { id = result_id; instr = Binary (Shl, target_use, shift_use); _ } :: rest_instructions ->
     let result_vreg =
       gen_shift
         result_id
-        target_val
-        shift_val
+        target_use
+        shift_use
         ~mk_reg_instr:(fun size mem -> ShlR (size, mem))
         ~mk_imm_instr:(fun size imm mem -> ShlI (size, imm, mem))
     in
-    maybe_truncate_bool_vreg ~gcx ~if_bool:target_val result_vreg;
+    maybe_truncate_bool_vreg ~gcx ~if_bool:target_use result_vreg;
     gen_instructions rest_instructions
   (*
    * ===========================================
    *                  Shr
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Shr, target_val, shift_val); _ } :: rest_instructions ->
+  | { id = result_id; instr = Binary (Shr, target_use, shift_use); _ } :: rest_instructions ->
     (* Arithmetic right shift is a no-op on bools and cannot be represented by sar instruction *)
-    if is_bool_value target_val then
-      gen_mov result_id target_val
+    if is_bool_value target_use.value then
+      gen_mov result_id target_use
     else
       ignore
         (gen_shift
            result_id
-           target_val
-           shift_val
+           target_use
+           shift_use
            ~mk_reg_instr:(fun size mem -> SarR (size, mem))
            ~mk_imm_instr:(fun size imm mem -> SarI (size, imm, mem)));
     gen_instructions rest_instructions
@@ -796,12 +797,12 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shrl
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Shrl, target_val, shift_val); _ } :: rest_instructions ->
+  | { id = result_id; instr = Binary (Shrl, target_use, shift_use); _ } :: rest_instructions ->
     ignore
       (gen_shift
          result_id
-         target_val
-         shift_val
+         target_use
+         shift_use
          ~mk_reg_instr:(fun size mem -> ShrR (size, mem))
          ~mk_imm_instr:(fun size imm mem -> ShrI (size, imm, mem)));
     gen_instructions rest_instructions
@@ -812,9 +813,12 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *)
   | [
    { id = result_id; instr = Cmp (cmp, left_val, right_val); _ };
-   { instr = Branch { test = Instr { id = test_id; _ } | Argument { id = test_id; _ }; _ }; _ };
+   {
+     instr = Branch { test = { value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }; _ };
+     _;
+   };
   ]
-    when result_id == test_id ->
+    when result_id == id ->
     let cc = cc_of_mir_comparison cmp in
     gen_cond_jmp cc result_id left_val right_val
   | { id = result_id; instr = Cmp (cmp, left_val, right_val); _ } :: rest_instructions ->
@@ -832,7 +836,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
   | [{ instr = Branch { test; continue; jump }; _ }] ->
     let test =
-      match test with
+      match test.value.value with
       | Lit _ -> failwith "Dead branch pruning must have already occurred"
       | _ -> test
     in
@@ -874,7 +878,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_copy.name then (
-      let element_mir_ty = cast_to_pointer_type (type_of_value (List.hd args)) in
+      let element_mir_ty = cast_to_pointer_type (type_of_use (List.hd args)) in
       let (pointer_args, count_arg) = List_utils.split_last args in
       let precolored_d = Gcx.mk_precolored ~gcx D in
       gen_call_arguments pointer_args;
@@ -1019,7 +1023,7 @@ and gen_get_pointer
     (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in
   let { pointer; pointer_offset; offsets } = get_pointer_instr in
-  let element_ty = pointer_value_element_type pointer in
+  let element_ty = pointer_value_element_type pointer.value in
 
   (* Utilities for creating vregs *)
   let vreg_of_result_value_id return_id = VReg.of_value_id ~resolution:Unresolved return_id in
@@ -1130,7 +1134,7 @@ and gen_get_pointer
   in
 
   (* Add address of root pointer *)
-  (match pointer with
+  (match pointer.value.value with
   | Lit (Global global) ->
     offset := Some (LabelOffset (label_of_mir_label global.name));
     base := IPBase
@@ -1203,9 +1207,9 @@ and gen_get_pointer
   let result_vreg = vreg_of_result_value_id return_id in
   Gcx.emit ~gcx (MovMM (Size64, Reg address_vreg, Reg result_vreg))
 
-and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
+and gen_size_from_count_and_type ~gcx count_use mir_ty result_vreg =
   let element_size = Gcx.size_of_mir_type ~gcx mir_ty in
-  match count_val with
+  match count_use.value.value with
   (* If count is a literal precalculate total requested size and fit into smallest immediate *)
   | Lit ((Byte _ | Int _ | Long _) as count_lit) ->
     let count = int64_of_literal count_lit in
@@ -1220,7 +1224,7 @@ and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
   (* If count is a variable multiply by size before putting in argument register *)
   | _ ->
     let count_vreg =
-      match resolve_ir_value ~gcx count_val with
+      match resolve_ir_value ~gcx count_use with
       | SVReg (count_vreg, _) -> count_vreg
       | _ -> failwith "Must be virtual register"
     in
@@ -1234,16 +1238,16 @@ and gen_size_from_count_and_type ~gcx count_val mir_ty result_vreg =
 
 (* Truncate a single byte vreg to just its lowest bit if the test val has type bool *)
 and maybe_truncate_bool_vreg ~gcx ~if_bool vreg =
-  if is_bool_value if_bool then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg vreg))
+  if is_bool_value if_bool.value then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, Reg vreg))
 
-and resolve_ir_value ~gcx ?(allow_imm64 = false) value =
+and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
   let vreg_of_var value_id size =
     let vreg = VReg.of_value_id ~resolution:Unresolved value_id in
     match vreg.resolution with
     | StackSlot mem -> SMem (mem, size)
     | _ -> SVReg (vreg, size)
   in
-  match value with
+  match use.value.value with
   | Lit (Bool b) ->
     SImm
       (Imm8
@@ -1328,7 +1332,7 @@ and mk_label_memory_address label =
 
 and label_of_mir_label label = Str.global_replace invalid_label_chars "$" label
 
-and is_zero_size_global value =
-  match value with
+and is_zero_size_global use =
+  match use.value.value with
   | Lit (Global { name; _ }) when name = zero_size_name -> true
   | _ -> false

@@ -8,7 +8,7 @@ module Ecx = Mir_emit_context
 module Pcx = Program_context
 
 type access_chain_part =
-  | AccessChainOffset of Instruction.GetPointer.offset * Type.t
+  | AccessChainOffset of Instruction.GetPointer.value_offset * Type.t
   | AccessChainDereference
 
 type access_chain_result =
@@ -140,7 +140,7 @@ and emit_global_variable_declaration ~ecx name decl =
   (* Build IR for variable init *)
   let global = SMap.find name ecx.program.globals in
   let binding = Bindings.get_value_binding ecx.pcx.bindings global.loc in
-  let init_val =
+  let init =
     Ecx.emit_init_section ~ecx (fun _ ->
         ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
         (* Do not generate init blocks for stdlib globals when filtering stdlib *)
@@ -155,14 +155,11 @@ and emit_global_variable_declaration ~ecx name decl =
             Some init_val
           else (
             (* Otherwise value must be calculated and stored at runtime *)
-            mk_store_
-              ~block:(Ecx.get_current_block ~ecx)
-              ~ptr:(mk_global_lit global)
-              ~value:init_val;
+            mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:global.value ~value:init_val;
             None
           ))
   in
-  global.init_val <- init_val
+  global_set_init ~global ~init
 
 and emit_nongeneric_function ~ecx func func_decl =
   if not func_decl.builtin then emit_function_body ~ecx func func_decl
@@ -281,18 +278,18 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   (* Copy parameters to new parameters with same type but for trampoline function, except receiver
      has pointer type since it is boxed. *)
   let (receiver_param, rest_params) = List_utils.split_first func.params in
+  let receiver_param = cast_to_argument receiver_param in
   let receiver_ptr_arg =
-    {
-      Argument.id = mk_value_id ();
-      func = trampoline_func;
-      type_ = Pointer receiver_param.type_;
-      decl_loc = receiver_param.decl_loc;
-    }
+    mk_argument
+      ~func:trampoline_func
+      ~decl_loc:receiver_param.decl_loc
+      ~type_:(Pointer receiver_param.type_)
   in
   let rest_args =
     List.map
-      (fun { Argument.type_; decl_loc; _ } ->
-        { Argument.id = mk_value_id (); func = trampoline_func; type_; decl_loc })
+      (fun param ->
+        let { Argument.type_; decl_loc; _ } = cast_to_argument param in
+        mk_argument ~func:trampoline_func ~decl_loc ~type_)
       rest_params
   in
   let params = receiver_ptr_arg :: rest_args in
@@ -300,14 +297,10 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   Ecx.start_function ~ecx ~func:trampoline_func ~loc:func.loc ~params ~return_type:func.return_type;
 
   (* Load receiver and call the wrapped function, passing original args with loaded receiver *)
-  let receiver_arg = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:(Argument receiver_ptr_arg) in
-  let args = receiver_arg :: (List.map (fun arg -> Value.Argument arg)) rest_args in
+  let receiver_arg = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:receiver_ptr_arg in
+  let args = receiver_arg :: rest_args in
   let return_val =
-    mk_call
-      ~block:(Ecx.get_current_block ~ecx)
-      ~func:(mk_func_lit func)
-      ~args
-      ~return:func.return_type
+    mk_call ~block:(Ecx.get_current_block ~ecx) ~func:func.value ~args ~return:func.return_type
   in
 
   (* Return value from call if applicable *)
@@ -541,20 +534,20 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           if Bindings.is_module_decl binding then
             Ecx.get_global_pointer ~ecx binding |> Option.get
           else
-            Instr (Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type)
+            Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type
         in
         Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr))
     (* Function parameters can have their corresponding MIR value referenced directly *)
     | FunParamDecl { tvar } ->
       (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
       | None -> None
-      | Some _ -> Some (Argument (Ecx.get_function_argument_value ~ecx binding.loc)))
+      | Some _ -> Some (Ecx.get_function_argument_value ~ecx binding.loc))
     (* Match cases variables are locals, and must be loaded from their StackAlloc *)
     | MatchCaseVarDecl { tvar } ->
       (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
       | None -> None
       | Some mir_type ->
-        let local_ptr = Value.Instr (Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type) in
+        let local_ptr = Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type in
         Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:local_ptr)))
   (*
    * ============================
@@ -646,12 +639,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (* If layout is an aggregate, construct record *)
     | Aggregate agg ->
       let ptr =
-        Mir_builtin.(
-          mk_call_builtin
-            ~block:(Ecx.get_current_block ~ecx)
-            myte_alloc
-            [mk_int_lit_of_int32 Int32.one]
-            [Aggregate agg])
+        mk_call_builtin
+          ~block:(Ecx.get_current_block ~ecx)
+          Mir_builtin.myte_alloc
+          [mk_int_lit_of_int32 Int32.one]
+          [Aggregate agg]
       in
       emit_store_record_fields ~ecx ~ptr ~tag:None agg fields;
       Some ptr
@@ -659,12 +651,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | Variants { tags; union; variants; _ } ->
       (* Call myte_alloc builtin to allocate space for variant type *)
       let union_ptr =
-        Mir_builtin.(
-          mk_call_builtin
-            ~block:(Ecx.get_current_block ~ecx)
-            myte_alloc
-            [mk_int_lit_of_int32 Int32.one]
-            [Aggregate union])
+        mk_call_builtin
+          ~block:(Ecx.get_current_block ~ecx)
+          Mir_builtin.myte_alloc
+          [mk_int_lit_of_int32 Int32.one]
+          [Aggregate union]
       in
       (* Cast to variant type and store all fields *)
       let record_variant_agg = SMap.find name variants in
@@ -799,12 +790,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       else
         (* Call myte_alloc builtin to allocate space for elements *)
         let data_ptr_val =
-          Mir_builtin.(
-            mk_call_builtin
-              ~block:(Ecx.get_current_block ~ecx)
-              myte_alloc
-              [size_val]
-              [element_mir_type])
+          mk_call_builtin
+            ~block:(Ecx.get_current_block ~ecx)
+            Mir_builtin.myte_alloc
+            [size_val]
+            [element_mir_type]
         in
 
         (* Generate each element and store into array of elements *)
@@ -830,12 +820,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let vec_ptr_mir_type = mir_type_of_loc ~ecx loc |> Option.get in
     let vec_mir_type = cast_to_pointer_type vec_ptr_mir_type in
     let vec_ptr =
-      Mir_builtin.(
-        mk_call_builtin
-          ~block:(Ecx.get_current_block ~ecx)
-          myte_alloc
-          [mk_int_lit_of_int32 Int32.one]
-          [vec_mir_type])
+      mk_call_builtin
+        ~block:(Ecx.get_current_block ~ecx)
+        Mir_builtin.myte_alloc
+        [mk_int_lit_of_int32 Int32.one]
+        [vec_mir_type]
     in
 
     (* Write all vec literal fields *)
@@ -990,12 +979,11 @@ and emit_string_literal ~ecx loc value =
   let string_agg = cast_to_aggregate_type string_type in
   (* Call myte_alloc builtin to allocate space for string *)
   let agg_ptr_val =
-    Mir_builtin.(
-      mk_call_builtin
-        ~block:(Ecx.get_current_block ~ecx)
-        myte_alloc
-        [mk_int_lit_of_int32 Int32.one]
-        [string_type])
+    mk_call_builtin
+      ~block:(Ecx.get_current_block ~ecx)
+      Mir_builtin.myte_alloc
+      [mk_int_lit_of_int32 Int32.one]
+      [string_type]
   in
   (* Write all string literal fields *)
   let emit_field_store name value =
@@ -1096,12 +1084,11 @@ and emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_i
   (* Call myte_alloc builtin to allocate space for trait object *)
   let trait_object_type = Type.Aggregate trait_object_instance.agg in
   let trait_object_ptr_val =
-    Mir_builtin.(
-      mk_call_builtin
-        ~block:(Ecx.get_current_block ~ecx)
-        myte_alloc
-        [mk_int_lit_of_int32 Int32.one]
-        [trait_object_type])
+    mk_call_builtin
+      ~block:(Ecx.get_current_block ~ecx)
+      Mir_builtin.myte_alloc
+      [mk_int_lit_of_int32 Int32.one]
+      [trait_object_type]
   in
   (* Write trait object fields *)
   let emit_field_store name value =
@@ -1122,12 +1109,11 @@ and emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_i
   | Some item_val when trait_object_instance.is_boxed ->
     let item_type = type_of_value item_val in
     let item_ptr =
-      Mir_builtin.(
-        mk_call_builtin
-          myte_alloc
-          ~block:(Ecx.get_current_block ~ecx)
-          [mk_int_lit_of_int32 Int32.one]
-          [item_type])
+      mk_call_builtin
+        Mir_builtin.myte_alloc
+        ~block:(Ecx.get_current_block ~ecx)
+        [mk_int_lit_of_int32 Int32.one]
+        [item_type]
     in
     mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:item_ptr ~value:item_val;
     emit_field_store "item" item_ptr
@@ -1355,7 +1341,7 @@ and emit_call
     | Some receiver_val -> receiver_val :: arg_vals
   in
   let builtin_functions = Lazy.force_val builtin_functions in
-  match func_val with
+  match func_val.value with
   (* Generate Myte builtin function *)
   | Lit (MyteBuiltin name) ->
     let mk_func = SMap.find name builtin_functions in
@@ -1413,7 +1399,7 @@ and emit_std_byte_byte_toLong ~ecx arg_vals _ =
   Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Long)
 
 and emit_std_gc_getHeapSize ~ecx _ _ =
-  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_get_heap_size [] [])
+  Some (mk_call_builtin ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_get_heap_size [] [])
 
 and emit_std_int_int_toByte ~ecx arg_vals _ =
   Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Byte)
@@ -1432,11 +1418,10 @@ and emit_std_memory_array_copy ~ecx arg_vals _ =
   | [dest_array; dest_index; src_array; src_index; count] ->
     let dest_ptr = emit_offset_ptr ~ecx dest_array dest_index in
     let src_ptr = emit_offset_ptr ~ecx src_array src_index in
-    Mir_builtin.(
-      mk_call_builtin_no_return_
-        ~block:(Ecx.get_current_block ~ecx)
-        myte_copy
-        [dest_ptr; src_ptr; count]);
+    mk_call_builtin_no_return_
+      ~block:(Ecx.get_current_block ~ecx)
+      Mir_builtin.myte_copy
+      [dest_ptr; src_ptr; count];
     None
   | _ -> failwith "Array.copy expects five arguments"
 
@@ -1461,11 +1446,14 @@ and emit_std_memory_array_new ~ecx arg_vals ret_type =
   in
   match arg_vals with
   (* An allocation of 0 represents the null pointer *)
-  | [Lit (Int 0l)] -> Some (mk_null_ptr_lit element_ty)
+  | [{ value = Lit (Int 0l); _ }] -> Some (mk_null_ptr_lit element_ty)
   | _ ->
     Some
-      Mir_builtin.(
-        mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_alloc arg_vals [element_ty])
+      (mk_call_builtin
+         ~block:(Ecx.get_current_block ~ecx)
+         Mir_builtin.myte_alloc
+         arg_vals
+         [element_ty])
 
 and emit_std_io_write ~ecx arg_vals _ =
   let arg_vals =
@@ -1475,22 +1463,22 @@ and emit_std_io_write ~ecx arg_vals _ =
       [file_val; ptr_val; size_val]
     | _ -> failwith "Expected four arguments"
   in
-  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_write arg_vals [])
+  Some (mk_call_builtin ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_write arg_vals [])
 
 and emit_std_io_read ~ecx arg_vals _ =
-  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_read arg_vals [])
+  Some (mk_call_builtin ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_read arg_vals [])
 
 and emit_std_io_open ~ecx arg_vals _ =
-  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_open arg_vals [])
+  Some (mk_call_builtin ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_open arg_vals [])
 
 and emit_std_io_close ~ecx arg_vals _ =
-  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_close arg_vals [])
+  Some (mk_call_builtin ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_close arg_vals [])
 
 and emit_std_io_unlink ~ecx arg_vals _ =
-  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_unlink arg_vals [])
+  Some (mk_call_builtin ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_unlink arg_vals [])
 
 and emit_std_sys_exit ~ecx arg_vals _ =
-  Mir_builtin.(mk_call_builtin_no_return_ ~block:(Ecx.get_current_block ~ecx) myte_exit arg_vals);
+  mk_call_builtin_no_return_ ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_exit arg_vals;
   None
 
 and emit_call_vec_get ~ecx return_loc vec_val index_val =
@@ -1672,9 +1660,9 @@ and emit_call_set_new ~ecx return_mir_type set_type_args =
 
 (* If the index is nonzero, emit a GetPointer instruction to calculate the pointer's start *)
 and emit_offset_ptr ~ecx ptr_val offset_val =
-  match offset_val with
+  match offset_val.value with
   | Lit (Int lit) when lit = Int32.zero -> ptr_val
-  | offset_val ->
+  | _ ->
     let ptr_ty = pointer_value_element_type ptr_val in
     mk_get_pointer_instr
       ~block:(Ecx.get_current_block ~ecx)
@@ -1708,12 +1696,11 @@ and emit_construct_enum_variant ~ecx ~name ~ty =
 
     (* Call myte_alloc builtin to allocate space for variant's union aggregate *)
     let agg_ptr =
-      Mir_builtin.(
-        mk_call_builtin
-          ~block:(Ecx.get_current_block ~ecx)
-          myte_alloc
-          [mk_int_lit_of_int32 Int32.one]
-          [union_ty])
+      mk_call_builtin
+        ~block:(Ecx.get_current_block ~ecx)
+        Mir_builtin.myte_alloc
+        [mk_int_lit_of_int32 Int32.one]
+        [union_ty]
     in
 
     (* Store enum tag *)
@@ -1739,12 +1726,11 @@ and emit_construct_tuple_variant
   | Variants { tags; union; variants; _ } ->
     (* Call myte_alloc builtin to allocate space for variant type *)
     let union_ptr =
-      Mir_builtin.(
-        mk_call_builtin
-          ~block:(Ecx.get_current_block ~ecx)
-          myte_alloc
-          [mk_int_lit_of_int32 Int32.one]
-          [Aggregate union])
+      mk_call_builtin
+        ~block:(Ecx.get_current_block ~ecx)
+        Mir_builtin.myte_alloc
+        [mk_int_lit_of_int32 Int32.one]
+        [Aggregate union]
     in
     (* Cast to variant type and store all fields *)
     let tuple_variant_agg = SMap.find name variants in
@@ -1779,12 +1765,11 @@ and emit_construct_tuple ~ecx ~(agg : Aggregate.t) ~(mk_elements : (unit -> Valu
     Value.t =
   (* Call myte_alloc builtin to allocate space for tuple *)
   let ptr =
-    Mir_builtin.(
-      mk_call_builtin
-        ~block:(Ecx.get_current_block ~ecx)
-        myte_alloc
-        [mk_int_lit_of_int32 Int32.one]
-        [Aggregate agg])
+    mk_call_builtin
+      ~block:(Ecx.get_current_block ~ecx)
+      Mir_builtin.myte_alloc
+      [mk_int_lit_of_int32 Int32.one]
+      [Aggregate agg]
   in
   emit_store_tuple_fields ~ecx ~ptr ~tag:None ~agg ~mk_elements;
   ptr
@@ -2158,7 +2143,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
           if Bindings.is_module_decl binding then
             Ecx.get_global_pointer ~ecx binding |> Option.get
           else
-            Instr (Ecx.get_local_ptr_def_instr ~ecx loc mir_type)
+            Ecx.get_local_ptr_def_instr ~ecx loc mir_type
         in
         emit_pointer_assign (fun _ -> Some pointer_val) expr)
     (* Pattern assignments are destructured with a decision tree *)
@@ -2353,8 +2338,8 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
       mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:global_ptr ~value
     else
       let stack_alloc_instr = Ecx.get_local_ptr_def_instr ~ecx loc mir_type in
-      append_instruction (Ecx.get_current_block ~ecx) stack_alloc_instr;
-      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:(Value.Instr stack_alloc_instr) ~value
+      append_instruction (Ecx.get_current_block ~ecx) (cast_to_instruction stack_alloc_instr);
+      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:stack_alloc_instr ~value
   | _ ->
     let decision_tree =
       Mir_match_decision_tree.build_destructure_decision_tree ~ecx value pattern
@@ -2417,7 +2402,9 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
                 acc
               else
                 let stack_alloc_instr = Ecx.get_local_ptr_def_instr ~ecx decl_loc mir_type in
-                append_instruction (Ecx.get_current_block ~ecx) stack_alloc_instr;
+                append_instruction
+                  (Ecx.get_current_block ~ecx)
+                  (cast_to_instruction stack_alloc_instr);
                 LocSet.add decl_loc acc)
           acc
           bindings
@@ -2457,7 +2444,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
                  if Bindings.is_module_decl binding then
                    Ecx.get_global_pointer ~ecx binding |> Option.get
                  else
-                   Instr (Ecx.get_local_ptr_def_instr ~ecx decl_loc mir_type)
+                   Ecx.get_local_ptr_def_instr ~ecx decl_loc mir_type
                in
                mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:ptr_val ~value:binding_val;
                path_cache)

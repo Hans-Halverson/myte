@@ -58,7 +58,7 @@ module PhiChainNode = struct
     (* Store instruction ids for this node, mapped to the previous block that they flowed from along
        with the value that was stored. *)
     mutable write_locs: (Block.t * Value.t) IMap.t;
-    mutable realized: Instruction.t option;
+    mutable realized: Value.t option;
     (* Type is filled after creation *)
     mutable mir_type: Type.t option;
   }
@@ -160,7 +160,8 @@ and find_join_points ~cx program =
     iter_instructions block (fun instr ->
         match instr.instr with
         | StackAlloc ty -> cx.stack_alloc_ids <- IMap.add instr.id ty cx.stack_alloc_ids
-        | Store ((Instr { id; _ } | Argument { id; _ }), _) when IMap.mem id cx.stack_alloc_ids ->
+        | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, _)
+          when IMap.mem id cx.stack_alloc_ids ->
           sources := IMap.add id instr.id !sources
         | _ -> ());
     let next_blocks = get_next_blocks block in
@@ -251,10 +252,12 @@ and build_phi_nodes ~cx program =
     (* Mark phi nodes to realize *)
     iter_instructions block (fun instr ->
         match instr.instr with
-        | Store ((Instr { id; _ } | Argument { id; _ }), arg) when IMap.mem id cx.stack_alloc_ids ->
+        | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, arg)
+          when IMap.mem id cx.stack_alloc_ids ->
           (* Source for this variable is now this write location *)
-          sources := IMap.add id (WriteLocation (instr.block, instr, arg)) !sources
-        | Load (Instr { id; _ } | Argument { id; _ }) when IMap.mem id cx.stack_alloc_ids ->
+          sources := IMap.add id (WriteLocation (instr.block, instr, arg.value)) !sources
+        | Load { value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }
+          when IMap.mem id cx.stack_alloc_ids ->
           (* Save source for each use *)
           let source = IMap.find id !sources in
           add_use_source ~cx func_name instr.id source;
@@ -291,14 +294,18 @@ and build_phi_nodes ~cx program =
 and rewrite_program ~cx program =
   (* Traverse phi chain graph to gather all previous block/value pairs for a given phi node. The phi
      chain graph is deeply traversed until realized nodes are encountered. *)
-  let gather_phi_args (node_id : PhiChainNode.id) : Value.t BlockMap.t =
+  let gather_phi_args ~(phi_value : Value.t) (node_id : PhiChainNode.id) : Use.t BlockMap.t =
     let phi_args = ref BlockMap.empty in
-    let add_phi_arg prev_block arg_val = phi_args := BlockMap.add prev_block arg_val !phi_args in
+    let add_phi_arg prev_block arg_val =
+      phi_args :=
+        let arg_use = Mir_builders.user_add_use ~user:phi_value ~use:arg_val in
+        BlockMap.add prev_block arg_use !phi_args
+    in
     let rec visit_phi_node node_id prev_block =
       let node = get_node ~cx node_id in
       match node.realized with
       (* Do not descend into realized nodes, use their realized instruction *)
-      | Some instr -> add_phi_arg prev_block (Value.Instr instr)
+      | Some instr -> add_phi_arg prev_block instr
       (* Descend into unrealized nodes, gather local writes and phi chain nodes *)
       | _ ->
         IMap.iter (fun _ (_, arg_val) -> add_phi_arg prev_block arg_val) node.write_locs;
@@ -318,19 +325,19 @@ and rewrite_program ~cx program =
         (fun node_id phis ->
           let node = get_node ~cx node_id in
           let phi_instr = Option.get node.realized in
-          let phi = cast_to_phi phi_instr in
-          phi.args <- gather_phi_args node_id;
+          let phi = cast_to_phi (cast_to_instruction phi_instr) in
+          phi.args <- gather_phi_args ~phi_value:phi_instr node_id;
           phi_instr :: phis)
         realized_phis
         []
     in
-    List.iter (prepend_instruction block) phis;
+    List.iter (fun instr -> prepend_instruction block (cast_to_instruction instr)) phis;
     (* Remove memory instructions for memory locations promoted to registers *)
     filter_instructions block (fun instr ->
         match instr.Instruction.instr with
         | StackAlloc _ when IMap.mem instr.id cx.stack_alloc_ids -> false
-        | Store ((Instr { id; _ } | Argument { id; _ }), _)
-        | Load (Instr { id; _ } | Argument { id; _ })
+        | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, _)
+        | Load { value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }
           when IMap.mem id cx.stack_alloc_ids ->
           false
         | _ -> true)
@@ -350,8 +357,7 @@ and rewrite_program ~cx program =
             | WriteLocation (_, _, write_val) -> IMap.add load_instr_id write_val value_map
             | PhiChainJoin node_id ->
               let node = get_node ~cx node_id in
-              let instr = Option.get node.realized in
-              let mapped_val = Value.Instr instr in
+              let mapped_val = Option.get node.realized in
               IMap.add load_instr_id mapped_val value_map)
           use_sources
           IMap.empty

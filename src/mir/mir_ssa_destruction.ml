@@ -55,7 +55,7 @@ let split_edges ~(ir : Program.t) =
    variables with new copies will be introduced to break the cycles while not clobbering any vars. *)
 let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
     (Value.t * Value.t) list =
-  let copy_sequence = ref [] in
+  let copy_sequence : (Value.t * Value.t) list ref = ref [] in
   let add_to_sequence dest_val src_val = copy_sequence := (dest_val, src_val) :: !copy_sequence in
 
   (* Copy graph between values *)
@@ -75,7 +75,7 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
   List.iter
     (fun (dest_val, src_val) ->
       let dest_instr = cast_to_instruction dest_val in
-      match src_val with
+      match src_val.Value.value with
       | Value.Instr { id; _ }
       | Argument { id; _ } ->
         (* Add edge to graph for copy between variables. Self copies can be ignored *)
@@ -106,7 +106,7 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
        instead point from the new var to the result. *)
     | None ->
       let (dest_val, arg_val) = VVMMap.choose !copied_from in
-      let new_arg_val = Value.Instr (Mir_builders.mk_blockless_mov ~arg:arg_val) in
+      let new_arg_val = Mir_builders.mk_blockless_mov ~arg:arg_val in
       add_to_sequence new_arg_val arg_val;
       remove_copy_edge dest_val arg_val;
       add_copy_edge dest_val new_arg_val
@@ -119,13 +119,15 @@ let lower_phis_to_copies ~(ir : Program.t) =
   program_iter_blocks ir (fun block ->
       (* Collect all copies to create from phi nodes in each previous block *)
       let block_to_parallel_copies =
-        block_fold_phis block BlockMap.empty (fun instr { args } acc ->
+        block_fold_phis block BlockMap.empty (fun { args } acc ->
+            (* Can find user instruction from uses as args must be nonempty *)
+            let instr_value = (snd (BlockMap.choose args)).user in
             BlockMap.fold
               (fun prev_block arg_val acc ->
                 let existing_copies =
                   BlockMap.find_opt prev_block acc |> Option.value ~default:[]
                 in
-                BlockMap.add prev_block ((Value.Instr instr, arg_val) :: existing_copies) acc)
+                BlockMap.add prev_block ((instr_value, arg_val.Use.value) :: existing_copies) acc)
               args
               acc)
       in
@@ -141,7 +143,8 @@ let lower_phis_to_copies ~(ir : Program.t) =
                  during sequentialization. This breaks references but preserves value ids, so
                  after this point arg/use references cannot be followed. *)
               let dest_instr = cast_to_instruction dest_val in
-              let rec instr = { dest_instr with instr = Mov arg_val; next = instr; prev = instr } in
+              let arg_use = Mir_builders.user_add_use ~user:dest_val ~use:arg_val in
+              let rec instr = { dest_instr with instr = Mov arg_use; next = instr; prev = instr } in
               insert_instruction_before ~before:terminator instr)
             sequential_copies)
         block_to_parallel_copies;

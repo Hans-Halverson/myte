@@ -139,7 +139,7 @@ let mir_value_of_constant constant =
   | ByteConstant i -> mk_byte_lit i
   | IntConstant i -> mk_int_lit_of_int32 i
   | LongConstant i -> mk_long_lit i
-  | FunctionConstant f -> mk_func_lit f
+  | FunctionConstant f -> f.value
 
 (* Perform iterative passes to calculate folded constants for all instructions.
    Additionally prune dead branches, some of which may be exposed by constant folding. *)
@@ -207,12 +207,12 @@ class calc_constants_visitor ~program =
           | Some _
             when (not global.is_constant) || SMap.mem name global_constants ->
             ()
-          | Some (Instr instr) ->
+          | Some { value = { value = Instr instr; _ }; _ } ->
             (match IMap.find_opt instr.id instr_constants with
             | Some constant -> this#add_global_constant name constant
             | None -> ())
           (* Globals initialized with constant value have constant propagated *)
-          | Some (Lit lit) ->
+          | Some { value = { value = Lit lit; _ }; _ } ->
             (match lit with
             | Bool lit -> this#add_global_constant name (BoolConstant lit)
             | Byte lit -> this#add_global_constant name (ByteConstant lit)
@@ -235,18 +235,19 @@ class calc_constants_visitor ~program =
 
             method! map_instruction instruction =
               match instruction.instr with
-              | Store (Lit (Global global), value) ->
-                (match value with
-                | Instr { id = instr_id; _ } ->
-                  (match IMap.find_opt instr_id instr_constants with
-                  | Some constant ->
-                    mapper#mark_instruction_removed ();
-                    if global.is_constant then
-                      this#add_global_constant global.name constant
-                    else
-                      global.init_val <- Some (mir_value_of_constant constant)
-                  | None -> ())
-                | _ -> ())
+              | Store
+                  ( { value = { value = Lit (Global global); _ }; _ },
+                    { value = { value = Instr { id = instr_id; _ }; _ }; _ } ) ->
+                (match IMap.find_opt instr_id instr_constants with
+                | Some constant ->
+                  mapper#mark_instruction_removed ();
+                  if global.is_constant then
+                    this#add_global_constant global.name constant
+                  else
+                    Mir_builders.global_set_init
+                      ~global
+                      ~init:(Some (mir_value_of_constant constant))
+                | None -> ())
               | _ -> ()
           end
         in
@@ -263,7 +264,7 @@ class calc_constants_visitor ~program =
         | Some ({ instr = Branch { test; continue; jump }; _ } as term_instr) ->
           (* Determine whether test is a constant value *)
           let test_constant_opt =
-            match test with
+            match test.value.value with
             | Lit (Bool lit) -> Some lit
             | Instr instr ->
               (match this#lookup_constant instr.id with
@@ -303,7 +304,7 @@ class calc_constants_visitor ~program =
         let (constants, is_constant) =
           BlockMap.fold
             (fun _ arg_val (constants, is_constant) ->
-              match arg_val with
+              match arg_val.Use.value.value with
               | Value.Instr instr ->
                 if ISet.mem instr.id removed_instr_ids then
                   (constants, is_constant)
@@ -334,8 +335,8 @@ class calc_constants_visitor ~program =
           if is_single_constant then this#add_constant instr.id constant
 
     method! visit_instruction instr =
-      let get_lit_opt value =
-        match value with
+      let get_lit_opt (use : Use.t) =
+        match use.value.value with
         | Value.Lit (Bool b) -> Some (BoolConstant b)
         | Lit (Byte b) -> Some (ByteConstant b)
         | Lit (Int i) -> Some (IntConstant i)
@@ -379,7 +380,7 @@ class calc_constants_visitor ~program =
       | Trunc arg -> try_fold_conversion instr.id arg (TruncOp instr.type_)
       | SExt arg -> try_fold_conversion instr.id arg (SExtOp instr.type_)
       (* Propagate global constants through pointers *)
-      | Load (Lit (Global global)) ->
+      | Load { value = { value = Lit (Global global); _ }; _ } ->
         (match SMap.find_opt global.name global_constants with
         | None -> ()
         | Some constant -> this#add_constant instr.id constant)

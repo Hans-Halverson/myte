@@ -3,25 +3,54 @@ open Mir_type
 
 type label = string
 
-module rec Value : sig
+(* A use of a value, such as an operand in an instruction or the initializer for globals. Creates
+   a link between values and their uses allowing one to traverse between them and iterate over all
+   uses. *)
+module rec Use : sig
+  type t = {
+    (* The value that being used at this use. For example in a Binary instruction each of the two
+       operands is a use and this is its value. *)
+    value: Value.t;
+    (* The user that is using the use. For example a Binary instruction is a user and each of its
+       two operands is a use whose user points back to the Binary instruction. *)
+    user: Value.t;
+    (* Uses form a circular doubly linked list *)
+    mutable prev: Use.t;
+    mutable next: Use.t;
+  }
+end =
+  Use
+
+and Value : sig
   type id = int
 
-  type t =
+  type value =
     | Instr of Instruction.t
     | Lit of Literal.t
     | Argument of Argument.t
+
+  type t = {
+    mutable value: value;
+    (* All uses of this value, forming a circular linked list. None if there are no uses. *)
+    mutable uses: Use.t option;
+  }
 
   val compare : Value.t -> Value.t -> int
 end = struct
   type id = int
 
-  type t =
+  type value =
     | Instr of Instruction.t
     | Lit of Literal.t
     | Argument of Argument.t
 
+  type t = {
+    mutable value: value;
+    mutable uses: Use.t option;
+  }
+
   let compare v1 v2 =
-    match (v1, v2) with
+    match (v1.value, v2.value) with
     | ( (Instr { id = id1; _ } | Argument { id = id1; _ }),
         (Instr { id = id2; _ } | Argument { id = id2; _ }) ) ->
       Int.compare id1 id2
@@ -63,34 +92,38 @@ and Instruction : sig
   module Phi : sig
     type t = {
       (* Map from preceding basic block to the value to choose if that basic block was visited *)
-      mutable args: Value.t BlockMap.t;
+      mutable args: Use.t BlockMap.t;
     }
   end
 
   module GetPointer : sig
-    type offset =
-      | PointerIndex of (* Numeric *) Value.t
+    type 'a offset =
+      | PointerIndex of (* Numeric *) 'a
       | FieldIndex of int
+
+    type value_offset = Value.t offset
+
+    type use_offset = Use.t offset
 
     (* Instruction type is result of GetPointer instruction, a pointer to indexed element type *)
     type t = {
-      pointer: (* Pointer *) Value.t;
-      pointer_offset: (* Numeric *) Value.t option;
-      offsets: offset list;
+      pointer: (* Pointer *) Use.t;
+      pointer_offset: (* Numeric *) Use.t option;
+      offsets: use_offset list;
     }
   end
 
   module Call : sig
     type t = {
       func: func;
-      args: Value.t list;
+      args: Use.t list;
       (* If true then instruction's type_ is call's return type. If false then instruction's
          type_ is undefined *)
       has_return: bool;
     }
 
     and func =
-      | Value of (* Function *) Value.t
+      | Value of (* Function *) Use.t
       | MirBuiltin of Builtin.t
   end
 
@@ -126,40 +159,36 @@ and Instruction : sig
     (* Logical right shift *)
     | Shrl
 
-  type func =
-    | FuncBuiltin of Builtin.t
-    | FuncValue of (* Function *) Value.t
-
   and instr =
     | Phi of Phi.t
     | Call of Call.t
     (* Memory operations *)
     | StackAlloc of (* Type of allocated value *) Type.t (* Instruction type is pointer type *)
-    | Load of (* Pointer *) Value.t
-    | Store of (* Pointer *) Value.t * (* Stored value, any type *) Value.t
+    | Load of (* Pointer *) Use.t
+    | Store of (* Pointer *) Use.t * (* Stored value, any type *) Use.t
     (* Memory offset operations *)
     | GetPointer of GetPointer.t
     (* Unary operations *)
-    | Unary of unary_operation * (* Numeric *) Value.t
+    | Unary of unary_operation * (* Numeric *) Use.t
     (* Binary operations *)
-    | Binary of binary_operation * (* Numeric *) Value.t * (* Numeric *) Value.t
+    | Binary of binary_operation * (* Numeric *) Use.t * (* Numeric *) Use.t
     (* Comparison *)
-    | Cmp of comparison * (* Comparable *) Value.t * (* Comparable *) Value.t
+    | Cmp of comparison * (* Comparable *) Use.t * (* Comparable *) Use.t
     (* Conversions *)
-    | Cast of Value.t (* Instruction type is type value is cast to *)
-    | Trunc of (* Numeric *) Value.t (* Instruction type is type value is truncated to *)
-    | SExt of (* Numeric *) Value.t (* Instruction type is type value is sign extended to *)
+    | Cast of Use.t (* Instruction type is type value is cast to *)
+    | Trunc of (* Numeric *) Use.t (* Instruction type is type value is truncated to *)
+    | SExt of (* Numeric *) Use.t (* Instruction type is type value is sign extended to *)
     (* Block terminators *)
-    | Ret of Value.t option
+    | Ret of Use.t option
     | Continue of Block.t
     | Branch of {
-        test: (* Bool *) Value.t;
+        test: (* Bool *) Use.t;
         continue: Block.t;
         jump: Block.t;
       }
     | Unreachable
     (* Only generated during MIR destruction *)
-    | Mov of Value.t
+    | Mov of Use.t
 
   and t = {
     id: Value.id;
@@ -235,8 +264,10 @@ and Global : sig
     name: label;
     loc: Loc.t;
     type_: Type.t;
-    mutable init_val: Value.t option;
+    mutable init_val: Use.t option;
     is_constant: bool;
+    (* The value that represents this global *)
+    mutable value: Value.t;
   }
 end =
   Global
@@ -245,10 +276,12 @@ and Function : sig
   type t = {
     name: label;
     mutable loc: Loc.t;
-    mutable params: Argument.t list;
+    mutable params: Value.t list;
     mutable return_type: Type.t option;
     mutable start_block: Block.t;
     mutable blocks: BlockSet.t;
+    (* The value that represents this function *)
+    mutable value: Value.t;
   }
 
   val compare : t -> t -> int
@@ -256,10 +289,11 @@ end = struct
   type t = {
     name: label;
     mutable loc: Loc.t;
-    mutable params: Argument.t list;
+    mutable params: Value.t list;
     mutable return_type: Type.t option;
     mutable start_block: Block.t;
     mutable blocks: BlockSet.t;
+    mutable value: Value.t;
   }
 
   let compare f1 f2 = String.compare f1.name f2.name
@@ -298,6 +332,7 @@ let rec null_function : Function.t =
     return_type = None;
     start_block = null_block;
     blocks = BlockSet.empty;
+    value = null_value;
   }
 
 (* A placeholder block, to avoid having to represent Option<Block> with its extra allocation *)
@@ -309,8 +344,12 @@ and null_block : Block.t =
     prev_blocks = BlockSet.empty;
   }
 
-let rec type_of_value (v : Value.t) : Type.t =
-  match v with
+and null_value : Value.t = { Value.value = Lit (Bool true); uses = None }
+
+let rec type_of_use (use : Use.t) : Type.t = type_of_value use.value
+
+and type_of_value (v : Value.t) : Type.t =
+  match v.value with
   | Instr { type_; _ } -> type_
   | Argument { type_; _ } -> type_
   | Lit lit -> type_of_literal lit
@@ -335,12 +374,12 @@ let pointer_value_element_type (ptr : Value.t) : Type.t =
   | _ -> failwith "Expected pointer type"
 
 let cast_to_function_literal (func : Value.t) : Function.t =
-  match func with
+  match func.value with
   | Lit (Function func) -> func
   | _ -> failwith "Expected function literal"
 
 let is_literal (v : Value.t) : bool =
-  match v with
+  match v.value with
   | Lit _ -> true
   | _ -> false
 
@@ -366,7 +405,7 @@ let is_comparable_value (v : Value.t) : bool =
   | _ -> false
 
 let rec values_equal (v1 : Value.t) (v2 : Value.t) : bool =
-  match (v1, v2) with
+  match (v1.value, v2.value) with
   | (Instr { id = id1; _ }, Instr { id = id2; _ }) -> id1 = id2
   | (Lit lit1, Lit lit2) -> literals_equal lit1 lit2
   | (Argument { id = id1; _ }, Argument { id = id2; _ }) -> id1 = id2
@@ -397,9 +436,14 @@ let is_shift_op (op : Instruction.binary_operation) : bool =
   | _ -> false
 
 let cast_to_instruction (value : Value.t) : Instruction.t =
-  match value with
+  match value.value with
   | Instr instr -> instr
   | _ -> failwith "Expected instruction value"
+
+let cast_to_argument (value : Value.t) : Argument.t =
+  match value.value with
+  | Argument arg -> arg
+  | _ -> failwith "Expected argument value"
 
 let cast_to_phi (instr : Instruction.t) : Instruction.Phi.t =
   match instr with
@@ -473,7 +517,7 @@ let assert_valid_list (block : Block.t) =
     in
     iter first last
 
-let add_link (i1 : Instruction.t) (i2 : Instruction.t) =
+let add_instr_link (i1 : Instruction.t) (i2 : Instruction.t) =
   i1.next <- i2;
   i2.prev <- i1
 
@@ -483,8 +527,8 @@ let prepend_instruction (block : Block.t) (instr : Instruction.t) =
   match block.instructions with
   | None -> block.instructions <- Some { first = instr; last = instr }
   | Some ({ first; last } as list) ->
-    add_link instr first;
-    add_link last instr;
+    add_instr_link instr first;
+    add_instr_link last instr;
     list.first <- instr
 
 (* Append an instruction to the end of a block's instruction list *)
@@ -493,8 +537,8 @@ let append_instruction (block : Block.t) (instr : Instruction.t) =
   match block.instructions with
   | None -> block.instructions <- Some { first = instr; last = instr }
   | Some ({ first; last } as list) ->
-    add_link last instr;
-    add_link instr first;
+    add_instr_link last instr;
+    add_instr_link instr first;
     list.last <- instr
 
 (* Insert an instruction immediately before another instruction in a block's instruction list *)
@@ -505,8 +549,8 @@ let insert_instruction_before ~(before : Instruction.t) (instr : Instruction.t) 
   | None -> failwith "Block must have before instruction"
   | Some list ->
     let prev_instr = before.prev in
-    add_link prev_instr instr;
-    add_link instr before;
+    add_instr_link prev_instr instr;
+    add_instr_link instr before;
     if list.first == before then list.first <- instr
 
 (* Remove an instruction from a block's instruction list *)
@@ -517,8 +561,7 @@ let remove_instruction (block : Block.t) (instr : Instruction.t) =
   else
     let prev = instr.prev in
     let next = instr.next in
-    prev.next <- next;
-    next.prev <- prev;
+    add_instr_link prev next;
     let list = Option.get block.instructions in
     if list.first == instr then list.first <- next;
     if list.last == instr then list.last <- prev
@@ -537,8 +580,8 @@ let concat_instructions (b1 : Block.t) (b2 : Block.t) =
   | (_, None) -> ()
   | (None, (Some _ as instrs)) -> b1.instructions <- instrs
   | (Some ({ first = first1; last = last1 } as list), Some { first = first2; last = last2 }) ->
-    add_link last1 first2;
-    add_link last2 first1;
+    add_instr_link last1 first2;
+    add_instr_link last2 first1;
     list.last <- last2
 
 let filter_instructions (block : Block.t) (f : Instruction.t -> bool) =
@@ -580,11 +623,10 @@ let block_filter_phis (block : Block.t) (f : Value.id -> Instruction.Phi.t -> bo
       | { instr = Phi phi; id; _ } -> if not (f id phi) then remove_instruction block instr
       | _ -> ())
 
-let block_fold_phis
-    (block : Block.t) (acc : 'a) (f : Instruction.t -> Instruction.Phi.t -> 'a -> 'a) : 'a =
+let block_fold_phis (block : Block.t) (acc : 'a) (f : Instruction.Phi.t -> 'a -> 'a) : 'a =
   fold_instructions block acc (fun instr acc ->
       match instr with
-      | { instr = Phi phi; _ } -> f instr phi acc
+      | { instr = Phi phi; _ } -> f phi acc
       | _ -> acc)
 
 let block_clear_phis (block : Block.t) = block_filter_phis block (fun _ _ -> false)

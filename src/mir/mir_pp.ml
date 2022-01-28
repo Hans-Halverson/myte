@@ -89,7 +89,7 @@ and pp_global ~cx global =
   let init =
     match global.init_val with
     | None -> "uninitialized"
-    | Some init_val -> pp_value ~cx init_val
+    | Some init_val -> pp_use ~cx init_val
   in
   let open Global in
   let global_label =
@@ -104,7 +104,8 @@ and pp_func ~cx func =
   cx.max_print_block_id <- 0;
   let func_params =
     func.params
-    |> List.map (fun { Argument.id; type_; _ } ->
+    |> List.map (fun arg_value ->
+           let { Argument.id; type_; _ } = cast_to_argument arg_value in
            Printf.sprintf "%s %s" (pp_type type_) (pp_value_id ~cx id))
     |> String.concat ", "
   in
@@ -188,9 +189,9 @@ and pp_block_id ~cx block =
   in
   "@" ^ print_id
 
-and pp_value ~cx value =
-  match value with
-  | Instr { id; _ }
+and pp_use ~cx (use : Use.t) =
+  match use.value.value with
+  | Value.Instr { id; _ }
   | Argument { id; _ } ->
     pp_value_id ~cx id
   | Lit lit -> pp_literal lit
@@ -216,7 +217,7 @@ and pp_type ty = type_to_string ty
 
 and pp_numeric_type ty = type_to_string (ty :> Type.t)
 
-and pp_type_of_value v = pp_type (type_of_value v)
+and pp_type_of_use use = pp_type (type_of_use use)
 
 and pp_unary_operation unary_operation =
   match unary_operation with
@@ -251,12 +252,11 @@ and pp_instruction ~cx instr =
   let pp_instr str = Printf.sprintf "%s := %s" (pp_value_id ~cx instr.id) str in
   let instr_string =
     match instr.instr with
-    | Mov right ->
-      pp_instr (Printf.sprintf "Mov %s %s" (pp_type_of_value right) (pp_value ~cx right))
+    | Mov right -> pp_instr (Printf.sprintf "Mov %s %s" (pp_type_of_use right) (pp_use ~cx right))
     | Phi { args } ->
       let args_string =
         List.map
-          (fun (prev_block, arg) -> pp_block_id ~cx prev_block ^ ":" ^ pp_value ~cx arg)
+          (fun (prev_block, arg) -> pp_block_id ~cx prev_block ^ ":" ^ pp_use ~cx arg)
           (BlockMap.bindings args)
         |> String.concat ", "
       in
@@ -264,10 +264,10 @@ and pp_instruction ~cx instr =
     | Call { func; args; has_return } ->
       let func_string =
         match func with
-        | Value func -> pp_value ~cx func
+        | Value func -> pp_use ~cx func
         | MirBuiltin { name; _ } -> name
       in
-      let args_string = List.map (pp_value ~cx) args |> String.concat ", " in
+      let args_string = List.map (pp_use ~cx) args |> String.concat ", " in
       if has_return then
         pp_instr (Printf.sprintf "Call %s %s(%s)" (pp_type instr.type_) func_string args_string)
       else
@@ -276,22 +276,25 @@ and pp_instruction ~cx instr =
       "Ret"
       ^
       (match val_opt with
-      | Some v -> " " ^ pp_value ~cx v
+      | Some v -> " " ^ pp_use ~cx v
       | None -> "")
     | StackAlloc ty -> pp_instr (Printf.sprintf "StackAlloc %s" (pp_type ty))
     | Load ptr ->
       pp_instr
-        (Printf.sprintf "Load %s %s" (pp_type (pointer_value_element_type ptr)) (pp_value ~cx ptr))
+        (Printf.sprintf
+           "Load %s %s"
+           (pp_type (pointer_value_element_type ptr.value))
+           (pp_use ~cx ptr))
     | Store (ptr, right) ->
       Printf.sprintf
         "Store %s %s, %s"
-        (pp_type (pointer_value_element_type ptr))
-        (pp_value ~cx ptr)
-        (pp_value ~cx right)
+        (pp_type (pointer_value_element_type ptr.value))
+        (pp_use ~cx ptr)
+        (pp_use ~cx right)
     | GetPointer { GetPointer.pointer; pointer_offset; offsets } ->
-      let pointer_ty = type_of_value pointer in
+      let pointer_ty = type_of_use pointer in
       let pp_pointer_offset pointer_offset =
-        Printf.sprintf "[%s %s]" (pp_type_of_value pointer_offset) (pp_value ~cx pointer_offset)
+        Printf.sprintf "[%s %s]" (pp_type_of_use pointer_offset) (pp_use ~cx pointer_offset)
       in
       let pointer_offset_str =
         Option_utils.value_map pp_pointer_offset ~default:"" pointer_offset
@@ -310,52 +313,48 @@ and pp_instruction ~cx instr =
            "GetPointer %s, %s %s%s%s"
            (pp_type ptr_element_type)
            (pp_type pointer_ty)
-           (pp_value ~cx pointer)
+           (pp_use ~cx pointer)
            pointer_offset_str
            (String.concat "" offset_strs))
     | Unary (op, arg) ->
       pp_instr
-        (Printf.sprintf
-           "%s %s %s"
-           (pp_unary_operation op)
-           (pp_type_of_value arg)
-           (pp_value ~cx arg))
+        (Printf.sprintf "%s %s %s" (pp_unary_operation op) (pp_type_of_use arg) (pp_use ~cx arg))
     | Binary (op, left, right) ->
       pp_instr
         (Printf.sprintf
            "%s %s %s, %s"
            (pp_binary_operation op)
-           (pp_type_of_value left)
-           (pp_value ~cx left)
-           (pp_value ~cx right))
+           (pp_type_of_use left)
+           (pp_use ~cx left)
+           (pp_use ~cx right))
     | Cmp (cmp, left, right) ->
       pp_instr
         (Printf.sprintf
            "%s %s %s, %s"
            (pp_comparison cmp)
-           (pp_type_of_value left)
-           (pp_value ~cx left)
-           (pp_value ~cx right))
+           (pp_type_of_use left)
+           (pp_use ~cx left)
+           (pp_use ~cx right))
     | Cast arg ->
       pp_instr
         (Printf.sprintf
            "Cast %s %s to %s"
-           (pp_type_of_value arg)
-           (pp_value ~cx arg)
+           (pp_type_of_use arg)
+           (pp_use ~cx arg)
            (pp_type instr.type_))
     | Trunc arg ->
       pp_instr
         (Printf.sprintf
            "Trunc %s %s to %s"
-           (pp_type_of_value arg)
-           (pp_value ~cx arg)
+           (pp_type_of_use arg)
+           (pp_use ~cx arg)
            (pp_numeric_type instr.type_))
     | SExt arg ->
       pp_instr
         (Printf.sprintf
            "SExt %s %s to %s"
-           (pp_type_of_value arg)
-           (pp_value ~cx arg)
+           (pp_type_of_use arg)
+           (pp_use ~cx arg)
            (pp_numeric_type instr.type_))
     | Continue continue ->
       let debug_id =
@@ -368,7 +367,7 @@ and pp_instruction ~cx instr =
     | Branch { test; jump; continue } ->
       Printf.sprintf
         "branch %s, %s, %s"
-        (pp_value ~cx test)
+        (pp_use ~cx test)
         (pp_block_id ~cx continue)
         (pp_block_id ~cx jump)
     | Unreachable -> "unreachable"

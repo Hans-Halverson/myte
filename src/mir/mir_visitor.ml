@@ -46,41 +46,41 @@ module IRVisitor = struct
         | Phi phi -> this#visit_phi_node instr phi
         | Call { func; args; has_return = _ } ->
           (match func with
-          | Value func -> this#visit_value func
+          | Value func -> this#visit_use func
           | MirBuiltin _ -> ());
-          List.iter this#visit_value args
-        | Ret arg_opt -> Option.iter this#visit_value arg_opt
+          List.iter this#visit_use args
+        | Ret arg_opt -> Option.iter this#visit_use arg_opt
         | StackAlloc _type -> ()
-        | Load ptr -> this#visit_value ptr
+        | Load ptr -> this#visit_use ptr
         | Store (ptr, value) ->
-          this#visit_value ptr;
-          this#visit_value value
+          this#visit_use ptr;
+          this#visit_use value
         | GetPointer { GetPointer.pointer; pointer_offset; offsets } ->
-          this#visit_value pointer;
-          Option.iter this#visit_value pointer_offset;
+          this#visit_use pointer;
+          Option.iter this#visit_use pointer_offset;
           List.iter
             (fun offset ->
               match offset with
-              | GetPointer.PointerIndex index -> this#visit_value index
+              | GetPointer.PointerIndex index -> this#visit_use index
               | GetPointer.FieldIndex _ -> ())
             offsets
-        | Mov arg -> this#visit_value arg
+        | Mov arg -> this#visit_use arg
         | Unary (_, arg)
         | Cast arg
         | Trunc arg
         | SExt arg ->
-          this#visit_value arg
+          this#visit_use arg
         | Binary (_, left, right)
         | Cmp (_, left, right) ->
-          this#visit_value left;
-          this#visit_value right
+          this#visit_use left;
+          this#visit_use right
         | Unreachable -> ()
         | Continue _ -> ()
-        | Branch { test; _ } -> this#visit_value test
+        | Branch { test; _ } -> this#visit_use test
 
       method visit_phi_node _instr phi =
-        BlockMap.iter (fun _block arg_val -> this#visit_value arg_val) phi.args
+        BlockMap.iter (fun _block arg_val -> this#visit_use arg_val) phi.args
 
-      method visit_value _value = ()
+      method visit_use _use = ()
     end
 end

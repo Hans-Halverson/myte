@@ -49,7 +49,7 @@ let can_remove_block (block : Block.t) =
              BlockMap.exists
                (fun prev_block prev_block_arg ->
                  if BlockSet.mem prev_block block.prev_blocks then
-                   not (values_equal prev_block_arg (BlockMap.find block args))
+                   not (values_equal prev_block_arg.Use.value (BlockMap.find block args).value)
                  else
                    false)
                args)
@@ -154,7 +154,7 @@ let split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
       prev_blocks = BlockSet.singleton prev_block;
     }
   in
-  ignore (mk_continue ~block:new_block ~continue:next_block);
+  mk_continue_ ~block:new_block ~continue:next_block;
   func.blocks <- BlockSet.add new_block func.blocks;
   map_next_block prev_block ~from:next_block ~to_:new_block;
   new_block
