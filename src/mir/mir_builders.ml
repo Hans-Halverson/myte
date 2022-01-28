@@ -29,7 +29,8 @@ let mk_array_vtable_lit (funcs : Function.t list) : Value.t =
 
 (* Instructions *)
 
-let mk_instr ~(type_ : Type.t) ~(instr : Instruction.instr) : Instruction.t =
+(* Creates an instruction that is not yet part of a block *)
+let mk_blockless_instr ~(type_ : Type.t) ~(instr : Instruction.instr) : Instruction.t =
   let rec instruction =
     {
       Instruction.id = mk_value_id ();
@@ -42,50 +43,72 @@ let mk_instr ~(type_ : Type.t) ~(instr : Instruction.instr) : Instruction.t =
   in
   instruction
 
-let mk_phi ~(type_ : Type.t) ~(args : Value.t BlockMap.t) : Instruction.t =
-  mk_instr ~type_ ~instr:(Phi { args })
+(* Create an instruction and appends it the end of a block *)
+let mk_instr ~(block : Block.t) ~(type_ : Type.t) ~(instr : Instruction.instr) : Instruction.t =
+  let instruction = mk_blockless_instr ~type_ ~instr in
+  append_instruction block instruction;
+  instruction
 
-let mk_mov ~(arg : Value.t) : Instruction.t = mk_instr ~type_:(type_of_value arg) ~instr:(Mov arg)
+let mk_blockless_phi ~(type_ : Type.t) ~(args : Value.t BlockMap.t) : Instruction.t =
+  mk_blockless_instr ~type_ ~instr:(Phi { args })
 
-let mk_stack_alloc ~(type_ : Type.t) : Instruction.t =
-  mk_instr ~type_:(Pointer type_) ~instr:(StackAlloc type_)
+let mk_blockless_mov ~(arg : Value.t) : Instruction.t =
+  mk_blockless_instr ~type_:(type_of_value arg) ~instr:(Mov arg)
 
-let mk_load ~(ptr : Value.t) : Instruction.t =
+let mk_blockless_stack_alloc ~(type_ : Type.t) : Instruction.t =
+  mk_blockless_instr ~type_:(Pointer type_) ~instr:(StackAlloc type_)
+
+let mk_stack_alloc ~(block : Block.t) ~(type_ : Type.t) : Value.t =
+  Instr (mk_instr ~block ~type_:(Pointer type_) ~instr:(StackAlloc type_))
+
+let mk_load ~(block : Block.t) ~(ptr : Value.t) : Value.t =
   match type_of_value ptr with
-  | Pointer type_ -> mk_instr ~type_ ~instr:(Load ptr)
+  | Pointer type_ -> Instr (mk_instr ~block ~type_ ~instr:(Load ptr))
   | _ -> failwith "Load argument must be a pointer type"
 
-let mk_store ~(ptr : Value.t) ~(value : Value.t) : Instruction.t =
+let mk_store ~(block : Block.t) ~(ptr : Value.t) ~(value : Value.t) : Instruction.t =
   if not (types_equal (pointer_value_element_type ptr) (type_of_value value)) then
     failwith "Stored pointer and value types do not match";
-  mk_instr ~type_:no_return_type ~instr:(Store (ptr, value))
+  mk_instr ~block ~type_:no_return_type ~instr:(Store (ptr, value))
+
+let mk_store_ ~block ~ptr ~value = ignore (mk_store ~block ~ptr ~value)
 
 let mk_get_pointer_instr
+    ~(block : Block.t)
     ?(pointer_offset = None)
     ~(type_ : Type.t)
     ~(ptr : Value.t)
     ~(offsets : Instruction.GetPointer.offset list)
-    () =
+    () : Value.t =
   if not (is_pointer_value ptr) then failwith "GetPointer argument must be a pointer type";
-  mk_instr ~type_:(Pointer type_) ~instr:(GetPointer { pointer = ptr; pointer_offset; offsets })
+  Instr
+    (mk_instr
+       ~block
+       ~type_:(Pointer type_)
+       ~instr:(GetPointer { pointer = ptr; pointer_offset; offsets }))
 
-let mk_call ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) =
+let mk_call ~(block : Block.t) ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) :
+    Value.t =
   if not (is_function_value func) then failwith "Call function argument must have function type";
   let (type_, has_return) =
     match return with
     | Some type_ -> (type_, true)
     | None -> (no_return_type, false)
   in
-  mk_instr ~type_ ~instr:(Call { func = Value func; args; has_return })
+  Instr (mk_instr ~block ~type_ ~instr:(Call { func = Value func; args; has_return }))
 
-let mk_ret ~(arg : Value.t option) = mk_instr ~type_:no_return_type ~instr:(Ret arg)
+let mk_call_ ~block ~func ~args ~return : unit = ignore (mk_call ~block ~func ~args ~return)
 
-let mk_unary ~(op : Instruction.unary_operation) ~(arg : Value.t) : Instruction.t =
+let mk_ret ~(block : Block.t) ~(arg : Value.t option) =
+  mk_instr ~block ~type_:no_return_type ~instr:(Ret arg)
+
+let mk_unary ~(block : Block.t) ~(op : Instruction.unary_operation) ~(arg : Value.t) : Value.t =
   if not (is_numeric_value arg) then failwith "Unary argument must be numeric value";
-  mk_instr ~type_:(type_of_value arg) ~instr:(Unary (op, arg))
+  Instr (mk_instr ~block ~type_:(type_of_value arg) ~instr:(Unary (op, arg)))
 
-let mk_binary ~(op : Instruction.binary_operation) ~(left : Value.t) ~(right : Value.t) :
-    Instruction.t =
+let mk_binary
+    ~(block : Block.t) ~(op : Instruction.binary_operation) ~(left : Value.t) ~(right : Value.t) :
+    Value.t =
   let is_shift_op = is_shift_op op in
   if is_shift_op && not (is_numeric_value left && is_numeric_value right) then
     failwith "Shift arguments must be numeric"
@@ -94,20 +117,21 @@ let mk_binary ~(op : Instruction.binary_operation) ~(left : Value.t) ~(right : V
     && not (is_numeric_value left && is_numeric_value right && values_have_same_type left right)
   then
     failwith "Binary arguments must be numeric and have the same type";
-  mk_instr ~type_:(type_of_value left) ~instr:(Binary (op, left, right))
+  Instr (mk_instr ~block ~type_:(type_of_value left) ~instr:(Binary (op, left, right)))
 
-let mk_cmp ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) : Instruction.t =
+let mk_cmp ~(block : Block.t) ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) :
+    Value.t =
   if not (is_comparable_value left && is_comparable_value right && values_have_same_type left right)
   then
     failwith "Cmp arguments must be numeric or pointers and have the same type";
-  mk_instr ~type_:Bool ~instr:(Cmp (cmp, left, right))
+  Instr (mk_instr ~block ~type_:Bool ~instr:(Cmp (cmp, left, right)))
 
-let mk_cast ~(arg : Value.t) ~(type_ : Type.t) : Instruction.t =
+let mk_cast ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   if not (is_pointer_value arg && is_pointer_type type_) then
     failwith "Cast arguments must be pointers";
-  mk_instr ~type_ ~instr:(Cast arg)
+  Instr (mk_instr ~block ~type_ ~instr:(Cast arg))
 
-let mk_trunc ~(arg : Value.t) ~(type_ : Type.t) : Instruction.t =
+let mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
   if
     not
@@ -117,9 +141,9 @@ let mk_trunc ~(arg : Value.t) ~(type_ : Type.t) : Instruction.t =
   then
     failwith
       "Trunc arguments must be numeric with type argument having smaller size than value argument";
-  mk_instr ~type_ ~instr:(Trunc arg)
+  Instr (mk_instr ~block ~type_ ~instr:(Trunc arg))
 
-let mk_sext ~(arg : Value.t) ~(type_ : Type.t) : Instruction.t =
+let mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
   if
     not
@@ -129,12 +153,14 @@ let mk_sext ~(arg : Value.t) ~(type_ : Type.t) : Instruction.t =
   then
     failwith
       "SExt arguments must be numeric with type argument having larger size than value argument";
-  mk_instr ~type_ ~instr:(SExt arg)
+  Instr (mk_instr ~block ~type_ ~instr:(SExt arg))
 
-let mk_unreachable () : Instruction.t = mk_instr ~type_:no_return_type ~instr:Unreachable
+let mk_unreachable ~(block : Block.t) : Instruction.t =
+  mk_instr ~block ~type_:no_return_type ~instr:Unreachable
 
-let mk_continue ~(continue : Block.t) : Instruction.t =
-  mk_instr ~type_:no_return_type ~instr:(Continue continue)
+let mk_continue ~(block : Block.t) ~(continue : Block.t) : Instruction.t =
+  mk_instr ~block ~type_:no_return_type ~instr:(Continue continue)
 
-let mk_branch ~(test : Value.t) ~(continue : Block.t) ~(jump : Block.t) : Instruction.t =
-  mk_instr ~type_:no_return_type ~instr:(Branch { test; continue; jump })
+let mk_branch ~(block : Block.t) ~(test : Value.t) ~(continue : Block.t) ~(jump : Block.t) :
+    Instruction.t =
+  mk_instr ~block ~type_:no_return_type ~instr:(Branch { test; continue; jump })

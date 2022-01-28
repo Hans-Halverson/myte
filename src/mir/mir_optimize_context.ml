@@ -154,7 +154,7 @@ let split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
       prev_blocks = BlockSet.singleton prev_block;
     }
   in
-  append_instruction new_block (mk_continue ~continue:next_block);
+  ignore (mk_continue ~block:new_block ~continue:next_block);
   func.blocks <- BlockSet.add new_block func.blocks;
   map_next_block prev_block ~from:next_block ~to_:new_block;
   new_block

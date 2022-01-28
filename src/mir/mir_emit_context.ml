@@ -148,16 +148,6 @@ let add_global ~ecx global =
   let name = global.Global.name in
   ecx.program.globals <- SMap.add name global ecx.program.globals
 
-(* Emit and return an instruction value, adding instruction to end of current block *)
-let emit ~ecx (instr : Instruction.t) : Value.t =
-  (match ecx.current_block with
-  | None -> failwith "No current block"
-  | Some block -> append_instruction block instr);
-  Value.Instr instr
-
-(* Emit instruction and add to end of current block without returning instruction *)
-let emit_ ~ecx (inst : Instruction.t) : unit = ignore (emit ~ecx inst)
-
 let mk_block ~ecx =
   let func = ecx.current_func in
   let block =
@@ -165,6 +155,11 @@ let mk_block ~ecx =
   in
   func.blocks <- BlockSet.add block func.blocks;
   block
+
+let get_current_block ~ecx : Block.t =
+  match ecx.current_block with
+  | None -> failwith "No current block"
+  | Some block -> block
 
 let set_current_block ~ecx block = ecx.current_block <- Some block
 
@@ -185,23 +180,21 @@ let finish_block ~ecx f =
       if ecx.in_init then ecx.last_init_block <- Some current_block)
 
 let finish_block_ret ~ecx ~(arg : Value.t option) =
-  finish_block ~ecx (fun current_block ->
-      append_instruction current_block (Mir_builders.mk_ret ~arg))
+  finish_block ~ecx (fun current_block -> ignore (Mir_builders.mk_ret ~block:current_block ~arg))
 
 let finish_block_branch ~ecx (test : Value.t) (continue : Block.t) (jump : Block.t) =
   finish_block ~ecx (fun current_block ->
       continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
       jump.prev_blocks <- BlockSet.add current_block jump.prev_blocks;
-      append_instruction current_block (Mir_builders.mk_branch ~test ~continue ~jump))
+      ignore (Mir_builders.mk_branch ~block:current_block ~test ~continue ~jump))
 
 let finish_block_continue ~ecx (continue : Block.t) =
   finish_block ~ecx (fun current_block ->
       continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
-      append_instruction current_block (Mir_builders.mk_continue ~continue))
+      ignore (Mir_builders.mk_continue ~block:current_block ~continue))
 
 let finish_block_unreachable ~ecx =
-  finish_block ~ecx (fun current_block ->
-      append_instruction current_block (Mir_builders.mk_unreachable ()))
+  finish_block ~ecx (fun current_block -> ignore (Mir_builders.mk_unreachable ~block:current_block))
 
 let push_loop_context ~ecx break_block continue_block =
   ecx.current_loop_contexts <- (break_block, continue_block) :: ecx.current_loop_contexts
@@ -215,7 +208,7 @@ let get_local_ptr_def_instr ~ecx use_loc type_ =
   match LocMap.find_opt decl_loc ecx.local_variable_to_alloc_instr with
   | Some instr -> instr
   | None ->
-    let instr = Mir_builders.mk_stack_alloc ~type_ in
+    let instr = Mir_builders.mk_blockless_stack_alloc ~type_ in
     ecx.local_variable_to_alloc_instr <- LocMap.add decl_loc instr ecx.local_variable_to_alloc_instr;
     instr
 
@@ -241,7 +234,7 @@ let emit_init_section ~ecx f =
   | Some last_init_block ->
     (match get_terminator last_init_block with
     | Some term_instr -> term_instr.instr <- Continue init_block
-    | None -> append_instruction last_init_block (Mir_builders.mk_continue ~continue:init_block));
+    | None -> ignore (Mir_builders.mk_continue ~block:last_init_block ~continue:init_block));
     init_block.prev_blocks <- BlockSet.add last_init_block init_block.prev_blocks
   | None -> ());
 

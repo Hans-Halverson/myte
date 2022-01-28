@@ -106,7 +106,7 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
        instead point from the new var to the result. *)
     | None ->
       let (dest_val, arg_val) = VVMMap.choose !copied_from in
-      let new_arg_val = Value.Instr (Mir_builders.mk_mov ~arg:arg_val) in
+      let new_arg_val = Value.Instr (Mir_builders.mk_blockless_mov ~arg:arg_val) in
       add_to_sequence new_arg_val arg_val;
       remove_copy_edge dest_val arg_val;
       add_copy_edge dest_val new_arg_val

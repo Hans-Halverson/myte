@@ -280,7 +280,7 @@ and build_phi_nodes ~cx program =
     if Option.is_none node.realized then (
       (* Realize by creating phi instruction *)
       let type_ = IMap.find ptr_id cx.stack_alloc_ids in
-      let phi_instr = Mir_builders.mk_phi ~type_ ~args:BlockMap.empty in
+      let phi_instr = Mir_builders.mk_blockless_phi ~type_ ~args:BlockMap.empty in
       node.realized <- Some phi_instr;
       cx.realized_phis <- BlockIMMap.add node.block node_id cx.realized_phis;
       IMap.iter (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id ptr_id) node.prev_nodes

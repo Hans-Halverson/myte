@@ -155,7 +155,10 @@ and emit_global_variable_declaration ~ecx name decl =
             Some init_val
           else (
             (* Otherwise value must be calculated and stored at runtime *)
-            Ecx.emit_ ~ecx (mk_store ~ptr:(mk_global_lit global) ~value:init_val);
+            mk_store_
+              ~block:(Ecx.get_current_block ~ecx)
+              ~ptr:(mk_global_lit global)
+              ~value:init_val;
             None
           ))
   in
@@ -231,9 +234,9 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
     (* If there is return value allocate space for it in start block, then load and return it in
        return block. *)
     | Some type_ ->
-      let return_pointer = Ecx.emit ~ecx (mk_stack_alloc ~type_) in
+      let return_pointer = mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_ in
       Ecx.set_current_block ~ecx return_block;
-      let return_val = Ecx.emit ~ecx (mk_load ~ptr:return_pointer) in
+      let return_val = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:return_pointer in
       Ecx.finish_block_ret ~ecx ~arg:(Some return_val);
       Some return_pointer
   in
@@ -252,7 +255,10 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
         (* Handle implicit return from main *)
         ( if is_main_func then
           let return_pointer = Option.get return_pointer in
-          Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:(mk_int_lit_of_int32 Int32.zero)) );
+          mk_store_
+            ~block:(Ecx.get_current_block ~ecx)
+            ~ptr:return_pointer
+            ~value:(mk_int_lit_of_int32 Int32.zero) );
         Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
       | Some _ -> ())
     | None -> ())
@@ -262,7 +268,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
     | None -> ()
     | Some return_val ->
       let return_pointer = Option.get ecx.current_func_context.return_pointer in
-      Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:return_val));
+      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:return_pointer ~value:return_val);
     Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
   | Signature -> failwith "Cannot emit function signature");
   Ecx.finish_block_unreachable ~ecx
@@ -294,10 +300,14 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   Ecx.start_function ~ecx ~func:trampoline_func ~loc:func.loc ~params ~return_type:func.return_type;
 
   (* Load receiver and call the wrapped function, passing original args with loaded receiver *)
-  let receiver_arg = Ecx.emit ~ecx (mk_load ~ptr:(Argument receiver_ptr_arg)) in
+  let receiver_arg = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:(Argument receiver_ptr_arg) in
   let args = receiver_arg :: (List.map (fun arg -> Value.Argument arg)) rest_args in
   let return_val =
-    Ecx.emit ~ecx (mk_call ~func:(mk_func_lit func) ~args ~return:func.return_type)
+    mk_call
+      ~block:(Ecx.get_current_block ~ecx)
+      ~func:(mk_func_lit func)
+      ~args
+      ~return:func.return_type
   in
 
   (* Return value from call if applicable *)
@@ -371,10 +381,10 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
   | UnaryOperation { loc = _; op = Plus; operand } -> emit_expression ~ecx operand
   | UnaryOperation { loc = _; op = Minus; operand } ->
     let arg = emit_numeric_expression ~ecx operand in
-    Some (Ecx.emit ~ecx (mk_unary ~op:Neg ~arg))
+    Some (mk_unary ~block:(Ecx.get_current_block ~ecx) ~op:Neg ~arg)
   | UnaryOperation { loc = _; op = Not; operand } ->
     let arg = emit_expression ~ecx operand |> Option.get in
-    Some (Ecx.emit ~ecx (mk_unary ~op:Not ~arg))
+    Some (mk_unary ~block:(Ecx.get_current_block ~ecx) ~op:Not ~arg)
   (*
    * ============================
    *        Logical And
@@ -382,7 +392,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
    *)
   | LogicalAnd { loc = _; left; right } ->
     (* Model logical and join by creating stack location to place results of branches *)
-    let result_ptr_val = Ecx.emit ~ecx (mk_stack_alloc ~type_:Bool) in
+    let result_ptr_val = mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_:Bool in
 
     (* Short circuit when lhs is false by jumping to false case *)
     let rhs_block = Ecx.mk_block ~ecx in
@@ -394,17 +404,17 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (* Store right hand side when lhs is true and continue to join block *)
     Ecx.set_current_block ~ecx rhs_block;
     let right_val = emit_bool_expression ~ecx right in
-    Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr_val ~value:right_val);
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:result_ptr_val ~value:right_val;
     Ecx.finish_block_continue ~ecx join_block;
 
     (* Store false literal when lhs is false and continue to join block *)
     Ecx.set_current_block ~ecx false_block;
-    Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr_val ~value:(mk_bool_lit false));
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:result_ptr_val ~value:(mk_bool_lit false);
     Ecx.finish_block_continue ~ecx join_block;
 
     (* Join cases together and load result from stack location *)
     Ecx.set_current_block ~ecx join_block;
-    Some (Ecx.emit ~ecx (mk_load ~ptr:result_ptr_val))
+    Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:result_ptr_val)
   (*
    * ============================
    *         Logical Or
@@ -412,7 +422,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
    *)
   | LogicalOr { loc = _; left; right } ->
     (* Model logical or join by creating stack location to place results of branches *)
-    let result_ptr_val = Ecx.emit ~ecx (mk_stack_alloc ~type_:Bool) in
+    let result_ptr_val = mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_:Bool in
 
     (* Short circuit when lhs is true by jumping to true case *)
     let rhs_block = Ecx.mk_block ~ecx in
@@ -424,17 +434,17 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (* Store right hand side when lhs is false and continue to join block *)
     Ecx.set_current_block ~ecx rhs_block;
     let right_val = emit_bool_expression ~ecx right in
-    Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr_val ~value:right_val);
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:result_ptr_val ~value:right_val;
     Ecx.finish_block_continue ~ecx join_block;
 
     (* Store true literal when lhs is true and continue to join block *)
     Ecx.set_current_block ~ecx true_block;
-    Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr_val ~value:(mk_bool_lit true));
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:result_ptr_val ~value:(mk_bool_lit true);
     Ecx.finish_block_continue ~ecx join_block;
 
     (* Join cases together and load result from stack location *)
     Ecx.set_current_block ~ecx join_block;
-    Some (Ecx.emit ~ecx (mk_load ~ptr:result_ptr_val))
+    Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:result_ptr_val)
   (*
    * ============================
    *          Equality
@@ -457,7 +467,8 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     if op = Equal then
       equals_result_val
     else
-      Some (Ecx.emit ~ecx (mk_unary ~op:Not ~arg:(Option.get equals_result_val)))
+      Some
+        (mk_unary ~block:(Ecx.get_current_block ~ecx) ~op:Not ~arg:(Option.get equals_result_val))
   (*
    * ============================
    *       Binary Operations
@@ -467,8 +478,12 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let open BinaryOperation in
     let left_val = emit_numeric_expression ~ecx left in
     let right_val = emit_numeric_expression ~ecx right in
-    let mk_binary op = mk_binary ~op ~left:left_val ~right:right_val in
-    let mk_cmp cmp = mk_cmp ~cmp ~left:left_val ~right:right_val in
+    let mk_binary op =
+      mk_binary ~block:(Ecx.get_current_block ~ecx) ~op ~left:left_val ~right:right_val
+    in
+    let mk_cmp cmp =
+      mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp ~left:left_val ~right:right_val
+    in
     let instr =
       match op with
       | Add -> mk_binary Add
@@ -490,7 +505,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       | NotEqual ->
         failwith "Handled separately"
     in
-    Some (Ecx.emit ~ecx instr)
+    Some instr
   (*
    * ============================
    *         Identifiers
@@ -528,7 +543,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           else
             Instr (Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type)
         in
-        Some (Ecx.emit ~ecx (mk_load ~ptr)))
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr))
     (* Function parameters can have their corresponding MIR value referenced directly *)
     | FunParamDecl { tvar } ->
       (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
@@ -540,7 +555,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       | None -> None
       | Some mir_type ->
         let local_ptr = Value.Instr (Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type) in
-        Some (Ecx.emit ~ecx (mk_load ~ptr:local_ptr))))
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:local_ptr)))
   (*
    * ============================
    *     Type Casts (ignored)
@@ -631,8 +646,12 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (* If layout is an aggregate, construct record *)
     | Aggregate agg ->
       let ptr =
-        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [Aggregate agg])
-        |> Ecx.emit ~ecx
+        Mir_builtin.(
+          mk_call_builtin
+            ~block:(Ecx.get_current_block ~ecx)
+            myte_alloc
+            [mk_int_lit_of_int32 Int32.one]
+            [Aggregate agg])
       in
       emit_store_record_fields ~ecx ~ptr ~tag:None agg fields;
       Some ptr
@@ -640,8 +659,12 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | Variants { tags; union; variants; _ } ->
       (* Call myte_alloc builtin to allocate space for variant type *)
       let union_ptr =
-        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [Aggregate union])
-        |> Ecx.emit ~ecx
+        Mir_builtin.(
+          mk_call_builtin
+            ~block:(Ecx.get_current_block ~ecx)
+            myte_alloc
+            [mk_int_lit_of_int32 Int32.one]
+            [Aggregate union])
       in
       (* Cast to variant type and store all fields *)
       let record_variant_agg = SMap.find name variants in
@@ -704,7 +727,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           let { Ecx.ImmutableString.value_global_val; size_global_val } =
             Ecx.add_immutable_string_literal ~ecx value
           in
-          let size_val = Ecx.emit ~ecx (mk_load ~ptr:size_global_val) in
+          let size_val = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:size_global_val in
           ignore
             (emit_method_call
                ~ecx
@@ -776,7 +799,12 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       else
         (* Call myte_alloc builtin to allocate space for elements *)
         let data_ptr_val =
-          Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_alloc [size_val] [element_mir_type])
+          Mir_builtin.(
+            mk_call_builtin
+              ~block:(Ecx.get_current_block ~ecx)
+              myte_alloc
+              [size_val]
+              [element_mir_type])
         in
 
         (* Generate each element and store into array of elements *)
@@ -786,13 +814,13 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
             | Some value ->
               let ptr =
                 mk_get_pointer_instr
+                  ~block:(Ecx.get_current_block ~ecx)
                   ~type_:element_mir_type
                   ~ptr:data_ptr_val
                   ~offsets:[Instruction.GetPointer.PointerIndex (mk_int_lit i)]
                   ()
-                |> Ecx.emit ~ecx
               in
-              Ecx.emit_ ~ecx (mk_store ~ptr ~value)
+              mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr ~value
             | None -> ())
           elements;
         data_ptr_val
@@ -802,8 +830,12 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let vec_ptr_mir_type = mir_type_of_loc ~ecx loc |> Option.get in
     let vec_mir_type = cast_to_pointer_type vec_ptr_mir_type in
     let vec_ptr =
-      Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [vec_mir_type])
-      |> Ecx.emit ~ecx
+      Mir_builtin.(
+        mk_call_builtin
+          ~block:(Ecx.get_current_block ~ecx)
+          myte_alloc
+          [mk_int_lit_of_int32 Int32.one]
+          [vec_mir_type])
     in
 
     (* Write all vec literal fields *)
@@ -812,13 +844,13 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       let (element_ty, element_idx) = lookup_element vec_agg name in
       let ptr =
         mk_get_pointer_instr
+          ~block:(Ecx.get_current_block ~ecx)
           ~type_:element_ty
           ~ptr:vec_ptr
           ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
           ()
-        |> Ecx.emit ~ecx
       in
-      Ecx.emit_ ~ecx (mk_store ~ptr ~value)
+      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr ~value
     in
     emit_field_store "data" data_val;
     emit_field_store "size" size_val;
@@ -902,7 +934,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       Ecx.set_current_block ~ecx none_branch_block;
       let none_val = emit_construct_enum_variant ~ecx ~name:"None" ~ty:return_ty in
       let return_pointer = Option.get ecx.current_func_context.return_pointer in
-      Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:none_val);
+      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:return_pointer ~value:none_val;
       Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block;
 
       (* Return unwrapped value in Some case and proceed *)
@@ -932,7 +964,10 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           ~mk_elements:[(fun _ -> error_item_val)]
       in
       let return_pointer = Option.get ecx.current_func_context.return_pointer in
-      Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:(Option.get error_val));
+      mk_store_
+        ~block:(Ecx.get_current_block ~ecx)
+        ~ptr:return_pointer
+        ~value:(Option.get error_val);
       Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block;
 
       (* Return unwrapped value in Ok case and proceed *)
@@ -955,21 +990,25 @@ and emit_string_literal ~ecx loc value =
   let string_agg = cast_to_aggregate_type string_type in
   (* Call myte_alloc builtin to allocate space for string *)
   let agg_ptr_val =
-    Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [string_type])
-    |> Ecx.emit ~ecx
+    Mir_builtin.(
+      mk_call_builtin
+        ~block:(Ecx.get_current_block ~ecx)
+        myte_alloc
+        [mk_int_lit_of_int32 Int32.one]
+        [string_type])
   in
   (* Write all string literal fields *)
   let emit_field_store name value =
     let (element_ty, element_idx) = lookup_element string_agg name in
     let ptr =
       mk_get_pointer_instr
+        ~block:(Ecx.get_current_block ~ecx)
         ~type_:element_ty
         ~ptr:agg_ptr_val
         ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
         ()
-      |> Ecx.emit ~ecx
     in
-    Ecx.emit_ ~ecx (mk_store ~ptr ~value)
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr ~value
   in
   let length = mk_int_lit string_length in
   let string_byte_ptr =
@@ -992,7 +1031,7 @@ and emit_if_expression ~ecx if_ =
   let result_ptr_val =
     match mir_type with
     | None -> None
-    | Some type_ -> Some (Ecx.emit ~ecx (mk_stack_alloc ~type_))
+    | Some type_ -> Some (mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_)
   in
 
   (* Branch to conseq or altern blocks *)
@@ -1005,7 +1044,8 @@ and emit_if_expression ~ecx if_ =
   (* Emit conseq, store result, and continue to join block *)
   Ecx.set_current_block ~ecx conseq_block;
   (match emit_block ~ecx ~is_expr:true conseq with
-  | Some conseq_val -> Ecx.emit_ ~ecx (mk_store ~ptr:(Option.get result_ptr_val) ~value:conseq_val)
+  | Some conseq_val ->
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:(Option.get result_ptr_val) ~value:conseq_val
   | None -> ());
   Ecx.finish_block_continue ~ecx join_block;
 
@@ -1018,7 +1058,8 @@ and emit_if_expression ~ecx if_ =
     | None -> failwith "If expression must have else branch"
   in
   (match altern_val with
-  | Some altern_val -> Ecx.emit_ ~ecx (mk_store ~ptr:(Option.get result_ptr_val) ~value:altern_val)
+  | Some altern_val ->
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:(Option.get result_ptr_val) ~value:altern_val
   | None -> ());
   Ecx.finish_block_continue ~ecx join_block;
 
@@ -1026,7 +1067,7 @@ and emit_if_expression ~ecx if_ =
   Ecx.set_current_block ~ecx join_block;
   match mir_type with
   | None -> None
-  | Some _ -> Some (Ecx.emit ~ecx (mk_load ~ptr:(Option.get result_ptr_val)))
+  | Some _ -> Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:(Option.get result_ptr_val))
 
 and emit_match_expression ~ecx match_ =
   let { Match.loc; args; cases } = match_ in
@@ -1036,7 +1077,7 @@ and emit_match_expression ~ecx match_ =
   let result_ptr_val =
     match mir_type with
     | None -> None
-    | Some type_ -> Some (Ecx.emit ~ecx (mk_stack_alloc ~type_))
+    | Some type_ -> Some (mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_)
   in
 
   (* Emit args and decision tree *)
@@ -1049,27 +1090,31 @@ and emit_match_expression ~ecx match_ =
   Ecx.set_current_block ~ecx join_block;
   match mir_type with
   | None -> None
-  | Some _ -> Some (Ecx.emit ~ecx (mk_load ~ptr:(Option.get result_ptr_val)))
+  | Some _ -> Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:(Option.get result_ptr_val))
 
 and emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_instance =
   (* Call myte_alloc builtin to allocate space for trait object *)
   let trait_object_type = Type.Aggregate trait_object_instance.agg in
   let trait_object_ptr_val =
-    Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [trait_object_type])
-    |> Ecx.emit ~ecx
+    Mir_builtin.(
+      mk_call_builtin
+        ~block:(Ecx.get_current_block ~ecx)
+        myte_alloc
+        [mk_int_lit_of_int32 Int32.one]
+        [trait_object_type])
   in
   (* Write trait object fields *)
   let emit_field_store name value =
     let (element_ty, element_idx) = lookup_element trait_object_instance.agg name in
     let ptr =
       mk_get_pointer_instr
+        ~block:(Ecx.get_current_block ~ecx)
         ~type_:element_ty
         ~ptr:trait_object_ptr_val
         ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
         ()
-      |> Ecx.emit ~ecx
     in
-    Ecx.emit_ ~ecx (mk_store ~ptr ~value)
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr ~value
   in
   (match expr_val with
   | None -> ()
@@ -1077,24 +1122,31 @@ and emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_i
   | Some item_val when trait_object_instance.is_boxed ->
     let item_type = type_of_value item_val in
     let item_ptr =
-      Ecx.emit
-        ~ecx
-        Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [item_type])
+      Mir_builtin.(
+        mk_call_builtin
+          myte_alloc
+          ~block:(Ecx.get_current_block ~ecx)
+          [mk_int_lit_of_int32 Int32.one]
+          [item_type])
     in
-    Ecx.emit_ ~ecx (mk_store ~ptr:item_ptr ~value:item_val);
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:item_ptr ~value:item_val;
     emit_field_store "item" item_ptr
   | Some item_val -> emit_field_store "item" item_val);
   emit_field_store "vtable" trait_object_instance.vtable;
 
   (* Cast to general trait object *)
   let trait_object_general_type = Type.Pointer (Aggregate trait_object_layout.trait_object_agg) in
-  Some (Ecx.emit ~ecx (mk_cast ~arg:trait_object_ptr_val ~type_:trait_object_general_type))
+  Some
+    (mk_cast
+       ~block:(Ecx.get_current_block ~ecx)
+       ~arg:trait_object_ptr_val
+       ~type_:trait_object_general_type)
 
 and emit_expression_access_chain_load ~ecx expr =
   match emit_expression_access_chain ~ecx expr with
   | None -> None
   | Some (GetPointerEmittedResult element_pointer_val) ->
-    Some (Ecx.emit ~ecx (mk_load ~ptr:element_pointer_val))
+    Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:element_pointer_val)
   | Some (InlinedValueResult value) -> Some value
 
 and emit_expression_access_chain ~ecx expr : access_chain_result option =
@@ -1107,8 +1159,13 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
       | offsets -> (None, offsets)
     in
     let element_pointer_val =
-      mk_get_pointer_instr ~pointer_offset ~type_:element_mir_ty ~ptr:target_ptr_val ~offsets ()
-      |> Ecx.emit ~ecx
+      mk_get_pointer_instr
+        ~block:(Ecx.get_current_block ~ecx)
+        ~pointer_offset
+        ~type_:element_mir_ty
+        ~ptr:target_ptr_val
+        ~offsets
+        ()
     in
     element_pointer_val
   in
@@ -1119,7 +1176,7 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
       match (root_val, Ecx.to_mir_type ~ecx ty) with
       | (Some root_val, Some mir_type) ->
         let element_ptr_val = emit_get_pointer_instr root_val mir_type offsets in
-        Some (Ecx.emit ~ecx (mk_load ~ptr:element_ptr_val))
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr_val)
       | _ -> None
   in
   let rec emit_access_expression expr =
@@ -1250,13 +1307,13 @@ and emit_method_call
       let (element_ty, element_idx) = lookup_element trait_object_agg name in
       let ptr =
         mk_get_pointer_instr
+          ~block:(Ecx.get_current_block ~ecx)
           ~type_:element_ty
           ~ptr:(Option.get receiver_val)
           ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
           ()
-        |> Ecx.emit ~ecx
       in
-      Ecx.emit ~ecx (mk_load ~ptr)
+      mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr
     in
     let item_val = emit_field_load "item" in
     let vtable_val = emit_field_load "vtable" in
@@ -1264,13 +1321,13 @@ and emit_method_call
     (* Load function from vtable *)
     let func_ptr =
       mk_get_pointer_instr
+        ~block:(Ecx.get_current_block ~ecx)
         ~type_:Function
         ~ptr:vtable_val
         ~offsets:[Instruction.GetPointer.PointerIndex (mk_int_lit vtable_index)]
         ()
-      |> Ecx.emit ~ecx
     in
-    let func_val = Ecx.emit ~ecx (mk_load ~ptr:func_ptr) in
+    let func_val = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:func_ptr in
     emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some item_val) ~ret_type
   (* All other receivers perform static dispatch *)
   | _ ->
@@ -1307,10 +1364,15 @@ and emit_call
   | _ ->
     (match ret_type with
     | None ->
-      Ecx.emit_ ~ecx (mk_call ~func:func_val ~args:arg_vals ~return:None);
+      mk_call_ ~block:(Ecx.get_current_block ~ecx) ~func:func_val ~args:arg_vals ~return:None;
       None
     | Some ret_type ->
-      Some (Ecx.emit ~ecx (mk_call ~func:func_val ~args:arg_vals ~return:(Some ret_type))))
+      Some
+        (mk_call
+           ~block:(Ecx.get_current_block ~ecx)
+           ~func:func_val
+           ~args:arg_vals
+           ~return:(Some ret_type)))
 
 and builtin_functions =
   lazy
@@ -1341,43 +1403,52 @@ and builtin_functions =
 
 and emit_eq ~ecx arg_vals _ =
   match arg_vals with
-  | [left; right] -> Some (Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left ~right))
+  | [left; right] -> Some (mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left ~right)
   | _ -> failwith "Expected two arguments"
 
 and emit_std_byte_byte_toInt ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:Int))
+  Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Int)
 
 and emit_std_byte_byte_toLong ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:Long))
+  Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Long)
 
 and emit_std_gc_getHeapSize ~ecx _ _ =
-  Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_get_heap_size [] []))
+  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_get_heap_size [] [])
 
 and emit_std_int_int_toByte ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:Byte))
+  Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Byte)
 
 and emit_std_int_int_toLong ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_sext ~arg:(List.hd arg_vals) ~type_:Long))
+  Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Long)
 
 and emit_std_long_long_toByte ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:Byte))
+  Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Byte)
 
 and emit_std_long_long_toInt ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx (mk_trunc ~arg:(List.hd arg_vals) ~type_:Int))
+  Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Int)
 
 and emit_std_memory_array_copy ~ecx arg_vals _ =
   match arg_vals with
   | [dest_array; dest_index; src_array; src_index; count] ->
     let dest_ptr = emit_offset_ptr ~ecx dest_array dest_index in
     let src_ptr = emit_offset_ptr ~ecx src_array src_index in
-    Ecx.emit_ ~ecx Mir_builtin.(mk_call_builtin_no_return myte_copy [dest_ptr; src_ptr; count]);
+    Mir_builtin.(
+      mk_call_builtin_no_return_
+        ~block:(Ecx.get_current_block ~ecx)
+        myte_copy
+        [dest_ptr; src_ptr; count]);
     None
   | _ -> failwith "Array.copy expects five arguments"
 
 and emit_std_memory_array_isNull ~ecx arg_vals _ =
   let arg = List.hd arg_vals in
   let element_type = pointer_value_element_type arg in
-  Some (Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:arg ~right:(mk_null_ptr_lit element_type)))
+  Some
+    (mk_cmp
+       ~block:(Ecx.get_current_block ~ecx)
+       ~cmp:Eq
+       ~left:arg
+       ~right:(mk_null_ptr_lit element_type))
 
 and emit_std_memory_array_new ~ecx arg_vals ret_type =
   (* Type must be supplied so create explicit zero size type if necessary *)
@@ -1391,7 +1462,10 @@ and emit_std_memory_array_new ~ecx arg_vals ret_type =
   match arg_vals with
   (* An allocation of 0 represents the null pointer *)
   | [Lit (Int 0l)] -> Some (mk_null_ptr_lit element_ty)
-  | _ -> Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_alloc arg_vals [element_ty]))
+  | _ ->
+    Some
+      Mir_builtin.(
+        mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_alloc arg_vals [element_ty])
 
 and emit_std_io_write ~ecx arg_vals _ =
   let arg_vals =
@@ -1401,22 +1475,22 @@ and emit_std_io_write ~ecx arg_vals _ =
       [file_val; ptr_val; size_val]
     | _ -> failwith "Expected four arguments"
   in
-  Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_write arg_vals []))
+  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_write arg_vals [])
 
 and emit_std_io_read ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_read arg_vals []))
+  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_read arg_vals [])
 
 and emit_std_io_open ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_open arg_vals []))
+  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_open arg_vals [])
 
 and emit_std_io_close ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_close arg_vals []))
+  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_close arg_vals [])
 
 and emit_std_io_unlink ~ecx arg_vals _ =
-  Some (Ecx.emit ~ecx Mir_builtin.(mk_call_builtin myte_unlink arg_vals []))
+  Some Mir_builtin.(mk_call_builtin ~block:(Ecx.get_current_block ~ecx) myte_unlink arg_vals [])
 
 and emit_std_sys_exit ~ecx arg_vals _ =
-  Ecx.emit_ ~ecx Mir_builtin.(mk_call_builtin_no_return myte_exit arg_vals);
+  Mir_builtin.(mk_call_builtin_no_return_ ~block:(Ecx.get_current_block ~ecx) myte_exit arg_vals);
   None
 
 and emit_call_vec_get ~ecx return_loc vec_val index_val =
@@ -1434,12 +1508,14 @@ and emit_call_vec_get ~ecx return_loc vec_val index_val =
       [element_ty]
   in
   (* Emit call to Vec's `get` method *)
-  let emit_call return = mk_call ~func ~args:[vec_val; index_val] ~return in
+  let emit_call return =
+    mk_call ~block:(Ecx.get_current_block ~ecx) ~func ~args:[vec_val; index_val] ~return
+  in
   match Ecx.to_mir_type ~ecx element_ty with
   | None ->
-    Ecx.emit_ ~ecx (emit_call None);
+    ignore (emit_call None);
     None
-  | Some ret_ty -> Some (Ecx.emit ~ecx (emit_call (Some ret_ty)))
+  | Some ret_ty -> Some (emit_call (Some ret_ty))
 
 and emit_call_vec_set ~ecx element_ty_loc vec_val index_val expr_val =
   (* Get full name for Vec's `set` method *)
@@ -1461,7 +1537,7 @@ and emit_call_vec_set ~ecx element_ty_loc vec_val index_val expr_val =
     | Some expr_val -> [vec_val; index_val; expr_val]
     | None -> [vec_val; index_val]
   in
-  Ecx.emit_ ~ecx (mk_call ~func ~args ~return:None)
+  mk_call_ ~block:(Ecx.get_current_block ~ecx) ~func ~args ~return:None
 
 and emit_call_map_get ~ecx return_loc map_type_args map_val index_val =
   (* Get full name for Map's `get` method *)
@@ -1484,7 +1560,7 @@ and emit_call_map_get ~ecx return_loc map_type_args map_val index_val =
     | Some index_val -> [map_val; index_val]
     | None -> [map_val]
   in
-  Ecx.emit ~ecx (mk_call ~func ~args ~return:(Some mir_type))
+  mk_call ~block:(Ecx.get_current_block ~ecx) ~func ~args ~return:(Some mir_type)
 
 and emit_call_map_add ~ecx map_type_args map_val index_val expr_val =
   (* Get full name for Map's `add` method *)
@@ -1501,7 +1577,11 @@ and emit_call_map_add ~ecx map_type_args map_val index_val expr_val =
   in
   (* Emit call of Map's `add` method *)
   let index_and_expr_args = List.filter_map (fun v -> v) [index_val; expr_val] in
-  Ecx.emit_ ~ecx (mk_call ~func ~args:(map_val :: index_and_expr_args) ~return:None)
+  mk_call_
+    ~block:(Ecx.get_current_block ~ecx)
+    ~func
+    ~args:(map_val :: index_and_expr_args)
+    ~return:None
 
 and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
   (* Get full name for Map's `reserve` method *)
@@ -1521,7 +1601,7 @@ and emit_call_map_reserve ~ecx map_type_args map_val capacity_val =
       map_type_args
   in
   (* Emit call of Map's `reserve` method *)
-  Ecx.emit_ ~ecx (mk_call ~func ~args:[map_val; capacity_val] ~return:None)
+  mk_call_ ~block:(Ecx.get_current_block ~ecx) ~func ~args:[map_val; capacity_val] ~return:None
 
 and emit_call_map_new ~ecx return_mir_type map_type_args =
   let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_map_map_new in
@@ -1534,7 +1614,7 @@ and emit_call_map_new ~ecx return_mir_type map_type_args =
     | _ -> failwith "Expected function declaration"
   in
   (* Emit call of Map's `new` function *)
-  Ecx.emit ~ecx (mk_call ~func ~args:[] ~return:(Some return_mir_type))
+  mk_call ~block:(Ecx.get_current_block ~ecx) ~func ~args:[] ~return:(Some return_mir_type)
 
 and emit_call_set_add ~ecx set_type_args set_val element_val =
   (* Get full name for set's `add` method *)
@@ -1555,7 +1635,7 @@ and emit_call_set_add ~ecx set_type_args set_val element_val =
     | Some element_val -> [set_val; element_val]
     | None -> [set_val]
   in
-  Ecx.emit_ ~ecx (mk_call ~func ~args ~return:None)
+  mk_call_ ~block:(Ecx.get_current_block ~ecx) ~func ~args ~return:None
 
 and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
   (* Get full name for set's `reserve` method *)
@@ -1575,7 +1655,7 @@ and emit_call_set_reserve ~ecx set_type_args set_val capacity_val =
       set_type_args
   in
   (* Emit call of set's `reserve` method *)
-  Ecx.emit_ ~ecx (mk_call ~func ~args:[set_val; capacity_val] ~return:None)
+  mk_call_ ~block:(Ecx.get_current_block ~ecx) ~func ~args:[set_val; capacity_val] ~return:None
 
 and emit_call_set_new ~ecx return_mir_type set_type_args =
   let decl_loc = Std_lib.lookup_stdlib_decl_loc Std_lib.std_set_set_new in
@@ -1588,7 +1668,7 @@ and emit_call_set_new ~ecx return_mir_type set_type_args =
     | _ -> failwith "Expected function declaration"
   in
   (* Emit call of set's `new` function *)
-  Ecx.emit ~ecx (mk_call ~func ~args:[] ~return:(Some return_mir_type))
+  mk_call ~block:(Ecx.get_current_block ~ecx) ~func ~args:[] ~return:(Some return_mir_type)
 
 (* If the index is nonzero, emit a GetPointer instruction to calculate the pointer's start *)
 and emit_offset_ptr ~ecx ptr_val offset_val =
@@ -1596,20 +1676,25 @@ and emit_offset_ptr ~ecx ptr_val offset_val =
   | Lit (Int lit) when lit = Int32.zero -> ptr_val
   | offset_val ->
     let ptr_ty = pointer_value_element_type ptr_val in
-    mk_get_pointer_instr ~pointer_offset:(Some offset_val) ~type_:ptr_ty ~ptr:ptr_val ~offsets:[] ()
-    |> Ecx.emit ~ecx
+    mk_get_pointer_instr
+      ~block:(Ecx.get_current_block ~ecx)
+      ~pointer_offset:(Some offset_val)
+      ~type_:ptr_ty
+      ~ptr:ptr_val
+      ~offsets:[]
+      ()
 
 and emit_cast_ptr ~ecx ~element_type ~ptr =
   let ptr_type = Type.Pointer element_type in
-  Ecx.emit ~ecx (mk_cast ~arg:ptr ~type_:ptr_type)
+  mk_cast ~block:(Ecx.get_current_block ~ecx) ~arg:ptr ~type_:ptr_type
 
 and emit_load_tag ~ecx ~type_ ~agg_ptr =
   let tag_ptr = emit_cast_ptr ~ecx ~element_type:(type_ :> Type.t) ~ptr:agg_ptr in
-  Ecx.emit ~ecx (mk_load ~ptr:tag_ptr)
+  mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:tag_ptr
 
 and emit_store_tag ~ecx ~tag ~agg_ptr =
   let tag_ptr = emit_cast_ptr ~ecx ~element_type:(type_of_value tag) ~ptr:agg_ptr in
-  Ecx.emit_ ~ecx (mk_store ~ptr:tag_ptr ~value:tag)
+  mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:tag_ptr ~value:tag
 
 and emit_construct_enum_variant ~ecx ~name ~ty =
   let (type_args, adt_sig) = Type_util.cast_to_adt_type ty in
@@ -1623,8 +1708,12 @@ and emit_construct_enum_variant ~ecx ~name ~ty =
 
     (* Call myte_alloc builtin to allocate space for variant's union aggregate *)
     let agg_ptr =
-      Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [union_ty])
-      |> Ecx.emit ~ecx
+      Mir_builtin.(
+        mk_call_builtin
+          ~block:(Ecx.get_current_block ~ecx)
+          myte_alloc
+          [mk_int_lit_of_int32 Int32.one]
+          [union_ty])
     in
 
     (* Store enum tag *)
@@ -1650,8 +1739,12 @@ and emit_construct_tuple_variant
   | Variants { tags; union; variants; _ } ->
     (* Call myte_alloc builtin to allocate space for variant type *)
     let union_ptr =
-      Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [Aggregate union])
-      |> Ecx.emit ~ecx
+      Mir_builtin.(
+        mk_call_builtin
+          ~block:(Ecx.get_current_block ~ecx)
+          myte_alloc
+          [mk_int_lit_of_int32 Int32.one]
+          [Aggregate union])
     in
     (* Cast to variant type and store all fields *)
     let tuple_variant_agg = SMap.find name variants in
@@ -1686,8 +1779,12 @@ and emit_construct_tuple ~ecx ~(agg : Aggregate.t) ~(mk_elements : (unit -> Valu
     Value.t =
   (* Call myte_alloc builtin to allocate space for tuple *)
   let ptr =
-    Mir_builtin.(mk_call_builtin myte_alloc [mk_int_lit_of_int32 Int32.one] [Aggregate agg])
-    |> Ecx.emit ~ecx
+    Mir_builtin.(
+      mk_call_builtin
+        ~block:(Ecx.get_current_block ~ecx)
+        myte_alloc
+        [mk_int_lit_of_int32 Int32.one]
+        [Aggregate agg])
   in
   emit_store_tuple_fields ~ecx ~ptr ~tag:None ~agg ~mk_elements;
   ptr
@@ -1712,13 +1809,13 @@ and emit_store_tuple_fields
         let (element_ty, element_index) = lookup_element agg (TupleKeyCache.get_key i) in
         let element_ptr =
           mk_get_pointer_instr
+            ~block:(Ecx.get_current_block ~ecx)
             ~type_:element_ty
             ~ptr
             ~offsets:[Instruction.GetPointer.FieldIndex element_index]
             ()
-          |> Ecx.emit ~ecx
         in
-        Ecx.emit_ ~ecx (mk_store ~ptr:element_ptr ~value:element_val))
+        mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr ~value:element_val)
     mk_elements
 
 and emit_record_field_value ~ecx field =
@@ -1744,13 +1841,13 @@ and emit_store_record_fields ~ecx ~ptr ~tag agg fields =
         let (element_ty, element_idx) = lookup_element agg name in
         let element_ptr_val =
           mk_get_pointer_instr
+            ~block:(Ecx.get_current_block ~ecx)
             ~type_:element_ty
             ~ptr
             ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
             ()
-          |> Ecx.emit ~ecx
         in
-        Ecx.emit_ ~ecx (mk_store ~ptr:element_ptr_val ~value:element_val))
+        mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr_val ~value:element_val)
     fields
 
 and emit_bool_expression ~ecx expr =
@@ -1988,7 +2085,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     | None -> ()
     | Some arg ->
       let return_pointer = Option.get ecx.current_func_context.return_pointer in
-      Ecx.emit_ ~ecx (mk_store ~ptr:return_pointer ~value:arg));
+      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:return_pointer ~value:arg);
     Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block;
     None
   (*
@@ -2013,7 +2110,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         | ArithmeticRightShift -> Shr
         | LogicalRightShift -> Shrl
       in
-      Ecx.emit ~ecx (mk_binary ~op ~left:left_val ~right:expr_val)
+      mk_binary ~block:(Ecx.get_current_block ~ecx) ~op ~left:left_val ~right:expr_val
     in
 
     (* Emit an assignment that stores a value at a pointer *)
@@ -2026,14 +2123,14 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         | Some op ->
           (* Load value *)
           let pointer_val = mk_pointer_val () |> Option.get in
-          let loaded_val = Ecx.emit ~ecx (mk_load ~ptr:pointer_val) in
+          let loaded_val = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:pointer_val in
           (* Apply operation *)
           let expr_val = emit_expression ~ecx expr |> Option.get in
           Some (emit_apply_op op loaded_val expr_val)
       in
       match (mk_pointer_val (), store_val) with
       | (Some pointer_val, Some store_val) ->
-        Ecx.emit_ ~ecx (mk_store ~ptr:pointer_val ~value:store_val)
+        mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:pointer_val ~value:store_val
       | _ -> ()
     in
 
@@ -2154,7 +2251,7 @@ and emit_option_destructuring
 
   (* Test block finishes by jumping to Some branch if option is a `Some` variant, otherwise test
      block finishes by jumping to None branch if option is a `None` variant. *)
-  let test_val = Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:tag_val ~right:some_tag) in
+  let test_val = mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:tag_val ~right:some_tag in
   Ecx.finish_block_branch ~ecx test_val some_branch_block none_branch_block;
 
   (* Some branch starts by loading payload from `Some` variant *)
@@ -2167,13 +2264,13 @@ and emit_option_destructuring
     let some_val = emit_cast_ptr ~ecx ~ptr:option_val ~element_type:(Aggregate some_aggregate) in
     let some_value_ptr =
       mk_get_pointer_instr
+        ~block:(Ecx.get_current_block ~ecx)
         ~type_:item_mir_type
         ~ptr:some_val
         ~offsets:[Instruction.GetPointer.FieldIndex item_index]
         ()
-      |> Ecx.emit ~ecx
     in
-    Some (Ecx.emit ~ecx (mk_load ~ptr:some_value_ptr))
+    Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:some_value_ptr)
 
 and emit_result_destructuring
     ~ecx
@@ -2198,7 +2295,7 @@ and emit_result_destructuring
 
   (* Test block finishes by jumping to Ok branch if option is an `Ok` variant, otherwise test
      block finishes by jumping to Error branch if option is an `Error` variant. *)
-  let test_val = Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:tag_val ~right:ok_tag) in
+  let test_val = mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:tag_val ~right:ok_tag in
   Ecx.finish_block_branch ~ecx test_val ok_branch_block error_branch_block;
 
   (* Ok branch starts by loading payload from `Ok` variant *)
@@ -2212,13 +2309,13 @@ and emit_result_destructuring
       let (ok_value_type, ok_item_index) = lookup_element ok_aggregate (TupleKeyCache.get_key 0) in
       let ok_value_ptr =
         mk_get_pointer_instr
+          ~block:(Ecx.get_current_block ~ecx)
           ~type_:ok_value_type
           ~ptr:ok_val
           ~offsets:[Instruction.GetPointer.FieldIndex ok_item_index]
           ()
-        |> Ecx.emit ~ecx
       in
-      Some (Ecx.emit ~ecx (mk_load ~ptr:ok_value_ptr))
+      Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:ok_value_ptr)
   in
 
   (* Error branch starts by loading payload from `Error` variant *)
@@ -2235,13 +2332,13 @@ and emit_result_destructuring
       in
       let error_value_ptr =
         mk_get_pointer_instr
+          ~block:(Ecx.get_current_block ~ecx)
           ~type_:error_value_type
           ~ptr:error_val
           ~offsets:[Instruction.GetPointer.FieldIndex error_item_index]
           ()
-        |> Ecx.emit ~ecx
       in
-      Some (Ecx.emit ~ecx (mk_load ~ptr:error_value_ptr))
+      Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:error_value_ptr)
   in
 
   (ok_item_val, error_item_val)
@@ -2253,10 +2350,11 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
     let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
     if Bindings.is_module_decl binding then
       let global_ptr = Ecx.get_global_pointer ~ecx binding |> Option.get in
-      Ecx.emit_ ~ecx (mk_store ~ptr:global_ptr ~value)
+      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:global_ptr ~value
     else
-      let local_ptr = Ecx.emit ~ecx (Ecx.get_local_ptr_def_instr ~ecx loc mir_type) in
-      Ecx.emit_ ~ecx (mk_store ~ptr:local_ptr ~value)
+      let stack_alloc_instr = Ecx.get_local_ptr_def_instr ~ecx loc mir_type in
+      append_instruction (Ecx.get_current_block ~ecx) stack_alloc_instr;
+      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:(Value.Instr stack_alloc_instr) ~value
   | _ ->
     let decision_tree =
       Mir_match_decision_tree.build_destructure_decision_tree ~ecx value pattern
@@ -2317,10 +2415,10 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
                  only emit a single stack slot. *)
               if LocSet.mem decl_loc acc then
                 acc
-              else (
-                Ecx.emit_ ~ecx (Ecx.get_local_ptr_def_instr ~ecx decl_loc mir_type);
-                LocSet.add decl_loc acc
-              ))
+              else
+                let stack_alloc_instr = Ecx.get_local_ptr_def_instr ~ecx decl_loc mir_type in
+                append_instruction (Ecx.get_current_block ~ecx) stack_alloc_instr;
+                LocSet.add decl_loc acc)
           acc
           bindings
       in
@@ -2361,7 +2459,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
                  else
                    Instr (Ecx.get_local_ptr_def_instr ~ecx decl_loc mir_type)
                in
-               Ecx.emit_ ~ecx (mk_store ~ptr:ptr_val ~value:binding_val);
+               mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:ptr_val ~value:binding_val;
                path_cache)
            path_cache
            bindings);
@@ -2402,7 +2500,10 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           let diverges = body_ty = Never in
           (match result_ptr with
           | Some result_ptr when not diverges ->
-            Ecx.emit_ ~ecx (mk_store ~ptr:result_ptr ~value:(Option.get body_val))
+            mk_store_
+              ~block:(Ecx.get_current_block ~ecx)
+              ~ptr:result_ptr
+              ~value:(Option.get body_val)
           | _ -> ());
 
           (* Continue to match's overall join block at end of case body if case does not diverge *)
@@ -2431,7 +2532,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
         let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
         emit_decision_tree_if_else_chain ~path_cache [first_case] second_case (fun ctor ->
             let ctor_lit = mk_bool_lit (Ctor.cast_to_bool ctor) in
-            Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:scrutinee_val ~right:ctor_lit))
+            mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:scrutinee_val ~right:ctor_lit)
       (* Strings are tested for equality in if-else-chain, following source code order *)
       | (String _, _) ->
         (* String matches cannot be fully enumerated, so must have a default case *)
@@ -2451,7 +2552,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             let { Ecx.ImmutableString.value_global_val; size_global_val } =
               Ecx.add_immutable_string_literal ~ecx value
             in
-            let size_val = Ecx.emit ~ecx (mk_load ~ptr:size_global_val) in
+            let size_val = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:size_global_val in
             emit_method_call
               ~ecx
               ~method_name:"equalsImmutable"
@@ -2483,7 +2584,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
               | Long -> mk_long_lit value
               | _ -> failwith "Expected numeric value"
             in
-            Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:scrutinee_val ~right:case_lit))
+            mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:scrutinee_val ~right:case_lit)
       (* Variants are tested by loading their tag and checking against scrutinee in if-else chain *)
       | (Variant (_, adt_sig, type_args), _) ->
         let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
@@ -2515,7 +2616,11 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
         emit_decision_tree_if_else_chain ~path_cache test_cases default_case (fun ctor ->
             let (name, _, _) = Ctor.cast_to_variant ctor in
             let tag_val = SMap.find name tags in
-            Ecx.emit ~ecx (mk_cmp ~cmp:Eq ~left:scrutinee_tag_val ~right:tag_val)))
+            mk_cmp
+              ~block:(Ecx.get_current_block ~ecx)
+              ~cmp:Eq
+              ~left:scrutinee_tag_val
+              ~right:tag_val))
   (* Return the value indexed by a pattern path. Will emit load instructions if the pattern path
      points into an aggregate. Return the path cache with all new calculated paths added. *)
   and emit_load_pattern_path ~path_cache pattern_path =
@@ -2576,13 +2681,13 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           let (element_type, element_index) = lookup_element aggregate field_key in
           let element_ptr =
             mk_get_pointer_instr
+              ~block:(Ecx.get_current_block ~ecx)
               ~type_:element_type
               ~ptr:pointer_val
               ~offsets:[Instruction.GetPointer.FieldIndex element_index]
               ()
-            |> Ecx.emit ~ecx
           in
-          let element_value = Ecx.emit ~ecx (mk_load ~ptr:element_ptr) in
+          let element_value = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr in
           (element_value, IMap.add path_field_id element_value path_cache))
       (Option.get root_value, path_cache)
       fields

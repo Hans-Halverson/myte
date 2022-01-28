@@ -65,12 +65,12 @@ let myte_unlink = { Builtin.name = "myte.builtin.unlink"; mk_return_ty = (fun _ 
 let myte_get_heap_size =
   { Builtin.name = "myte.builtin.get_heap_size"; mk_return_ty = (fun _ -> Some Long) }
 
-let mk_call_builtin builtin args mk_return_ty_args : Instruction.t =
+let mk_call_builtin ~(block : Block.t) builtin args mk_return_ty_args : Value.t =
   let open Builtin in
   let return_type = builtin.mk_return_ty mk_return_ty_args |> Option.get in
   let instr = Instruction.Call { func = MirBuiltin builtin; args; has_return = true } in
-  Mir_builders.mk_instr ~type_:return_type ~instr
+  Instr (Mir_builders.mk_instr ~block ~type_:return_type ~instr)
 
-let mk_call_builtin_no_return builtin args =
+let mk_call_builtin_no_return_ ~(block : Block.t) builtin args =
   let instr = Instruction.Call { func = MirBuiltin builtin; args; has_return = false } in
-  Mir_builders.mk_instr ~type_:Mir_type.no_return_type ~instr
+  ignore (Mir_builders.mk_instr ~block ~type_:Mir_type.no_return_type ~instr)
