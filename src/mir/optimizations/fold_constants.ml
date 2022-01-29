@@ -212,13 +212,9 @@ class calc_constants_visitor ~program =
             | Some constant -> this#add_global_constant name constant
             | None -> ())
           (* Globals initialized with constant value have constant propagated *)
-          | Some { value = { value = Lit lit; _ }; _ } ->
-            (match lit with
-            | Bool lit -> this#add_global_constant name (BoolConstant lit)
-            | Byte lit -> this#add_global_constant name (ByteConstant lit)
-            | Int lit -> this#add_global_constant name (IntConstant lit)
-            | Long lit -> this#add_global_constant name (LongConstant lit)
-            | Function lit -> this#add_global_constant name (FunctionConstant lit)
+          | Some init_val ->
+            (match this#get_lit_opt init_val with
+            | Some constant -> this#add_global_constant name constant
             | _ -> ())
           | _ -> ())
         program.globals
@@ -235,10 +231,8 @@ class calc_constants_visitor ~program =
 
             method! map_instruction _ instruction =
               match instruction.instr with
-              | Store
-                  ( { value = { value = Lit (Global global); _ }; _ },
-                    { value = { value = Instr { id = instr_id; _ }; _ }; _ } ) ->
-                (match IMap.find_opt instr_id instr_constants with
+              | Store ({ value = { value = Lit (Global global); _ }; _ }, stored_val) ->
+                (match this#get_lit_opt stored_val with
                 | Some constant ->
                   mapper#mark_instruction_removed ();
                   if global.is_constant then
@@ -328,35 +322,35 @@ class calc_constants_visitor ~program =
           in
           if is_single_constant then this#add_constant instr.id constant
 
+    method get_lit_opt (use : Use.t) : folded_constant option =
+      match use.value.value with
+      | Value.Lit (Bool b) -> Some (BoolConstant b)
+      | Lit (Byte b) -> Some (ByteConstant b)
+      | Lit (Int i) -> Some (IntConstant i)
+      | Lit (Long l) -> Some (LongConstant l)
+      | Lit (Function label) -> Some (FunctionConstant label)
+      | Instr instr -> IMap.find_opt instr.id instr_constants
+      | _ -> None
+
     method! visit_instruction _ instr =
-      let get_lit_opt (use : Use.t) =
-        match use.value.value with
-        | Value.Lit (Bool b) -> Some (BoolConstant b)
-        | Lit (Byte b) -> Some (ByteConstant b)
-        | Lit (Int i) -> Some (IntConstant i)
-        | Lit (Long l) -> Some (LongConstant l)
-        | Lit (Function label) -> Some (FunctionConstant label)
-        | Instr instr -> IMap.find_opt instr.id instr_constants
-        | _ -> None
-      in
       let try_fold_conversion instr_id arg op =
-        match get_lit_opt arg with
+        match this#get_lit_opt arg with
         | None -> ()
         | Some arg -> this#add_constant instr_id (apply_conversion op arg)
       in
       let try_fold_comparison instr_id left right f =
-        match (get_lit_opt left, get_lit_opt right) with
+        match (this#get_lit_opt left, this#get_lit_opt right) with
         | (Some left, Some right) ->
           this#add_constant instr_id (BoolConstant (f (fold_constants_compare left right) 0))
         | _ -> ()
       in
       match instr.instr with
       | Unary (op, arg) ->
-        (match get_lit_opt arg with
+        (match this#get_lit_opt arg with
         | None -> ()
         | Some arg -> this#add_constant instr.id (apply_unary_operation op arg))
       | Binary (op, left, right) ->
-        (match (get_lit_opt left, get_lit_opt right) with
+        (match (this#get_lit_opt left, this#get_lit_opt right) with
         | (Some left, Some right) ->
           this#add_constant instr.id (apply_binary_operation op left right)
         | _ -> ())

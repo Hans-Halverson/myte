@@ -321,17 +321,17 @@ and add_use_link (u1 : Use.t) (u2 : Use.t) =
   u1.next <- u2;
   u2.prev <- u1
 
-and user_add_use ~(user : Value.t) ~(use : Value.t) =
-  match use.uses with
-  | None ->
-    let rec use_node = { Use.value = use; prev = use_node; next = use_node; user } in
-    use.uses <- Some use_node;
-    use_node
+and add_value_use ~(value : Value.t) ~(use : Use.t) =
+  match value.uses with
+  | None -> value.uses <- Some use
   | Some first_use ->
-    let rec use_node = { Use.value = use; prev = use_node; next = use_node; user } in
-    add_use_link use_node first_use.next;
-    add_use_link first_use use_node;
-    use_node
+    add_use_link use first_use.next;
+    add_use_link first_use use
+
+and user_add_use ~(user : Value.t) ~(use : Value.t) =
+  let rec use_node = { Use.value = use; prev = use_node; next = use_node; user } in
+  add_value_use ~value:use ~use:use_node;
+  use_node
 
 and remove_use (use : Use.t) =
   let value = use.value in
@@ -353,6 +353,14 @@ and value_iter_uses ~(value : Value.t) (f : Use.t -> unit) =
       if next_use != first_use then iter next_use
     in
     iter first_use
+
+(* Replace all uses of a value with another value. Uses are modified in place and all use links
+   are updated appropriately. *)
+and value_replace_uses ~(from : Value.t) ~(to_ : Value.t) =
+  value_iter_uses ~value:from (fun use ->
+      use.value <- to_;
+      add_value_use ~value:to_ ~use);
+  from.uses <- None
 
 (*
  * ============================
@@ -491,6 +499,12 @@ and concat_instructions (b1 : Block.t) (b2 : Block.t) =
     add_instr_link last2 first1;
     list.last <- last2
 
+(* Replace an instruction with another value, removing the instruction and replacing all its
+   uses with the other value. *)
+and replace_instruction ~(from : Value.t) ~(to_ : Value.t) =
+  value_replace_uses ~from ~to_;
+  remove_instruction from
+
 (* Utility function to check if an instruction list has a valid structure *)
 and assert_valid_list (block : Block.t) =
   match block.instructions with
@@ -605,7 +619,17 @@ and phi_filter_args ~(value : Value.t) ~(phi : Instruction.Phi.t) (f : Block.t -
   phi_simplify ~value ~phi
 
 and phi_simplify ~(value : Value.t) ~(phi : Instruction.Phi.t) =
-  if BlockMap.is_empty phi.args then remove_instruction value
+  (* Remove this phi instruction if it has no arguments *)
+  if BlockMap.is_empty phi.args then
+    remove_instruction value
+  else
+    (* If all arguments to phi instruction have same value, remove phi instruction and replace its
+       uses with the value. *)
+    let (_, chosen_use) = BlockMap.choose phi.args in
+    let has_single_arg_value =
+      BlockMap.for_all (fun _ arg_use -> values_equal arg_use.Use.value chosen_use.value) phi.args
+    in
+    if has_single_arg_value then replace_instruction ~from:value ~to_:chosen_use.value
 
 (*
  * ============================

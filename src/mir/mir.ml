@@ -10,7 +10,7 @@ module rec Use : sig
   type t = {
     (* The value that being used at this use. For example in a Binary instruction each of the two
        operands is a use and this is its value. *)
-    value: Value.t;
+    mutable value: Value.t;
     (* The user that is using the use. For example a Binary instruction is a user and each of its
        two operands is a use whose user points back to the Binary instruction. *)
     user: Value.t;

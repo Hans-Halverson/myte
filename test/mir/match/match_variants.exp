@@ -232,7 +232,7 @@ label @1:
   %13 := Cast test.V2* %12 to byte*
   %14 := Load byte %13
   %15 := Eq byte %14, 1
-  branch %15, @7, @2
+  branch %15, @6, @2
 label @2:
   %16 := Eq byte %14, 2
   branch %16, @3, @6
@@ -249,16 +249,14 @@ label @4:
   %24 := GetPointer bool, test.V2::Record2* %23.1
   %25 := Load bool %24
   %26 := Eq bool %25, false
-  branch %26, @7, @5
+  branch %26, @6, @5
 label @5:
   %27 := Cast test.V2* %19 to test.V2::Record2*
   %28 := GetPointer test.V2*, test.V2::Record2* %27.3
   %29 := Load test.V2* %28
-  continue @7
+  continue @6
 label @6:
-  continue @7
-label @7:
-  %30 := Phi test.V2* @1:%12, @4:%6, @5:%29, @6:%0
+  %30 := Phi test.V2* @test.test6:%0, @0:%0, @1:%12, @2:%0, @3:%0, @4:%6, @5:%29
   Ret %30
 }
 

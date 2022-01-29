@@ -28,30 +28,29 @@ let rec normalize ~program =
 
   (* Remove trivial phis and rewrite references to these phi vars in program, requires iteration
      to a fixpoint *)
-  let rewrite_map = ref IMap.empty in
-  let rec iter () =
-    program_iter_blocks program (fun block ->
-        block_filter_phis block (fun instr_id { args } ->
-            let (_, chosen_use) = BlockMap.choose args in
-            if
-              BlockMap.for_all
-                (fun _ arg_use -> values_equal arg_use.Use.value chosen_use.value)
-                args
-            then (
-              rewrite_map := IMap.add instr_id chosen_use.value !rewrite_map;
-              false
-            ) else
-              true));
-    if IMap.is_empty !rewrite_map then
-      ()
-    else
-      let rewrite_mapper = new Mir_mapper.rewrite_vals_mapper ~program !rewrite_map in
-      program_iter_blocks program rewrite_mapper#map_block;
-      rewrite_map := IMap.empty;
-      iter ()
-  in
-  iter ();
-
+  (* let rewrite_map = ref IMap.empty in
+     let rec iter () =
+       program_iter_blocks program (fun block ->
+           block_filter_phis block (fun instr_id { args } ->
+               let (_, chosen_use) = BlockMap.choose args in
+               if
+                 BlockMap.for_all
+                   (fun _ arg_use -> values_equal arg_use.Use.value chosen_use.value)
+                   args
+               then (
+                 rewrite_map := IMap.add instr_id chosen_use.value !rewrite_map;
+                 false
+               ) else
+                 true));
+       if IMap.is_empty !rewrite_map then
+         ()
+       else
+         let rewrite_mapper = new Mir_mapper.rewrite_vals_mapper ~program !rewrite_map in
+         program_iter_blocks program rewrite_mapper#map_block;
+         rewrite_map := IMap.empty;
+         iter ()
+     in
+     iter (); *)
   consolidate_adjacent_blocks ~program;
   remove_empty_init_func ~program
 

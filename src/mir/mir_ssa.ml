@@ -1,7 +1,6 @@
 open Basic_collections
 open Mir
 open Mir_builders
-open Mir_mapper
 open Mir_type
 
 (* Promotion of variables on stack into registers joined with Phi nodes
@@ -79,8 +78,8 @@ type cx = {
   mutable block_nodes: PhiChainNode.id IMap.t BlockMap.t;
   (* Blocks to the set of phi chain node ids that are realized in that block *)
   mutable realized_phis: BlockIMMap.t;
-  (* Function name to the local source for each load instruction id *)
-  mutable use_sources: source IMap.t SMap.t;
+  (* Function name to the (load instruction, local source) for each load instruction id *)
+  mutable use_sources: (Value.t * source) IMap.t SMap.t;
 }
 
 let mk_cx () =
@@ -251,7 +250,7 @@ and build_phi_nodes ~cx program =
           nodes
     end;
     (* Mark phi nodes to realize *)
-    iter_instructions block (fun _ instr ->
+    iter_instructions block (fun instr_val instr ->
         match instr.instr with
         | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, arg)
           when IMap.mem id cx.stack_alloc_ids ->
@@ -261,7 +260,7 @@ and build_phi_nodes ~cx program =
           when IMap.mem id cx.stack_alloc_ids ->
           (* Save source for each use *)
           let source = IMap.find id !sources in
-          add_use_source ~cx func_name instr.id source;
+          add_use_source ~cx func_name instr.id (instr_val, source);
           (* If source is a phi node it should be realized *)
           (match source with
           | WriteLocation _ -> ()
@@ -295,12 +294,9 @@ and build_phi_nodes ~cx program =
 and rewrite_program ~cx program =
   (* Traverse phi chain graph to gather all previous block/value pairs for a given phi node. The phi
      chain graph is deeply traversed until realized nodes are encountered. *)
-  let gather_phi_args ~(phi_value : Value.t) (node_id : PhiChainNode.id) : Use.t BlockMap.t =
-    let phi_args = ref BlockMap.empty in
+  let gather_phi_args ~(phi_val : Value.t) ~(phi : Instruction.Phi.t) (node_id : PhiChainNode.id) =
     let add_phi_arg prev_block arg_val =
-      phi_args :=
-        let arg_use = user_add_use ~user:phi_value ~use:arg_val in
-        BlockMap.add prev_block arg_use !phi_args
+      phi_add_arg ~phi_val ~phi ~block:prev_block ~value:arg_val
     in
     let rec visit_phi_node node_id prev_block =
       let node = get_node ~cx node_id in
@@ -314,8 +310,7 @@ and rewrite_program ~cx program =
     in
     let node = get_node ~cx node_id in
     IMap.iter (fun _ (prev_block, arg_val) -> add_phi_arg prev_block arg_val) node.write_locs;
-    IMap.iter visit_phi_node node.prev_nodes;
-    !phi_args
+    IMap.iter visit_phi_node node.prev_nodes
   in
 
   let visit_block (block : Block.t) =
@@ -327,7 +322,7 @@ and rewrite_program ~cx program =
           let node = get_node ~cx node_id in
           let phi_instr = Option.get node.realized in
           let phi = cast_to_phi (cast_to_instruction phi_instr) in
-          phi.args <- gather_phi_args ~phi_value:phi_instr node_id;
+          gather_phi_args ~phi_val:phi_instr ~phi node_id;
           phi_instr :: phis)
         realized_phis
         []
@@ -349,22 +344,34 @@ and rewrite_program ~cx program =
       (* Create phi nodes within function *)
       func_iter_blocks func visit_block;
 
-      (* Rewrite uses of a load from a promoted memory location to the last store before the load *)
+      (* Find all rewrites between values, rewriting uses of a load from a promoted memory location
+         to the value that was last stored before the load. *)
       let use_sources = SMap.find func.name cx.use_sources in
-      let value_map =
+      let rewrite_map =
         IMap.fold
-          (fun load_instr_id source value_map ->
+          (fun _ (load_instr, source) value_map ->
             match source with
-            | WriteLocation (_, _, write_val) -> IMap.add load_instr_id write_val value_map
+            | WriteLocation (_, _, write_val) -> VMap.add load_instr write_val value_map
             | PhiChainJoin node_id ->
               let node = get_node ~cx node_id in
               let mapped_val = Option.get node.realized in
-              IMap.add load_instr_id mapped_val value_map)
+              VMap.add load_instr mapped_val value_map)
           use_sources
-          IMap.empty
+          VMap.empty
       in
-      let rewrite_val_mapper = new rewrite_vals_mapper ~program value_map in
-      rewrite_val_mapper#map_function func)
+
+      (* Follow successive rewrites to create final rewrite map *)
+      let rec find_final_value value =
+        match VMap.find_opt value rewrite_map with
+        | None -> value
+        | Some mapped_value -> find_final_value mapped_value
+      in
+      let final_rewrite_map = VMap.map (fun to_val -> find_final_value to_val) rewrite_map in
+
+      (* Rewrite uses of values in program *)
+      VMap.iter
+        (fun load_instr write_val -> value_replace_uses ~from:load_instr ~to_:write_val)
+        final_rewrite_map)
     program.funcs;
 
   (* Strip empty blocks *)

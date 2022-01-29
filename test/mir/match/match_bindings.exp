@@ -133,26 +133,24 @@ label @4:
 
 func int @test.test8(int %0) {
   %1 := Eq int %0, 1
-  branch %1, @1, @0
+  branch %1, @5, @0
 label @0:
   %2 := Eq int %0, 2
-  branch %2, @1, @2
+  branch %2, @5, @1
 label @1:
-  continue @6
-label @2:
   %3 := Eq int %0, 4
-  branch %3, @5, @3
-label @3:
+  branch %3, @4, @2
+label @2:
   %4 := Eq int %0, 5
-  branch %4, @5, @4
-label @4:
+  branch %4, @4, @3
+label @3:
   %5 := Eq int %0, 6
-  branch %5, @5, @6
-label @5:
+  branch %5, @4, @5
+label @4:
   %6 := Add int %0, %0
-  continue @6
-label @6:
-  %7 := Phi int @1:%0, @5:%6, @4:3
+  continue @5
+label @5:
+  %7 := Phi int @test.test8:%0, @0:%0, @4:%6, @3:3
   Ret %7
 }
 
@@ -162,23 +160,21 @@ func int @test.test9($tuple<Int,(Int,Bool)>* %0) {
   %3 := GetPointer int, $tuple<Int,Bool>* %2.0
   %4 := Load int %3
   %5 := Eq int %4, 1
-  branch %5, @1, @0
+  branch %5, @4, @0
 label @0:
   %6 := Eq int %4, 2
-  branch %6, @1, @2
+  branch %6, @4, @1
 label @1:
-  continue @5
-label @2:
   %7 := Eq int %4, 3
-  branch %7, @4, @3
-label @3:
+  branch %7, @3, @2
+label @2:
   %8 := Eq int %4, 4
-  branch %8, @4, @5
-label @4:
+  branch %8, @3, @4
+label @3:
   %9 := Add int %4, %4
-  continue @5
-label @5:
-  %10 := Phi int @1:%4, @3:7, @4:%9
+  continue @4
+label @4:
+  %10 := Phi int @test.test9:%4, @0:%4, @2:7, @3:%9
   Ret %10
 }
 
@@ -188,27 +184,27 @@ func int @test.test10($tuple<Int,(Int,Bool)>* %0) {
   %3 := GetPointer int, $tuple<Int,Bool>* %2.0
   %4 := Load int %3
   %5 := Eq int %4, 1
-  branch %5, @1, @0
+  branch %5, @2, @0
 label @0:
   %6 := Eq int %4, 2
-  branch %6, @1, @2
+  branch %6, @2, @1
 label @1:
   continue @2
 label @2:
-  %7 := Phi int @0:7, @1:%4
+  %7 := Phi int @test.test10:%4, @0:%4, @1:7
   Ret %7
 }
 
 func int @test.test11(int %0) {
   %1 := Eq int %0, 1
-  branch %1, @1, @0
+  branch %1, @2, @0
 label @0:
   %2 := Eq int %0, 2
-  branch %2, @1, @2
+  branch %2, @2, @1
 label @1:
   continue @2
 label @2:
-  %3 := Phi int @0:7, @1:%0
+  %3 := Phi int @test.test11:%0, @0:%0, @1:7
   Ret %3
 }
 
