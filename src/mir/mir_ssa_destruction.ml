@@ -120,15 +120,13 @@ let lower_phis_to_copies ~(ir : Program.t) =
   program_iter_blocks ir (fun block ->
       (* Collect all copies to create from phi nodes in each previous block *)
       let block_to_parallel_copies =
-        block_fold_phis block BlockMap.empty (fun { args } acc ->
-            (* Can find user instruction from uses as args must be nonempty *)
-            let instr_value = (snd (BlockMap.choose args)).user in
+        block_fold_phis block BlockMap.empty (fun instr_val { args } acc ->
             BlockMap.fold
               (fun prev_block arg_val acc ->
                 let existing_copies =
                   BlockMap.find_opt prev_block acc |> Option.value ~default:[]
                 in
-                BlockMap.add prev_block ((instr_value, arg_val.Use.value) :: existing_copies) acc)
+                BlockMap.add prev_block ((instr_val, arg_val.Use.value) :: existing_copies) acc)
               args
               acc)
       in
@@ -137,7 +135,7 @@ let lower_phis_to_copies ~(ir : Program.t) =
       BlockMap.iter
         (fun prev_block parallel_copies ->
           let sequential_copies = sequentialize_parallel_copies (List.rev parallel_copies) in
-          let terminator = get_terminator prev_block |> Option.get in
+          let terminator_val = get_terminator_value prev_block |> Option.get in
           List.iter
             (fun (dest_val, arg_val) ->
               (* Destination instructions are all pre-existing Phis or Movs that were created
@@ -145,8 +143,10 @@ let lower_phis_to_copies ~(ir : Program.t) =
                  after this point arg/use references cannot be followed. *)
               let dest_instr = cast_to_instruction dest_val in
               let arg_use = user_add_use ~user:dest_val ~use:arg_val in
-              let rec instr = { dest_instr with instr = Mov arg_use; next = instr; prev = instr } in
-              insert_instruction_before ~before:terminator instr)
+              let instr_val = { dest_val with value = null_value_value } in
+              instr_val.value <-
+                Instr { dest_instr with instr = Mov arg_use; next = instr_val; prev = instr_val };
+              insert_instruction_before ~before:terminator_val instr_val)
             sequential_copies)
         block_to_parallel_copies;
 

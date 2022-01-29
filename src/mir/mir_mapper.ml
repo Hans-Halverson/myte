@@ -21,12 +21,12 @@ module InstructionsMapper = struct
       method map_block (block : Block.t) = this#map_instructions block
 
       method map_instructions (block : Block.t) =
-        iter_instructions block (fun instruction ->
+        iter_instructions block (fun instruction_val instruction ->
             current_instruction_edit <- Keep;
             this#map_instruction instruction;
             match current_instruction_edit with
             | Keep -> ()
-            | Remove -> remove_instruction block instruction)
+            | Remove -> remove_instruction block instruction_val)
 
       method map_instruction (instruction : Instruction.t) =
         let open Instruction in

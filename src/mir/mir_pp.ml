@@ -145,7 +145,7 @@ and pp_block ~cx ~label block =
       []
   in
   let instruction_lines =
-    fold_instructions block [] (fun instr acc -> pp_instruction ~cx instr :: acc) |> List.rev
+    fold_instructions block [] (fun _ instr acc -> pp_instruction ~cx instr :: acc) |> List.rev
   in
   let lines = List.concat [label_lines; instruction_lines] in
   String.concat "\n" lines

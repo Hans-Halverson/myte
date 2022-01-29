@@ -47,55 +47,52 @@ let mk_array_vtable_lit (funcs : Function.t list) : Value.t =
  *)
 
 (* Creates an instruction that is not yet part of a block *)
-let rec mk_blockless_instr ~(type_ : Type.t) ~(instr : Instruction.instr) : Instruction.t =
-  let rec instruction =
+let rec mk_blockless_instr ~(value : Value.t) ~(type_ : Type.t) ~(instr : Instruction.instr) :
+    Value.t =
+  let instruction =
     {
       Instruction.id = mk_value_id ();
       type_;
       instr;
-      prev = instruction;
-      next = instruction;
+      prev = value;
+      next = value;
       block = null_block;
     }
   in
-  instruction
+  value.value <- Instr instruction;
+  value
 
 (* Create an instruction and appends it the end of a block *)
-and mk_instr ~(block : Block.t) ~(type_ : Type.t) ~(instr : Instruction.instr) : Instruction.t =
-  let instruction = mk_blockless_instr ~type_ ~instr in
-  append_instruction block instruction;
-  instruction
+and mk_instr ~(value : Value.t) ~(block : Block.t) ~(type_ : Type.t) ~(instr : Instruction.instr) :
+    Value.t =
+  let instr_value = mk_blockless_instr ~value ~type_ ~instr in
+  append_instruction block instr_value;
+  instr_value
 
 and mk_blockless_phi ~(type_ : Type.t) ~(args : Value.t BlockMap.t) : Value.t =
   let value = mk_uninit_value () in
   let args = BlockMap.map (fun arg -> user_add_use ~user:value ~use:arg) args in
-  let instr = mk_blockless_instr ~type_ ~instr:(Phi { args }) in
-  value.value <- Instr instr;
-  value
+  mk_blockless_instr ~value ~type_ ~instr:(Phi { args })
 
 and mk_blockless_mov ~(arg : Value.t) : Value.t =
   let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  let instr = mk_blockless_instr ~type_:(type_of_value arg) ~instr:(Mov arg_use) in
-  value.value <- Instr instr;
-  value
+  mk_blockless_instr ~value ~type_:(type_of_value arg) ~instr:(Mov arg_use)
 
 and mk_blockless_stack_alloc ~(type_ : Type.t) : Value.t =
-  let instr = mk_blockless_instr ~type_:(Pointer type_) ~instr:(StackAlloc type_) in
-  mk_value (Instr instr)
+  let value = mk_uninit_value () in
+  mk_blockless_instr ~value ~type_:(Pointer type_) ~instr:(StackAlloc type_)
 
 and mk_stack_alloc ~(block : Block.t) ~(type_ : Type.t) : Value.t =
-  let instr = mk_instr ~block ~type_:(Pointer type_) ~instr:(StackAlloc type_) in
-  mk_value (Instr instr)
+  let value = mk_uninit_value () in
+  mk_instr ~value ~block ~type_:(Pointer type_) ~instr:(StackAlloc type_)
 
 and mk_load ~(block : Block.t) ~(ptr : Value.t) : Value.t =
   match type_of_value ptr with
   | Pointer type_ ->
     let value = mk_uninit_value () in
     let ptr_use = user_add_use ~user:value ~use:ptr in
-    let instr = mk_instr ~block ~type_ ~instr:(Load ptr_use) in
-    value.value <- Instr instr;
-    value
+    mk_instr ~value ~block ~type_ ~instr:(Load ptr_use)
   | _ -> failwith "Load argument must be a pointer type"
 
 and mk_store_ ~(block : Block.t) ~(ptr : Value.t) ~(value : Value.t) : unit =
@@ -104,8 +101,8 @@ and mk_store_ ~(block : Block.t) ~(ptr : Value.t) ~(value : Value.t) : unit =
   let instr_value = mk_uninit_value () in
   let ptr_use = user_add_use ~user:instr_value ~use:ptr in
   let value_use = user_add_use ~user:instr_value ~use:value in
-  let instr = mk_instr ~block ~type_:no_return_type ~instr:(Store (ptr_use, value_use)) in
-  instr_value.value <- Instr instr
+  ignore
+    (mk_instr ~value:instr_value ~block ~type_:no_return_type ~instr:(Store (ptr_use, value_use)))
 
 and mk_get_pointer_instr
     ~(block : Block.t)
@@ -129,16 +126,12 @@ and mk_get_pointer_instr
         | FieldIndex index -> FieldIndex index)
       offsets
   in
-  let instr =
-    mk_instr
-      ~block
-      ~type_:(Pointer type_)
-      ~instr:
-        (GetPointer
-           { pointer = ptr_use; pointer_offset = pointer_offset_use; offsets = use_offsets })
-  in
-  value.value <- Instr instr;
-  value
+  mk_instr
+    ~value
+    ~block
+    ~type_:(Pointer type_)
+    ~instr:
+      (GetPointer { pointer = ptr_use; pointer_offset = pointer_offset_use; offsets = use_offsets })
 
 and mk_call ~(block : Block.t) ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) :
     Value.t =
@@ -151,11 +144,7 @@ and mk_call ~(block : Block.t) ~(func : Value.t) ~(args : Value.t list) ~(return
     | Some type_ -> (type_, true)
     | None -> (no_return_type, false)
   in
-  let instr =
-    mk_instr ~block ~type_ ~instr:(Call { func = Value func_use; args = arg_uses; has_return })
-  in
-  value.value <- Instr instr;
-  value
+  mk_instr ~value ~block ~type_ ~instr:(Call { func = Value func_use; args = arg_uses; has_return })
 
 and mk_call_ ~block ~func ~args ~return : unit = ignore (mk_call ~block ~func ~args ~return)
 
@@ -165,39 +154,32 @@ and mk_call_builtin
   let value = mk_uninit_value () in
   let arg_uses = List.map (fun arg -> user_add_use ~user:value ~use:arg) args in
   let return_type = builtin.mk_return_ty mk_return_ty_args |> Option.get in
-  let instr =
-    mk_instr
-      ~block
-      ~type_:return_type
-      ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return = true })
-  in
-  value.value <- Instr instr;
-  value
+  mk_instr
+    ~value
+    ~block
+    ~type_:return_type
+    ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return = true })
 
 and mk_call_builtin_no_return_ ~(block : Block.t) (builtin : Builtin.t) (args : Value.t list) =
   let value = mk_uninit_value () in
   let arg_uses = List.map (fun arg -> user_add_use ~user:value ~use:arg) args in
-  let instr =
-    mk_instr
-      ~block
-      ~type_:no_return_type
-      ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return = false })
-  in
-  value.value <- Instr instr
+  ignore
+    (mk_instr
+       ~value
+       ~block
+       ~type_:no_return_type
+       ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return = false }))
 
 and mk_ret_ ~(block : Block.t) ~(arg : Value.t option) =
   let value = mk_uninit_value () in
   let arg_use = Option.map (fun arg -> user_add_use ~user:value ~use:arg) arg in
-  let instr = mk_instr ~block ~type_:no_return_type ~instr:(Ret arg_use) in
-  value.value <- Instr instr
+  ignore (mk_instr ~value ~block ~type_:no_return_type ~instr:(Ret arg_use))
 
 and mk_unary ~(block : Block.t) ~(op : Instruction.unary_operation) ~(arg : Value.t) : Value.t =
   if not (is_numeric_value arg) then failwith "Unary argument must be numeric value";
   let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  let instr = mk_instr ~block ~type_:(type_of_value arg) ~instr:(Unary (op, arg_use)) in
-  value.value <- Instr instr;
-  value
+  mk_instr ~value ~block ~type_:(type_of_value arg) ~instr:(Unary (op, arg_use))
 
 and mk_binary
     ~(block : Block.t) ~(op : Instruction.binary_operation) ~(left : Value.t) ~(right : Value.t) :
@@ -213,11 +195,7 @@ and mk_binary
   let value = mk_uninit_value () in
   let left_use = user_add_use ~user:value ~use:left in
   let right_use = user_add_use ~user:value ~use:right in
-  let instr =
-    mk_instr ~block ~type_:(type_of_value left) ~instr:(Binary (op, left_use, right_use))
-  in
-  value.value <- Instr instr;
-  value
+  mk_instr ~value ~block ~type_:(type_of_value left) ~instr:(Binary (op, left_use, right_use))
 
 and mk_cmp ~(block : Block.t) ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) :
     Value.t =
@@ -227,18 +205,14 @@ and mk_cmp ~(block : Block.t) ~(cmp : Instruction.comparison) ~(left : Value.t) 
   let value = mk_uninit_value () in
   let left_use = user_add_use ~user:value ~use:left in
   let right_use = user_add_use ~user:value ~use:right in
-  let instr = mk_instr ~block ~type_:Bool ~instr:(Cmp (cmp, left_use, right_use)) in
-  value.value <- Instr instr;
-  value
+  mk_instr ~value ~block ~type_:Bool ~instr:(Cmp (cmp, left_use, right_use))
 
 and mk_cast ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   if not (is_pointer_value arg && is_pointer_type type_) then
     failwith "Cast arguments must be pointers";
   let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  let instr = mk_instr ~block ~type_ ~instr:(Cast arg_use) in
-  value.value <- Instr instr;
-  value
+  mk_instr ~value ~block ~type_ ~instr:(Cast arg_use)
 
 and mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
@@ -252,9 +226,7 @@ and mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
       "Trunc arguments must be numeric with type argument having smaller size than value argument";
   let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  let instr = mk_instr ~block ~type_ ~instr:(Trunc arg_use) in
-  value.value <- Instr instr;
-  value
+  mk_instr ~value ~block ~type_ ~instr:(Trunc arg_use)
 
 and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
@@ -268,23 +240,25 @@ and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
       "SExt arguments must be numeric with type argument having larger size than value argument";
   let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  let instr = mk_instr ~block ~type_ ~instr:(SExt arg_use) in
-  value.value <- Instr instr;
-  value
+  mk_instr ~value ~block ~type_ ~instr:(SExt arg_use)
 
 and mk_unreachable_ ~(block : Block.t) : unit =
-  ignore (mk_instr ~block ~type_:no_return_type ~instr:Unreachable)
+  let value = mk_uninit_value () in
+  ignore (mk_instr ~value ~block ~type_:no_return_type ~instr:Unreachable)
 
 and mk_continue_ ~(block : Block.t) ~(continue : Block.t) : unit =
-  ignore (mk_instr ~block ~type_:no_return_type ~instr:(Continue continue))
+  let value = mk_uninit_value () in
+  ignore (mk_instr ~value ~block ~type_:no_return_type ~instr:(Continue continue))
 
 and mk_branch_ ~(block : Block.t) ~(test : Value.t) ~(continue : Block.t) ~(jump : Block.t) : unit =
   let value = mk_uninit_value () in
   let test_use = user_add_use ~user:value ~use:test in
-  let instr =
-    mk_instr ~block ~type_:no_return_type ~instr:(Branch { test = test_use; continue; jump })
-  in
-  value.value <- Instr instr
+  ignore
+    (mk_instr
+       ~value
+       ~block
+       ~type_:no_return_type
+       ~instr:(Branch { test = test_use; continue; jump }))
 
 (*
  * ============================
@@ -379,65 +353,72 @@ and has_single_instruction (block : Block.t) : bool =
   | Some { first; last } when first == last -> true
   | _ -> false
 
-and add_instr_link (i1 : Instruction.t) (i2 : Instruction.t) =
-  i1.next <- i2;
-  i2.prev <- i1
+and add_instr_link (instr_val1 : Value.t) (instr_val2 : Value.t) =
+  let instr1 = cast_to_instruction instr_val1 in
+  let instr2 = cast_to_instruction instr_val2 in
+  instr1.next <- instr_val2;
+  instr2.prev <- instr_val1
 
 (* Prepend an instruction to the beginning of a block's instruction list *)
-and prepend_instruction (block : Block.t) (instr : Instruction.t) =
+and prepend_instruction (block : Block.t) (instr_val : Value.t) =
+  let instr = cast_to_instruction instr_val in
   instr.block <- block;
   match block.instructions with
-  | None -> block.instructions <- Some { first = instr; last = instr }
+  | None -> block.instructions <- Some { first = instr_val; last = instr_val }
   | Some ({ first; last } as list) ->
-    add_instr_link instr first;
-    add_instr_link last instr;
-    list.first <- instr
+    add_instr_link instr_val first;
+    add_instr_link last instr_val;
+    list.first <- instr_val
 
 (* Append an instruction to the end of a block's instruction list *)
-and append_instruction (block : Block.t) (instr : Instruction.t) =
+and append_instruction (block : Block.t) (instr_val : Value.t) =
+  let instr = cast_to_instruction instr_val in
   instr.block <- block;
   match block.instructions with
-  | None -> block.instructions <- Some { first = instr; last = instr }
+  | None -> block.instructions <- Some { first = instr_val; last = instr_val }
   | Some ({ first; last } as list) ->
-    add_instr_link last instr;
-    add_instr_link instr first;
-    list.last <- instr
+    add_instr_link last instr_val;
+    add_instr_link instr_val first;
+    list.last <- instr_val
 
 (* Insert an instruction immediately before another instruction in a block's instruction list *)
-and insert_instruction_before ~(before : Instruction.t) (instr : Instruction.t) =
-  let block = before.block in
+and insert_instruction_before ~(before : Value.t) (instr_val : Value.t) =
+  let before_instr = cast_to_instruction before in
+  let instr = cast_to_instruction instr_val in
+  let block = before_instr.block in
   instr.block <- block;
   match block.instructions with
   | None -> failwith "Block must have before instruction"
   | Some list ->
-    let prev_instr = before.prev in
-    add_instr_link prev_instr instr;
-    add_instr_link instr before;
-    if list.first == before then list.first <- instr
+    let prev_instr = before_instr.prev in
+    add_instr_link prev_instr instr_val;
+    add_instr_link instr_val before;
+    if list.first == before then list.first <- instr_val
 
 (* Remove an instruction from a block's instruction list *)
-and remove_instruction (block : Block.t) (instr : Instruction.t) =
-  if (* Instruction list is circular, so check if single element list *)
-     instr.next == instr then
+and remove_instruction (block : Block.t) (instr_val : Value.t) =
+  let instr = cast_to_instruction instr_val in
+  (* Instruction list is circular, so check if single element list *)
+  if instr.next == instr_val then
     block.instructions <- None
   else
     let prev = instr.prev in
     let next = instr.next in
     add_instr_link prev next;
     let list = Option.get block.instructions in
-    if list.first == instr then list.first <- next;
-    if list.last == instr then list.last <- prev
+    if list.first == instr_val then list.first <- next;
+    if list.last == instr_val then list.last <- prev
 
 (* Concatenate the instructions in the second block to the end of the first block. 
    This is a destructive operation on the second block's instructions. Removes the first block's
    terminator instruction. *)
 and concat_instructions (b1 : Block.t) (b2 : Block.t) =
   (* Remove terminator from first block *)
-  (match get_terminator b1 with
+  (match get_terminator_value b1 with
   | Some terminator -> remove_instruction b1 terminator
   | None -> ());
   (* Concatenate lists of instructions *)
-  iter_instructions b2 (fun instr -> instr.Instruction.block <- b1);
+  iter_instructions b2 (fun _ instr -> instr.Instruction.block <- b1);
   match (b1.instructions, b2.instructions) with
   | (_, None) -> ()
   | (None, (Some _ as instrs)) -> b1.instructions <- instrs
@@ -450,41 +431,48 @@ and concat_instructions (b1 : Block.t) (b2 : Block.t) =
 and assert_valid_list (block : Block.t) =
   match block.instructions with
   | None -> ()
-  | Some { first; last } ->
-    if first.prev != last || last.next != first then failwith "List must be circular";
-    let rec iter current last =
-      if current.Instruction.next.prev != current then failwith "Link is not bidirectional";
+  | Some { first = first_val; last = last_val } ->
+    let first = cast_to_instruction first_val in
+    let last = cast_to_instruction last_val in
+    if first.prev != last_val || last.next != first_val then failwith "List must be circular";
+    let rec iter current_val last_val =
+      let current = cast_to_instruction current_val in
+      let current_next = cast_to_instruction current.next in
+      if current_next.prev != current_val then failwith "Link is not bidirectional";
       if current.block != block then failwith "Instruction does not have correct block";
-      if current.next != last then iter current.next last
+      if current.next != last_val then iter current.next last_val
     in
-    iter first last
+    iter first_val last_val
 
-and iter_instructions (block : Block.t) (f : Instruction.t -> unit) =
+and iter_instructions (block : Block.t) (f : Value.t -> Instruction.t -> unit) =
   match block.instructions with
   | None -> ()
   | Some { first; last } ->
-    let rec iter current last f =
+    let rec iter current_val last_val f =
       (* Save next in case instruction is modified *)
-      let next = current.Instruction.next in
-      f current;
-      if current != last then iter next last f
+      let current = cast_to_instruction current_val in
+      let next = current.next in
+      f current_val current;
+      if current_val != last_val then iter next last_val f
     in
     iter first last f
 
 and filter_instructions (block : Block.t) (f : Instruction.t -> bool) =
-  iter_instructions block (fun instr -> if not (f instr) then remove_instruction block instr)
+  iter_instructions block (fun instr_val instr ->
+      if not (f instr) then remove_instruction block instr_val)
 
-and fold_instructions : 'a. Block.t -> 'a -> (Instruction.t -> 'a -> 'a) -> 'a =
+and fold_instructions : 'a. Block.t -> 'a -> (Value.t -> Instruction.t -> 'a -> 'a) -> 'a =
  fun block acc f ->
   match block.instructions with
   | None -> acc
   | Some { first; last } ->
-    let rec fold current last f acc =
-      let acc' = f current acc in
-      if current == last then
+    let rec fold current_val last_val f acc =
+      let current = cast_to_instruction current_val in
+      let acc' = f current_val current acc in
+      if current_val == last_val then
         acc'
       else
-        fold current.Instruction.next last f acc'
+        fold current.Instruction.next last_val f acc'
     in
     fold first last f acc
 
@@ -495,31 +483,32 @@ and fold_instructions : 'a. Block.t -> 'a -> (Instruction.t -> 'a -> 'a) -> 'a =
  *)
 and block_has_phis (block : Block.t) : bool =
   match block.instructions with
-  | Some { first = { instr = Phi _; _ }; _ } -> true
+  | Some { first = { value = Instr { instr = Phi _; _ }; _ }; _ } -> true
   | _ -> false
 
 and block_get_phis (block : Block.t) : Instruction.Phi.t list =
-  fold_instructions block [] (fun instr acc ->
+  fold_instructions block [] (fun _ instr acc ->
       match instr with
       | { instr = Phi phi; _ } -> phi :: acc
       | _ -> acc)
 
 and block_iter_phis (block : Block.t) (f : Instruction.Phi.t -> unit) =
-  iter_instructions block (fun instr ->
+  iter_instructions block (fun _ instr ->
       match instr with
       | { instr = Phi phi; _ } -> f phi
       | _ -> ())
 
 and block_filter_phis (block : Block.t) (f : Value.id -> Instruction.Phi.t -> bool) =
-  iter_instructions block (fun instr ->
+  iter_instructions block (fun instr_val instr ->
       match instr with
-      | { instr = Phi phi; id; _ } -> if not (f id phi) then remove_instruction block instr
+      | { instr = Phi phi; id; _ } -> if not (f id phi) then remove_instruction block instr_val
       | _ -> ())
 
-and block_fold_phis (block : Block.t) (acc : 'a) (f : Instruction.Phi.t -> 'a -> 'a) : 'a =
-  fold_instructions block acc (fun instr acc ->
+and block_fold_phis (block : Block.t) (acc : 'a) (f : Value.t -> Instruction.Phi.t -> 'a -> 'a) : 'a
+    =
+  fold_instructions block acc (fun instr_val instr acc ->
       match instr with
-      | { instr = Phi phi; _ } -> f phi acc
+      | { instr = Phi phi; _ } -> f instr_val phi acc
       | _ -> acc)
 
 and block_clear_phis (block : Block.t) = block_filter_phis block (fun _ _ -> false)

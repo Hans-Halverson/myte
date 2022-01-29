@@ -41,7 +41,7 @@ module IRVisitor = struct
 
       method visit_instructions ~block = iter_instructions block this#visit_instruction
 
-      method visit_instruction instr =
+      method visit_instruction _instr_val instr =
         let open Instruction in
         match instr.instr with
         | Phi phi -> this#visit_phi_node instr phi

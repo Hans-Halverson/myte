@@ -19,7 +19,7 @@ class var_gatherer ~program =
         func.params;
       super#visit_function func
 
-    method! visit_instruction instr = value_ids <- ISet.add instr.id value_ids
+    method! visit_instruction _ instr = value_ids <- ISet.add instr.id value_ids
   end
 
 let rec normalize ~program =

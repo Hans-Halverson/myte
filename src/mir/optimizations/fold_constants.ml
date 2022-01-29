@@ -332,7 +332,7 @@ class calc_constants_visitor ~program =
           in
           if is_single_constant then this#add_constant instr.id constant
 
-    method! visit_instruction instr =
+    method! visit_instruction _ instr =
       let get_lit_opt (use : Use.t) =
         match use.value.value with
         | Value.Lit (Bool b) -> Some (BoolConstant b)

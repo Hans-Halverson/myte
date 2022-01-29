@@ -152,7 +152,7 @@ and gen_blocks ~gcx ~ir start_block label func =
       in
       Gcx.start_block ~gcx ~label ~func ~mir_block:(Some mir_block);
       let instructions =
-        fold_instructions mir_block [] (fun instr acc -> instr :: acc) |> List.rev
+        fold_instructions mir_block [] (fun _ instr acc -> instr :: acc) |> List.rev
       in
       gen_instructions ~gcx ~ir ~block:mir_block instructions;
       Gcx.finish_block ~gcx)

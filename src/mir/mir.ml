@@ -194,9 +194,10 @@ and Instruction : sig
     id: Value.id;
     mutable type_: Type.t;
     mutable instr: instr;
-    mutable prev: Instruction.t;
-    mutable next: Instruction.t;
     mutable block: Block.t;
+    (* Circular, doubly linked list of instructions in block *)
+    mutable prev: Value.t;
+    mutable next: Value.t;
   }
 end =
   Instruction
@@ -223,8 +224,8 @@ and Block : sig
 
   (* Circular doubly linked list of all instructions in block *)
   and instructions = {
-    mutable first: Instruction.t;
-    mutable last: Instruction.t;
+    mutable first: Value.t;
+    mutable last: Value.t;
   }
 
   val compare : t -> t -> int
@@ -243,8 +244,8 @@ end = struct
   }
 
   and instructions = {
-    mutable first: Instruction.t;
-    mutable last: Instruction.t;
+    mutable first: Value.t;
+    mutable last: Value.t;
   }
 
   let compare b1 b2 = Int.compare b1.id b2.id
@@ -344,7 +345,9 @@ and null_block : Block.t =
     prev_blocks = BlockSet.empty;
   }
 
-and null_value : Value.t = { Value.value = Lit (Bool true); uses = None }
+and null_value_value : Value.value = Lit (Bool true)
+
+and null_value : Value.t = { Value.value = null_value_value; uses = None }
 
 let rec type_of_use (use : Use.t) : Type.t = type_of_value use.value
 
@@ -473,9 +476,15 @@ let filter_stdlib (program : Program.t) =
   program.funcs <- filter_stdlib_names program.funcs;
   program
 
-let get_terminator (block : Block.t) : Instruction.t option =
+let get_terminator_value (block : Block.t) : Value.t option =
   match block.instructions with
-  | Some { last = { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ } as last; _ } ->
+  | Some { last; _ } -> Some last
+  | None -> None
+
+let get_terminator (block : Block.t) : Instruction.t option =
+  match get_terminator_value block with
+  | Some { value = Instr ({ instr = Ret _ | Continue _ | Branch _ | Unreachable; _ } as last); _ }
+    ->
     Some last
   | _ -> None
 

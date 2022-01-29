@@ -2338,7 +2338,7 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
       mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:global_ptr ~value
     else
       let stack_alloc_instr = Ecx.get_local_ptr_def_instr ~ecx loc mir_type in
-      append_instruction (Ecx.get_current_block ~ecx) (cast_to_instruction stack_alloc_instr);
+      append_instruction (Ecx.get_current_block ~ecx) stack_alloc_instr;
       mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:stack_alloc_instr ~value
   | _ ->
     let decision_tree =
@@ -2402,9 +2402,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
                 acc
               else
                 let stack_alloc_instr = Ecx.get_local_ptr_def_instr ~ecx decl_loc mir_type in
-                append_instruction
-                  (Ecx.get_current_block ~ecx)
-                  (cast_to_instruction stack_alloc_instr);
+                append_instruction (Ecx.get_current_block ~ecx) stack_alloc_instr;
                 LocSet.add decl_loc acc)
           acc
           bindings

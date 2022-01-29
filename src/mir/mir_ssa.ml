@@ -158,7 +158,7 @@ and find_join_points ~cx program =
     add_block_sources block sources;
     (* Collect all declaration sources in block *)
     let sources = ref sources in
-    iter_instructions block (fun instr ->
+    iter_instructions block (fun _ instr ->
         match instr.instr with
         | StackAlloc ty -> cx.stack_alloc_ids <- IMap.add instr.id ty cx.stack_alloc_ids
         | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, _)
@@ -251,7 +251,7 @@ and build_phi_nodes ~cx program =
           nodes
     end;
     (* Mark phi nodes to realize *)
-    iter_instructions block (fun instr ->
+    iter_instructions block (fun _ instr ->
         match instr.instr with
         | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, arg)
           when IMap.mem id cx.stack_alloc_ids ->
@@ -332,7 +332,7 @@ and rewrite_program ~cx program =
         realized_phis
         []
     in
-    List.iter (fun instr -> prepend_instruction block (cast_to_instruction instr)) phis;
+    List.iter (fun instr -> prepend_instruction block instr) phis;
     (* Remove memory instructions for memory locations promoted to registers *)
     filter_instructions block (fun instr ->
         match instr.Instruction.instr with
