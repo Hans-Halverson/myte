@@ -154,9 +154,6 @@ class calc_constants_visitor ~program =
     (* Whether a new constant was created on this pass *)
     val mutable has_new_constant = false
 
-    (* Set of all instructions that have been removed during this run *)
-    val mutable removed_instr_ids : ISet.t = ISet.empty
-
     method add_constant instr_id value =
       if IMap.mem instr_id instr_constants then
         ()
@@ -182,15 +179,6 @@ class calc_constants_visitor ~program =
         this#find_constant_globals ();
         this#visit_program ();
         this#fold_global_inits ();
-        (* Remove pruned blocks *)
-        program_iter_blocks program (fun block ->
-            if not (BlockSet.mem block visited_blocks) then (
-              remove_block block;
-              (* Collect all removed instructions so they can be excluded from constant folding *)
-              let gatherer = new Mir_normalizer.var_gatherer ~program in
-              gatherer#visit_instructions ~block;
-              removed_instr_ids <- ISet.union gatherer#value_ids removed_instr_ids
-            ));
         if has_new_constant then
           iter ()
         else
@@ -294,13 +282,9 @@ class calc_constants_visitor ~program =
             (fun _ arg_val (constants, is_constant) ->
               match arg_val.Use.value.value with
               | Value.Instr instr ->
-                if ISet.mem instr.id removed_instr_ids then
-                  (constants, is_constant)
-                else (
-                  match this#lookup_constant instr.id with
-                  | None -> (constants, false)
-                  | Some constant -> (constant :: constants, is_constant)
-                )
+                (match this#lookup_constant instr.id with
+                | None -> (constants, false)
+                | Some constant -> (constant :: constants, is_constant))
               | Lit (Bool b) -> (BoolConstant b :: constants, is_constant)
               | Lit (Byte b) -> (ByteConstant b :: constants, is_constant)
               | Lit (Int i) -> (IntConstant i :: constants, is_constant)

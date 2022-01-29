@@ -375,6 +375,6 @@ and rewrite_program ~cx program =
     program.funcs;
 
   (* Strip empty blocks *)
-  program_iter_blocks program (fun block -> if can_remove_block block then remove_block block);
+  program_iter_blocks program block_remove_if_empty;
 
   program

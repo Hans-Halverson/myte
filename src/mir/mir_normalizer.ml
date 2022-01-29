@@ -1,56 +1,8 @@
 open Basic_collections
 open Mir
 open Mir_builders
-open Mir_visitor
-
-class var_gatherer ~program =
-  object
-    inherit IRVisitor.t ~program as super
-
-    val mutable value_ids : ISet.t = ISet.empty
-
-    method value_ids = value_ids
-
-    method! visit_function func =
-      List.iter
-        (fun param ->
-          let arg = cast_to_argument param in
-          value_ids <- ISet.add arg.id value_ids)
-        func.params;
-      super#visit_function func
-
-    method! visit_instruction _ instr = value_ids <- ISet.add instr.id value_ids
-  end
 
 let rec normalize ~program =
-  (* Find and remove empty blocks *)
-  program_iter_blocks program (fun block -> if can_remove_block block then remove_block block);
-
-  (* Remove trivial phis and rewrite references to these phi vars in program, requires iteration
-     to a fixpoint *)
-  (* let rewrite_map = ref IMap.empty in
-     let rec iter () =
-       program_iter_blocks program (fun block ->
-           block_filter_phis block (fun instr_id { args } ->
-               let (_, chosen_use) = BlockMap.choose args in
-               if
-                 BlockMap.for_all
-                   (fun _ arg_use -> values_equal arg_use.Use.value chosen_use.value)
-                   args
-               then (
-                 rewrite_map := IMap.add instr_id chosen_use.value !rewrite_map;
-                 false
-               ) else
-                 true));
-       if IMap.is_empty !rewrite_map then
-         ()
-       else
-         let rewrite_mapper = new Mir_mapper.rewrite_vals_mapper ~program !rewrite_map in
-         program_iter_blocks program rewrite_mapper#map_block;
-         rewrite_map := IMap.empty;
-         iter ()
-     in
-     iter (); *)
   consolidate_adjacent_blocks ~program;
   remove_empty_init_func ~program
 

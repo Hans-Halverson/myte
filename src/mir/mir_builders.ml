@@ -341,7 +341,9 @@ and remove_use (use : Use.t) =
     let prev = use.prev in
     let next = use.next in
     add_use_link prev next;
-    if Option.get value.uses == use then value.uses <- Some use.next
+    match value.uses with
+    | Some first_use when first_use == use -> value.uses <- Some use.next
+    | _ -> ()
 
 and value_iter_uses ~(value : Value.t) (f : Use.t -> unit) =
   match value.uses with
@@ -358,8 +360,14 @@ and value_iter_uses ~(value : Value.t) (f : Use.t -> unit) =
    are updated appropriately. *)
 and value_replace_uses ~(from : Value.t) ~(to_ : Value.t) =
   value_iter_uses ~value:from (fun use ->
+      (* Change the value for this use in-place and attach to use list of new value *)
       use.value <- to_;
-      add_value_use ~value:to_ ~use);
+      add_value_use ~value:to_ ~use;
+
+      (* Can trigger further simplification if a phi was changed *)
+      match use.user.value with
+      | Instr { instr = Phi phi; _ } -> phi_simplify ~value:use.user ~phi
+      | _ -> ());
   from.uses <- None
 
 (*
@@ -655,10 +663,15 @@ and get_next_blocks (block : Block.t) : BlockSet.t =
  *     Block Graph Mutation
  * ============================
  *)
+and block_remove_if_unreachable (block : Block.t) =
+  if BlockSet.is_empty block.prev_blocks && block.func.start_block != block then remove_block block
+
+and block_remove_if_empty (block : Block.t) =
+  if can_remove_empty_block block then remove_block block
 
 (* An empty block can be removed only if it continues to a single block, and is not needed by any
    phi nodes in its succeeding block. *)
-and can_remove_block (block : Block.t) =
+and can_remove_empty_block (block : Block.t) =
   has_single_instruction block
   &&
   match get_terminator block with
@@ -668,7 +681,6 @@ and can_remove_block (block : Block.t) =
        block and the next block has any phi nodes. If we were to remove this block, the value from
        its branch would be lost in the phi node. *)
     let is_start_block = block.func.start_block == block in
-
     let continue_block_phis = block_get_phis continue_block in
     let block_needed_for_phi =
       (continue_block_phis <> [] && is_start_block)
@@ -730,7 +742,8 @@ and remove_block (block : Block.t) =
   BlockSet.iter
     (fun next_block ->
       remove_phi_backreferences_for_block ~block:next_block ~to_remove:block;
-      next_block.prev_blocks <- BlockSet.remove block next_block.prev_blocks)
+      remove_block_link block next_block;
+      block_remove_if_unreachable next_block)
     (get_next_blocks block);
 
   (* Remove all operand uses in instructions in the block *)
@@ -787,7 +800,9 @@ and prune_branch (to_keep : bool) (block : Block.t) =
     (* Remove block link and set to continue to unpruned block *)
     remove_block_link block to_prune;
     remove_phi_backreferences_for_block ~block:to_prune ~to_remove:block;
-    terminator_instr.instr <- Continue to_continue
+    terminator_instr.instr <- Continue to_continue;
+    (* Pruning a branch may cause other to become unreachable *)
+    block_remove_if_unreachable to_prune
   | _ -> failwith "Expected branch terminator"
 
 (* Split an edge between two blocks, inserting an empty block in the middle *)
@@ -814,8 +829,8 @@ and split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
 and map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
   let map_next_block maybe_from =
     if maybe_from == from then (
-      from.prev_blocks <- BlockSet.remove block from.prev_blocks;
-      to_.prev_blocks <- BlockSet.add block to_.prev_blocks;
+      remove_block_link block from;
+      add_block_link block to_;
       to_
     ) else
       maybe_from
