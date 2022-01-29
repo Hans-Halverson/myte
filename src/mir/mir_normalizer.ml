@@ -23,28 +23,6 @@ class var_gatherer ~program =
   end
 
 let rec normalize ~program =
-  (* Gather all vars defined in program *)
-  let gatherer = new var_gatherer ~program in
-  gatherer#run ();
-  let value_ids = gatherer#value_ids in
-
-  (* Update and potentially prune phi nodes with missing vars *)
-  program_iter_blocks program (fun block ->
-      block_filter_phis block (fun _ ({ args } as phi) ->
-          let args' =
-            BlockMap.filter
-              (fun _ arg_use ->
-                match arg_use.Use.value.value with
-                | Value.Lit _ -> true
-                | Argument { id; _ }
-                | Instr { id; _ } ->
-                  ISet.mem id value_ids)
-              args
-          in
-          let has_args = not (BlockMap.is_empty args') in
-          if has_args then phi.args <- args';
-          has_args));
-
   (* Find and remove empty blocks *)
   program_iter_blocks program (fun block -> if can_remove_block block then remove_block block);
 

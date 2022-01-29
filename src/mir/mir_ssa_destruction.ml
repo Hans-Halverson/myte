@@ -18,7 +18,7 @@ let split_edges ~(ir : Program.t) =
   (* Mark all edges that should be split. An edge from block A to block B should be split if
      block B contains a phi node that references A, but block A branches at the end. *)
   program_iter_blocks ir (fun block ->
-      block_iter_phis block (fun { args; _ } ->
+      block_iter_phis block (fun _ { args; _ } ->
           BlockMap.iter
             (fun prev_block _ ->
               match get_terminator prev_block with
@@ -31,24 +31,7 @@ let split_edges ~(ir : Program.t) =
   BlockMMap.iter
     (fun block prev_blocks ->
       (* Create and insert new blocks, keeping map from previous block to new inserted block *)
-      let prev_to_new_block =
-        BlockMMap.VSet.fold
-          (fun prev_block prev_to_new_block ->
-            let new_block = split_block_edge prev_block block in
-            BlockMap.add prev_block new_block prev_to_new_block)
-          prev_blocks
-          BlockMap.empty
-      in
-      (* Rewrite references to previous block to instead reference newly inserted block *)
-      block_iter_phis block (fun ({ args; _ } as phi) ->
-          phi.args <-
-            BlockMap.fold
-              (fun prev_block arg args' ->
-                match BlockMap.find_opt prev_block prev_to_new_block with
-                | None -> BlockMap.add prev_block arg args'
-                | Some new_block -> BlockMap.add new_block arg args')
-              args
-              BlockMap.empty))
+      BlockMMap.VSet.iter (fun prev_block -> ignore (split_block_edge prev_block block)) prev_blocks)
     !edges_to_split
 
 (* Convert a collection of copies (dest value, src value) that should that occur in parallel, to

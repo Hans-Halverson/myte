@@ -281,7 +281,7 @@ and global_set_init ~(global : Global.t) ~(init : Value.t option) =
   (* TODO: Check if the old and new value are the same *)
   (match global.init_val with
   | None -> ()
-  | Some old_init_use -> remove_use ~use:old_init_use);
+  | Some old_init_use -> remove_use old_init_use);
   let init_use = Option.map (fun init -> user_add_use ~user:global.value ~use:init) init in
   global.init_val <- init_use
 
@@ -333,7 +333,7 @@ and user_add_use ~(user : Value.t) ~(use : Value.t) =
     add_use_link first_use use_node;
     use_node
 
-and remove_use ~(use : Use.t) =
+and remove_use (use : Use.t) =
   let value = use.value in
   if use.next == use then
     value.uses <- None
@@ -342,6 +342,58 @@ and remove_use ~(use : Use.t) =
     let next = use.next in
     add_use_link prev next;
     if Option.get value.uses == use then value.uses <- Some use.next
+
+and value_iter_uses ~(value : Value.t) (f : Use.t -> unit) =
+  match value.uses with
+  | None -> ()
+  | Some first_use ->
+    let rec iter current_use =
+      let next_use = current_use.Use.next in
+      f current_use;
+      if next_use != first_use then iter next_use
+    in
+    iter first_use
+
+(*
+ * ============================
+ *        Instructions
+ * ============================
+ *)
+and instruction_iter_operands ~(instr : Instruction.t) (f : Use.t -> unit) =
+  match instr.instr with
+  | StackAlloc _
+  | Continue _
+  | Unreachable ->
+    ()
+  | Load operand
+  | Unary (_, operand)
+  | Cast operand
+  | Trunc operand
+  | SExt operand
+  | Mov operand
+  | Branch { test = operand; _ } ->
+    f operand
+  | Store (operand1, operand2)
+  | Binary (_, operand1, operand2)
+  | Cmp (_, operand1, operand2) ->
+    f operand1;
+    f operand2
+  | Ret operand_opt -> Option.iter f operand_opt
+  | Phi { args } -> BlockMap.iter (fun _ use -> f use) args
+  | Call { func; args; _ } ->
+    (match func with
+    | Value value -> f value
+    | MirBuiltin _ -> ());
+    List.iter f args
+  | GetPointer { pointer; pointer_offset; offsets } ->
+    f pointer;
+    Option.iter f pointer_offset;
+    List.iter
+      (fun offset ->
+        match offset with
+        | Instruction.GetPointer.PointerIndex operand -> f operand
+        | FieldIndex _ -> ())
+      offsets
 
 (*
  * ============================
@@ -395,9 +447,21 @@ and insert_instruction_before ~(before : Value.t) (instr_val : Value.t) =
     add_instr_link instr_val before;
     if list.first == before then list.first <- instr_val
 
-(* Remove an instruction from a block's instruction list *)
-and remove_instruction (block : Block.t) (instr_val : Value.t) =
+(* Remove an instruction. This removes the instruction from a block's instruction list, and
+   removes the uses that correspond to each operand of this instruction. *)
+and remove_instruction (instr_val : Value.t) =
   let instr = cast_to_instruction instr_val in
+  let block = instr.block in
+
+  instruction_iter_operands ~instr remove_use;
+  value_iter_uses ~value:instr_val (fun use ->
+      (* A phi can appear in its own arguments, in which case it is already being removed *)
+      if instr_val != use.value then
+        match use.value.value with
+        | Instr { instr = Phi phi; _ } ->
+          phi_filter_args ~value:use.value ~phi (fun _ arg_use -> arg_use.Use.value != instr_val)
+        | _ -> ());
+
   (* Instruction list is circular, so check if single element list *)
   if instr.next == instr_val then
     block.instructions <- None
@@ -415,7 +479,7 @@ and remove_instruction (block : Block.t) (instr_val : Value.t) =
 and concat_instructions (b1 : Block.t) (b2 : Block.t) =
   (* Remove terminator from first block *)
   (match get_terminator_value b1 with
-  | Some terminator -> remove_instruction b1 terminator
+  | Some terminator -> remove_instruction terminator
   | None -> ());
   (* Concatenate lists of instructions *)
   iter_instructions b2 (fun _ instr -> instr.Instruction.block <- b1);
@@ -459,7 +523,7 @@ and iter_instructions (block : Block.t) (f : Value.t -> Instruction.t -> unit) =
 
 and filter_instructions (block : Block.t) (f : Instruction.t -> bool) =
   iter_instructions block (fun instr_val instr ->
-      if not (f instr) then remove_instruction block instr_val)
+      if not (f instr) then remove_instruction instr_val)
 
 and fold_instructions : 'a. Block.t -> 'a -> (Value.t -> Instruction.t -> 'a -> 'a) -> 'a =
  fun block acc f ->
@@ -492,16 +556,16 @@ and block_get_phis (block : Block.t) : Instruction.Phi.t list =
       | { instr = Phi phi; _ } -> phi :: acc
       | _ -> acc)
 
-and block_iter_phis (block : Block.t) (f : Instruction.Phi.t -> unit) =
-  iter_instructions block (fun _ instr ->
+and block_iter_phis (block : Block.t) (f : Value.t -> Instruction.Phi.t -> unit) =
+  iter_instructions block (fun instr_val instr ->
       match instr with
-      | { instr = Phi phi; _ } -> f phi
+      | { instr = Phi phi; _ } -> f instr_val phi
       | _ -> ())
 
 and block_filter_phis (block : Block.t) (f : Value.id -> Instruction.Phi.t -> bool) =
   iter_instructions block (fun instr_val instr ->
       match instr with
-      | { instr = Phi phi; id; _ } -> if not (f id phi) then remove_instruction block instr_val
+      | { instr = Phi phi; id; _ } -> if not (f id phi) then remove_instruction instr_val
       | _ -> ())
 
 and block_fold_phis (block : Block.t) (acc : 'a) (f : Value.t -> Instruction.Phi.t -> 'a -> 'a) : 'a
@@ -512,6 +576,36 @@ and block_fold_phis (block : Block.t) (acc : 'a) (f : Value.t -> Instruction.Phi
       | _ -> acc)
 
 and block_clear_phis (block : Block.t) = block_filter_phis block (fun _ _ -> false)
+
+and phi_set_args ~(value : Value.t) ~(phi : Instruction.Phi.t) ~(args : Use.t BlockMap.t) =
+  phi.args <- args;
+  phi_simplify ~value ~phi
+
+and phi_add_arg
+    ~(phi_val : Value.t) ~(phi : Instruction.Phi.t) ~(block : Block.t) ~(value : Value.t) =
+  let use = user_add_use ~user:phi_val ~use:value in
+  phi.args <- BlockMap.add block use phi.args
+
+and phi_remove_arg ~(value : Value.t) ~(phi : Instruction.Phi.t) ~(block : Block.t) =
+  match BlockMap.find_opt block phi.args with
+  | None -> ()
+  | Some use ->
+    remove_use use;
+    phi.args <- BlockMap.remove block phi.args;
+    phi_simplify ~value ~phi
+
+and phi_filter_args ~(value : Value.t) ~(phi : Instruction.Phi.t) (f : Block.t -> Use.t -> bool) =
+  phi.args <-
+    BlockMap.filter
+      (fun block use ->
+        let keep = f block use in
+        if not keep then remove_use use;
+        keep)
+      phi.args;
+  phi_simplify ~value ~phi
+
+and phi_simplify ~(value : Value.t) ~(phi : Instruction.Phi.t) =
+  if BlockMap.is_empty phi.args then remove_instruction value
 
 (*
  * ============================
@@ -570,13 +664,15 @@ and can_remove_block (block : Block.t) =
   | _ -> false
 
 and remove_block (block : Block.t) =
-  (* This may be the first block in a function. If so, update the function to point to the
-     next block as the start. *)
+  (* Remove block from function. This may be the first block in the function. If so, update the
+     function to point to the next block as the start. *)
   let func = block.func in
+  func.blocks <- BlockSet.remove block func.blocks;
   (match get_terminator block with
   | Some { instr = Continue continue_block; _ } ->
     if func.start_block == block then func.start_block <- continue_block
   | _ -> ());
+
   (match get_terminator block with
   (* Only when removing unreachable blocks from branch pruning, which could include return block.
      Remove any instances of block from previous blocks. *)
@@ -598,7 +694,7 @@ and remove_block (block : Block.t) =
       block.prev_blocks
   | Some { instr = Continue next_block; _ } ->
     (* Update phis in next block to reference previous blocks instead of removed block *)
-    map_phi_backreferences_for_block block block.prev_blocks next_block;
+    map_phi_backreferences_for_block ~block:next_block ~from:block ~to_:block.prev_blocks;
 
     (* Rewrite next of previous blocks to point to next block instead of removed block *)
     BlockSet.iter
@@ -606,16 +702,15 @@ and remove_block (block : Block.t) =
       block.prev_blocks
   | _ -> ());
 
-  (* Remove references to this removed block from phi nodes of next blocks *)
-  let next_blocks = get_next_blocks block in
-  BlockSet.iter (fun next_block -> remove_phi_backreferences_for_block block next_block) next_blocks;
-  (* Remove prev pointers from next blocks to this removed block *)
-  let next_blocks = get_next_blocks block in
+  (* Remove links between this block and its next blocks and their phis *)
   BlockSet.iter
-    (fun next_block -> next_block.prev_blocks <- BlockSet.remove block next_block.prev_blocks)
-    next_blocks;
-  (* Remove block from remaining maps in context *)
-  func.blocks <- BlockSet.remove block func.blocks
+    (fun next_block ->
+      remove_phi_backreferences_for_block ~block:next_block ~to_remove:block;
+      next_block.prev_blocks <- BlockSet.remove block next_block.prev_blocks)
+    (get_next_blocks block);
+
+  (* Remove all operand uses in instructions in the block *)
+  iter_instructions block (fun _ instr -> instruction_iter_operands ~instr remove_use)
 
 (* Merge adjacent blocks b1 and b2. Must only be called if b1 and b2 can be merged, meaning
    b1 only continues to b2 and b2 has no other previous blocks. *)
@@ -640,7 +735,10 @@ and merge_adjacent_blocks block1 block2 =
   let next_blocks = get_next_blocks block2 in
   BlockSet.iter
     (fun next_block ->
-      map_phi_backreferences_for_block block2 (BlockSet.singleton block1) next_block)
+      map_phi_backreferences_for_block
+        ~block:next_block
+        ~from:block2
+        ~to_:(BlockSet.singleton block1))
     next_blocks;
   (* Set prev pointers for blocks that succeed b2 to point to b1 instead *)
   BlockSet.iter
@@ -652,6 +750,21 @@ and merge_adjacent_blocks block1 block2 =
   (* Remove b2 from remaining maps in context *)
   let func = block2.func in
   func.blocks <- BlockSet.remove block2 func.blocks
+
+and prune_branch (to_keep : bool) (block : Block.t) =
+  match get_terminator block with
+  | Some ({ instr = Branch { test = _; continue; jump }; _ } as terminator_instr) ->
+    let (to_continue, to_prune) =
+      if to_keep then
+        (continue, jump)
+      else
+        (jump, continue)
+    in
+    (* Remove block link and set to continue to unpruned block *)
+    remove_block_link block to_prune;
+    remove_phi_backreferences_for_block ~block:to_prune ~to_remove:block;
+    terminator_instr.instr <- Continue to_continue
+  | _ -> failwith "Expected branch terminator"
 
 (* Split an edge between two blocks, inserting an empty block in the middle *)
 and split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
@@ -667,6 +780,10 @@ and split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
   mk_continue_ ~block:new_block ~continue:next_block;
   func.blocks <- BlockSet.add new_block func.blocks;
   map_next_block prev_block ~from:next_block ~to_:new_block;
+  map_phi_backreferences_for_block
+    ~block:next_block
+    ~from:prev_block
+    ~to_:(BlockSet.singleton new_block);
   new_block
 
 (* Map block's next block from a block to another block. Do not update any phi references. *)
@@ -695,24 +812,22 @@ and map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
 
 (* Remove all references to a block from phi nodes of on of its next blocks.
    This may be needed when removing a block or block link. *)
-and remove_phi_backreferences_for_block block_to_remove next_block =
-  block_iter_phis next_block (fun phi ->
-      phi.args <- BlockMap.filter (fun prev_block _ -> prev_block != block_to_remove) phi.args)
+and remove_phi_backreferences_for_block ~(block : Block.t) ~(to_remove : Block.t) =
+  block_iter_phis block (fun phi_val phi ->
+      phi_filter_args ~value:phi_val ~phi (fun prev_block _ -> prev_block != to_remove))
 
 (* Replace all references to old_block_id in the phis of a block with new_block_ids. Note that there
    may be multiple new_block_ids, so a single phi argument may be expanded to multiple arguments.
    This may be needed when editing the program. *)
-and map_phi_backreferences_for_block old_block new_blocks block_to_edit =
-  block_iter_phis block_to_edit (fun ({ args; _ } as phi) ->
-      match BlockMap.find_opt old_block args with
+and map_phi_backreferences_for_block ~(block : Block.t) ~(from : Block.t) ~(to_ : BlockSet.t) =
+  block_iter_phis block (fun phi_val phi ->
+      match BlockMap.find_opt from phi.args with
       | None -> ()
-      | Some value ->
-        let args_without_old_block = BlockMap.remove old_block args in
-        phi.args <-
-          BlockSet.fold
-            (fun new_block args -> BlockMap.add new_block value args)
-            new_blocks
-            args_without_old_block)
+      | Some use ->
+        BlockSet.iter
+          (fun to_block -> phi_add_arg ~phi_val ~phi ~block:to_block ~value:use.value)
+          to_;
+        phi_remove_arg ~value:phi_val ~phi ~block:from)
 
 (*
  * ============================

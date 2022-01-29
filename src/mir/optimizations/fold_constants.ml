@@ -233,7 +233,7 @@ class calc_constants_visitor ~program =
           object (mapper)
             inherit Mir_mapper.InstructionsMapper.t ~program
 
-            method! map_instruction instruction =
+            method! map_instruction _ instruction =
               match instruction.instr with
               | Store
                   ( { value = { value = Lit (Global global); _ }; _ },
@@ -259,7 +259,7 @@ class calc_constants_visitor ~program =
         (* Check for branches that can be pruned *)
         match get_terminator block with
         | Some { instr = Continue continue; _ } -> this#visit_block continue
-        | Some ({ instr = Branch { test; continue; jump }; _ } as term_instr) ->
+        | Some { instr = Branch { test; continue; jump }; _ } ->
           (* Determine whether test is a constant value *)
           let test_constant_opt =
             match test.value.value with
@@ -276,20 +276,16 @@ class calc_constants_visitor ~program =
             this#visit_block continue;
             this#visit_block jump
           | Some test_constant ->
-            (* Determine which branch should be pruned *)
-            let (to_continue, to_prune) =
-              if test_constant then
-                (continue, jump)
-              else
-                (jump, continue)
-            in
-            (* Remove block link and set to continue to unpruned block *)
-            remove_block_link block to_prune;
-            remove_phi_backreferences_for_block block to_prune;
-            term_instr.instr <- Continue to_continue;
+            prune_branch test_constant block;
             has_new_constant <- true;
             (* Only contine to remaining unpruned block *)
-            this#visit_block to_continue)
+            let continue =
+              if test_constant then
+                continue
+              else
+                jump
+            in
+            this#visit_block continue)
         | _ -> ()
       )
 
@@ -392,9 +388,9 @@ class update_constants_mapper ~program instr_constants =
     inherit Mir_mapper.rewrite_vals_mapper ~program var_map as super
 
     (* Remove instructions that have been folded to constants *)
-    method! map_instruction instr =
+    method! map_instruction instr_val instr =
       if IMap.mem instr.id instr_constants then this#mark_instruction_removed ();
-      super#map_instruction instr
+      super#map_instruction instr_val instr
   end
 
 let fold_constants_and_prune ~program =

@@ -23,18 +23,19 @@ module InstructionsMapper = struct
       method map_instructions (block : Block.t) =
         iter_instructions block (fun instruction_val instruction ->
             current_instruction_edit <- Keep;
-            this#map_instruction instruction;
+            this#map_instruction instruction_val instruction;
             match current_instruction_edit with
             | Keep -> ()
-            | Remove -> remove_instruction block instruction_val)
+            | Remove -> remove_instruction instruction_val)
 
-      method map_instruction (instruction : Instruction.t) =
+      method map_instruction (instruction_val : Value.t) (instruction : Instruction.t) =
         let open Instruction in
         match instruction.instr with
         | Mov arg ->
           let arg' = this#map_use arg in
           if arg != arg' then instruction.instr <- Mov arg'
-        | Phi ({ args } as phi) -> phi.args <- BlockMap.map this#map_use args
+        | Phi ({ args } as phi) ->
+          phi_set_args ~value:instruction_val ~phi ~args:(BlockMap.map this#map_use args)
         | Call { func; args; has_return } ->
           let func' =
             match func with
@@ -107,7 +108,7 @@ module InstructionsMapper = struct
           use
         else
           let use' = user_add_use ~user:use.user ~use:value' in
-          remove_use ~use;
+          remove_use use;
           use'
 
       method map_value (value : Value.t) : Value.t = value
