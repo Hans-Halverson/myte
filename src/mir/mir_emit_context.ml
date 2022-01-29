@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_builders
 open Mir_adt_layout
 open Mir_emit_utils
 open Mir_trait_object_layout
@@ -180,21 +181,21 @@ let finish_block ~ecx f =
       if ecx.in_init then ecx.last_init_block <- Some current_block)
 
 let finish_block_ret ~ecx ~(arg : Value.t option) =
-  finish_block ~ecx (fun current_block -> Mir_builders.mk_ret_ ~block:current_block ~arg)
+  finish_block ~ecx (fun current_block -> mk_ret_ ~block:current_block ~arg)
 
 let finish_block_branch ~ecx (test : Value.t) (continue : Block.t) (jump : Block.t) =
   finish_block ~ecx (fun current_block ->
       continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
       jump.prev_blocks <- BlockSet.add current_block jump.prev_blocks;
-      Mir_builders.mk_branch_ ~block:current_block ~test ~continue ~jump)
+      mk_branch_ ~block:current_block ~test ~continue ~jump)
 
 let finish_block_continue ~ecx (continue : Block.t) =
   finish_block ~ecx (fun current_block ->
       continue.prev_blocks <- BlockSet.add current_block continue.prev_blocks;
-      Mir_builders.mk_continue_ ~block:current_block ~continue)
+      mk_continue_ ~block:current_block ~continue)
 
 let finish_block_unreachable ~ecx =
-  finish_block ~ecx (fun current_block -> Mir_builders.mk_unreachable_ ~block:current_block)
+  finish_block ~ecx (fun current_block -> mk_unreachable_ ~block:current_block)
 
 let push_loop_context ~ecx break_block continue_block =
   ecx.current_loop_contexts <- (break_block, continue_block) :: ecx.current_loop_contexts
@@ -208,12 +209,12 @@ let get_local_ptr_def_instr ~ecx use_loc type_ =
   match LocMap.find_opt decl_loc ecx.local_variable_to_alloc_instr with
   | Some instr -> instr
   | None ->
-    let instr = Mir_builders.mk_blockless_stack_alloc ~type_ in
+    let instr = mk_blockless_stack_alloc ~type_ in
     ecx.local_variable_to_alloc_instr <- LocMap.add decl_loc instr ecx.local_variable_to_alloc_instr;
     instr
 
 let add_function_argument ~ecx ~func decl_loc type_ =
-  let argument = Mir_builders.mk_argument ~func ~decl_loc ~type_ in
+  let argument = mk_argument ~func ~decl_loc ~type_ in
   ecx.param_to_argument <- LocMap.add decl_loc argument ecx.param_to_argument;
   argument
 
@@ -234,7 +235,7 @@ let emit_init_section ~ecx f =
   | Some last_init_block ->
     (match get_terminator last_init_block with
     | Some term_instr -> term_instr.instr <- Continue init_block
-    | None -> Mir_builders.mk_continue_ ~block:last_init_block ~continue:init_block);
+    | None -> mk_continue_ ~block:last_init_block ~continue:init_block);
     init_block.prev_blocks <- BlockSet.add last_init_block init_block.prev_blocks
   | None -> ());
 
@@ -264,11 +265,11 @@ let add_mutable_string_literal ~ecx loc string : Value.t =
   in
   let length = String.length string in
   let global =
-    Mir_builders.mk_global
+    mk_global
       ~loc
       ~name
       ~type_:(Array (Byte, length))
-      ~init_val:(Some (Mir_builders.mk_array_string_lit string))
+      ~init_val:(Some (mk_array_string_lit string))
       ~is_constant:true
   in
   add_global ~ecx global;
@@ -288,11 +289,11 @@ let add_immutable_string_literal ~ecx string =
     let value_name = ".IS" ^ string_of_int id in
     let value_ty = Type.Array (Byte, size) in
     let value_global =
-      Mir_builders.mk_global
+      mk_global
         ~loc:Loc.none
         ~name:value_name
         ~type_:value_ty
-        ~init_val:(Some (Mir_builders.mk_array_string_lit string))
+        ~init_val:(Some (mk_array_string_lit string))
         ~is_constant:true
     in
     add_global ~ecx value_global;
@@ -300,11 +301,11 @@ let add_immutable_string_literal ~ecx string =
     (* Create global for string size *)
     let size_name = value_name ^ "Size" in
     let size_global =
-      Mir_builders.mk_global
+      mk_global
         ~loc:Loc.none
         ~name:size_name
         ~type_:Int
-        ~init_val:(Some (Mir_builders.mk_int_lit size))
+        ~init_val:(Some (mk_int_lit size))
         ~is_constant:true
     in
     add_global ~ecx size_global;
@@ -321,7 +322,7 @@ let add_immutable_string_literal ~ecx string =
  *)
 
 let mk_empty_function ~(ecx : t) ~(name : string) : Function.t =
-  let func = Mir_builders.mk_function ~name in
+  let func = mk_function ~name in
   ecx.program.funcs <- SMap.add name func ecx.program.funcs;
   func
 
@@ -649,7 +650,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
         trait_sig.methods
         []
     in
-    let vtable_val = Mir_builders.mk_array_vtable_lit (List.rev vtable_functions) in
+    let vtable_val = mk_array_vtable_lit (List.rev vtable_functions) in
     let vtable_mir_type = type_of_value vtable_val in
 
     (* Create vtable and trait object names, composed from fully parameterized type and trait names *)
@@ -674,7 +675,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
     (* Create global for vtable and save pointer to it *)
     let vtable_label = Printf.sprintf "_vtable$%s$%s" full_adt_name full_trait_name in
     let vtable_global =
-      Mir_builders.mk_global
+      mk_global
         ~loc:adt_sig.loc
         ~name:vtable_label
         ~type_:vtable_mir_type
@@ -756,7 +757,7 @@ and get_zero_size_global_pointer ~ecx =
     | Some global -> global
     | None ->
       let global =
-        Mir_builders.mk_global
+        mk_global
           ~loc:Loc.none
           ~name:zero_size_name
           ~type_:zero_size_type
@@ -800,7 +801,7 @@ and builtin_functions =
 and get_nongeneric_function_value ~(ecx : t) (name : label) : Value.t =
   let builtin_functions = Lazy.force_val builtin_functions in
   if SSet.mem name builtin_functions then
-    Mir_builders.mk_myte_builtin_lit name
+    mk_myte_builtin_lit name
   else
     (* Mark function as pending if it has not yet been generated *)
     let func =
@@ -1017,12 +1018,7 @@ let get_global_pointer ~ecx binding : Value.t option =
 
       (* Add global to MIR globals map *)
       let global =
-        Mir_builders.mk_global
-          ~loc
-          ~name
-          ~type_
-          ~init_val:None
-          ~is_constant:(decl_node.kind = Immutable)
+        mk_global ~loc ~name ~type_ ~init_val:None ~is_constant:(decl_node.kind = Immutable)
       in
       add_global ~ecx global;
 

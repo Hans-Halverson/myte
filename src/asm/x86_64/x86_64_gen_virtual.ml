@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_builders
 open Mir_type
 open X86_64_gen_context
 open X86_64_instructions

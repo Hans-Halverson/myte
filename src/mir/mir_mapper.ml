@@ -1,7 +1,7 @@
 open Basic_collections
 open Mir
+open Mir_builders
 open Immutable_utils
-module Ocx = Mir_optimize_context
 
 type current_instruction_edit =
   | Keep
@@ -106,8 +106,8 @@ module InstructionsMapper = struct
         if use.value == value' then
           use
         else
-          let use' = Mir_builders.user_add_use ~user:use.user ~use:value' in
-          Mir_builders.remove_use ~use;
+          let use' = user_add_use ~user:use.user ~use:value' in
+          remove_use ~use;
           use'
 
       method map_value (value : Value.t) : Value.t = value

@@ -1,7 +1,7 @@
 open Basic_collections
 open Mir
+open Mir_builders
 open Mir_visitor
-module Ocx = Mir_optimize_context
 
 class var_gatherer ~program =
   object
@@ -46,8 +46,7 @@ let rec normalize ~program =
           has_args));
 
   (* Find and remove empty blocks *)
-  program_iter_blocks program (fun block ->
-      if Ocx.can_remove_block block then Ocx.remove_block block);
+  program_iter_blocks program (fun block -> if can_remove_block block then remove_block block);
 
   (* Remove trivial phis and rewrite references to these phi vars in program, requires iteration
      to a fixpoint *)
@@ -98,7 +97,7 @@ and consolidate_adjacent_blocks ~program =
             && not next_block_is_start
           then (
             removed_blocks := BlockSet.add next_block !removed_blocks;
-            Ocx.merge_adjacent_blocks block next_block
+            merge_adjacent_blocks block next_block
           )
         | _ -> ());
     if BlockSet.is_empty !removed_blocks then

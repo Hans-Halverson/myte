@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_builders
 open Mir_type
 
 module Context = struct

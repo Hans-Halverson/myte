@@ -1,8 +1,8 @@
 open Basic_collections
 open Mir
+open Mir_builders
 open Mir_type
 open Mir_visitor
-module Ocx = Mir_optimize_context
 
 type folded_constant =
   | ByteConstant of int
@@ -185,7 +185,7 @@ class calc_constants_visitor ~program =
         (* Remove pruned blocks *)
         program_iter_blocks program (fun block ->
             if not (BlockSet.mem block visited_blocks) then (
-              Ocx.remove_block block;
+              remove_block block;
               (* Collect all removed instructions so they can be excluded from constant folding *)
               let gatherer = new Mir_normalizer.var_gatherer ~program in
               gatherer#visit_instructions ~block;
@@ -244,9 +244,7 @@ class calc_constants_visitor ~program =
                   if global.is_constant then
                     this#add_global_constant global.name constant
                   else
-                    Mir_builders.global_set_init
-                      ~global
-                      ~init:(Some (mir_value_of_constant constant))
+                    global_set_init ~global ~init:(Some (mir_value_of_constant constant))
                 | None -> ())
               | _ -> ()
           end
@@ -286,8 +284,8 @@ class calc_constants_visitor ~program =
                 (jump, continue)
             in
             (* Remove block link and set to continue to unpruned block *)
-            Ocx.remove_block_link block to_prune;
-            Ocx.remove_phi_backreferences_for_block block to_prune;
+            remove_block_link block to_prune;
+            remove_phi_backreferences_for_block block to_prune;
             term_instr.instr <- Continue to_continue;
             has_new_constant <- true;
             (* Only contine to remaining unpruned block *)

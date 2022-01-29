@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_builders
 
 module IRVisitor = struct
   class t ~(program : Program.t) =

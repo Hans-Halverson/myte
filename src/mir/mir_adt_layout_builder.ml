@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir_adt_layout
+open Mir_builders
 open Mir_emit_utils
 open Mir_type
 open Mir_type_args_hashtbl
@@ -74,8 +75,8 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
               else
                 i
             in
-            Mir_builders.mk_byte_lit i
-          | Int -> Mir_builders.mk_int_lit i
+            mk_byte_lit i
+          | Int -> mk_int_lit i
           | _ -> failwith "Invalid tag MIR type"
         in
         (i + 1, SMap.add name tag tags, SMap.add name loc variant_locs))

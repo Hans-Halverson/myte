@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_builders
 
 (* Return the set of all blocks that this block branches to in a logical order *)
 let get_ordered_next_blocks (block : Block.t) : Block.t list =

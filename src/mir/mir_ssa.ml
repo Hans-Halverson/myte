@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_builders
 open Mir_mapper
 open Mir_type
 
@@ -283,7 +284,7 @@ and build_phi_nodes ~cx program =
     if Option.is_none node.realized then (
       (* Realize by creating phi instruction *)
       let type_ = IMap.find ptr_id cx.stack_alloc_ids in
-      let phi_instr = Mir_builders.mk_blockless_phi ~type_ ~args:BlockMap.empty in
+      let phi_instr = mk_blockless_phi ~type_ ~args:BlockMap.empty in
       node.realized <- Some phi_instr;
       cx.realized_phis <- BlockIMMap.add node.block node_id cx.realized_phis;
       IMap.iter (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id ptr_id) node.prev_nodes
@@ -298,7 +299,7 @@ and rewrite_program ~cx program =
     let phi_args = ref BlockMap.empty in
     let add_phi_arg prev_block arg_val =
       phi_args :=
-        let arg_use = Mir_builders.user_add_use ~user:phi_value ~use:arg_val in
+        let arg_use = user_add_use ~user:phi_value ~use:arg_val in
         BlockMap.add prev_block arg_use !phi_args
     in
     let rec visit_phi_node node_id prev_block =
@@ -367,7 +368,6 @@ and rewrite_program ~cx program =
     program.funcs;
 
   (* Strip empty blocks *)
-  program_iter_blocks program (fun block ->
-      if Mir_optimize_context.can_remove_block block then Mir_optimize_context.remove_block block);
+  program_iter_blocks program (fun block -> if can_remove_block block then remove_block block);
 
   program

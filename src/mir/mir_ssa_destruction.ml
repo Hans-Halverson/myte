@@ -1,4 +1,5 @@
 open Mir
+open Mir_builders
 
 (* SSA destruction - remove all phi nodes in program and replace with explicit move instructions.
    Moves are inserted in the previous block, unless the previous block branches, in which case the
@@ -33,7 +34,7 @@ let split_edges ~(ir : Program.t) =
       let prev_to_new_block =
         BlockMMap.VSet.fold
           (fun prev_block prev_to_new_block ->
-            let new_block = Mir_optimize_context.split_block_edge prev_block block in
+            let new_block = split_block_edge prev_block block in
             BlockMap.add prev_block new_block prev_to_new_block)
           prev_blocks
           BlockMap.empty
@@ -106,7 +107,7 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
        instead point from the new var to the result. *)
     | None ->
       let (dest_val, arg_val) = VVMMap.choose !copied_from in
-      let new_arg_val = Mir_builders.mk_blockless_mov ~arg:arg_val in
+      let new_arg_val = mk_blockless_mov ~arg:arg_val in
       add_to_sequence new_arg_val arg_val;
       remove_copy_edge dest_val arg_val;
       add_copy_edge dest_val new_arg_val
@@ -143,7 +144,7 @@ let lower_phis_to_copies ~(ir : Program.t) =
                  during sequentialization. This breaks references but preserves value ids, so
                  after this point arg/use references cannot be followed. *)
               let dest_instr = cast_to_instruction dest_val in
-              let arg_use = Mir_builders.user_add_use ~user:dest_val ~use:arg_val in
+              let arg_use = user_add_use ~user:dest_val ~use:arg_val in
               let rec instr = { dest_instr with instr = Mov arg_use; next = instr; prev = instr } in
               insert_instruction_before ~before:terminator instr)
             sequential_copies)
