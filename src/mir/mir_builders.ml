@@ -366,11 +366,20 @@ and value_replace_uses ~(from : Value.t) ~(to_ : Value.t) =
       use.value <- to_;
       add_value_use ~value:to_ ~use;
 
+      (* A configurable hook that runs on the user for each updated use *)
+      (match !value_replace_use_hook with
+      | Some hook_func -> hook_func use.user
+      | None -> ());
+
       (* Can trigger further simplification if a phi was changed *)
       match use.user.value with
       | Instr { instr = Phi phi; _ } -> phi_simplify ~value:use.user ~phi
       | _ -> ());
   from.uses <- None
+
+and value_replace_use_hook : (Value.t -> unit) option ref = ref None
+
+and set_value_replace_use_hook f = value_replace_use_hook := f
 
 (* Utility function to check if a use list has a valid structure *)
 and assert_valid_use_list ~(value : Value.t) =

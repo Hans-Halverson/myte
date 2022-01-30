@@ -9,6 +9,10 @@ var int2: Int = 8 * -(34) - 2 * 7
 var bool2: Bool = (true || false) && (!false || false)
 var mixed: Bool = (2 * 6) == (3 * 4)
 
+val boolConstant: Bool = true && false
+val intConstant: Int = 1 + 2 * 3 + 4
+var int4: Int = if (boolConstant) { 1 } else { intConstant }
+
 fun useBool(b: Bool) {}
 fun useInt(i: Int) {}
 fun rand(): Bool = true
@@ -47,4 +51,5 @@ fun useAllGlobals() {
   useInt(int2);
   useBool(bool2);
   useBool(mixed);
+  useInt(int4);
 }

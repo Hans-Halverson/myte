@@ -8,6 +8,8 @@ global bool @t.bool2 = true
 
 global bool @t.mixed = true
 
+global int @t.int4 = 11
+
 func void @t.useBool(bool %0) {
   Ret
 }
@@ -40,5 +42,7 @@ func void @t.useAllGlobals() {
   Call void @t.useBool(%3)
   %4 := Load bool @t.mixed
   Call void @t.useBool(%4)
+  %5 := Load int @t.int4
+  Call void @t.useInt(%5)
   Ret
 }
