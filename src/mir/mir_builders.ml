@@ -323,7 +323,9 @@ and add_use_link (u1 : Use.t) (u2 : Use.t) =
 
 and add_value_use ~(value : Value.t) ~(use : Use.t) =
   match value.uses with
-  | None -> value.uses <- Some use
+  | None ->
+    value.uses <- Some use;
+    add_use_link use use
   | Some first_use ->
     add_use_link use first_use.next;
     add_use_link first_use use
@@ -369,6 +371,19 @@ and value_replace_uses ~(from : Value.t) ~(to_ : Value.t) =
       | Instr { instr = Phi phi; _ } -> phi_simplify ~value:use.user ~phi
       | _ -> ());
   from.uses <- None
+
+(* Utility function to check if a use list has a valid structure *)
+and assert_valid_use_list ~(value : Value.t) =
+  match value.uses with
+  | None -> ()
+  | Some first_use ->
+    let rec iter current_use last_use =
+      let next_use = current_use.Use.next in
+      if next_use.prev != current_use then failwith "Link is not bidirectional";
+      if current_use.value != value then failwith "Use does not have correct value";
+      if next_use != last_use then iter next_use last_use
+    in
+    iter first_use first_use
 
 (*
  * ============================
@@ -514,7 +529,7 @@ and replace_instruction ~(from : Value.t) ~(to_ : Value.t) =
   remove_instruction from
 
 (* Utility function to check if an instruction list has a valid structure *)
-and assert_valid_list (block : Block.t) =
+and assert_valid_instruction_list (block : Block.t) =
   match block.instructions with
   | None -> ()
   | Some { first = first_val; last = last_val } ->
