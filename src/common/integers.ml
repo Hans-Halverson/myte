@@ -68,6 +68,39 @@ let trunc_long_to_int x =
   Bytes.set_int64_le bytes 0 x;
   Bytes.get_int32_le bytes 0
 
+let zext_bool_to_byte x =
+  if x then
+    1
+  else
+    0
+
+let zext_bool_to_int x =
+  if x then
+    1l
+  else
+    0l
+
+let zext_bool_to_long x =
+  if x then
+    1L
+  else
+    0L
+
+let zext_byte_to_int x =
+  let bytes = Bytes.make 4 '\x00' in
+  Bytes.set_int8 bytes 0 x;
+  Bytes.get_int32_le bytes 0
+
+let zext_byte_to_long x =
+  let bytes = Bytes.make 8 '\x00' in
+  Bytes.set_int8 bytes 0 x;
+  Bytes.get_int64_le bytes 0
+
+let zext_int_to_long x =
+  let bytes = Bytes.create 8 in
+  Bytes.set_int32_le bytes 0 x;
+  Bytes.get_int64_le bytes 0
+
 let is_power_of_two x = Int64.equal 0L (Int64.logand x (Int64.sub x 1L))
 
 (* Find rightmost bit that is set, index of bit minus 1 is power of two *)

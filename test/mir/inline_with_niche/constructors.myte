@@ -1,0 +1,54 @@
+module test
+
+type PointerType (Long, Long, Long)
+
+fun testConstructBool() {
+  val x: Option<Bool> = None;
+  val y: Option<Bool> = Some (true);
+  use(x);
+  use(y);
+}
+
+fun testConstructByte() {
+  val x: Option<Byte> = None;
+  val y: Option<Byte> = Some (7);
+  use(x);
+  use(y);
+}
+
+fun testConstructInt() {
+  val x: Option<Int> = None;
+  val y: Option<Int> = Some (7);
+  use(x);
+  use(y);
+}
+
+fun testConstructPointer(p: PointerType) {
+  val x: Option<PointerType> = None;
+  val y: Option<PointerType> = Some (p);
+  use(x);
+  use(y);
+}
+
+fun testConstructNestedBool() {
+  val x: Option<Option<Option<Bool>>> = Some (Some (Some (true)));
+  use(x);
+}
+
+fun testConstructNestedPointer(p: PointerType) {
+  val x: Option<Option<PointerType>> = Some (Some (p));
+  use(x);
+  val y: Option<Option<Option<PointerType>>> = Some (Some (Some (p)));
+  use(y);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testConstructBool);
+  use(testConstructByte);
+  use(testConstructInt);
+  use(testConstructPointer);
+  use(testConstructNestedBool);
+  use(testConstructNestedPointer);
+}

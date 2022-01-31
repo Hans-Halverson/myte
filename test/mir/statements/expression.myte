@@ -52,7 +52,7 @@ fun testWhileUnitValue(test: Bool) {
   use(x);
 }
 
-fun testForUnitValue(test: Bool, vec: Vec<Int>) {
+fun testForUnitValue(test: Bool, vec: Vec<Long>) {
   val x: Unit = if (test) {
     for (x in vec) {
       use(x);

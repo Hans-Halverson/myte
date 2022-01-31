@@ -242,6 +242,20 @@ and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_use = user_add_use ~user:value ~use:arg in
   mk_instr ~value ~block ~type_ ~instr:(SExt arg_use)
 
+and mk_zext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  let arg_type = type_of_value arg in
+  if
+    not
+      ( is_numeric_type arg_type
+      && is_numeric_type type_
+      && size_of_type arg_type <= size_of_type type_ )
+  then
+    failwith
+      "ZExt arguments must be numeric with type argument having larger size than value argument";
+  let value = mk_uninit_value () in
+  let arg_use = user_add_use ~user:value ~use:arg in
+  mk_instr ~value ~block ~type_ ~instr:(ZExt arg_use)
+
 and mk_unreachable_ ~(block : Block.t) : unit =
   let value = mk_uninit_value () in
   ignore (mk_instr ~value ~block ~type_:no_return_type ~instr:Unreachable)
@@ -410,6 +424,7 @@ and instruction_iter_operands ~(instr : Instruction.t) (f : Use.t -> unit) =
   | Cast operand
   | Trunc operand
   | SExt operand
+  | ZExt operand
   | Mov operand
   | Branch { test = operand; _ } ->
     f operand

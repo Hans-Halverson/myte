@@ -567,6 +567,10 @@ module RegisterAllocator = struct
   (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
      Simply the graph afterwards to remove unnecessary instructions. *)
   let allocate_registers ~(ra : t) =
+    (* Perform initial rewrite to force registers in some locations *)
+    let spill_writer = new X86_64_spill_writer.spill_writer ~gcx:ra.gcx in
+    List.iter (fun block -> spill_writer#write_block_spills block) ra.func.blocks;
+
     (* Collect all registers in program, then remove precolored to create initial vreg list *)
     let init_visitor = new allocate_init_visitor in
     List.iter

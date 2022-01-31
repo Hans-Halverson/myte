@@ -69,6 +69,29 @@ module VariantsLayout = struct
   }
 end
 
+(* An inlined value that has one or more variants represented by a niche value *)
+module InlineValueWithNiche = struct
+  type t = {
+    (* Tag to the niche value that represents that variant, if that tag has a niche *)
+    niches: Mir.Value.t SMap.t;
+    (* Type of the layed out value (possibly expanded from original inlined type), as well as the
+       type of each niche value *)
+    type_: Mir_type.Type.t;
+    (* The original type of the inlined value before it was possibly modified (e.g. expanded)
+       to account for niche values. *)
+    inlined_type: Mir_type.Type.t;
+    (* Range of inline, non-niche values *)
+    inline_range: inline_range;
+  }
+
+  (* The range of values that contains all inline values and no niche values *)
+  and inline_range =
+    (* Inline values are not equal to this number *)
+    | NotEqual of Mir.Value.t
+    (* Inline values are below this number (exclusive) *)
+    | Below of Mir.Value.t
+end
+
 module MirAdtLayout = struct
   type t = {
     adt_sig: AdtSig.t;
@@ -95,6 +118,7 @@ module MirAdtLayout = struct
     | Variants of VariantsLayout.t
     | PureEnum of PureEnumLayout.t
     | InlineValue of Mir_type.Type.t
+    | InlineValueWithNiche of InlineValueWithNiche.t
     | ZeroSize
 end
 

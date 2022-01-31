@@ -178,6 +178,7 @@ and Instruction : sig
     | Cast of Use.t (* Instruction type is type value is cast to *)
     | Trunc of (* Numeric *) Use.t (* Instruction type is type value is truncated to *)
     | SExt of (* Numeric *) Use.t (* Instruction type is type value is sign extended to *)
+    | ZExt of (* Numeric *) Use.t (* Instruction type is type value is zero extended to *)
     (* Block terminators *)
     | Ret of Use.t option
     | Continue of Block.t

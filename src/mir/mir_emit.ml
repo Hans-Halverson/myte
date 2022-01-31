@@ -669,6 +669,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | ZeroSize ->
       List.iter (fun field -> ignore (emit_record_field_value ~ecx field)) fields;
       None
+    (* If layout is an inlined value with niche then value is either the niche or it is the only
+       fields that has a non-zero size (of which there must be exactly one). *)
+    | InlineValueWithNiche inline_niche_layout ->
+      let field_values = List.map (emit_record_field_value ~ecx) fields in
+      emit_construct_inline_niche_value ~ecx inline_niche_layout name field_values
     | InlineValue _
     | PureEnum _ ->
       failwith "Invalid layout for record")
@@ -1214,6 +1219,7 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
       | InlineValue _ -> (root_val, [])
       | ZeroSize -> (None, [])
       | Variants _
+      | InlineValueWithNiche _
       | PureEnum _ ->
         failwith "Invalid layout for indexed access")
     | _ -> failwith "Indexed access must be on tuple or ADT type"
@@ -1253,6 +1259,7 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
       | None -> (None, []))
     | ZeroSize -> (None, [])
     | Variants _
+    | InlineValueWithNiche _
     | PureEnum _
     | InlineValue _ ->
       failwith "Invalid layout for record"
@@ -1707,6 +1714,8 @@ and emit_construct_enum_variant ~ecx ~name ~ty =
     let tag = SMap.find name tags in
     emit_store_tag ~ecx ~tag ~agg_ptr;
     agg_ptr
+  (* Enum constructor is a known niche value *)
+  | InlineValueWithNiche { niches; _ } -> SMap.find name niches
   | Aggregate _
   | InlineValue _
   | ZeroSize ->
@@ -1755,6 +1764,11 @@ and emit_construct_tuple_variant
         | Some value -> Some value)
       None
       mk_elements
+  (* If layout is an inlined value with niche then value is either the niche or it is the only
+     element that has a non-zero size (of which there must be exactly one). *)
+  | InlineValueWithNiche inline_niche_layout ->
+    let element_values = List.map (fun mk_element -> mk_element ()) mk_elements in
+    emit_construct_inline_niche_value ~ecx inline_niche_layout name element_values
   (* If layout is zero size all elements must still be emitted, as they may have side effect *)
   | ZeroSize ->
     List.iter (fun mk_element -> ignore (mk_element ())) mk_elements;
@@ -1834,6 +1848,36 @@ and emit_store_record_fields ~ecx ~ptr ~tag agg fields =
         in
         mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr_val ~value:element_val)
     fields
+
+and emit_construct_inline_niche_value
+    ~ecx
+    (layout : Mir_adt_layout.InlineValueWithNiche.t)
+    (variant_name : string)
+    (element_values : Value.t option list) =
+  let { Mir_adt_layout.InlineValueWithNiche.niches; type_; inlined_type; _ } = layout in
+  let value = List.find (fun element -> element <> None) element_values in
+  match SMap.find_opt variant_name niches with
+  | Some niche -> Some niche
+  | None ->
+    (* Directly inline value if its type is not changed *)
+    if types_equal type_ inlined_type then
+      value
+    else
+      (* Otherwise extend value to result type *)
+      Some (mk_zext ~block:(Ecx.get_current_block ~ecx) ~arg:(Option.get value) ~type_)
+
+and emit_inline_niche_value_destructuring
+    ~ecx (layout : Mir_adt_layout.InlineValueWithNiche.t) (variant_name : string) (value : Value.t)
+    : Value.t option =
+  let { Mir_adt_layout.InlineValueWithNiche.niches; type_; inlined_type; _ } = layout in
+  if SMap.mem variant_name niches then
+    None
+  (* Directly use inline value if its type is not changed *)
+  else if types_equal type_ inlined_type then
+    Some value
+  else
+    (* Otherwise truncate value to type of inlined value *)
+    Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:value ~type_:inlined_type)
 
 and emit_bool_expression ~ecx expr =
   let value = emit_expression ~ecx expr |> Option.get in
@@ -2026,6 +2070,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     in
 
     (* Body block then destructures payload to for loop bindings *)
+    Ecx.set_current_block ~ecx body_block;
     item_val |> Option.iter (emit_alloc_destructuring ~ecx pattern);
 
     (* Body block contains body of for loop and continues to test block *)
@@ -2223,39 +2268,50 @@ and emit_option_destructuring
     ~(none_branch_block : Block.t) =
   (* Find aggregate data for option *)
   let layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.option_adt_sig [item_ty] in
-  let variants_layout =
-    match layout with
-    | Variants variants_layout -> variants_layout
-    | _ -> failwith "Expected variants layout"
-  in
-  let some_aggregate = SMap.find "Some" variants_layout.variants in
-  let some_tag = SMap.find "Some" variants_layout.tags in
+  match layout with
+  | Variants variants_layout ->
+    let some_aggregate = SMap.find "Some" variants_layout.variants in
+    let some_tag = SMap.find "Some" variants_layout.tags in
 
-  (* Test block proceeds to load tag of option *)
-  let tag_val = emit_load_tag ~ecx ~agg_ptr:option_val ~type_:variants_layout.tag_mir_type in
+    (* Test block proceeds to load tag of option *)
+    let tag_val = emit_load_tag ~ecx ~agg_ptr:option_val ~type_:variants_layout.tag_mir_type in
 
-  (* Test block finishes by jumping to Some branch if option is a `Some` variant, otherwise test
-     block finishes by jumping to None branch if option is a `None` variant. *)
-  let test_val = mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:tag_val ~right:some_tag in
-  Ecx.finish_block_branch ~ecx test_val some_branch_block none_branch_block;
-
-  (* Some branch starts by loading payload from `Some` variant *)
-  Ecx.set_current_block ~ecx some_branch_block;
-  match Ecx.to_mir_type ~ecx item_ty with
-  (* Do not load payload if `Some` item is a zero size type *)
-  | None -> None
-  | Some _ ->
-    let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
-    let some_val = emit_cast_ptr ~ecx ~ptr:option_val ~element_type:(Aggregate some_aggregate) in
-    let some_value_ptr =
-      mk_get_pointer_instr
-        ~block:(Ecx.get_current_block ~ecx)
-        ~type_:item_mir_type
-        ~ptr:some_val
-        ~offsets:[Instruction.GetPointer.FieldIndex item_index]
-        ()
+    (* Test block finishes by jumping to Some branch if option is a `Some` variant, otherwise test
+       block finishes by jumping to None branch if option is a `None` variant. *)
+    let test_val =
+      mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:tag_val ~right:some_tag
     in
-    Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:some_value_ptr)
+    Ecx.finish_block_branch ~ecx test_val some_branch_block none_branch_block;
+
+    (* Some branch starts by loading payload from `Some` variant *)
+    Ecx.set_current_block ~ecx some_branch_block;
+    (match Ecx.to_mir_type ~ecx item_ty with
+    (* Do not load payload if `Some` item is a zero size type *)
+    | None -> None
+    | Some _ ->
+      let (item_mir_type, item_index) = lookup_element some_aggregate (TupleKeyCache.get_key 0) in
+      let some_val = emit_cast_ptr ~ecx ~ptr:option_val ~element_type:(Aggregate some_aggregate) in
+      let some_value_ptr =
+        mk_get_pointer_instr
+          ~block:(Ecx.get_current_block ~ecx)
+          ~type_:item_mir_type
+          ~ptr:some_val
+          ~offsets:[Instruction.GetPointer.FieldIndex item_index]
+          ()
+      in
+      Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:some_value_ptr))
+  | InlineValueWithNiche inline_niche_layout ->
+    (* Test block tests if option is the niche *)
+    let none_niche = SMap.find "None" inline_niche_layout.niches in
+    let test_val =
+      mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Neq ~left:option_val ~right:none_niche
+    in
+    Ecx.finish_block_branch ~ecx test_val some_branch_block none_branch_block;
+
+    (* Some branch destructures the inlined option value *)
+    Ecx.set_current_block ~ecx some_branch_block;
+    emit_inline_niche_value_destructuring ~ecx inline_niche_layout "Some" option_val
+  | _ -> failwith "Expected variants layout"
 
 and emit_result_destructuring
     ~ecx
@@ -2266,67 +2322,96 @@ and emit_result_destructuring
     ~(error_branch_block : Block.t) =
   (* Find aggregate data for result *)
   let layout = Ecx.get_mir_adt_layout ~ecx !Std_lib.result_adt_sig [ok_ty; error_ty] in
-  let variants_layout =
-    match layout with
-    | Variants variants_layout -> variants_layout
-    | _ -> failwith "Expected variants layout"
-  in
-  let ok_aggregate = SMap.find "Ok" variants_layout.variants in
-  let error_aggregate = SMap.find "Error" variants_layout.variants in
-  let ok_tag = SMap.find "Ok" variants_layout.tags in
+  match layout with
+  | Variants variants_layout ->
+    let ok_aggregate = SMap.find "Ok" variants_layout.variants in
+    let error_aggregate = SMap.find "Error" variants_layout.variants in
+    let ok_tag = SMap.find "Ok" variants_layout.tags in
 
-  (* Test block proceeds to load tag of result *)
-  let tag_val = emit_load_tag ~ecx ~agg_ptr:result_val ~type_:variants_layout.tag_mir_type in
+    (* Test block proceeds to load tag of result *)
+    let tag_val = emit_load_tag ~ecx ~agg_ptr:result_val ~type_:variants_layout.tag_mir_type in
 
-  (* Test block finishes by jumping to Ok branch if option is an `Ok` variant, otherwise test
-     block finishes by jumping to Error branch if option is an `Error` variant. *)
-  let test_val = mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:tag_val ~right:ok_tag in
-  Ecx.finish_block_branch ~ecx test_val ok_branch_block error_branch_block;
+    (* Test block finishes by jumping to Ok branch if option is an `Ok` variant, otherwise test
+       block finishes by jumping to Error branch if option is an `Error` variant. *)
+    let test_val = mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:tag_val ~right:ok_tag in
+    Ecx.finish_block_branch ~ecx test_val ok_branch_block error_branch_block;
 
-  (* Ok branch starts by loading payload from `Ok` variant *)
-  Ecx.set_current_block ~ecx ok_branch_block;
-  let ok_item_val =
-    match Ecx.to_mir_type ~ecx ok_ty with
-    (* Do not load payload if `Ok` item is a zero size type *)
-    | None -> None
-    | Some _ ->
-      let ok_val = emit_cast_ptr ~ecx ~ptr:result_val ~element_type:(Aggregate ok_aggregate) in
-      let (ok_value_type, ok_item_index) = lookup_element ok_aggregate (TupleKeyCache.get_key 0) in
-      let ok_value_ptr =
-        mk_get_pointer_instr
-          ~block:(Ecx.get_current_block ~ecx)
-          ~type_:ok_value_type
-          ~ptr:ok_val
-          ~offsets:[Instruction.GetPointer.FieldIndex ok_item_index]
-          ()
-      in
-      Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:ok_value_ptr)
-  in
+    (* Ok branch starts by loading payload from `Ok` variant *)
+    Ecx.set_current_block ~ecx ok_branch_block;
+    let ok_item_val =
+      match Ecx.to_mir_type ~ecx ok_ty with
+      (* Do not load payload if `Ok` item is a zero size type *)
+      | None -> None
+      | Some _ ->
+        let ok_val = emit_cast_ptr ~ecx ~ptr:result_val ~element_type:(Aggregate ok_aggregate) in
+        let (ok_value_type, ok_item_index) =
+          lookup_element ok_aggregate (TupleKeyCache.get_key 0)
+        in
+        let ok_value_ptr =
+          mk_get_pointer_instr
+            ~block:(Ecx.get_current_block ~ecx)
+            ~type_:ok_value_type
+            ~ptr:ok_val
+            ~offsets:[Instruction.GetPointer.FieldIndex ok_item_index]
+            ()
+        in
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:ok_value_ptr)
+    in
 
-  (* Error branch starts by loading payload from `Error` variant *)
-  Ecx.set_current_block ~ecx error_branch_block;
-  let error_item_val =
-    match Ecx.to_mir_type ~ecx error_ty with
-    | None -> None
-    | Some _ ->
-      let error_val =
-        emit_cast_ptr ~ecx ~ptr:result_val ~element_type:(Aggregate error_aggregate)
-      in
-      let (error_value_type, error_item_index) =
-        lookup_element error_aggregate (TupleKeyCache.get_key 0)
-      in
-      let error_value_ptr =
-        mk_get_pointer_instr
-          ~block:(Ecx.get_current_block ~ecx)
-          ~type_:error_value_type
-          ~ptr:error_val
-          ~offsets:[Instruction.GetPointer.FieldIndex error_item_index]
-          ()
-      in
-      Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:error_value_ptr)
-  in
+    (* Error branch starts by loading payload from `Error` variant *)
+    Ecx.set_current_block ~ecx error_branch_block;
+    let error_item_val =
+      match Ecx.to_mir_type ~ecx error_ty with
+      | None -> None
+      | Some _ ->
+        let error_val =
+          emit_cast_ptr ~ecx ~ptr:result_val ~element_type:(Aggregate error_aggregate)
+        in
+        let (error_value_type, error_item_index) =
+          lookup_element error_aggregate (TupleKeyCache.get_key 0)
+        in
+        let error_value_ptr =
+          mk_get_pointer_instr
+            ~block:(Ecx.get_current_block ~ecx)
+            ~type_:error_value_type
+            ~ptr:error_val
+            ~offsets:[Instruction.GetPointer.FieldIndex error_item_index]
+            ()
+        in
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:error_value_ptr)
+    in
 
-  (ok_item_val, error_item_val)
+    (ok_item_val, error_item_val)
+  | InlineValueWithNiche inline_niche_layout ->
+    (* Choose comparison so that ok block is always continue and error is jump, no matter which
+       variant is the niche. *)
+    let (niche_name, niche_val) = SMap.choose inline_niche_layout.niches in
+    let niche_test_cmp =
+      if String.equal niche_name "Ok" then
+        Instruction.Eq
+      else
+        Neq
+    in
+    let test_val =
+      mk_cmp
+        ~block:(Ecx.get_current_block ~ecx)
+        ~cmp:niche_test_cmp
+        ~left:result_val
+        ~right:niche_val
+    in
+    Ecx.finish_block_branch ~ecx test_val ok_branch_block error_branch_block;
+    (* Ok and error items are the inlined option val if they are not zero-sized *)
+    Ecx.set_current_block ~ecx ok_branch_block;
+
+    let ok_item_val =
+      emit_inline_niche_value_destructuring ~ecx inline_niche_layout "Ok" result_val
+    in
+    Ecx.set_current_block ~ecx error_branch_block;
+    let err_item_val =
+      emit_inline_niche_value_destructuring ~ecx inline_niche_layout "Error" result_val
+    in
+    (ok_item_val, err_item_val)
+  | _ -> failwith "Expected variants layout"
 
 and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
   match pattern with
@@ -2572,22 +2657,6 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:scrutinee_val ~right:case_lit)
       (* Variants are tested by loading their tag and checking against scrutinee in if-else chain *)
       | (Variant (_, adt_sig, type_args), _) ->
-        let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
-        let (scrutinee_tag_val, tags, path_cache) =
-          match layout with
-          (* If layout is a variant then load tag value so it can be tested *)
-          | Variants layout ->
-            let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
-            let scrutinee_tag_val =
-              emit_load_tag ~ecx ~agg_ptr:scrutinee_val ~type_:layout.tag_mir_type
-            in
-            (scrutinee_tag_val, layout.tags, path_cache)
-          (* If layout is a pure enum then scrutinee is already tag value *)
-          | PureEnum layout ->
-            let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
-            (scrutinee_val, layout.tags, path_cache)
-          | _ -> failwith "Invalid layout for variants"
-        in
         (* Split out last case if there is no default, as it does not have to be explicitly tested *)
         let (test_cases, default_case) =
           match default_case with
@@ -2597,15 +2666,45 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           | Some default_tree_node -> (cases, default_tree_node)
         in
 
-        (* TODO: Emit better checks than linear if else chain - e.g. binary search, jump table *)
-        emit_decision_tree_if_else_chain ~path_cache test_cases default_case (fun ctor ->
-            let (name, _, _) = Ctor.cast_to_variant ctor in
-            let tag_val = SMap.find name tags in
-            mk_cmp
-              ~block:(Ecx.get_current_block ~ecx)
-              ~cmp:Eq
-              ~left:scrutinee_tag_val
-              ~right:tag_val))
+        let emit_tag_compare_decision_tree scrutinee_tag_val tags path_cache =
+          (* TODO: Emit better checks than linear if else chain - e.g. binary search, jump table *)
+          emit_decision_tree_if_else_chain ~path_cache test_cases default_case (fun ctor ->
+              let (name, _, _) = Ctor.cast_to_variant ctor in
+              let tag_val = SMap.find name tags in
+              mk_cmp
+                ~block:(Ecx.get_current_block ~ecx)
+                ~cmp:Eq
+                ~left:scrutinee_tag_val
+                ~right:tag_val)
+        in
+
+        let (scrutinee_val, path_cache) = emit_load_pattern_path ~path_cache scrutinee in
+
+        let layout = Ecx.get_mir_adt_layout ~ecx adt_sig type_args in
+        (match layout with
+        (* If layout is a variant then load tag value so it can be tested *)
+        | Variants layout ->
+          let scrutinee_tag_val =
+            emit_load_tag ~ecx ~agg_ptr:scrutinee_val ~type_:layout.tag_mir_type
+          in
+          emit_tag_compare_decision_tree scrutinee_tag_val layout.tags path_cache
+        (* If layout is a pure enum then scrutinee is already tag value *)
+        | PureEnum layout -> emit_tag_compare_decision_tree scrutinee_val layout.tags path_cache
+        (* If layout is an inlined value with niches test against each niche value *)
+        | InlineValueWithNiche { niches; inline_range; _ } ->
+          emit_decision_tree_if_else_chain ~path_cache test_cases default_case (fun ctor ->
+              let (name, _, _) = Ctor.cast_to_variant ctor in
+              let (cmp, right_val) =
+                match SMap.find_opt name niches with
+                | Some niche_val -> (Instruction.Eq, niche_val)
+                (* Test for inline range to see if this is an inline value *)
+                | None ->
+                  (match inline_range with
+                  | NotEqual niche_val -> (Neq, niche_val)
+                  | Below upper_bound_val -> (Lt, upper_bound_val))
+              in
+              mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp ~left:scrutinee_val ~right:right_val)
+        | _ -> failwith "Invalid layout for variants"))
   (* Return the value indexed by a pattern path. Will emit load instructions if the pattern path
      points into an aggregate. Return the path cache with all new calculated paths added. *)
   and emit_load_pattern_path ~path_cache pattern_path =
@@ -2627,42 +2726,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
     List.fold_left
       (fun (value, path_cache) field ->
         let path_field_id = PatternPath.get_field_id field in
-        match IMap.find_opt path_field_id path_cache with
-        | Some path_value -> (path_value, path_cache)
-        | None ->
-          (* If already in the path cache, use already generated value for path *)
-          let (aggregate, field_key, pointer_val) =
-            match field with
-            | PatternPath.Root _ -> failwith "Expected field"
-            (* Tuple fields are simply looked up in the tuple type *)
-            | TupleField { index; _ } ->
-              let value_type = type_of_value value in
-              let ptr_type = cast_to_pointer_type value_type in
-              let aggregate = cast_to_aggregate_type ptr_type in
-              let field_key = TupleKeyCache.get_key index in
-              (aggregate, field_key, value)
-            (* Look up field in single variant (aggregate) types *)
-            | VariantField { field; adt_sig; type_args; _ } when SMap.cardinal adt_sig.variants = 1
-              ->
-              (match Ecx.get_mir_adt_layout ~ecx adt_sig type_args with
-              | Aggregate agg ->
-                let field_key = get_field_key field in
-                (agg, field_key, value)
-              | _ -> failwith "Expected aggregate layout")
-            (* For variant fields we must find the correct variant aggregate, fetch its field key,
-               and cast the pointer to the variant aggregate type. *)
-            | VariantField { field; variant_name; adt_sig; type_args; _ } ->
-              (match Ecx.get_mir_adt_layout ~ecx adt_sig type_args with
-              | Variants { variants; _ } ->
-                let variant_aggregate = SMap.find variant_name variants in
-                let field_key = get_field_key field in
-                let variant_val =
-                  emit_cast_ptr ~ecx ~ptr:value ~element_type:(Aggregate variant_aggregate)
-                in
-                (variant_aggregate, field_key, variant_val)
-              | _ -> failwith "Expected variants layout")
-          in
-
+        let emit_load_aggregate_element aggregate field_key pointer_val =
           let (element_type, element_index) = lookup_element aggregate field_key in
           let element_ptr =
             mk_get_pointer_instr
@@ -2673,7 +2737,47 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
               ()
           in
           let element_value = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr in
-          (element_value, IMap.add path_field_id element_value path_cache))
+          (element_value, IMap.add path_field_id element_value path_cache)
+        in
+
+        (* If already in the path cache, use already generated value for path *)
+        match IMap.find_opt path_field_id path_cache with
+        | Some path_value -> (path_value, path_cache)
+        | None ->
+          (match field with
+          | PatternPath.Root _ -> failwith "Expected field"
+          (* Tuple fields are simply looked up in the tuple type *)
+          | TupleField { index; _ } ->
+            let value_type = type_of_value value in
+            let ptr_type = cast_to_pointer_type value_type in
+            let aggregate = cast_to_aggregate_type ptr_type in
+            let field_key = TupleKeyCache.get_key index in
+            emit_load_aggregate_element aggregate field_key value
+          (* Look up field in single variant (aggregate) types *)
+          | VariantField { field; adt_sig; type_args; _ } when SMap.cardinal adt_sig.variants = 1 ->
+            (match Ecx.get_mir_adt_layout ~ecx adt_sig type_args with
+            | Aggregate agg ->
+              let field_key = get_field_key field in
+              emit_load_aggregate_element agg field_key value
+            | _ -> failwith "Expected aggregate layout")
+          (* For variant fields we must find the correct variant aggregate, fetch its field key,
+             and cast the pointer to the variant aggregate type. *)
+          | VariantField { field; variant_name; adt_sig; type_args; _ } ->
+            (match Ecx.get_mir_adt_layout ~ecx adt_sig type_args with
+            | Variants { variants; _ } ->
+              let variant_aggregate = SMap.find variant_name variants in
+              let field_key = get_field_key field in
+              let variant_val =
+                emit_cast_ptr ~ecx ~ptr:value ~element_type:(Aggregate variant_aggregate)
+              in
+              emit_load_aggregate_element variant_aggregate field_key variant_val
+            (* Path must be for the already inlined value *)
+            | InlineValueWithNiche inline_niche_layout ->
+              let value =
+                emit_inline_niche_value_destructuring ~ecx inline_niche_layout variant_name value
+              in
+              (Option.get value, path_cache)
+            | _ -> failwith "Expected variants layout")))
       (Option.get root_value, path_cache)
       fields
   (* Emit a sequence of tests and resulting blocks given a list of tests cases with ctors, the default

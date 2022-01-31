@@ -406,94 +406,142 @@ and instantiate_mir_adt_layout
   | VariantsTemplate { tags; tag_mir_type; templates; _ } when SMap.is_empty templates ->
     PureEnum { tags; tag_mir_type }
   | VariantsTemplate { tags; tag_mir_type; templates; variant_locs } ->
-    let parameterized_adt_name = mir_adt_layout.name ^ TypeArgs.to_string ~pcx:ecx.pcx type_args in
-    let tag_element = mk_tag_element tag_mir_type in
+    let instantiate_mir_adt_variants_layout () =
+      let parameterized_adt_name =
+        mir_adt_layout.name ^ TypeArgs.to_string ~pcx:ecx.pcx type_args
+      in
+      let tag_element = mk_tag_element tag_mir_type in
 
-    let union_aggregate = mk_placeholder_aggregate ~ecx parameterized_adt_name mir_adt_layout.loc in
-    let layout =
-      {
-        VariantsLayout.tags;
-        tag_mir_type;
-        union = union_aggregate;
-        size = 0;
-        variants = SMap.empty;
-      }
+      let union_aggregate =
+        mk_placeholder_aggregate ~ecx parameterized_adt_name mir_adt_layout.loc
+      in
+      let layout =
+        {
+          VariantsLayout.tags;
+          tag_mir_type;
+          union = union_aggregate;
+          size = 0;
+          variants = SMap.empty;
+        }
+      in
+      set_layout (Variants layout);
+
+      let (variant_elements, max_non_ptr_elements_size, max_num_ptr_elements) =
+        SMap.fold
+          (fun variant_name
+               template
+               (variant_elements, max_non_ptr_elements_size, max_num_ptr_elements) ->
+            let elements =
+              instantiate_mir_adt_template_elements ~ecx template type_param_bindings
+            in
+
+            (* Split elements into pointer and non-pointer elements, preserving order *)
+            let (ptr_elements, non_ptr_elements) =
+              List.partition (fun (_, mir_type) -> is_pointer_type mir_type) elements
+            in
+
+            (* Add tag element to start of non-pointer elements, then align and insert padding *)
+            let non_ptr_elements = tag_element :: non_ptr_elements in
+            let ((_, non_ptr_elements_size) as non_ptr_elements) =
+              align_and_pad_aggregate_elements non_ptr_elements
+            in
+
+            let max_non_ptr_elements_size = max max_non_ptr_elements_size non_ptr_elements_size in
+            let max_num_ptr_elements = max max_num_ptr_elements (List.length ptr_elements) in
+
+            let variant_elements =
+              (variant_name, non_ptr_elements, ptr_elements) :: variant_elements
+            in
+            (variant_elements, max_non_ptr_elements_size, max_num_ptr_elements))
+          templates
+          ([], 0, 0)
+      in
+
+      (* Non-ptr element section size is rounded up to pointer size if there are any pointer elements *)
+      let max_non_ptr_elements_size =
+        if max_num_ptr_elements = 0 then
+          max_non_ptr_elements_size
+        else
+          round_up_to_alignment max_non_ptr_elements_size ptr_size
+      in
+      let max_ptr_elements_size = ptr_size * max_num_ptr_elements in
+      let max_size = max_non_ptr_elements_size + max_ptr_elements_size in
+
+      let variant_aggregates =
+        List.fold_left
+          (fun acc (variant_name, (non_ptr_elements, non_ptr_elements_size), ptr_elements) ->
+            (* Add end padding to non-ptr element section to match largest non-ptr element section *)
+            let non_ptr_elements =
+              add_end_padding non_ptr_elements non_ptr_elements_size max_non_ptr_elements_size
+            in
+
+            (* Add pointer padding elements to ptr element section to match largest ptr element section *)
+            let num_ptr_padding_elements = max_num_ptr_elements - List.length ptr_elements in
+            let ptr_padding_elements = List_utils.make num_ptr_padding_elements pointer_element in
+            let ptr_elements = ptr_elements @ ptr_padding_elements in
+
+            (* Create aggregates for each data variant *)
+            let aggregate_name = parameterized_adt_name ^ "::" ^ variant_name in
+            let loc = SMap.find variant_name variant_locs in
+            let elements = non_ptr_elements @ ptr_elements in
+            let aggregate = mk_aggregate ~ecx aggregate_name loc elements in
+            SMap.add variant_name aggregate acc)
+          SMap.empty
+          variant_elements
+      in
+
+      layout.variants <- variant_aggregates;
+      layout.size <- max_size;
+
+      (* Create aggregates for union (and enum variants) by padding tag element to match largest
+         non-ptr element section, then adding pointer elements for all ptrs in ptr element section. *)
+      let tag_size = size_of_type tag_mir_type in
+      let union_non_ptr_elements =
+        add_end_padding [tag_element] tag_size max_non_ptr_elements_size
+      in
+      let union_ptr_elements = List_utils.make max_num_ptr_elements pointer_element in
+      union_aggregate.elements <- union_non_ptr_elements @ union_ptr_elements;
+
+      MirAdtLayout.Variants layout
     in
-    set_layout (Variants layout);
 
-    let (variant_elements, max_non_ptr_elements_size, max_num_ptr_elements) =
-      SMap.fold
-        (fun variant_name
-             template
-             (variant_elements, max_non_ptr_elements_size, max_num_ptr_elements) ->
-          let elements = instantiate_mir_adt_template_elements ~ecx template type_param_bindings in
-
-          (* Split elements into pointer and non-pointer elements, preserving order *)
-          let (ptr_elements, non_ptr_elements) =
-            List.partition (fun (_, mir_type) -> is_pointer_type mir_type) elements
-          in
-
-          (* Add tag element to start of non-pointer elements, then align and insert padding *)
-          let non_ptr_elements = tag_element :: non_ptr_elements in
-          let ((_, non_ptr_elements_size) as non_ptr_elements) =
-            align_and_pad_aggregate_elements non_ptr_elements
-          in
-
-          let max_non_ptr_elements_size = max max_non_ptr_elements_size non_ptr_elements_size in
-          let max_num_ptr_elements = max max_num_ptr_elements (List.length ptr_elements) in
-
-          let variant_elements =
-            (variant_name, non_ptr_elements, ptr_elements) :: variant_elements
-          in
-          (variant_elements, max_non_ptr_elements_size, max_num_ptr_elements))
-        templates
-        ([], 0, 0)
-    in
-
-    (* Non-ptr element section size is rounded up to pointer size if there are any pointer elements *)
-    let max_non_ptr_elements_size =
-      if max_num_ptr_elements = 0 then
-        max_non_ptr_elements_size
-      else
-        round_up_to_alignment max_non_ptr_elements_size ptr_size
-    in
-    let max_ptr_elements_size = ptr_size * max_num_ptr_elements in
-    let max_size = max_non_ptr_elements_size + max_ptr_elements_size in
-
-    let variant_aggregates =
-      List.fold_left
-        (fun acc (variant_name, (non_ptr_elements, non_ptr_elements_size), ptr_elements) ->
-          (* Add end padding to non-ptr element section to match largest non-ptr element section *)
-          let non_ptr_elements =
-            add_end_padding non_ptr_elements non_ptr_elements_size max_non_ptr_elements_size
-          in
-
-          (* Add pointer padding elements to ptr element section to match largest ptr element section *)
-          let num_ptr_padding_elements = max_num_ptr_elements - List.length ptr_elements in
-          let ptr_padding_elements = List_utils.make num_ptr_padding_elements pointer_element in
-          let ptr_elements = ptr_elements @ ptr_padding_elements in
-
-          (* Create aggregates for each data variant *)
-          let aggregate_name = parameterized_adt_name ^ "::" ^ variant_name in
-          let loc = SMap.find variant_name variant_locs in
-          let elements = non_ptr_elements @ ptr_elements in
-          let aggregate = mk_aggregate ~ecx aggregate_name loc elements in
-          SMap.add variant_name aggregate acc)
-        SMap.empty
-        variant_elements
-    in
-
-    layout.variants <- variant_aggregates;
-    layout.size <- max_size;
-
-    (* Create aggregates for union (and enum variants) by padding tag element to match largest
-       non-ptr element section, then adding pointer elements for all ptrs in ptr element section. *)
-    let tag_size = size_of_type tag_mir_type in
-    let union_non_ptr_elements = add_end_padding [tag_element] tag_size max_non_ptr_elements_size in
-    let union_ptr_elements = List_utils.make max_num_ptr_elements pointer_element in
-    union_aggregate.elements <- union_non_ptr_elements @ union_ptr_elements;
-
-    Variants layout
+    let is_option = String.equal mir_adt_layout.name Std_lib.std_option_option in
+    if is_option then
+      let element_ty = Types.substitute_type_params type_param_bindings (List.hd type_args) in
+      (* Niche is already used if element is option with mir representation of inlined pointer *)
+      let is_element_option =
+        match element_ty with
+        | ADT { adt_sig; _ } ->
+          let mir_adt_layout = IMap.find adt_sig.id ecx.adt_sig_to_mir_layout in
+          String.equal mir_adt_layout.name Std_lib.std_option_option
+        | _ -> false
+      in
+      (* Use inlined niche for some compatible options *)
+      match to_mir_type ~ecx element_ty with
+      | Some (Pointer element_type) when not is_element_option ->
+        let none_lit = mk_null_ptr_lit element_type in
+        let niches = SMap.singleton "None" none_lit in
+        let type_ = Type.Pointer element_type in
+        InlineValueWithNiche
+          { type_; inlined_type = type_; niches; inline_range = NotEqual none_lit }
+      | Some Bool ->
+        let none_lit = mk_byte_lit 2 in
+        let niches = SMap.singleton "None" none_lit in
+        InlineValueWithNiche
+          { type_ = Byte; inlined_type = Bool; niches; inline_range = Below none_lit }
+      | Some Byte ->
+        let none_lit = mk_int_lit_of_int32 256l in
+        let niches = SMap.singleton "None" none_lit in
+        InlineValueWithNiche
+          { type_ = Int; inlined_type = Byte; niches; inline_range = Below none_lit }
+      | Some Int ->
+        let none_lit = mk_long_lit 0x100000000L in
+        let niches = SMap.singleton "None" none_lit in
+        InlineValueWithNiche
+          { type_ = Long; inlined_type = Int; niches; inline_range = Below none_lit }
+      | _ -> instantiate_mir_adt_variants_layout ()
+    else
+      instantiate_mir_adt_variants_layout ()
 
 (* Instantiate a template with a set of type parameters, generating packed elements for aggregate *)
 and instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
@@ -731,6 +779,7 @@ and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
     | Variants { union; _ } -> Some (Pointer (Aggregate union))
     | PureEnum { tag_mir_type; _ } -> Some (tag_mir_type :> Type.t)
     | InlineValue mir_type -> Some mir_type
+    | InlineValueWithNiche { type_; _ } -> Some type_
     | ZeroSize -> None)
   | TraitObject { trait_sig; _ } ->
     let trait_object_layout = get_trait_object_layout ~ecx trait_sig in

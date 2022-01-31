@@ -69,7 +69,8 @@ module IRVisitor = struct
         | Unary (_, arg)
         | Cast arg
         | Trunc arg
-        | SExt arg ->
+        | SExt arg
+        | ZExt arg ->
           this#visit_use arg
         | Binary (_, left, right)
         | Cmp (_, left, right) ->

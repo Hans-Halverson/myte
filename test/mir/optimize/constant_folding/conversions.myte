@@ -14,6 +14,27 @@ fun intSignExtension() {
   use((-1: Int).toLong());
 }
 
+fun boolZeroExtension() {
+  val x: Option<Bool> = Some (false);
+  use(x);
+  val x: Option<Bool> = Some (true);
+  use(x);
+}
+
+fun byteZeroExtension() {
+  val x: Option<Byte> = Some (1);
+  use(x);
+  val x: Option<Byte> = Some (-1);
+  use(x);
+}
+
+fun intZeroExtension() {
+  val x: Option<Int> = Some (1);
+  use(x);
+  val x: Option<Int> = Some (-1);
+  use(x);
+}
+
 // Int truncation conversions
 fun intTruncation() {
   use((1: Int).toByte());
@@ -45,6 +66,9 @@ fun use<T>(x: T): T = x
 fun main() {
   use(byteSignExtension);
   use(intSignExtension);
+  use(boolZeroExtension);
+  use(byteZeroExtension);
+  use(intZeroExtension);
   use(intTruncation);
   use(longTruncation);
 }

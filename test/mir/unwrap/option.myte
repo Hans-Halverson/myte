@@ -1,23 +1,23 @@
 module test
 
-fun testUnwrapOption(x: Option<Int>): Option<Int> {
+fun testUnwrapOption(x: Option<Long>): Option<Long> {
   use(x?);
   return Some (1);
 }
 
-fun testUnwrapOptionDifferentType(x: Option<Bool>): Option<Int> {
+fun testUnwrapOptionDifferentType(x: Option<String>): Option<Long> {
   use(x?);
   return Some (1);
 }
 
-fun testDoubleUnwrap(x: Option<Option<Int>>): Option<Int> {
+fun testDoubleUnwrap(x: Option<Option<Long>>): Option<Long> {
   use(x??);
   return Some (1);
 }
 
 type ZeroSize (Unit)
 
-fun testZeroSizeUnwrap(x: Option<ZeroSize>): Option<Int> {
+fun testZeroSizeUnwrap(x: Option<ZeroSize>): Option<Long> {
   use(x?);
   return Some (1);
 }

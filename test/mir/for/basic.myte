@@ -4,7 +4,7 @@ import std.vec.Vec
 
 fun use<T>(x: T) {}
 
-fun testIterators(v1: Vec<Int>, v2: Vec<Bool>) {
+fun testIterators(v1: Vec<Long>, v2: Vec<Bool>) {
   for (x in v1) {
     use(x);
   }
@@ -18,11 +18,11 @@ fun testIterators(v1: Vec<Int>, v2: Vec<Bool>) {
   use(y);
 }
 
-fun testBreak(v1: Vec<Bool>) {
+fun testBreak(v1: Vec<Long>) {
   var y = 0;
 
   for (x in v1) {
-    if (!x) {
+    if (x == 0) {
       use(1);
       y = 1;
       break;
@@ -35,11 +35,11 @@ fun testBreak(v1: Vec<Bool>) {
   use(y);
 }
 
-fun testContinue(v1: Vec<Bool>) {
+fun testContinue(v1: Vec<Long>) {
   var y = 0;
 
   for (x in v1) {
-    if (!x) {
+    if (x == 0) {
       use(1);
       y = 1;
       continue;

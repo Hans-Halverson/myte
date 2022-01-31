@@ -357,6 +357,13 @@ and pp_instruction ~cx instr =
            (pp_type_of_use arg)
            (pp_use ~cx arg)
            (pp_numeric_type instr.type_))
+    | ZExt arg ->
+      pp_instr
+        (Printf.sprintf
+           "ZExt %s %s to %s"
+           (pp_type_of_use arg)
+           (pp_use ~cx arg)
+           (pp_numeric_type instr.type_))
     | Continue continue ->
       let debug_id =
         if Opts.dump_debug () then

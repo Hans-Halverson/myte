@@ -1,0 +1,89 @@
+type test.PointerType {long, long, long}
+
+func void @test.testDestructure<Bool>(byte %0) {
+  %1 := Eq byte %0, 2
+  branch %1, @0, @1
+label @0:
+  Call void @test.use<Int>(0)
+  continue @2
+label @1:
+  %2 := Trunc byte %0 to bool
+  Call void @test.use<Bool>(%2)
+  continue @2
+label @2:
+  Ret
+}
+
+func void @test.testDestructure<Byte>(int %0) {
+  %1 := Eq int %0, 256
+  branch %1, @0, @1
+label @0:
+  Call void @test.use<Int>(0)
+  continue @2
+label @1:
+  %2 := Trunc int %0 to byte
+  Call void @test.use<Byte>(%2)
+  continue @2
+label @2:
+  Ret
+}
+
+func void @test.testDestructure<Int>(long %0) {
+  %1 := Eq long %0, 4294967296
+  branch %1, @0, @1
+label @0:
+  Call void @test.use<Int>(0)
+  continue @2
+label @1:
+  %2 := Trunc long %0 to int
+  Call void @test.use<Int>(%2)
+  continue @2
+label @2:
+  Ret
+}
+
+func void @test.testDestructure<test.PointerType>(test.PointerType* %0) {
+  %1 := Eq test.PointerType* %0, null
+  branch %1, @0, @1
+label @0:
+  Call void @test.use<Int>(0)
+  continue @2
+label @1:
+  Call void @test.use<test.PointerType>(%0)
+  continue @2
+label @2:
+  Ret
+}
+
+func void @test.instantiateTestDestructure(byte %0, int %1, long %2, test.PointerType* %3) {
+  Call void @test.testDestructure<Bool>(%0)
+  Call void @test.testDestructure<Byte>(%1)
+  Call void @test.testDestructure<Int>(%2)
+  Call void @test.testDestructure<test.PointerType>(%3)
+  Ret
+}
+
+func void @test.use<Bool>(bool %0) {
+  Ret
+}
+
+func void @test.use<Byte>(byte %0) {
+  Ret
+}
+
+func void @test.use<Function>(fn %0) {
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func void @test.use<test.PointerType>(test.PointerType* %0) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.instantiateTestDestructure)
+  Ret 0
+}

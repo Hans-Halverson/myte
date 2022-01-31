@@ -6,6 +6,7 @@ open Mir_type
 type conversion_op =
   | TruncOp of Type.t
   | SExtOp of Type.t
+  | ZExtOp of Type.t
 
 let apply_unary_operation op (x : Literal.t) : Literal.t =
   match (op, x) with
@@ -84,26 +85,21 @@ let apply_binary_operation op (x : Literal.t) (y : Literal.t) : Literal.t =
 
 let apply_conversion op (x : Literal.t) : Literal.t =
   match (op, x) with
+  | (TruncOp Bool, Byte x) -> Bool ((x land 1) = 1)
   | (TruncOp Bool, Int x) -> Bool (Integers.trunc_int_to_bool x)
   | (TruncOp Bool, Long x) -> Bool (Integers.trunc_long_to_bool x)
   | (TruncOp Byte, Int x) -> Byte (Integers.trunc_int_to_byte x)
   | (TruncOp Byte, Long x) -> Byte (Integers.trunc_long_to_byte x)
   | (TruncOp Int, Long x) -> Int (Integers.trunc_long_to_int x)
-  | (SExtOp Int, Bool x) ->
-    Int
-      ( if x then
-        1l
-      else
-        0l )
+  | ((SExtOp Byte | ZExtOp Byte), Bool x) -> Int (Integers.zext_bool_to_int x)
+  | ((SExtOp Int | ZExtOp Int), Bool x) -> Int (Integers.zext_bool_to_int x)
+  | ((SExtOp Long | ZExtOp Long), Bool x) -> Long (Integers.zext_bool_to_long x)
   | (SExtOp Int, Byte x) -> Int (Int32.of_int x)
-  | (SExtOp Long, Bool x) ->
-    Long
-      ( if x then
-        1L
-      else
-        0L )
   | (SExtOp Long, Byte x) -> Long (Int64.of_int x)
   | (SExtOp Long, Int x) -> Long (Int64.of_int32 x)
+  | (ZExtOp Int, Byte x) -> Int (Integers.zext_byte_to_int x)
+  | (ZExtOp Long, Byte x) -> Long (Integers.zext_byte_to_long x)
+  | (ZExtOp Long, Int x) -> Long (Integers.zext_int_to_long x)
   | _ -> failwith "Invalid operation"
 
 let fold_constants_compare (x : Literal.t) (y : Literal.t) : int =
@@ -202,6 +198,7 @@ class constant_folding_transform ~(program : Program.t) =
         | _ -> None)
       | Trunc arg -> try_fold_conversion arg (TruncOp instr.type_)
       | SExt arg -> try_fold_conversion arg (SExtOp instr.type_)
+      | ZExt arg -> try_fold_conversion arg (ZExtOp instr.type_)
       (* Propagate global constants through pointers *)
       | Load { value = { value = Lit (Global { is_constant; init_val = Some init_val; _ }); _ }; _ }
         when is_constant ->

@@ -1014,6 +1014,24 @@ and gen_instructions ~gcx ~ir ~block instructions =
       else
         Gcx.emit ~gcx (MovMM (arg_size, arg_mem, Reg result_vreg)));
     gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  ZExt
+   * ===========================================
+   *)
+  | { id = return_id; type_; instr = ZExt arg_val; _ } :: rest_instructions ->
+    let result_vreg = vreg_of_result_value_id return_id in
+    (match resolve_ir_value arg_val with
+    | SImm _ -> failwith "Constants must be folded before gen"
+    | arg ->
+      let arg_size = register_size_of_svalue arg in
+      let result_size = register_size_of_mir_value_type (type_ :> Type.t) in
+      let arg_mem = emit_mem arg in
+      if arg_size <> result_size then
+        Gcx.emit ~gcx (MovZX (arg_size, result_size, arg_mem, result_vreg))
+      else
+        Gcx.emit ~gcx (MovMM (arg_size, arg_mem, Reg result_vreg)));
+    gen_instructions rest_instructions
   | { instr = Mir.Instruction.Phi _; _ } :: _ -> failwith "Phi nodes must be removed before asm gen"
   | { instr = Mir.Instruction.StackAlloc _; _ } :: _ ->
     failwith "StackAlloc instructions removed before asm gen"

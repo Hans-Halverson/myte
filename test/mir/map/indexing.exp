@@ -3,7 +3,7 @@ type _ZeroSize {}
 global _ZeroSize @_ZeroSize = uninitialized
 
 func void @test.testSimpleIndexing(std.map.Map<Bool,Byte>* %0) {
-  %1 := Call std.option.Option<Byte>* @std.map.Map.get<Bool,Byte>(%0, true)
+  %1 := Call int @std.map.Map.get<Bool,Byte>(%0, true)
   Call void @test.use<Option<Byte>>(%1)
   Call void @std.map.Map.add<Bool,Byte>(%0, false, 2)
   Ret
@@ -14,7 +14,7 @@ type test.Rec1 {int, std.map.Map<Byte,String>*}
 func void @test.testIndexAfterAccess(test.Rec1* %0, byte %1, std.string.String* %2) {
   %3 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %0.1
   %4 := Load std.map.Map<Byte,String>* %3
-  %5 := Call std.option.Option<String>* @std.map.Map.get<Byte,String>(%4, %1)
+  %5 := Call std.string.String* @std.map.Map.get<Byte,String>(%4, %1)
   %6 := GetPointer std.map.Map<Byte,String>*, test.Rec1* %0.1
   %7 := Load std.map.Map<Byte,String>* %6
   Call void @std.map.Map.add<Byte,String>(%7, %1, %2)
@@ -31,7 +31,7 @@ func int @test.ZeroSize.hash(_ZeroSize* %0) {
 
 func void @test.testZeroSizeKey(std.map.Map<test.ZeroSize,Byte>* %0) {
   Call void @test.id<test.ZeroSize>()
-  %1 := Call std.option.Option<Byte>* @std.map.Map.get<test.ZeroSize,Byte>(%0)
+  %1 := Call int @std.map.Map.get<test.ZeroSize,Byte>(%0)
   Call void @test.use<Option<Byte>>(%1)
   Ret
 }
@@ -44,7 +44,7 @@ func void @test.use<Function>(fn %0) {
   Ret
 }
 
-func void @test.use<Option<Byte>>(std.option.Option<Byte>* %0) {
+func void @test.use<Option<Byte>>(int %0) {
   Ret
 }
 

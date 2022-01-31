@@ -1,0 +1,102 @@
+type test.PointerType {long, long, long}
+
+func void @test.testConstructBool() {
+  %0 := ZExt bool true to byte
+  Call void @test.use<Option<Bool>>(2)
+  Call void @test.use<Option<Bool>>(%0)
+  Ret
+}
+
+func void @test.testConstructByte() {
+  %0 := ZExt byte 7 to int
+  Call void @test.use<Option<Byte>>(256)
+  Call void @test.use<Option<Byte>>(%0)
+  Ret
+}
+
+func void @test.testConstructInt() {
+  %0 := ZExt int 7 to long
+  Call void @test.use<Option<Int>>(4294967296)
+  Call void @test.use<Option<Int>>(%0)
+  Ret
+}
+
+func void @test.testConstructPointer(test.PointerType* %0) {
+  Call void @test.use<Option<test.PointerType>>(null)
+  Call void @test.use<Option<test.PointerType>>(%0)
+  Ret
+}
+
+func void @test.testConstructNestedBool() {
+  %0 := ZExt bool true to byte
+  %1 := ZExt byte %0 to int
+  %2 := ZExt int %1 to long
+  Call void @test.use<Option<Option<Option<Bool>>>>(%2)
+  Ret
+}
+
+func void @test.testConstructNestedPointer(test.PointerType* %0) {
+  %1 := Call std.option.Option<Option<test.PointerType>>* myte.builtin.alloc(1)
+  %2 := Cast std.option.Option<Option<test.PointerType>>* %1 to std.option.Option<Option<test.PointerType>>::Some*
+  %3 := Cast std.option.Option<Option<test.PointerType>>::Some* %2 to byte*
+  Store byte %3, 1
+  %4 := GetPointer test.PointerType*, std.option.Option<Option<test.PointerType>>::Some* %2.2
+  Store test.PointerType* %4, %0
+  Call void @test.use<Option<Option<test.PointerType>>>(%1)
+  %5 := Call std.option.Option<Option<Option<test.PointerType>>>* myte.builtin.alloc(1)
+  %6 := Cast std.option.Option<Option<Option<test.PointerType>>>* %5 to std.option.Option<Option<Option<test.PointerType>>>::Some*
+  %7 := Cast std.option.Option<Option<Option<test.PointerType>>>::Some* %6 to byte*
+  Store byte %7, 1
+  %8 := Call std.option.Option<Option<test.PointerType>>* myte.builtin.alloc(1)
+  %9 := Cast std.option.Option<Option<test.PointerType>>* %8 to std.option.Option<Option<test.PointerType>>::Some*
+  %10 := Cast std.option.Option<Option<test.PointerType>>::Some* %9 to byte*
+  Store byte %10, 1
+  %11 := GetPointer test.PointerType*, std.option.Option<Option<test.PointerType>>::Some* %9.2
+  Store test.PointerType* %11, %0
+  %12 := GetPointer std.option.Option<Option<test.PointerType>>*, std.option.Option<Option<Option<test.PointerType>>>::Some* %6.2
+  Store std.option.Option<Option<test.PointerType>>* %12, %8
+  Call void @test.use<Option<Option<Option<test.PointerType>>>>(%5)
+  Ret
+}
+
+func void @test.use<Function>(fn %0) {
+  Ret
+}
+
+func void @test.use<Option<Bool>>(byte %0) {
+  Ret
+}
+
+func void @test.use<Option<Byte>>(int %0) {
+  Ret
+}
+
+func void @test.use<Option<Int>>(long %0) {
+  Ret
+}
+
+func void @test.use<Option<Option<Option<Bool>>>>(long %0) {
+  Ret
+}
+
+func void @test.use<Option<Option<Option<test.PointerType>>>>(std.option.Option<Option<Option<test.PointerType>>>* %0) {
+  Ret
+}
+
+func void @test.use<Option<Option<test.PointerType>>>(std.option.Option<Option<test.PointerType>>* %0) {
+  Ret
+}
+
+func void @test.use<Option<test.PointerType>>(test.PointerType* %0) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.testConstructBool)
+  Call void @test.use<Function>(@test.testConstructByte)
+  Call void @test.use<Function>(@test.testConstructInt)
+  Call void @test.use<Function>(@test.testConstructPointer)
+  Call void @test.use<Function>(@test.testConstructNestedBool)
+  Call void @test.use<Function>(@test.testConstructNestedPointer)
+  Ret 0
+}

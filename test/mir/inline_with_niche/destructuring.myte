@@ -1,0 +1,23 @@
+module test
+
+type PointerType (Long, Long, Long)
+
+fun testDestructure<T>(x: Option<T>) {
+  match (x) {
+    | Some (y) -> use(y)
+    | None -> use(0)
+  }
+}
+
+fun instantiateTestDestructure(o1: Option<Bool>, o2: Option<Byte>, o3: Option<Int>, o4: Option<PointerType>) {
+  testDestructure(o1);
+  testDestructure(o2);
+  testDestructure(o3);
+  testDestructure(o4);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(instantiateTestDestructure);
+}

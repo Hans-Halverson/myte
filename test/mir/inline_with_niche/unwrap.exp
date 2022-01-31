@@ -1,0 +1,121 @@
+type test.PointerType {long, long, long}
+
+func byte @test.testBoolUnwrap(byte %0) {
+  %1 := Neq byte %0, 2
+  branch %1, @0, @1
+label @0:
+  %2 := Trunc byte %0 to bool
+  Call void @test.use<Bool>(%2)
+  %3 := ZExt bool true to byte
+  continue @1
+label @1:
+  %4 := Phi byte @test.testBoolUnwrap:2, @0:%3
+  Ret %4
+}
+
+func int @test.testByteUnwrap(int %0) {
+  %1 := Neq int %0, 256
+  branch %1, @0, @1
+label @0:
+  %2 := Trunc int %0 to byte
+  Call void @test.use<Byte>(%2)
+  %3 := ZExt byte 1 to int
+  continue @1
+label @1:
+  %4 := Phi int @test.testByteUnwrap:256, @0:%3
+  Ret %4
+}
+
+func long @test.testIntUnwrap(long %0) {
+  %1 := Neq long %0, 4294967296
+  branch %1, @0, @1
+label @0:
+  %2 := Trunc long %0 to int
+  Call void @test.use<Int>(%2)
+  %3 := ZExt int 1 to long
+  continue @1
+label @1:
+  %4 := Phi long @test.testIntUnwrap:4294967296, @0:%3
+  Ret %4
+}
+
+func test.PointerType* @test.testPointerUnwrap(test.PointerType* %0, test.PointerType* %1) {
+  %2 := Neq test.PointerType* %0, null
+  branch %2, @0, @1
+label @0:
+  Call void @test.use<test.PointerType>(%0)
+  continue @1
+label @1:
+  %3 := Phi test.PointerType* @test.testPointerUnwrap:null, @0:%1
+  Ret %3
+}
+
+func byte @test.testMultipleUnwrapBool(long %0) {
+  %1 := Neq long %0, 4294967296
+  branch %1, @0, @3
+label @0:
+  %2 := Trunc long %0 to int
+  %3 := Neq int %2, 256
+  branch %3, @1, @3
+label @1:
+  %4 := Trunc int %2 to byte
+  %5 := Neq byte %4, 2
+  branch %5, @2, @3
+label @2:
+  %6 := Trunc byte %4 to bool
+  Call void @test.use<Bool>(%6)
+  %7 := ZExt bool true to byte
+  continue @3
+label @3:
+  %8 := Phi byte @test.testMultipleUnwrapBool:2, @0:2, @1:2, @2:%7
+  Ret %8
+}
+
+func test.PointerType* @test.testMultipleUnwrapPointer(std.option.Option<Option<test.PointerType>>* %0, test.PointerType* %1) {
+  %2 := Cast std.option.Option<Option<test.PointerType>>* %0 to byte*
+  %3 := Load byte %2
+  %4 := Eq byte %3, 1
+  branch %4, @0, @2
+label @0:
+  %5 := Cast std.option.Option<Option<test.PointerType>>* %0 to std.option.Option<Option<test.PointerType>>::Some*
+  %6 := GetPointer test.PointerType*, std.option.Option<Option<test.PointerType>>::Some* %5.2
+  %7 := Load test.PointerType* %6
+  %8 := Neq test.PointerType* %7, null
+  branch %8, @1, @2
+label @1:
+  Call void @test.use<test.PointerType>(%7)
+  continue @2
+label @2:
+  %9 := Phi test.PointerType* @test.testMultipleUnwrapPointer:null, @0:null, @1:%1
+  Ret %9
+}
+
+func void @test.use<Bool>(bool %0) {
+  Ret
+}
+
+func void @test.use<Byte>(byte %0) {
+  Ret
+}
+
+func void @test.use<Function>(fn %0) {
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func void @test.use<test.PointerType>(test.PointerType* %0) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.testBoolUnwrap)
+  Call void @test.use<Function>(@test.testByteUnwrap)
+  Call void @test.use<Function>(@test.testIntUnwrap)
+  Call void @test.use<Function>(@test.testPointerUnwrap)
+  Call void @test.use<Function>(@test.testMultipleUnwrapBool)
+  Call void @test.use<Function>(@test.testMultipleUnwrapPointer)
+  Ret 0
+}

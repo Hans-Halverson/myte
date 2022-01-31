@@ -12,6 +12,24 @@ func void @test.intSignExtension() {
   Ret
 }
 
+func void @test.boolZeroExtension() {
+  %0 := Call byte @test.use<Option<Bool>>(0)
+  %1 := Call byte @test.use<Option<Bool>>(1)
+  Ret
+}
+
+func void @test.byteZeroExtension() {
+  %0 := Call int @test.use<Option<Byte>>(1)
+  %1 := Call int @test.use<Option<Byte>>(255)
+  Ret
+}
+
+func void @test.intZeroExtension() {
+  %0 := Call long @test.use<Option<Int>>(1)
+  %1 := Call long @test.use<Option<Int>>(4294967295)
+  Ret
+}
+
 func void @test.intTruncation() {
   %0 := Call byte @test.use<Byte>(1)
   %1 := Call byte @test.use<Byte>(127)
@@ -54,10 +72,25 @@ func long @test.use<Long>(long %0) {
   Ret %0
 }
 
+func byte @test.use<Option<Bool>>(byte %0) {
+  Ret %0
+}
+
+func int @test.use<Option<Byte>>(int %0) {
+  Ret %0
+}
+
+func long @test.use<Option<Int>>(long %0) {
+  Ret %0
+}
+
 func int @test.main() {
   %0 := Call fn @test.use<Function>(@test.byteSignExtension)
   %1 := Call fn @test.use<Function>(@test.intSignExtension)
-  %2 := Call fn @test.use<Function>(@test.intTruncation)
-  %3 := Call fn @test.use<Function>(@test.longTruncation)
+  %2 := Call fn @test.use<Function>(@test.boolZeroExtension)
+  %3 := Call fn @test.use<Function>(@test.byteZeroExtension)
+  %4 := Call fn @test.use<Function>(@test.intZeroExtension)
+  %5 := Call fn @test.use<Function>(@test.intTruncation)
+  %6 := Call fn @test.use<Function>(@test.longTruncation)
   Ret 0
 }

@@ -61,6 +61,17 @@ class spill_writer ~gcx =
       match instr with
       | PushM mem -> mk_single (PushM (resolve_mem mem))
       | PopM mem -> mk_single (PopM (resolve_mem mem))
+      (* 64-bit immediates can only be loaded to registers *)
+      | MovIM (dest_size, (Imm64 i as imm), dest_mem) when Integers.is_out_of_signed_int_range i ->
+        (match resolve_mem dest_mem with
+        (* If already loaded to a vreg, force that vreg to be a register *)
+        | Reg dest_reg ->
+          force_register_write dest_size dest_reg (fun reg' -> MovIM (dest_size, imm, Reg reg'))
+        (* If loaded to a memory location first load immediate to register, then move to memory *)
+        | Mem dest_mem ->
+          let new_vreg = mk_vreg () in
+          this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovIM (dest_size, imm, Reg new_vreg));
+          this#add_instr (instr_id, MovMM (dest_size, Reg new_vreg, Mem dest_mem)))
       | MovIM (size, src_imm, dest_mem) -> mk_single (MovIM (size, src_imm, resolve_mem dest_mem))
       | MovMM (size, src_mem, dest_mem) ->
         resolve_binop_single_mem size src_mem dest_mem (fun s d -> MovMM (size, s, d))

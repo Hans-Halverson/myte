@@ -1,0 +1,46 @@
+module test
+
+type PointerType (Long, Long, Long)
+
+fun testBoolUnwrap(x: Option<Bool>): Option<Bool> {
+  use(x?);
+  return Some (true);
+}
+
+fun testByteUnwrap(x: Option<Byte>): Option<Byte> {
+  use(x?);
+  return Some (1);
+}
+
+fun testIntUnwrap(x: Option<Int>): Option<Int> {
+  use(x?);
+  return Some (1);
+}
+
+fun testPointerUnwrap(x: Option<PointerType>, y: PointerType): Option<PointerType> {
+  use(x?);
+  return Some (y);
+}
+
+// Test that bool gets promoted to byte, which gets promoted to int, which gets promoted to long
+fun testMultipleUnwrapBool(x: Option<Option<Option<Bool>>>): Option<Bool> {
+  use(x???);
+  return Some (true);
+}
+
+// Niche cannot be reused, so should be stored as Option to nullable pointer
+fun testMultipleUnwrapPointer(x: Option<Option<PointerType>>, y: PointerType): Option<PointerType> {
+  use(x??);
+  return Some (y);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testBoolUnwrap);
+  use(testByteUnwrap);
+  use(testIntUnwrap);
+  use(testPointerUnwrap);
+  use(testMultipleUnwrapBool);
+  use(testMultipleUnwrapPointer);
+}
