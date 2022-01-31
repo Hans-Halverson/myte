@@ -1,5 +1,6 @@
 type opts = {
   bin: string ref;
+  exclude: string ref;
   filter: string ref;
   record: bool ref;
   tree: bool ref;
@@ -11,6 +12,7 @@ let default_bin = Filename.concat (Sys.getcwd ()) "_build/default/src/myte.exe"
 let opts =
   {
     bin = ref default_bin;
+    exclude = ref "";
     filter = ref "";
     record = ref false;
     tree = ref false;
@@ -20,6 +22,7 @@ let opts =
 let spec =
   [
     ("--bin", Arg.Set_string opts.bin, " The Myte binary to test");
+    ("--exclude", Arg.Set_string opts.exclude, " Exclude tests which match a regex");
     ("--filter", Arg.Set_string opts.filter, " Run only tests which match a regex");
     ("--record", Arg.Set opts.record, " Re-record snapshot tests");
     ("--tree", Arg.Set opts.tree, " Include tree of all test failures in output.");
@@ -29,23 +32,25 @@ let spec =
   ]
   |> Arg.align
 
+let regexp_opt string =
+  if string = "" then
+    None
+  else
+    Some (Str.regexp string)
+
 let () =
   Arg.parse spec (fun _ -> ()) "Run Myte test suite";
   let bin = !(opts.bin) in
-  let filter = !(opts.filter) in
-  let filter =
-    if filter = "" then
-      None
-    else
-      Some (Str.regexp filter)
-  in
+  let exclude = regexp_opt !(opts.exclude) in
+  let filter = regexp_opt !(opts.filter) in
   let record = !(opts.record) in
   let tree_full = !(opts.tree_full) in
   let tree = tree_full || !(opts.tree) in
 
   let suite_results =
     Runner.run_suites
-      filter
+      ~filter
+      ~exclude
       [
         Parser_tests.suite ~bin ~record;
         Analyze_tests.suite ~bin ~record;
@@ -53,6 +58,7 @@ let () =
         Asm_tests.suite ~bin ~record;
         Cli_tests.suite ~bin ~record;
         Program_tests.suite ~bin ~record;
+        Self_tests.suite;
       ]
   in
   let collated_results = Collate.collate_results suite_results in

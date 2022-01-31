@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+CURRENT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT_DIR=$(dirname "$CURRENT_DIR")
+
+# Build self hosted compiler in build directory
+BUILD_DIR="$ROOT_DIR/build"
+mkdir -p "$BUILD_DIR"
+
+"$CURRENT_DIR/myte" "$@" \
+  -o "$BUILD_DIR/self-hosted-myte" \
+  "$ROOT_DIR"/self/*.myte \
+  "$ROOT_DIR"/self/*/*.myte

@@ -1,3 +1,4 @@
 (executable
   (name run_tests)
-  (libraries str myte_test analyze_tests parser_tests mir_tests asm_tests cli_tests program_tests))
+  (libraries str myte_test analyze_tests parser_tests mir_tests asm_tests
+             cli_tests program_tests self_tests))
