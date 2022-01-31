@@ -85,7 +85,7 @@ let apply_binary_operation op (x : Literal.t) (y : Literal.t) : Literal.t =
 
 let apply_conversion op (x : Literal.t) : Literal.t =
   match (op, x) with
-  | (TruncOp Bool, Byte x) -> Bool ((x land 1) = 1)
+  | (TruncOp Bool, Byte x) -> Bool (x land 1 = 1)
   | (TruncOp Bool, Int x) -> Bool (Integers.trunc_int_to_bool x)
   | (TruncOp Bool, Long x) -> Bool (Integers.trunc_long_to_bool x)
   | (TruncOp Byte, Int x) -> Byte (Integers.trunc_int_to_byte x)

@@ -18,30 +18,7 @@ type resolved_source_value =
 
 let invalid_label_chars = Str.regexp "[<>,*()]"
 
-class preprocessor ~ir =
-  object
-    inherit Mir_visitor.IRVisitor.t ~program:ir
-
-    val mutable value_num_uses = IMap.empty
-
-    method get_value_num_uses = value_num_uses
-
-    method! visit_use use =
-      match use.value.value with
-      | Instr { id; _ }
-      | Argument { id; _ } ->
-        let num_uses =
-          match IMap.find_opt id value_num_uses with
-          | None -> 1
-          | Some num_uses -> num_uses + 1
-        in
-        value_num_uses <- IMap.add id num_uses value_num_uses
-      | _ -> ()
-  end
-
 let rec gen ~gcx (ir : Program.t) =
-  preprocess_ir ~gcx ir;
-
   (* Calculate layout of all aggregate types *)
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
 
@@ -52,11 +29,6 @@ let rec gen ~gcx (ir : Program.t) =
   SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
 
   Gcx.finish_builders ~gcx
-
-and preprocess_ir ~gcx ir =
-  let preprocessor = new preprocessor ~ir in
-  preprocessor#run ();
-  gcx.value_num_uses <- preprocessor#get_value_num_uses
 
 and gen_global_instruction_builder ~gcx ~ir:_ global =
   let label = label_of_mir_label global.name in
@@ -384,11 +356,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx (SetCC (cc, Reg result_vreg));
     cc
   in
-  let gen_cond_jmp cc test_value_id left_val right_val =
+  let gen_cond_jmp cc result_id left_val right_val =
     let cc =
       (* If the only use of the comparison is in this branch instruction, only need to generate
          a comparison instruction and use the current flags. *)
-      if IMap.find test_value_id gcx.value_num_uses = 1 then
+      if value_has_single_use left_val.Use.user then
         let swapped = gen_cmp left_val right_val in
         if swapped then
           swap_condition_code_order cc
@@ -397,7 +369,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       (* Otherwise the result of the comparison is used elsewhere, so we must load to a register
          with a SetCC instruction. We can still emit a JmpCC directly off the current flags though. *)
       else
-        gen_cmp_set_cc cc test_value_id left_val right_val
+        gen_cmp_set_cc cc result_id left_val right_val
     in
     let (continue, jump) =
       match get_terminator block with

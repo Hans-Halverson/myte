@@ -361,6 +361,13 @@ and remove_use (use : Use.t) =
     | Some first_use when first_use == use -> value.uses <- Some use.next
     | _ -> ()
 
+and value_has_uses (value : Value.t) : bool = value.uses <> None
+
+and value_has_single_use (value : Value.t) : bool =
+  match value.uses with
+  | Some first_use when first_use.next == first_use -> true
+  | _ -> false
+
 and value_iter_uses ~(value : Value.t) (f : Use.t -> unit) =
   match value.uses with
   | None -> ()

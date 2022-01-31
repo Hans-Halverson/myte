@@ -15,8 +15,6 @@ module Gcx = struct
     mutable prev_blocks: IIMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
     mutable mir_block_id_to_block_id: Block.id Mir.BlockMap.t;
-    (* Number of uses of each MIR value with a value id *)
-    mutable value_num_uses: int IMap.t;
     (* Map from instruction id to the block that contains it *)
     mutable instruction_to_block: Block.id IMap.t;
     mutable funcs_by_id: Function.t IMap.t;
@@ -45,7 +43,6 @@ module Gcx = struct
       blocks_by_id = IMap.empty;
       prev_blocks = IIMMap.empty;
       mir_block_id_to_block_id = Mir.BlockMap.empty;
-      value_num_uses = IMap.empty;
       instruction_to_block = IMap.empty;
       funcs_by_id = IMap.empty;
       color_to_vreg;
