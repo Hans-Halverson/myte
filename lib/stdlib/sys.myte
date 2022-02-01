@@ -10,8 +10,6 @@ import std.string.String
 import std.vec.Vec
 import std.unit.Unit
 
-import std.io.println
-
 builtin fun exit(code: Int): Never
 
 fun abort(): Never {

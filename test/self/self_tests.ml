@@ -4,9 +4,9 @@ let build_and_run_parser ~root opts =
   let command =
     Printf.sprintf
       {|
-      %s/scripts/build_self_hosted %s &&
-      %s/scripts/run_tests --bin %s/build/self-hosted-myte --exclude self_hosted --filter parser
-    |}
+        %s/scripts/build_self_hosted %s &&
+        %s/scripts/run_tests --bin %s/build/self-hosted-myte --exclude self_hosted --filter parser
+      |}
       root
       opts
       root
