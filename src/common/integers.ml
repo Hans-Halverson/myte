@@ -97,7 +97,7 @@ let zext_byte_to_long x =
   Bytes.get_int64_le bytes 0
 
 let zext_int_to_long x =
-  let bytes = Bytes.create 8 in
+  let bytes = Bytes.make 8 '\x00' in
   Bytes.set_int32_le bytes 0 x;
   Bytes.get_int64_le bytes 0
 

@@ -1,0 +1,59 @@
+module test
+
+import std.test.{assertEqual, fail}
+
+type PointerType (Long, Long, Long, Long, Long)
+
+fun unwrapSome<T>(x: Option<T>): T =
+  match (x) {
+    | None -> fail()
+    | Some (x) -> x
+  }
+
+fun isNone<T>(x: Option<T>) {
+  match (x) {
+    | None -> () 
+    | Some _ -> fail()
+  }
+}
+
+fun testInlineBool() {
+  assertEqual(unwrapSome(Some (true)), true);
+  assertEqual(unwrapSome(Some (false)), false);
+  isNone((None: Option<Bool>));
+}
+
+fun testInlineByte() {
+  assertEqual(unwrapSome(Some ((0: Byte))), 0);
+  assertEqual(unwrapSome(Some ((-1: Byte))), -1);
+  assertEqual(unwrapSome(Some ((100: Byte))), 100);
+  assertEqual(unwrapSome(Some ((127: Byte))), 127);
+  assertEqual(unwrapSome(Some ((-128: Byte))), -128);
+  isNone((None: Option<Byte>));
+}
+
+fun testInlineInt() {
+  assertEqual(unwrapSome(Some ((0: Int))), 0);
+  assertEqual(unwrapSome(Some ((-1: Int))), -1);
+  assertEqual(unwrapSome(Some ((100: Int))), 100);
+  assertEqual(unwrapSome(Some ((2147483647: Int))), 2147483647);
+  assertEqual(unwrapSome(Some ((-2147483648: Int))), -2147483648);
+  isNone((None: Option<Int>));
+}
+
+fun testInlinePointer() {
+  val PointerType (a, b, c, d, e) = unwrapSome(Some (PointerType (5, 6, 7, 8, 9)));
+  assertEqual(a, 5);
+  assertEqual(b, 6);
+  assertEqual(c, 7);
+  assertEqual(d, 8);
+  assertEqual(e, 9);
+  isNone((None: Option<PointerType>));
+}
+
+fun main() {
+  testInlineBool();
+  testInlineByte();
+  testInlineInt();
+  testInlinePointer();
+}
