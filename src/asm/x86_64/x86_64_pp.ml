@@ -144,84 +144,59 @@ let pp_sized_register ~buf reg size =
   add_string ~buf (string_of_sized_reg reg size)
 
 let rec pp_register ~gcx ~buf ~size reg =
-  let reg_alias = VReg.get_vreg_alias reg in
-  match reg_alias.resolution with
-  | Physical reg ->
+  let vreg = VReg.get_vreg_alias reg in
+  match vreg.resolution with
+  | PhysicalRegister reg ->
     pp_sized_register ~buf reg size;
     if Opts.dump_debug () then (
       add_char ~buf ':';
-      add_string ~buf (string_of_int reg_alias.id)
+      add_string ~buf (string_of_int vreg.id)
     )
-  (* Only used when printing virtual asm, as all vregs are resolved to physical register in
-     asm after register allocation. *)
-  | _ when not (Opts.dump_virtual_asm ()) ->
-    failwith "All vregs must be resolved to a physical register"
-  | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
-  | StackSlot (VirtualStackSlot vreg) -> pp_virtual_stack_slot ~buf vreg
-  | StackSlot (FunctionStackArgument vreg) -> pp_function_stack_argument ~buf vreg
-  | StackSlot (FunctionArgumentStackSlot vreg) -> pp_function_argument_stack_slot ~buf vreg
+  | MemoryAddress addr -> pp_memory_address ~gcx ~buf addr
+  | VirtualStackSlot when Opts.dump_virtual_asm () -> pp_virtual_stack_slot ~buf vreg
+  | FunctionStackArgument when Opts.dump_virtual_asm () -> pp_function_stack_argument ~buf vreg
+  | FunctionArgumentStackSlot when Opts.dump_virtual_asm () ->
+    pp_function_argument_stack_slot ~buf vreg
   | Unresolved ->
     add_char ~buf '%';
-    add_string ~buf (string_of_int reg_alias.id)
+    add_string ~buf (string_of_int vreg.id)
   | Alias _ -> failwith "Alias cannot be final resolution"
+  | VirtualStackSlot
+  | FunctionStackArgument
+  | FunctionArgumentStackSlot ->
+    failwith "Must be resolved before printing"
 
 and pp_memory_address ~gcx ~buf mem =
-  match mem with
-  | VirtualStackSlot vreg ->
-    (match VReg.get_vreg_resolution vreg with
-    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
-    | StackSlot (VirtualStackSlot vreg) when Opts.dump_virtual_asm () ->
-      pp_virtual_stack_slot ~buf vreg
-    | _ -> failwith "Virtual stack slot must have been resolved before printing")
-  | FunctionStackArgument vreg ->
-    (match VReg.get_vreg_resolution vreg with
-    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
-    | StackSlot (FunctionStackArgument vreg) when Opts.dump_virtual_asm () ->
-      pp_function_stack_argument ~buf vreg
-    | _ -> failwith "Function stack argument must have been resolved before printing")
-  | FunctionArgumentStackSlot vreg ->
-    (match VReg.get_vreg_resolution vreg with
-    | StackSlot (PhysicalAddress _ as addr) -> pp_memory_address ~gcx ~buf addr
-    | StackSlot (FunctionArgumentStackSlot vreg) when Opts.dump_virtual_asm () ->
-      pp_function_argument_stack_slot ~buf vreg
-    | _ -> failwith "Function argument stack slot must have been resolved before printing")
-  | PhysicalAddress mem ->
-    begin
-      match mem.offset with
-      | None
-      | Some (ImmediateOffset 0l) ->
-        ()
-      | Some (ImmediateOffset imm) -> add_string ~buf (Int32.to_string imm)
-      | Some (LabelOffset label) -> add_string ~buf label
-    end;
-    add_char ~buf '(';
-    begin
-      match mem.base with
-      | NoBase -> ()
-      | IPBase -> add_string ~buf "%rip"
-      | RegBase reg -> pp_register ~gcx ~buf ~size:Size64 reg
-    end;
-    begin
-      match mem.index_and_scale with
-      | None -> ()
-      | Some (index_register, scale) ->
-        add_string ~buf ", ";
-        pp_register ~gcx ~buf ~size:Size64 index_register;
-        begin
-          match scale with
-          | Scale1 -> ()
-          | Scale2 -> add_string ~buf ", 2"
-          | Scale4 -> add_string ~buf ", 4"
-          | Scale8 -> add_string ~buf ", 8"
-        end
-    end;
-    add_char ~buf ')'
-
-let pp_mem ~gcx ~buf ~size mem =
-  let open Instruction in
-  match mem with
-  | Reg reg -> pp_register ~gcx ~buf ~size reg
-  | Mem addr -> pp_memory_address ~gcx ~buf addr
+  begin
+    match mem.offset with
+    | None
+    | Some (ImmediateOffset 0l) ->
+      ()
+    | Some (ImmediateOffset imm) -> add_string ~buf (Int32.to_string imm)
+    | Some (LabelOffset label) -> add_string ~buf label
+  end;
+  add_char ~buf '(';
+  begin
+    match mem.base with
+    | NoBase -> ()
+    | IPBase -> add_string ~buf "%rip"
+    | RegBase reg -> pp_register ~gcx ~buf ~size:Size64 reg
+  end;
+  begin
+    match mem.index_and_scale with
+    | None -> ()
+    | Some (index_register, scale) ->
+      add_string ~buf ", ";
+      pp_register ~gcx ~buf ~size:Size64 index_register;
+      begin
+        match scale with
+        | Scale1 -> ()
+        | Scale2 -> add_string ~buf ", 2"
+        | Scale4 -> add_string ~buf ", 4"
+        | Scale8 -> add_string ~buf ", 8"
+      end
+  end;
+  add_char ~buf ')'
 
 let pp_instruction ~gcx ~pcx ~buf instruction =
   let open Instruction in
@@ -244,7 +219,6 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         add_char ~buf ' '
       in
       let pp_register = pp_register ~gcx ~buf in
-      let pp_mem = pp_mem ~gcx ~buf in
       let pp_immediate = pp_immediate ~buf in
       let pp_memory_address = pp_memory_address ~gcx ~buf in
       let pp_args_separator () = add_string ", " in
@@ -254,23 +228,23 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
         pp_immediate imm
       | PushM mem ->
         pp_op "push";
-        pp_mem ~size:Size64 mem
+        pp_register ~size:Size64 mem
       | PopM mem ->
         pp_op "pop";
-        pp_mem ~size:Size64 mem
+        pp_register ~size:Size64 mem
       | MovMM (size, src_mem, dest_mem) ->
         pp_sized_op "mov" size;
-        pp_mem ~size src_mem;
+        pp_register ~size src_mem;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | MovIM (size, src_imm, dest_mem) ->
         pp_sized_op "mov" size;
         pp_immediate src_imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | MovSX (src_size, dest_size, src_mem, dest_reg) ->
         pp_op "movsx";
-        pp_mem ~size:src_size src_mem;
+        pp_register ~size:src_size src_mem;
         pp_args_separator ();
         pp_register ~size:dest_size dest_reg
       | MovZX (src_size, dest_size, src_mem, dest_reg) ->
@@ -284,7 +258,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
             (src_size, dest_size)
           )
         in
-        pp_mem ~size:src_size src_mem;
+        pp_register ~size:src_size src_mem;
         pp_args_separator ();
         pp_register ~size:dest_size dest_reg
       | Lea (size, mem, reg) ->
@@ -295,125 +269,125 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
       (* Numeric operations *)
       | NegM (size, mem) ->
         pp_sized_op "neg" size;
-        pp_mem ~size mem
+        pp_register ~size mem
       | AddMM (size, src_mem, dest_mem) ->
         pp_sized_op "add" size;
-        pp_mem ~size src_mem;
+        pp_register ~size src_mem;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | AddIM (size, imm, dest_mem) ->
         pp_sized_op "add" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | SubMM (size, src_mem, dest_mem) ->
         pp_sized_op "sub" size;
-        pp_mem ~size src_mem;
+        pp_register ~size src_mem;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | SubIM (size, imm, dest_mem) ->
         pp_sized_op "sub" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | IMulMR (size, src_mem, dest_reg) ->
         pp_sized_op "imul" size;
-        pp_mem ~size src_mem;
+        pp_register ~size src_mem;
         pp_args_separator ();
         pp_register ~size dest_reg
       | IMulMIR (size, src_mem, imm, dest_reg) ->
         pp_sized_op "imul" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size src_mem;
+        pp_register ~size src_mem;
         pp_args_separator ();
         pp_register ~size dest_reg
       | IDiv (size, mem) ->
         pp_sized_op "idiv" size;
-        pp_mem ~size mem
+        pp_register ~size mem
       (* Bitwise operations *)
       | NotM (size, mem) ->
         pp_sized_op "not" size;
-        pp_mem ~size mem
+        pp_register ~size mem
       | AndMM (size, src_mem, dest_mem) ->
         pp_sized_op "and" size;
-        pp_mem ~size src_mem;
+        pp_register ~size src_mem;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | AndIM (size, imm, dest_mem) ->
         pp_sized_op "and" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | OrMM (size, src_mem, dest_mem) ->
         pp_sized_op "or" size;
-        pp_mem ~size src_mem;
+        pp_register ~size src_mem;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | OrIM (size, imm, dest_mem) ->
         pp_sized_op "or" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | XorMM (size, src_mem, dest_mem) ->
         pp_sized_op "xor" size;
-        pp_mem ~size src_mem;
+        pp_register ~size src_mem;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | XorIM (size, imm, dest_mem) ->
         pp_sized_op "xor" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | ShlR (size, dest_mem) ->
         pp_sized_op "shl" size;
         pp_sized_register ~buf C Size8;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | ShlI (size, imm, dest_mem) ->
         pp_sized_op "shl" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | ShrR (size, dest_mem) ->
         pp_sized_op "shr" size;
         pp_sized_register ~buf C Size8;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | ShrI (size, imm, dest_mem) ->
         pp_sized_op "shr" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | SarR (size, dest_mem) ->
         pp_sized_op "sar" size;
         pp_sized_register ~buf C Size8;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       | SarI (size, imm, dest_mem) ->
         pp_sized_op "sar" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size dest_mem
+        pp_register ~size dest_mem
       (* Comparisons - arguments intentionally flipped *)
       | CmpMM (size, mem1, mem2) ->
         pp_sized_op "cmp" size;
-        pp_mem ~size mem2;
+        pp_register ~size mem2;
         pp_args_separator ();
-        pp_mem ~size mem1
+        pp_register ~size mem1
       | CmpMI (size, mem, imm) ->
         pp_sized_op "cmp" size;
         pp_immediate imm;
         pp_args_separator ();
-        pp_mem ~size mem
+        pp_register ~size mem
       | TestMR (size, mem, reg) ->
         pp_sized_op "test" size;
-        pp_mem ~size mem;
+        pp_register ~size mem;
         pp_args_separator ();
         pp_register ~size reg
       | SetCC (cc, mem) ->
         pp_op ("set" ^ pp_condition_code cc);
-        pp_mem ~size:Size8 mem
+        pp_register ~size:Size8 mem
       | ConvertDouble size ->
         let op =
           match size with
@@ -437,7 +411,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
       | CallM (size, mem) ->
         pp_sized_op "call" size;
         add_char ~buf '*';
-        pp_mem ~size mem
+        pp_register ~size mem
       | CallL label ->
         pp_op "call";
         add_string label

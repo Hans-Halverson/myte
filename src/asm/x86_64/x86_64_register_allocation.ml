@@ -149,7 +149,8 @@ module RegisterAllocator = struct
           (fun ((instr_id, instr) as instr_with_id) ->
             begin
               match instr with
-              | Instruction.MovMM (_, Reg src_vreg, Reg dest_vreg) ->
+              | Instruction.MovMM (_, src_vreg, dest_vreg)
+                when VReg.is_reg_value src_vreg && VReg.is_reg_value dest_vreg ->
                 live := VRegSet.remove src_vreg !live;
                 ra.move_list <- VIMMap.add src_vreg instr_id ra.move_list;
                 ra.move_list <- VIMMap.add dest_vreg instr_id ra.move_list;
@@ -259,6 +260,13 @@ module RegisterAllocator = struct
       neighbor_vregs;
     !k < num_allocatable_registers
 
+  let rec get_vreg_alias ~ra vreg =
+    match vreg.VReg.resolution with
+    | Alias alias when VRegSet.mem vreg ra.coalesced_vregs -> get_vreg_alias ~ra alias
+    | _ -> vreg
+
+  let get_vreg_resolution ~ra vreg = (get_vreg_alias ~ra vreg).resolution
+
   (* Combine two vregs, making them alias to each other, combining their moves and interference edges.
    *)
   let combine_vregs ~(ra : t) alias_vreg vreg =
@@ -267,7 +275,7 @@ module RegisterAllocator = struct
     else
       ra.spill_worklist <- VRegSet.remove vreg ra.spill_worklist;
     ra.coalesced_vregs <- VRegSet.add vreg ra.coalesced_vregs;
-    vreg.resolution <- Alias alias_vreg;
+    (get_vreg_alias ~ra vreg).resolution <- Alias alias_vreg;
     ra.move_list <-
       VRegMap.add
         alias_vreg
@@ -290,15 +298,10 @@ module RegisterAllocator = struct
   let source_dest_vregs_of_move ~(ra : t) move_instr_id =
     let move_instruction = Gcx.get_instruction ~gcx:ra.gcx move_instr_id in
     match move_instruction with
-    | Instruction.MovMM (_, Reg source_vreg, Reg dest_vreg) -> (source_vreg, dest_vreg)
+    | Instruction.MovMM (_, source_vreg, dest_vreg)
+      when VReg.is_reg_value source_vreg && VReg.is_reg_value dest_vreg ->
+      (source_vreg, dest_vreg)
     | _ -> failwith "Expected id of virtual register to virtual register move instruction"
-
-  let rec get_vreg_alias ~ra vreg =
-    match vreg.VReg.resolution with
-    | Alias alias when VRegSet.mem vreg ra.coalesced_vregs -> get_vreg_alias ~ra alias
-    | _ -> vreg
-
-  let get_vreg_resolution ~ra vreg = (get_vreg_alias ~ra vreg).resolution
 
   (* Choose a move from the worklist and try to combine its virtual registers if doing so would
      not make the graph uncolorable *)
@@ -315,7 +318,7 @@ module RegisterAllocator = struct
       else
         (source_vreg, dest_vreg)
     in
-    if vreg1 = vreg2 then (
+    if vreg1 == vreg2 then (
       ra.coalesced_moves <- ISet.add move_instr_id ra.coalesced_moves;
       add_to_simplify_work_list ~ra vreg1
     ) else if
@@ -453,7 +456,7 @@ module RegisterAllocator = struct
           let alias = get_vreg_alias ~ra interfering_vreg in
           if VRegSet.mem alias ra.colored_vregs || VRegSet.mem alias ra.precolored_vregs then
             match alias.resolution with
-            | Physical reg -> ok_registers := RegSet.remove reg !ok_registers
+            | PhysicalRegister reg -> ok_registers := RegSet.remove reg !ok_registers
             | _ -> ())
         interfering_vregs;
 
@@ -477,7 +480,7 @@ module RegisterAllocator = struct
             || VRegSet.mem move_related_vreg ra.precolored_vregs
           then
             match move_related_vreg.resolution with
-            | Physical reg ->
+            | PhysicalRegister reg ->
               (match RegMap.find_opt reg !register_priorities with
               | None -> register_priorities := RegMap.add reg 1 !register_priorities
               | Some prev_priority ->
@@ -490,12 +493,12 @@ module RegisterAllocator = struct
       | None -> ra.spilled_vregs <- VRegSet.add vreg ra.spilled_vregs
       | Some physical_reg ->
         ra.colored_vregs <- VRegSet.add vreg ra.colored_vregs;
-        vreg.resolution <- Physical physical_reg
+        vreg.resolution <- PhysicalRegister physical_reg
     done;
     VRegSet.iter
       (fun vreg ->
         match get_vreg_resolution ~ra vreg with
-        | Physical _ as alias_resolution -> vreg.resolution <- alias_resolution
+        | PhysicalRegister _ as alias_resolution -> vreg.resolution <- alias_resolution
         | _ -> failwith "Alias must be colored")
       ra.coalesced_vregs
 
@@ -504,7 +507,7 @@ module RegisterAllocator = struct
     VRegSet.iter
       (fun vreg ->
         ra.func.spilled_vregs <- VRegSet.add vreg ra.func.spilled_vregs;
-        vreg.resolution <- StackSlot (VirtualStackSlot vreg))
+        vreg.resolution <- VirtualStackSlot)
       ra.spilled_vregs;
     (* Then rewrite program to include newly resolved memory locations *)
     let spill_writer = new X86_64_spill_writer.spill_writer ~gcx:ra.gcx in
@@ -533,7 +536,8 @@ module RegisterAllocator = struct
           List.filter
             (fun (_, instr) ->
               match instr with
-              | Instruction.MovMM (_, Reg source_vreg, Reg dest_vreg) ->
+              | Instruction.MovMM (_, source_vreg, dest_vreg)
+                when VReg.is_reg_value source_vreg && VReg.is_reg_value dest_vreg ->
                 get_vreg_alias ~ra source_vreg != get_vreg_alias ~ra dest_vreg
               | _ -> true)
             block.instructions)
@@ -541,7 +545,7 @@ module RegisterAllocator = struct
 
   class allocate_init_visitor =
     object (this)
-      inherit X86_64_visitor.instruction_visitor
+      inherit X86_64_visitor.instruction_visitor as super
 
       val mutable vreg_num_use_defs = VRegMap.empty
 
@@ -559,9 +563,17 @@ module RegisterAllocator = struct
             | Some prev_count -> prev_count + 1)
             vreg_num_use_defs
 
-      method! visit_read_vreg ~block:_ vreg = this#visit_vreg vreg
+      method! visit_read_vreg ~block vreg =
+        if VReg.is_reg_value vreg then
+          this#visit_vreg vreg
+        else
+          super#visit_read_vreg ~block vreg
 
-      method! visit_write_vreg ~block:_ vreg = this#visit_vreg vreg
+      method! visit_write_vreg ~block vreg =
+        if VReg.is_reg_value vreg then
+          this#visit_vreg vreg
+        else
+          super#visit_write_vreg ~block vreg
     end
 
   (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
@@ -600,6 +612,7 @@ module RegisterAllocator = struct
           select_spill ~ra vreg_num_use_defs
       done;
       assign_colors ~ra;
+
       if not (VRegSet.is_empty ra.spilled_vregs) then (
         rewrite_program ~ra;
         iter ()

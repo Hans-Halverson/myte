@@ -78,15 +78,15 @@ let coalesce_lea_mapper =
 
     method set_reg_and_address vreg addr =
       has_coalesced <- false;
-      reg_to_replace <- VReg.get_physical_resolution vreg;
+      reg_to_replace <- VReg.get_physical_register_resolution vreg;
       address_to_coalesce <- addr
 
     method! map_mem mem =
-      match mem with
-      | Mem (PhysicalAddress { offset = None; base = RegBase vreg; index_and_scale = None })
-        when VReg.get_physical_resolution vreg = reg_to_replace ->
+      match VReg.get_vreg_resolution mem with
+      | MemoryAddress { offset = None; base = RegBase vreg; index_and_scale = None }
+        when VReg.get_physical_register_resolution vreg = reg_to_replace ->
         has_coalesced <- true;
-        Mem address_to_coalesce
+        VReg.mk ~resolution:(MemoryAddress address_to_coalesce)
       | _ -> mem
   end
 
@@ -122,16 +122,18 @@ let coalesce_lea_optimization ~gcx:_ instr next_instrs =
 let remove_byte_reg_reg_moves_optimization ~gcx:_ instr _ =
   let open Instruction in
   match instr with
-  | (instr_id, MovMM (Size8, Reg src_reg, Reg dest_reg)) ->
-    Some (1, [(instr_id, MovMM (Size32, Reg src_reg, Reg dest_reg))])
+  | (instr_id, MovMM (Size8, src_reg, dest_reg))
+    when VReg.is_reg_value src_reg && VReg.is_reg_value dest_reg ->
+    Some (1, [(instr_id, MovMM (Size32, src_reg, dest_reg))])
   | _ -> None
 
 (* Loading zero to a register can be replaced by a reflexive xor for smaller instruction size *)
 let load_zero_to_register_optimization ~gcx:_ instr _ =
   let open Instruction in
   match instr with
-  | (instr_id, MovIM (_, (Imm8 0 | Imm16 0 | Imm32 0l | Imm64 0L), Reg dest_reg)) ->
-    Some (1, [(instr_id, XorMM (Size32, Reg dest_reg, Reg dest_reg))])
+  | (instr_id, MovIM (_, (Imm8 0 | Imm16 0 | Imm32 0l | Imm64 0L), dest_reg))
+    when VReg.is_reg_value dest_reg ->
+    Some (1, [(instr_id, XorMM (Size32, dest_reg, dest_reg))])
   | _ -> None
 
 (* Some arithmetic operations that involve immediate powers of two can be reduced to bit shifts *)
@@ -142,16 +144,17 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr _ =
   | (instr_id, IMulMIR (size, src, imm, dest_reg))
     when Integers.is_power_of_two (int64_of_immediate imm) ->
     let power_of_two = Integers.power_of_two (int64_of_immediate imm) in
-    let shift_instr = (instr_id, ShlI (size, Imm8 power_of_two, Reg dest_reg)) in
-    (match src with
+    let shift_instr = (instr_id, ShlI (size, Imm8 power_of_two, dest_reg)) in
     (* If same register is source and dest, can shift it in place *)
-    | Reg src_reg when VReg.get_physical_resolution src_reg = VReg.get_physical_resolution dest_reg
-      ->
+    if
+      VReg.is_reg_value src
+      && VReg.get_physical_register_resolution src = VReg.get_physical_register_resolution dest_reg
+    then
       Some (1, [shift_instr])
-    (* Otherwise must move to dest register before shift *)
-    | _ ->
-      let mov_instr = (Instruction.mk_id (), MovMM (size, src, Reg dest_reg)) in
-      Some (1, [mov_instr; shift_instr]))
+    else
+      (* Otherwise must move to dest register before shift *)
+      let mov_instr = (Instruction.mk_id (), MovMM (size, src, dest_reg)) in
+      Some (1, [mov_instr; shift_instr])
   | _ -> None
 
 let basic_peephole_optimizations =

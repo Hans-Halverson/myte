@@ -38,7 +38,7 @@ class use_def_finder color_to_vreg =
         this#add_vreg_use ~block (this#get_precolored_vreg A);
         this#add_vreg_def ~block (this#get_precolored_vreg D);
         super#visit_instruction ~block instr_with_id
-      (* Shifts with register shfit argument implicitly use value in register C *)
+      (* Shifts with register shift argument implicitly use value in register C *)
       | ShlR _
       | ShrR _
       | SarR _ ->
@@ -46,14 +46,23 @@ class use_def_finder color_to_vreg =
         super#visit_instruction ~block instr_with_id
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
-      | XorMM (_, Reg reg1, Reg reg2)
-        when (VReg.get_vreg_alias reg1).id = (VReg.get_vreg_alias reg2).id ->
+      | XorMM (_, reg1, reg2)
+        when VReg.is_reg_value reg1 && (VReg.get_vreg_alias reg1).id = (VReg.get_vreg_alias reg2).id
+        ->
         this#add_vreg_def ~block reg1
       | _ -> super#visit_instruction ~block instr_with_id
 
-    method! visit_read_vreg ~block vreg = this#add_vreg_use ~block vreg
+    method! visit_read_vreg ~block vreg =
+      if VReg.is_reg_value vreg then
+        this#add_vreg_use ~block vreg
+      else
+        super#visit_read_vreg ~block vreg
 
-    method! visit_write_vreg ~block vreg = this#add_vreg_def ~block vreg
+    method! visit_write_vreg ~block vreg =
+      if VReg.is_reg_value vreg then
+        this#add_vreg_def ~block vreg
+      else
+        super#visit_write_vreg ~block vreg
   end
 
 class analyze_vregs_init_visitor (blocks : Block.t List.t) color_to_vreg =
@@ -152,7 +161,7 @@ let analyze_vregs blocks color_to_vreg =
 
 class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
   object (this)
-    inherit X86_64_visitor.instruction_visitor
+    inherit X86_64_visitor.instruction_visitor as super
 
     val mutable prev_blocks =
       IMap.fold (fun block_id _ acc -> IMap.add block_id ISet.empty acc) gcx.blocks_by_id IMap.empty
@@ -179,23 +188,23 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
       prev_blocks <-
         IMap.add next_block_id (ISet.add block.id (IMap.find next_block_id prev_blocks)) prev_blocks
 
-    method! visit_read_mem ~block mem =
-      let open Instruction in
-      match mem with
-      | Mem (VirtualStackSlot vreg) -> vslot_use_blocks <- VIMMap.add vreg block.id vslot_use_blocks
-      | _ -> ()
+    method! visit_read_vreg ~block vreg =
+      let vreg = VReg.get_vreg_alias vreg in
+      match vreg.resolution with
+      | VirtualStackSlot -> vslot_use_blocks <- VIMMap.add vreg block.id vslot_use_blocks
+      | _ -> super#visit_read_vreg ~block vreg
 
-    method! visit_write_mem ~block mem =
-      let open Instruction in
-      match mem with
-      | Mem (VirtualStackSlot vreg) ->
+    method! visit_write_vreg ~block vreg =
+      let vreg = VReg.get_vreg_alias vreg in
+      match vreg.resolution with
+      | VirtualStackSlot ->
         if
           VIMMap.contains vreg block.id vslot_use_blocks
           && not (VIMMap.contains vreg block.id vslot_def_blocks)
         then
           vslot_use_before_def_blocks <- VIMMap.add vreg block.id vslot_use_before_def_blocks;
         vslot_def_blocks <- VIMMap.add vreg block.id vslot_def_blocks
-      | _ -> ()
+      | _ -> super#visit_write_vreg ~block vreg
   end
 
 let analyze_virtual_stack_slots ~(gcx : Gcx.t) =

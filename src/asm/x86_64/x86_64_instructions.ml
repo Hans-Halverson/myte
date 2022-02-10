@@ -51,19 +51,11 @@ type immediate =
   | Imm64 of Int64.t
 
 module rec MemoryAddress : sig
-  type t =
-    | VirtualStackSlot of VReg.t
-    | PhysicalAddress of {
-        offset: offset option;
-        base: base;
-        index_and_scale: (VReg.t * scale) option;
-      }
-    (* An argument to the current function that is passed on the stack. These arguments appear at
-       the bottom of the previous function's stack frame. *)
-    | FunctionStackArgument of VReg.t
-    (* An argument to pass to a callee function on the stack. These arguments appear at this bottom
-       of the current function's stack frame. *)
-    | FunctionArgumentStackSlot of VReg.t
+  type t = {
+    offset: offset option;
+    base: base;
+    index_and_scale: (VReg.t * scale) option;
+  }
 
   and offset =
     | ImmediateOffset of Int32.t
@@ -94,10 +86,17 @@ and VReg : sig
     (* This vreg has been aliased to another. The resolution is the resolution of the alias vreg. *)
     | Alias of t
     (* This vreg has been mapped to a physical register in a particular register slot *)
-    | Physical of register_slot
-    (* This vreg has been mapped to a slot on the stack. May be explicit or result from spills. *)
-    | StackSlot of MemoryAddress.t
-    (* This vreg has not yet been resolved to a physical location *)
+    | PhysicalRegister of register_slot
+    (* Memory address (which may contain vregs as the base, offset, or index) *)
+    | MemoryAddress of MemoryAddress.t
+    | VirtualStackSlot
+    (* An argument to the current function that is passed on the stack. These arguments appear at
+       the bottom of the previous function's stack frame. *)
+    | FunctionStackArgument
+    (* An argument to pass to a callee function on the stack. These arguments appear at this bottom
+       of the current function's stack frame. *)
+    | FunctionArgumentStackSlot
+    (* This vreg has not yet been resolved *)
     | Unresolved
 
   val of_value_id : resolution:resolution -> id -> t
@@ -110,7 +109,11 @@ and VReg : sig
 
   val get_vreg_resolution : t -> resolution
 
-  val get_physical_resolution : t -> register_slot
+  val get_physical_register_resolution : t -> register_slot
+
+  val is_memory_value : t -> bool
+
+  val is_reg_value : t -> bool
 end = struct
   type id = int
 
@@ -121,8 +124,11 @@ end = struct
 
   and resolution =
     | Alias of t
-    | Physical of register_slot
-    | StackSlot of MemoryAddress.t
+    | PhysicalRegister of register_slot
+    | MemoryAddress of MemoryAddress.t
+    | VirtualStackSlot
+    | FunctionStackArgument
+    | FunctionArgumentStackSlot
     | Unresolved
 
   let vregs_by_id = ref IMap.empty
@@ -146,14 +152,24 @@ end = struct
 
   let get_vreg_resolution vreg = (get_vreg_alias vreg).resolution
 
-  let get_physical_resolution vreg =
+  let get_physical_register_resolution vreg =
     match get_vreg_resolution vreg with
-    | Physical reg -> reg
+    | PhysicalRegister reg -> reg
     | _ -> failwith "Expected virtual register to be resolved to physical register"
+
+  let is_memory_value value =
+    match get_vreg_resolution value with
+    | MemoryAddress _
+    | VirtualStackSlot
+    | FunctionStackArgument
+    | FunctionArgumentStackSlot ->
+      true
+    | _ -> false
+
+  let is_reg_value value = not (is_memory_value value)
 end
 
-let empty_memory_address =
-  MemoryAddress.PhysicalAddress { offset = None; base = NoBase; index_and_scale = None }
+let empty_memory_address = { MemoryAddress.offset = None; base = NoBase; index_and_scale = None }
 
 type condition_code =
   | E
@@ -184,10 +200,6 @@ let string_of_vset vset =
 module Instruction = struct
   type id = int
 
-  type reg_or_mem =
-    | Reg of VReg.t
-    | Mem of MemoryAddress.t
-
   type t' =
     (* Instruction Suffixes:
           R - virtual register
@@ -200,55 +212,55 @@ module Instruction = struct
         Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
     (* Stack instructions, all implicitly have size of 64 bits *)
     | PushI of immediate
-    | PushM of reg_or_mem
-    | PopM of reg_or_mem
+    | PushM of VReg.t
+    | PopM of VReg.t
     (* Data instructions *)
     (* Allows 64-bit immediate. register_size is destination size which may not match immediate size *)
-    | MovIM of register_size * immediate * reg_or_mem
+    | MovIM of register_size * immediate * VReg.t
     (* Allows 64-bit immediate. register_size is destination size *)
-    | MovMM of register_size * reg_or_mem * reg_or_mem
+    | MovMM of register_size * VReg.t * VReg.t
     (* Src size then dest size where src size < dest size *)
-    | MovSX of register_size * register_size * reg_or_mem * VReg.t
+    | MovSX of register_size * register_size * VReg.t * (* Register *) VReg.t
     (* Src size then dest size where src size < dest size *)
-    | MovZX of register_size * register_size * reg_or_mem * VReg.t
+    | MovZX of register_size * register_size * VReg.t * (* Register *) VReg.t
     | Lea of register_size * MemoryAddress.t * VReg.t (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
-    | NegM of register_size * reg_or_mem
-    | AddIM of register_size * immediate * reg_or_mem
-    | AddMM of register_size * reg_or_mem * reg_or_mem
+    | NegM of register_size * VReg.t
+    | AddIM of register_size * immediate * VReg.t
+    | AddMM of register_size * VReg.t * VReg.t
     (* For sub instructions, right/dest := right/dest - left/src *)
-    | SubIM of register_size * immediate * reg_or_mem
-    | SubMM of register_size * reg_or_mem * reg_or_mem
-    | IMulMR of register_size * reg_or_mem * VReg.t (* Only supports 16, 32, and 64-bit arguments *)
-    | IMulMIR of register_size * reg_or_mem * immediate * VReg.t (* Only supports 16 and 32-bit immediates *)
-    | IDiv of register_size * reg_or_mem
+    | SubIM of register_size * immediate * VReg.t
+    | SubMM of register_size * VReg.t * VReg.t
+    | IMulMR of register_size * VReg.t * (* Register *) VReg.t (* Only supports 16, 32, and 64-bit arguments *)
+    | IMulMIR of register_size * VReg.t * immediate * (* Register *) VReg.t (* Only supports 16 and 32-bit immediates *)
+    | IDiv of register_size * VReg.t
     (* Bitwise operations *)
-    | NotM of register_size * reg_or_mem
-    | AndIM of register_size * immediate * reg_or_mem
-    | AndMM of register_size * reg_or_mem * reg_or_mem
-    | OrIM of register_size * immediate * reg_or_mem
-    | OrMM of register_size * reg_or_mem * reg_or_mem
-    | XorIM of register_size * immediate * reg_or_mem
-    | XorMM of register_size * reg_or_mem * reg_or_mem
+    | NotM of register_size * VReg.t
+    | AndIM of register_size * immediate * VReg.t
+    | AndMM of register_size * VReg.t * VReg.t
+    | OrIM of register_size * immediate * VReg.t
+    | OrMM of register_size * VReg.t * VReg.t
+    | XorIM of register_size * immediate * VReg.t
+    | XorMM of register_size * VReg.t * VReg.t
     (* Bit shifts *)
-    | ShlI of register_size * immediate * reg_or_mem (* Requires 8-bit immediate *)
-    | ShlR of register_size * reg_or_mem
-    | ShrI of register_size * immediate * reg_or_mem (* Requires 8-bit immediate *)
-    | ShrR of register_size * reg_or_mem
-    | SarI of register_size * immediate * reg_or_mem (* Requires 8-bit immediate *)
-    | SarR of register_size * reg_or_mem
+    | ShlI of register_size * immediate * VReg.t (* Requires 8-bit immediate *)
+    | ShlR of register_size * VReg.t
+    | ShrI of register_size * immediate * VReg.t (* Requires 8-bit immediate *)
+    | ShrR of register_size * VReg.t
+    | SarI of register_size * immediate * VReg.t (* Requires 8-bit immediate *)
+    | SarR of register_size * VReg.t
     (* Comparisons *)
-    | CmpMI of register_size * reg_or_mem * immediate
-    | CmpMM of register_size * reg_or_mem * reg_or_mem
-    | TestMR of register_size * reg_or_mem * VReg.t
-    | SetCC of condition_code * reg_or_mem (* Only supports 8-bit destination *)
+    | CmpMI of register_size * VReg.t * immediate
+    | CmpMM of register_size * VReg.t * VReg.t
+    | TestMR of register_size * VReg.t * (* Register *) VReg.t
+    | SetCC of condition_code * VReg.t (* Only supports 8-bit destination *)
     (* Conversions *)
     | ConvertDouble of register_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
     (* Control flow *)
     | Jmp of block_id
     | JmpCC of condition_code * block_id
     | CallL of label
-    | CallM of register_size * reg_or_mem
+    | CallM of register_size * VReg.t
     | Leave
     | Ret
     | Syscall

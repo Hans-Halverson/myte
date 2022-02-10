@@ -4,7 +4,7 @@ open X86_64_instructions
 
 class vslot_use_def_finder =
   object
-    inherit X86_64_visitor.instruction_visitor
+    inherit X86_64_visitor.instruction_visitor as super
 
     val mutable vslot_uses = VRegSet.empty
 
@@ -14,17 +14,17 @@ class vslot_use_def_finder =
 
     method vslot_defs = vslot_defs
 
-    method! visit_read_mem ~block:_ mem =
-      let open Instruction in
-      match mem with
-      | Mem (VirtualStackSlot vreg) -> vslot_uses <- VRegSet.add vreg vslot_uses
-      | _ -> ()
+    method! visit_read_vreg ~block vreg =
+      let vreg = VReg.get_vreg_alias vreg in
+      match vreg.resolution with
+      | VirtualStackSlot -> vslot_uses <- VRegSet.add vreg vslot_uses
+      | _ -> super#visit_read_vreg ~block vreg
 
-    method! visit_write_mem ~block:_ mem =
-      let open Instruction in
-      match mem with
-      | Mem (VirtualStackSlot vreg) -> vslot_defs <- VRegSet.add vreg vslot_defs
-      | _ -> ()
+    method! visit_write_vreg ~block vreg =
+      let vreg = VReg.get_vreg_alias vreg in
+      match vreg.resolution with
+      | VirtualStackSlot -> vslot_defs <- VRegSet.add vreg vslot_defs
+      | _ -> super#visit_write_vreg ~block vreg
   end
 
 let find_vslot_use_defs block instruction =
@@ -59,14 +59,14 @@ let liveness_analysis ~(gcx : Gcx.t) =
   !graph
 
 let resolve_to_physical_stack_slot ~gcx vreg offset =
-  vreg.VReg.resolution <-
-    StackSlot
-      (PhysicalAddress
-         {
-           base = RegBase (Gcx.mk_precolored ~gcx SP);
-           offset = Some (ImmediateOffset (Int32.of_int offset));
-           index_and_scale = None;
-         })
+  let vreg = VReg.get_vreg_alias vreg in
+  vreg.resolution <-
+    MemoryAddress
+      {
+        base = RegBase (Gcx.mk_precolored ~gcx SP);
+        offset = Some (ImmediateOffset (Int32.of_int offset));
+        index_and_scale = None;
+      }
 
 let allocate_stack_slots ~(gcx : Gcx.t) =
   let interference_graph = liveness_analysis ~gcx in

@@ -28,7 +28,7 @@ module Gcx = struct
     let (color_to_vreg, _precolored_vregs, _interference_degree) =
       RegSet.fold
         (fun reg (color_to_vreg, precolored_vregs, interference_degree) ->
-          let vreg = VReg.mk ~resolution:(Physical reg) in
+          let vreg = VReg.mk ~resolution:(PhysicalRegister reg) in
           ( RegMap.add reg vreg color_to_vreg,
             VRegSet.add vreg precolored_vregs,
             VRegMap.add vreg Int.max_int interference_degree ))
@@ -134,8 +134,7 @@ module Gcx = struct
     match List.nth_opt current_func.argument_stack_slots i with
     | Some stack_slot_vreg -> stack_slot_vreg
     | None ->
-      let stack_slot_vreg = VReg.mk ~resolution:Unresolved in
-      stack_slot_vreg.resolution <- StackSlot (FunctionArgumentStackSlot stack_slot_vreg);
+      let stack_slot_vreg = VReg.mk ~resolution:FunctionArgumentStackSlot in
       current_func.argument_stack_slots <- current_func.argument_stack_slots @ [stack_slot_vreg];
       stack_slot_vreg
 
@@ -231,9 +230,9 @@ module Gcx = struct
           List.filter
             (fun (_, instr) ->
               match instr with
-              | MovMM (_, Reg vreg1, Reg vreg2) ->
+              | MovMM (_, vreg1, vreg2) ->
                 (match (VReg.get_vreg_resolution vreg1, VReg.get_vreg_resolution vreg2) with
-                | (Physical reg1, Physical reg2) when reg1 = reg2 -> false
+                | (PhysicalRegister reg1, PhysicalRegister reg2) when reg1 = reg2 -> false
                 | _ -> true)
               | _ -> true)
             block.instructions)
