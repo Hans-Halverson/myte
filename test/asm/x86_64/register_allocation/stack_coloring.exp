@@ -176,15 +176,15 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl $103, %r13d
   movl $104, (%rsp)
   movl $105, %r12d
-  movl $106, %r11d
-  movl $107, %r10d
-  movl $108, %r9d
-  movl $109, %r8d
-  movl $110, %edi
-  movl $111, %esi
-  movl $112, %edx
-  movl $113, %ecx
-  movl $114, %ebx
+  movl $106, %ebx
+  movl $107, %r11d
+  movl $108, %r10d
+  movl $109, %r9d
+  movl $110, %r8d
+  movl $111, %edi
+  movl $112, %esi
+  movl $113, %edx
+  movl $114, %ecx
   movl $115, %eax
   jmp .L7
 .L6:
@@ -193,15 +193,15 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl $3, %r13d
   movl $4, (%rsp)
   movl $5, %r12d
-  movl $6, %r11d
-  movl $7, %r10d
-  movl $8, %r9d
-  movl $9, %r8d
-  movl $10, %edi
-  movl $11, %esi
-  movl $12, %edx
-  movl $13, %ecx
-  movl $14, %ebx
+  movl $6, %ebx
+  movl $7, %r11d
+  movl $8, %r10d
+  movl $9, %r9d
+  movl $10, %r8d
+  movl $11, %edi
+  movl $12, %esi
+  movl $13, %edx
+  movl $14, %ecx
   movl $15, %eax
 .L7:
   addl %r15d, %r14d
@@ -209,7 +209,8 @@ test.testNonInterferingSpillsReuseStackSlots:
   movl (%rsp), %r14d
   addl %r13d, %r14d
   addl %r14d, %r12d
-  addl %r12d, %r11d
+  addl %r12d, %ebx
+  addl %ebx, %r11d
   addl %r11d, %r10d
   addl %r10d, %r9d
   addl %r9d, %r8d
@@ -217,8 +218,7 @@ test.testNonInterferingSpillsReuseStackSlots:
   addl %edi, %esi
   addl %esi, %edx
   addl %edx, %ecx
-  addl %ecx, %ebx
-  addl %ebx, %eax
+  addl %ecx, %eax
   movl $77, %eax
   addq $8, %rsp
   pop %r15
@@ -349,15 +349,15 @@ test.testPartialReuseStackSlots:
   movl $104, (%rsp)
   movl $105, 8(%rsp)
   movl $106, %r12d
-  movl $107, %r11d
-  movl $108, %r10d
-  movl $109, %r9d
-  movl $110, %r8d
-  movl $111, %edi
-  movl $112, %esi
-  movl $113, %edx
-  movl $114, %ecx
-  movl $115, %ebx
+  movl $107, %ebx
+  movl $108, %r11d
+  movl $109, %r10d
+  movl $110, %r9d
+  movl $111, %r8d
+  movl $112, %edi
+  movl $113, %esi
+  movl $114, %edx
+  movl $115, %ecx
   movl $116, %eax
   jmp .L13
 .L12:
@@ -367,15 +367,15 @@ test.testPartialReuseStackSlots:
   movl $4, (%rsp)
   movl $5, 8(%rsp)
   movl $6, %r12d
-  movl $7, %r11d
-  movl $8, %r10d
-  movl $9, %r9d
-  movl $10, %r8d
-  movl $11, %edi
-  movl $12, %esi
-  movl $13, %edx
-  movl $14, %ecx
-  movl $15, %ebx
+  movl $7, %ebx
+  movl $8, %r11d
+  movl $9, %r10d
+  movl $10, %r9d
+  movl $11, %r8d
+  movl $12, %edi
+  movl $13, %esi
+  movl $14, %edx
+  movl $15, %ecx
   movl $16, %eax
 .L13:
   addl %r15d, %r14d
@@ -385,7 +385,8 @@ test.testPartialReuseStackSlots:
   movl 8(%rsp), %r13d
   addl %r14d, %r13d
   addl %r13d, %r12d
-  addl %r12d, %r11d
+  addl %r12d, %ebx
+  addl %ebx, %r11d
   addl %r11d, %r10d
   addl %r10d, %r9d
   addl %r9d, %r8d
@@ -393,8 +394,7 @@ test.testPartialReuseStackSlots:
   addl %edi, %esi
   addl %esi, %edx
   addl %edx, %ecx
-  addl %ecx, %ebx
-  addl %ebx, %eax
+  addl %ecx, %eax
   movl $77, %eax
   addq $16, %rsp
   pop %r15

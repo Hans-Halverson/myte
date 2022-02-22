@@ -1,7 +1,7 @@
 open X86_64_gen_context
 open X86_64_instructions
 
-class spill_writer ~gcx =
+class spill_writer ~(gcx : Gcx.t) ~(get_vreg_alias : VReg.t -> VReg.t) =
   object (this)
     val mutable new_vregs = VRegSet.empty
 
@@ -28,6 +28,8 @@ class spill_writer ~gcx =
         block.instructions;
       block.instructions <- List.rev current_block_builders |> List.flatten
 
+    method is_memory_value vreg = VReg.is_memory_value (get_vreg_alias vreg)
+
     (* Every memory location (M suffix) must be visited in case it is a Reg that should become a Mem.
        Every MM instruction must make sure that it does not become filled with two memory locations.
        Enforce locations that need a register (R suffix) and ensure they do not become memory locations. *)
@@ -40,7 +42,7 @@ class spill_writer ~gcx =
       let resolve_binop_single_mem size src_mem dest_mem f =
         let src_mem = resolve_reg src_mem in
         let dest_mem = resolve_reg dest_mem in
-        if VReg.is_memory_value src_mem && VReg.is_memory_value dest_mem then (
+        if this#is_memory_value src_mem && this#is_memory_value dest_mem then (
           let src_vreg = mk_vreg () in
           this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (size, src_mem, src_vreg));
           this#add_instr (instr_id, f src_vreg dest_mem)
@@ -50,7 +52,7 @@ class spill_writer ~gcx =
       (* Must have a register not a memory address - if necessary create new register then move *)
       let force_register_write size reg f =
         let vreg = resolve_reg reg in
-        if VReg.is_memory_value vreg then (
+        if this#is_memory_value vreg then (
           let vreg_dest = mk_vreg () in
           this#add_instr (instr_id, f vreg_dest);
           this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (size, vreg_dest, vreg))
@@ -143,7 +145,7 @@ class spill_writer ~gcx =
     (* Resolve a register, replacing the register with a memory if it has been resolved to a
        stack slot. *)
     method resolve_reg ~block vreg =
-      let vreg = VReg.get_vreg_alias vreg in
+      let vreg = get_vreg_alias vreg in
       (match vreg.resolution with
       | MemoryAddress mem ->
         vreg.resolution <- MemoryAddress (this#force_registers_in_address ~block mem)
@@ -159,7 +161,7 @@ class spill_writer ~gcx =
         match base with
         | RegBase reg ->
           let mem_vreg = this#resolve_reg ~block reg in
-          if VReg.is_memory_value mem_vreg then (
+          if this#is_memory_value mem_vreg then (
             let vreg = this#mk_vreg () in
             this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (Size64, mem_vreg, vreg));
             MemoryAddress.RegBase vreg
@@ -171,7 +173,7 @@ class spill_writer ~gcx =
         match index_and_scale with
         | Some (reg, scale) ->
           let mem_vreg = this#resolve_reg ~block reg in
-          if VReg.is_memory_value mem_vreg then (
+          if this#is_memory_value mem_vreg then (
             let vreg = this#mk_vreg () in
             this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (Size64, mem_vreg, vreg));
             Some (vreg, scale)

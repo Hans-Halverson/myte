@@ -83,8 +83,6 @@ and VReg : sig
   }
 
   and resolution =
-    (* This vreg has been aliased to another. The resolution is the resolution of the alias vreg. *)
-    | Alias of t
     (* This vreg has been mapped to a physical register in a particular register slot *)
     | PhysicalRegister of register_slot
     (* Memory address (which may contain vregs as the base, offset, or index) *)
@@ -105,10 +103,6 @@ and VReg : sig
 
   val compare : t -> t -> int
 
-  val get_vreg_alias : t -> t
-
-  val get_vreg_resolution : t -> resolution
-
   val get_physical_register_resolution : t -> register_slot
 
   val is_memory_value : t -> bool
@@ -123,7 +117,6 @@ end = struct
   }
 
   and resolution =
-    | Alias of t
     | PhysicalRegister of register_slot
     | MemoryAddress of MemoryAddress.t
     | VirtualStackSlot
@@ -145,20 +138,13 @@ end = struct
 
   let compare v1 v2 = Int.compare v1.id v2.id
 
-  let rec get_vreg_alias vreg =
-    match vreg.resolution with
-    | Alias alias -> get_vreg_alias alias
-    | _ -> vreg
-
-  let get_vreg_resolution vreg = (get_vreg_alias vreg).resolution
-
   let get_physical_register_resolution vreg =
-    match get_vreg_resolution vreg with
+    match vreg.resolution with
     | PhysicalRegister reg -> reg
     | _ -> failwith "Expected virtual register to be resolved to physical register"
 
   let is_memory_value value =
-    match get_vreg_resolution value with
+    match value.resolution with
     | MemoryAddress _
     | VirtualStackSlot
     | FunctionStackArgument

@@ -143,9 +143,8 @@ let pp_sized_register ~buf reg size =
   add_char ~buf '%';
   add_string ~buf (string_of_sized_reg reg size)
 
-let rec pp_register ~gcx ~buf ~size reg =
-  let vreg = VReg.get_vreg_alias reg in
-  match vreg.resolution with
+let rec pp_register ~gcx ~buf ~size vreg =
+  match vreg.VReg.resolution with
   | PhysicalRegister reg ->
     pp_sized_register ~buf reg size;
     if Opts.dump_debug () then (
@@ -160,7 +159,6 @@ let rec pp_register ~gcx ~buf ~size reg =
   | Unresolved ->
     add_char ~buf '%';
     add_string ~buf (string_of_int vreg.id)
-  | Alias _ -> failwith "Alias cannot be final resolution"
   | VirtualStackSlot
   | FunctionStackArgument
   | FunctionArgumentStackSlot _ ->

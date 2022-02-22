@@ -84,13 +84,11 @@ class instruction_visitor =
       | Some (index_vreg, _) -> this#visit_read_vreg ~block index_vreg
 
     method visit_read_vreg ~block vreg =
-      let vreg = VReg.get_vreg_alias vreg in
       match vreg.resolution with
       | MemoryAddress addr -> this#visit_memory_address ~block addr
       | _ -> ()
 
     method visit_write_vreg ~block vreg =
-      let vreg = VReg.get_vreg_alias vreg in
       match vreg.resolution with
       | MemoryAddress addr -> this#visit_memory_address ~block addr
       | _ -> ()

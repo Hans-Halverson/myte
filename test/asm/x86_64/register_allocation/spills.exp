@@ -70,16 +70,16 @@ test.testSingleSpillUsingAllRegisters:
   addl %edi, %r13d
   movl %r15d, %r12d
   addl %edi, %r12d
-  movl %r8d, %r11d
-  addl %edi, %r11d
-  movl %r9d, %r10d
-  addl %edi, %r10d
-  movl (%rsp), %edx
-  addl %esi, %edx
-  movl %r15d, %ecx
-  addl %esi, %ecx
   movl %r8d, %ebx
-  addl %esi, %ebx
+  addl %edi, %ebx
+  movl %r9d, %r11d
+  addl %edi, %r11d
+  movl (%rsp), %r10d
+  addl %esi, %r10d
+  movl %r15d, %edx
+  addl %esi, %edx
+  movl %r8d, %ecx
+  addl %esi, %ecx
   movl %r9d, %eax
   addl %esi, %eax
   addl %edi, %esi
@@ -91,12 +91,12 @@ test.testSingleSpillUsingAllRegisters:
   addl %r9d, %r14d
   addl %r14d, %r13d
   addl %r13d, %r12d
-  addl %r12d, %r11d
+  addl %r12d, %ebx
+  addl %ebx, %r11d
   addl %r11d, %r10d
   addl %r10d, %edx
   addl %edx, %ecx
-  addl %ecx, %ebx
-  addl %ebx, %eax
+  addl %ecx, %eax
   addl 56(%rsp), %eax
   addq $8, %rsp
   pop %r15
@@ -120,15 +120,15 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   movl $103, %r13d
   movl $104, (%rsp)
   movl $105, %r12d
-  movl $106, %r11d
-  movl $107, %r10d
-  movl $108, %r9d
-  movl $109, %r8d
-  movl $110, %edi
-  movl $111, %esi
-  movl $112, %edx
-  movl $113, %ecx
-  movl $114, %ebx
+  movl $106, %ebx
+  movl $107, %r11d
+  movl $108, %r10d
+  movl $109, %r9d
+  movl $110, %r8d
+  movl $111, %edi
+  movl $112, %esi
+  movl $113, %edx
+  movl $114, %ecx
   movl $115, %eax
   jmp .L1
 .L0:
@@ -137,15 +137,15 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   movl $3, %r13d
   movl $4, (%rsp)
   movl $5, %r12d
-  movl $6, %r11d
-  movl $7, %r10d
-  movl $8, %r9d
-  movl $9, %r8d
-  movl $10, %edi
-  movl $11, %esi
-  movl $12, %edx
-  movl $13, %ecx
-  movl $14, %ebx
+  movl $6, %ebx
+  movl $7, %r11d
+  movl $8, %r10d
+  movl $9, %r9d
+  movl $10, %r8d
+  movl $11, %edi
+  movl $12, %esi
+  movl $13, %edx
+  movl $14, %ecx
   movl $15, %eax
 .L1:
   addl %r15d, %r14d
@@ -153,7 +153,8 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   movl (%rsp), %r14d
   addl %r13d, %r14d
   addl %r14d, %r12d
-  addl %r12d, %r11d
+  addl %r12d, %ebx
+  addl %ebx, %r11d
   addl %r11d, %r10d
   addl %r10d, %r9d
   addl %r9d, %r8d
@@ -161,8 +162,7 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   addl %edi, %esi
   addl %esi, %edx
   addl %edx, %ecx
-  addl %ecx, %ebx
-  addl %ebx, %eax
+  addl %ecx, %eax
   addq $8, %rsp
   pop %r15
   pop %r14

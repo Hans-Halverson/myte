@@ -15,13 +15,11 @@ class vslot_use_def_finder =
     method vslot_defs = vslot_defs
 
     method! visit_read_vreg ~block vreg =
-      let vreg = VReg.get_vreg_alias vreg in
       match vreg.resolution with
       | VirtualStackSlot -> vslot_uses <- VRegSet.add vreg vslot_uses
       | _ -> super#visit_read_vreg ~block vreg
 
     method! visit_write_vreg ~block vreg =
-      let vreg = VReg.get_vreg_alias vreg in
       match vreg.resolution with
       | VirtualStackSlot -> vslot_defs <- VRegSet.add vreg vslot_defs
       | _ -> super#visit_write_vreg ~block vreg
@@ -59,8 +57,7 @@ let liveness_analysis ~(gcx : Gcx.t) =
   !graph
 
 let resolve_to_physical_stack_slot ~gcx vreg offset =
-  let vreg = VReg.get_vreg_alias vreg in
-  vreg.resolution <-
+  vreg.VReg.resolution <-
     MemoryAddress
       {
         base = RegBase (Gcx.mk_precolored ~gcx SP);

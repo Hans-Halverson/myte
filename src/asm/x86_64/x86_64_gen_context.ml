@@ -138,14 +138,6 @@ module Gcx = struct
     current_func.argument_stack_slots <- vreg :: current_func.argument_stack_slots;
     vreg
 
-  (*
-     match List.nth_opt current_func.argument_stack_slots i with
-     | Some stack_slot_vreg -> stack_slot_vreg
-     | None ->
-       let stack_slot_vreg = VReg.mk ~resolution:(FunctionArgumentStackSlot i) in
-       current_func.argument_stack_slots <- current_func.argument_stack_slots @ [stack_slot_vreg];
-       stack_slot_vreg *)
-
   let get_instruction ~gcx instr_id =
     let block_id = IMap.find instr_id gcx.instruction_to_block in
     let block = IMap.find block_id gcx.blocks_by_id in
@@ -239,7 +231,7 @@ module Gcx = struct
             (fun (_, instr) ->
               match instr with
               | MovMM (_, vreg1, vreg2) ->
-                (match (VReg.get_vreg_resolution vreg1, VReg.get_vreg_resolution vreg2) with
+                (match (vreg1.resolution, vreg2.resolution) with
                 | (PhysicalRegister reg1, PhysicalRegister reg2) when reg1 = reg2 -> false
                 | _ -> true)
               | _ -> true)

@@ -54,22 +54,17 @@ module RegisterAllocator = struct
     mutable interference_degree: int VRegMap.t;
     (* Map from virtual register to instruction ids of all moves it is a part of *)
     mutable move_list: VIMMap.t;
+    (* Map from virtual register to register it is aliased to *)
+    mutable aliases: VReg.t VRegMap.t;
+    mutable vreg_num_use_defs: int VRegMap.t;
   }
 
   let mk ~(gcx : Gcx.t) ~func =
-    (* Initialize representative precolored vregs *)
-    let (precolored_vregs, interference_degree) =
-      RegMap.fold
-        (fun _ vreg (precolored_vregs, interference_degree) ->
-          (VRegSet.add vreg precolored_vregs, VRegMap.add vreg Int.max_int interference_degree))
-        gcx.color_to_vreg
-        (VRegSet.empty, VRegMap.empty)
-    in
     {
       func;
       gcx;
       live_out = IMap.empty;
-      precolored_vregs;
+      precolored_vregs = VRegSet.empty;
       initial_vregs = VRegSet.empty;
       simplify_worklist = VRegSet.empty;
       freeze_worklist = VRegSet.empty;
@@ -84,8 +79,10 @@ module RegisterAllocator = struct
       worklist_moves = ISet.empty;
       active_moves = ISet.empty;
       interference_graph = VVMMap.empty;
-      interference_degree;
+      interference_degree = VRegMap.empty;
       move_list = VIMMap.empty;
+      aliases = VRegMap.empty;
+      vreg_num_use_defs = VRegMap.empty;
     }
 
   let liveness_analysis ~(ra : t) =
@@ -261,11 +258,13 @@ module RegisterAllocator = struct
     !k < num_allocatable_registers
 
   let rec get_vreg_alias ~ra vreg =
-    match vreg.VReg.resolution with
-    | Alias alias when VRegSet.mem vreg ra.coalesced_vregs -> get_vreg_alias ~ra alias
-    | _ -> vreg
+    match VRegMap.find_opt vreg ra.aliases with
+    | Some alias -> get_vreg_alias ~ra alias
+    | None -> vreg
 
   let get_vreg_resolution ~ra vreg = (get_vreg_alias ~ra vreg).resolution
+
+  let is_reg_value ~ra vreg = VReg.is_reg_value (get_vreg_alias ~ra vreg)
 
   (* Combine two vregs, making them alias to each other, combining their moves and interference edges.
    *)
@@ -275,7 +274,7 @@ module RegisterAllocator = struct
     else
       ra.spill_worklist <- VRegSet.remove vreg ra.spill_worklist;
     ra.coalesced_vregs <- VRegSet.add vreg ra.coalesced_vregs;
-    (get_vreg_alias ~ra vreg).resolution <- Alias alias_vreg;
+    ra.aliases <- VRegMap.add vreg alias_vreg ra.aliases;
     ra.move_list <-
       VRegMap.add
         alias_vreg
@@ -299,7 +298,7 @@ module RegisterAllocator = struct
     let move_instruction = Gcx.get_instruction ~gcx:ra.gcx move_instr_id in
     match move_instruction with
     | Instruction.MovMM (_, source_vreg, dest_vreg)
-      when VReg.is_reg_value source_vreg && VReg.is_reg_value dest_vreg ->
+      when is_reg_value ~ra source_vreg && is_reg_value ~ra dest_vreg ->
       (source_vreg, dest_vreg)
     | _ -> failwith "Expected id of virtual register to virtual register move instruction"
 
@@ -376,12 +375,12 @@ module RegisterAllocator = struct
 
   (* Choose a vreg from the spill worklist and freeze all the moves associated with it. Vreg can now
      be simplified.*)
-  let select_spill ~(ra : t) vreg_num_use_defs =
+  let select_spill ~(ra : t) =
     (* Simple spill heuristic - minimize cost C where C = (#uses + #defs) / degree *)
     let heuristic_chosen_vreg =
       VRegSet.fold
         (fun vreg chosen_vreg_opt ->
-          let num_use_defs = Float.of_int (VRegMap.find vreg vreg_num_use_defs) in
+          let num_use_defs = Float.of_int (VRegMap.find vreg ra.vreg_num_use_defs) in
           let degree = Float.of_int (degree ~ra vreg) in
           let cost = num_use_defs /. degree in
           match chosen_vreg_opt with
@@ -510,7 +509,9 @@ module RegisterAllocator = struct
         vreg.resolution <- VirtualStackSlot)
       ra.spilled_vregs;
     (* Then rewrite program to include newly resolved memory locations *)
-    let spill_writer = new X86_64_spill_writer.spill_writer ~gcx:ra.gcx in
+    let spill_writer =
+      new X86_64_spill_writer.spill_writer ~gcx:ra.gcx ~get_vreg_alias:(get_vreg_alias ~ra)
+    in
     List.iter (fun block -> spill_writer#write_block_spills block) ra.func.blocks;
     (* Reset state of register allocator *)
     let new_vregs = spill_writer#new_vregs in
@@ -519,11 +520,6 @@ module RegisterAllocator = struct
     ra.colored_vregs <- VRegSet.empty;
     ra.coalesced_vregs <- VRegSet.empty;
     ra.interference_graph <- VVMMap.empty;
-    ra.interference_degree <-
-      VRegSet.fold
-        (fun vreg acc -> VRegMap.add vreg Int.max_int acc)
-        ra.precolored_vregs
-        VRegMap.empty;
     ra.move_list <- VRegMap.empty
 
   (* Remove all moves where both the source and destination alias to the same register, as they are
@@ -549,12 +545,20 @@ module RegisterAllocator = struct
 
       val mutable vreg_num_use_defs = VRegMap.empty
 
+      val mutable precolored_vregs = VRegSet.empty
+
+      val mutable initial_vregs = VRegSet.empty
+
       method vreg_num_use_defs = vreg_num_use_defs
 
-      method all_vregs =
-        VRegMap.fold (fun vreg _ vregs -> VRegSet.add vreg vregs) vreg_num_use_defs VRegSet.empty
+      method precolored_vregs = precolored_vregs
+
+      method initial_vregs = initial_vregs
 
       method visit_vreg vreg =
+        (match vreg.VReg.resolution with
+        | PhysicalRegister _ -> precolored_vregs <- VRegSet.add vreg precolored_vregs
+        | _ -> initial_vregs <- VRegSet.add vreg initial_vregs);
         vreg_num_use_defs <-
           VRegMap.add
             vreg
@@ -576,22 +580,37 @@ module RegisterAllocator = struct
           super#visit_write_vreg ~block vreg
     end
 
-  (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
-     Simply the graph afterwards to remove unnecessary instructions. *)
-  let allocate_registers ~(ra : t) =
-    (* Perform initial rewrite to force registers in some locations *)
-    let spill_writer = new X86_64_spill_writer.spill_writer ~gcx:ra.gcx in
-    List.iter (fun block -> spill_writer#write_block_spills block) ra.func.blocks;
-
-    (* Collect all registers in program, then remove precolored to create initial vreg list *)
+  let initialize ~ra =
+    (* Collect all registers in program, splitting into precolored and other initial vregs *)
     let init_visitor = new allocate_init_visitor in
     List.iter
       (fun block ->
         List.iter (fun instr -> init_visitor#visit_instruction ~block instr) block.instructions)
       ra.func.blocks;
-    let vreg_num_use_defs = init_visitor#vreg_num_use_defs in
-    ra.initial_vregs <- VRegSet.diff init_visitor#all_vregs ra.precolored_vregs;
+    ra.vreg_num_use_defs <- init_visitor#vreg_num_use_defs;
+    ra.initial_vregs <- init_visitor#initial_vregs;
+    ra.precolored_vregs <- init_visitor#precolored_vregs;
+    (* Also make sure all representative precolored vregs are included *)
+    RegMap.iter
+      (fun _ vreg -> ra.precolored_vregs <- VRegSet.add vreg ra.precolored_vregs)
+      ra.gcx.color_to_vreg;
+    ra.interference_degree <-
+      VRegSet.fold
+        (fun vreg interference_degree -> VRegMap.add vreg Int.max_int interference_degree)
+        ra.precolored_vregs
+        VRegMap.empty
+
+  (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
+     Simply the graph afterwards to remove unnecessary instructions. *)
+  let allocate_registers ~(ra : t) =
+    (* Perform initial rewrite to force registers in some locations *)
+    let spill_writer =
+      new X86_64_spill_writer.spill_writer ~gcx:ra.gcx ~get_vreg_alias:(get_vreg_alias ~ra)
+    in
+    List.iter (fun block -> spill_writer#write_block_spills block) ra.func.blocks;
+
     let rec iter () =
+      initialize ~ra;
       liveness_analysis ~ra;
       build_interference_graph ~ra;
       make_worklist ~ra;
@@ -609,14 +628,13 @@ module RegisterAllocator = struct
         else if not (VRegSet.is_empty ra.freeze_worklist) then
           freeze ~ra
         else if not (VRegSet.is_empty ra.spill_worklist) then
-          select_spill ~ra vreg_num_use_defs
+          select_spill ~ra
       done;
       assign_colors ~ra;
 
-      if not (VRegSet.is_empty ra.spilled_vregs) then (
-        rewrite_program ~ra;
-        iter ()
-      )
+      let has_spilled_vregs = not (VRegSet.is_empty ra.spilled_vregs) in
+      rewrite_program ~ra;
+      if has_spilled_vregs then iter ()
     in
     iter ();
     remove_coalesced_moves ~ra

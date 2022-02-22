@@ -82,7 +82,7 @@ let coalesce_lea_mapper =
       address_to_coalesce <- addr
 
     method! map_mem mem =
-      match VReg.get_vreg_resolution mem with
+      match mem.resolution with
       | MemoryAddress { offset = None; base = RegBase vreg; index_and_scale = None }
         when VReg.get_physical_register_resolution vreg = reg_to_replace ->
         has_coalesced <- true;

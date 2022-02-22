@@ -46,9 +46,7 @@ class use_def_finder color_to_vreg =
         super#visit_instruction ~block instr_with_id
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
-      | XorMM (_, reg1, reg2)
-        when VReg.is_reg_value reg1 && (VReg.get_vreg_alias reg1).id = (VReg.get_vreg_alias reg2).id
-        ->
+      | XorMM (_, reg1, reg2) when VReg.is_reg_value reg1 && reg1.id = reg2.id ->
         this#add_vreg_def ~block reg1
       | _ -> super#visit_instruction ~block instr_with_id
 
@@ -189,13 +187,11 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
         IMap.add next_block_id (ISet.add block.id (IMap.find next_block_id prev_blocks)) prev_blocks
 
     method! visit_read_vreg ~block vreg =
-      let vreg = VReg.get_vreg_alias vreg in
       match vreg.resolution with
       | VirtualStackSlot -> vslot_use_blocks <- VIMMap.add vreg block.id vslot_use_blocks
       | _ -> super#visit_read_vreg ~block vreg
 
     method! visit_write_vreg ~block vreg =
-      let vreg = VReg.get_vreg_alias vreg in
       match vreg.resolution with
       | VirtualStackSlot ->
         if
