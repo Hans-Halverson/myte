@@ -19,9 +19,9 @@ let write_function_prologues ~(gcx : Gcx.t) =
       let save_base_pointer_instrs =
         if func_should_save_base_pointer func then
           [
-            (Gcx.mk_instr_id_for_block ~gcx prologue, PushM (Gcx.mk_precolored ~gcx BP));
+            (Gcx.mk_instr_id_for_block ~gcx prologue, PushM (Operand.mk_precolored BP));
             ( Gcx.mk_instr_id_for_block ~gcx prologue,
-              MovMM (Size64, Gcx.mk_precolored ~gcx SP, Gcx.mk_precolored ~gcx BP) );
+              MovMM (Size64, Operand.mk_precolored SP, Operand.mk_precolored BP) );
           ]
         else
           []
@@ -31,7 +31,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
         RegSet.fold
           (fun reg acc ->
             if RegSet.mem reg func.spilled_callee_saved_regs then
-              Instruction.(mk_id (), PushM (Gcx.mk_precolored ~gcx reg)) :: acc
+              Instruction.(mk_id (), PushM (Operand.mk_precolored reg)) :: acc
             else
               acc)
           callee_saved_registers
@@ -43,7 +43,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
           let stack_frame_size = func_stack_frame_size func in
           [
             ( Gcx.mk_instr_id_for_block ~gcx prologue,
-              SubIM (Size64, Imm32 (Int32.of_int stack_frame_size), Gcx.mk_precolored ~gcx SP) );
+              SubIM (Size64, Imm32 (Int32.of_int stack_frame_size), Operand.mk_precolored SP) );
           ]
         else
           []
@@ -75,8 +75,7 @@ let write_function_epilogues ~(gcx : Gcx.t) =
                   let stack_frame_size = func_stack_frame_size func in
                   [
                     ( Gcx.mk_instr_id_for_block ~gcx block,
-                      AddIM
-                        (Size64, Imm32 (Int32.of_int stack_frame_size), Gcx.mk_precolored ~gcx SP)
+                      AddIM (Size64, Imm32 (Int32.of_int stack_frame_size), Operand.mk_precolored SP)
                     );
                   ]
                 else
@@ -89,7 +88,7 @@ let write_function_epilogues ~(gcx : Gcx.t) =
                     if RegSet.mem reg func.spilled_callee_saved_regs then (
                       offset := !offset + 1;
                       Instruction.
-                        (Gcx.mk_instr_id_for_block ~gcx block, PopM (Gcx.mk_precolored ~gcx reg))
+                        (Gcx.mk_instr_id_for_block ~gcx block, PopM (Operand.mk_precolored reg))
                       :: acc
                     ) else
                       acc)
@@ -101,8 +100,8 @@ let write_function_epilogues ~(gcx : Gcx.t) =
                 if func_should_save_base_pointer func then
                   [
                     ( Gcx.mk_instr_id_for_block ~gcx block,
-                      MovMM (Size64, Gcx.mk_precolored ~gcx BP, Gcx.mk_precolored ~gcx SP) );
-                    (Gcx.mk_instr_id_for_block ~gcx block, PopM (Gcx.mk_precolored ~gcx BP));
+                      MovMM (Size64, Operand.mk_precolored BP, Operand.mk_precolored SP) );
+                    (Gcx.mk_instr_id_for_block ~gcx block, PopM (Operand.mk_precolored BP));
                   ]
                 else
                   []

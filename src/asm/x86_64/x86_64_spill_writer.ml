@@ -7,7 +7,7 @@ class spill_writer ~(gcx : Gcx.t) ~(get_alias : Operand.t -> Operand.t) =
 
     val mutable current_block_builders = []
 
-    method mk_vreg () = Operand.mk ~value:VirtualRegister
+    method mk_vreg () = Operand.mk_virtual_register ()
 
     method add_instr instr = current_instruction_builder <- instr :: current_instruction_builder
 

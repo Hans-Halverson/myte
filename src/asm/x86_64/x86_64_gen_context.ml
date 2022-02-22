@@ -18,7 +18,7 @@ module Gcx = struct
     (* Map from instruction id to the block that contains it *)
     mutable instruction_to_block: Block.id IMap.t;
     mutable funcs_by_id: Function.t IMap.t;
-    (* Map from physical register to a precolored register operand *)
+    (* Map from physical register to a representative precolored register operand *)
     mutable color_to_op: Operand.t RegMap.t;
     mutable agg_to_layout: AggregateLayout.t IMap.t;
   }
@@ -27,9 +27,7 @@ module Gcx = struct
     (* Initialize representative precolored operands *)
     let color_to_op =
       RegSet.fold
-        (fun reg color_to_op ->
-          let op = Operand.mk ~value:(PhysicalRegister reg) in
-          RegMap.add reg op color_to_op)
+        (fun reg color_to_op -> RegMap.add reg (Operand.mk_precolored reg) color_to_op)
         all_registers
         RegMap.empty
     in
@@ -99,8 +97,6 @@ module Gcx = struct
     let instr_id = Instruction.mk_id () in
     gcx.instruction_to_block <- IMap.add instr_id block.Block.id gcx.instruction_to_block;
     instr_id
-
-  let mk_precolored ~gcx color = RegMap.find color gcx.color_to_op
 
   let start_function ~gcx params prologue =
     let id = Function.mk_id () in

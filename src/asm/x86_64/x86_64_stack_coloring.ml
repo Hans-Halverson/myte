@@ -56,11 +56,11 @@ let liveness_analysis ~(gcx : Gcx.t) =
     gcx.blocks_by_id;
   !graph
 
-let resolve_to_physical_stack_slot ~gcx operand offset =
+let resolve_to_physical_stack_slot operand offset =
   operand.Operand.value <-
     MemoryAddress
       {
-        base = RegBase (Gcx.mk_precolored ~gcx SP);
+        base = RegBase (Operand.mk_precolored SP);
         offset = Some (ImmediateOffset (Int32.of_int offset));
         index_and_scale = None;
       }
@@ -125,7 +125,7 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
             | FunctionArgumentStackSlot i -> i
             | _ -> failwith "Expected FunctionArgumentStackSlot"
           in
-          resolve_to_physical_stack_slot ~gcx stack_slot_op (i * 8))
+          resolve_to_physical_stack_slot stack_slot_op (i * 8))
         func.argument_stack_slots;
 
       (* Write physical addresses in stack for each vslot in function *)
@@ -134,7 +134,7 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
           OperandSet.iter
             (fun vslot ->
               let offset = (color * 8) + arguments_stack_frame_section_size in
-              resolve_to_physical_stack_slot ~gcx vslot offset)
+              resolve_to_physical_stack_slot vslot offset)
             vslots)
         !color_to_stack_slots;
 
@@ -147,6 +147,6 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
              pushed on stack, then return address pushed onto stack from call instruction, and then
              finally can start accessing function arguments that were pushed onto stack. *)
           let offset = stack_frame_size + ((num_used_callee_saved_regs + i + 1) * 8) in
-          resolve_to_physical_stack_slot ~gcx param_op offset)
+          resolve_to_physical_stack_slot param_op offset)
         args_on_stack)
     gcx.funcs_by_id

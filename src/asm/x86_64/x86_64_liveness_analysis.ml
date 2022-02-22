@@ -20,9 +20,7 @@ class use_def_finder color_to_representative_operand =
       | CallM _
       | CallL _ ->
         RegSet.iter
-          (fun reg ->
-            let color_rep_reg = this#get_representative_register reg in
-            this#add_register_def ~block color_rep_reg)
+          (fun reg -> this#add_register_def ~block (this#get_representative_register reg))
           caller_saved_registers;
         super#visit_instruction ~block instr_with_id
       (* IDiv uses the value in register A and writes to registers A and D *)
@@ -47,20 +45,24 @@ class use_def_finder color_to_representative_operand =
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
       | XorMM (_, reg1, reg2) when Operand.is_reg_value reg1 && reg1.id = reg2.id ->
-        this#add_register_def ~block reg1
+        this#visit_write_operand ~block reg1
       | _ -> super#visit_instruction ~block instr_with_id
 
+    method resolve_register op =
+      match op.Operand.value with
+      | PhysicalRegister reg -> Some (this#get_representative_register reg)
+      | VirtualRegister -> Some op
+      | _ -> None
+
     method! visit_read_operand ~block op =
-      if Operand.is_reg_value op then
-        this#add_register_use ~block op
-      else
-        super#visit_read_operand ~block op
+      match this#resolve_register op with
+      | Some reg -> this#add_register_use ~block reg
+      | None -> super#visit_read_operand ~block op
 
     method! visit_write_operand ~block op =
-      if Operand.is_reg_value op then
-        this#add_register_def ~block op
-      else
-        super#visit_write_operand ~block op
+      match this#resolve_register op with
+      | Some reg -> this#add_register_def ~block reg
+      | None -> super#visit_write_operand ~block op
   end
 
 class analyze_regs_init_visitor (blocks : Block.t List.t) color_to_operand =

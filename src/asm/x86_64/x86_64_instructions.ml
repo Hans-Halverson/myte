@@ -101,6 +101,10 @@ and Operand : sig
 
   val mk : value:value -> t
 
+  val mk_precolored : register_slot -> t
+
+  val mk_virtual_register : unit -> t
+
   val compare : t -> t -> int
 
   val get_physical_register_value : t -> register_slot
@@ -135,6 +139,10 @@ end = struct
       new_op
 
   let mk ~value = { id = Mir.mk_value_id (); value }
+
+  let mk_precolored color = mk ~value:(PhysicalRegister color)
+
+  let mk_virtual_register () = mk ~value:VirtualRegister
 
   let compare v1 v2 = Int.compare v1.id v2.id
 

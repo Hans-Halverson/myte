@@ -29,7 +29,6 @@ module RegisterAllocator = struct
     (* Map of virtual registers live at the beginning of each block *)
     mutable live_out: Operand.t list IMap.t;
     (* Every register is in exactly one of these sets *)
-    mutable precolored_regs: OperandSet.t;
     mutable initial_vregs: OperandSet.t;
     (* Low degree, non move related vregs *)
     mutable simplify_worklist: OperandSet.t;
@@ -65,7 +64,6 @@ module RegisterAllocator = struct
       func;
       gcx;
       live_out = IMap.empty;
-      precolored_regs = OperandSet.empty;
       initial_vregs = OperandSet.empty;
       simplify_worklist = OperandSet.empty;
       freeze_worklist = OperandSet.empty;
@@ -111,6 +109,19 @@ module RegisterAllocator = struct
       method! add_register_def ~block:_ reg = reg_defs <- OperandSet.add reg reg_defs
     end
 
+  (* All operands read from the instruction objects must pass through this function before they
+     can be used as registers. Resolves all physical registers to their representative operands. *)
+  let resolve_register ~(ra : t) op =
+    match op.Operand.value with
+    | PhysicalRegister reg -> RegMap.find reg ra.gcx.color_to_op
+    | VirtualRegister -> op
+    | _ -> failwith "Expected register"
+
+  let is_precolored reg =
+    match reg.Operand.value with
+    | PhysicalRegister _ -> true
+    | _ -> false
+
   (* Add an interference edge between two virtual registers, also updating degree *)
   let add_interference_edge ~(ra : t) reg1 reg2 =
     let inc_degree reg =
@@ -120,11 +131,11 @@ module RegisterAllocator = struct
         | Some degree -> OperandMap.add reg (degree + 1) ra.interference_degree)
     in
     if (not (OOMMap.contains reg1 reg2 ra.interference_graph)) && reg1 != reg2 then (
-      if not (OperandSet.mem reg1 ra.precolored_regs) then (
+      if not (is_precolored reg1) then (
         ra.interference_graph <- OOMMap.add reg1 reg2 ra.interference_graph;
         inc_degree reg1
       );
-      if not (OperandSet.mem reg2 ra.precolored_regs) then (
+      if not (is_precolored reg2) then (
         ra.interference_graph <- OOMMap.add reg2 reg1 ra.interference_graph;
         inc_degree reg2
       )
@@ -147,6 +158,8 @@ module RegisterAllocator = struct
               match instr with
               | Instruction.MovMM (_, src_op, dest_op)
                 when Operand.is_reg_value src_op && Operand.is_reg_value dest_op ->
+                let src_op = resolve_register ~ra src_op in
+                let dest_op = resolve_register ~ra dest_op in
                 live := OperandSet.remove src_op !live;
                 ra.move_list <- OIMMap.add src_op instr_id ra.move_list;
                 ra.move_list <- OIMMap.add dest_op instr_id ra.move_list;
@@ -224,7 +237,7 @@ module RegisterAllocator = struct
 
   let add_to_simplify_work_list ~(ra : t) vreg =
     if
-      (not (OperandSet.mem vreg ra.precolored_regs))
+      (not (is_precolored vreg))
       && (not (move_related ~ra vreg))
       && degree ~ra vreg < num_allocatable_registers
     then (
@@ -240,7 +253,7 @@ module RegisterAllocator = struct
         (* Degree stays the same since reg gains and loses a neighbor *)
         degree ~ra adjacent_reg < num_allocatable_registers
         (* All precolored registers interfere so degree does not change *)
-        || OperandSet.mem adjacent_reg ra.precolored_regs
+        || is_precolored adjacent_reg
         (* Already interferes so degree does not change *)
         || OOMMap.contains adjacent_reg precolored ra.interference_graph)
       (adjacent ~ra reg)
@@ -296,6 +309,8 @@ module RegisterAllocator = struct
     match move_instruction with
     | Instruction.MovMM (_, source_op, dest_op)
       when is_reg_value ~ra source_op && is_reg_value ~ra dest_op ->
+      let source_op = resolve_register ~ra source_op in
+      let dest_op = resolve_register ~ra dest_op in
       (source_op, dest_op)
     | _ -> failwith "Expected id of virtual register to virtual register move instruction"
 
@@ -309,7 +324,7 @@ module RegisterAllocator = struct
     let source_reg = get_operand_alias ~ra source_reg in
     let dest_reg = get_operand_alias ~ra dest_reg in
     let (reg1, reg2) =
-      if OperandSet.mem dest_reg ra.precolored_regs then
+      if is_precolored dest_reg then
         (dest_reg, source_reg)
       else
         (source_reg, dest_reg)
@@ -317,16 +332,13 @@ module RegisterAllocator = struct
     if reg1 == reg2 then (
       ra.coalesced_moves <- ISet.add move_instr_id ra.coalesced_moves;
       add_to_simplify_work_list ~ra reg1
-    ) else if
-        OperandSet.mem reg2 ra.precolored_regs || OOMMap.contains reg2 reg1 ra.interference_graph
-      then (
+    ) else if is_precolored reg2 || OOMMap.contains reg2 reg1 ra.interference_graph then (
       ra.constrained_moves <- ISet.add move_instr_id ra.constrained_moves;
       add_to_simplify_work_list ~ra reg1;
       add_to_simplify_work_list ~ra reg2
     ) else if
-        (OperandSet.mem reg1 ra.precolored_regs && can_coalesce_with_precolored ~ra reg1 reg2)
-        || (not (OperandSet.mem reg1 ra.precolored_regs))
-           && can_conservative_coalesce ~ra reg1 reg2
+        (is_precolored reg1 && can_coalesce_with_precolored ~ra reg1 reg2)
+        || ((not (is_precolored reg1)) && can_conservative_coalesce ~ra reg1 reg2)
       then (
       ra.coalesced_moves <- ISet.add move_instr_id ra.coalesced_moves;
       combine_regs ~ra reg1 reg2;
@@ -450,7 +462,7 @@ module RegisterAllocator = struct
       OperandSet.iter
         (fun interfering_vreg ->
           let alias = get_operand_alias ~ra interfering_vreg in
-          if OperandSet.mem alias ra.colored_vregs || OperandSet.mem alias ra.precolored_regs then
+          if OperandSet.mem alias ra.colored_vregs || is_precolored alias then
             match alias.value with
             | PhysicalRegister reg -> ok_registers := RegSet.remove reg !ok_registers
             | _ -> ())
@@ -471,10 +483,7 @@ module RegisterAllocator = struct
             else
               reg1
           in
-          if
-            OperandSet.mem move_related_reg ra.colored_vregs
-            || OperandSet.mem move_related_reg ra.precolored_regs
-          then
+          if OperandSet.mem move_related_reg ra.colored_vregs || is_precolored move_related_reg then
             match move_related_reg.value with
             | PhysicalRegister reg ->
               (match RegMap.find_opt reg !register_priorities with
@@ -535,7 +544,7 @@ module RegisterAllocator = struct
             block.instructions)
       ra.func.blocks
 
-  class allocate_init_visitor =
+  class allocate_init_visitor ~ra =
     object (this)
       inherit X86_64_visitor.instruction_visitor as super
 
@@ -547,15 +556,13 @@ module RegisterAllocator = struct
 
       method reg_num_use_defs = reg_num_use_defs
 
-      method precolored_regs = precolored_regs
-
       method initial_vregs = initial_vregs
 
       method visit_reg reg =
         (match reg.Operand.value with
-        | PhysicalRegister _ -> precolored_regs <- OperandSet.add reg precolored_regs
         | VirtualRegister -> initial_vregs <- OperandSet.add reg initial_vregs
-        | _ -> failwith "Expected register");
+        | _ -> ());
+        let reg = resolve_register ~ra reg in
         reg_num_use_defs <-
           OperandMap.add
             reg
@@ -579,22 +586,17 @@ module RegisterAllocator = struct
 
   let initialize ~ra =
     (* Collect all registers in program, splitting into precolored and other initial vregs *)
-    let init_visitor = new allocate_init_visitor in
+    let init_visitor = new allocate_init_visitor ~ra in
     List.iter
       (fun block ->
         List.iter (fun instr -> init_visitor#visit_instruction ~block instr) block.instructions)
       ra.func.blocks;
     ra.reg_num_use_defs <- init_visitor#reg_num_use_defs;
     ra.initial_vregs <- init_visitor#initial_vregs;
-    ra.precolored_regs <- init_visitor#precolored_regs;
-    (* Also make sure all representative precolored ops are included *)
-    RegMap.iter
-      (fun _ reg -> ra.precolored_regs <- OperandSet.add reg ra.precolored_regs)
-      ra.gcx.color_to_op;
     ra.interference_degree <-
-      OperandSet.fold
-        (fun reg interference_degree -> OperandMap.add reg Int.max_int interference_degree)
-        ra.precolored_regs
+      RegMap.fold
+        (fun _ reg interference_degree -> OperandMap.add reg Int.max_int interference_degree)
+        ra.gcx.color_to_op
         OperandMap.empty
 
   (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
