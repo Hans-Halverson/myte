@@ -127,38 +127,39 @@ let pp_immediate ~buf imm =
     | Imm32 imm -> Int32.to_string imm
     | Imm64 imm -> Int64.to_string imm)
 
-let pp_virtual_stack_slot ~buf vreg =
+let pp_virtual_stack_slot ~buf op =
   add_string ~buf "VSLOT:";
-  add_string ~buf (string_of_int vreg.VReg.id)
+  add_string ~buf (string_of_int op.Operand.id)
 
-let pp_function_stack_argument ~buf vreg =
+let pp_function_stack_argument ~buf op =
   add_string ~buf "STACK_ARG:";
-  add_string ~buf (string_of_int vreg.VReg.id)
+  add_string ~buf (string_of_int op.Operand.id)
 
-let pp_function_argument_stack_slot ~buf vreg =
+let pp_function_argument_stack_slot ~buf op =
   add_string ~buf "ARG_STACK_SLOT:";
-  add_string ~buf (string_of_int vreg.VReg.id)
+  add_string ~buf (string_of_int op.Operand.id)
 
 let pp_sized_register ~buf reg size =
   add_char ~buf '%';
   add_string ~buf (string_of_sized_reg reg size)
 
-let rec pp_register ~gcx ~buf ~size vreg =
-  match vreg.VReg.resolution with
+let rec pp_register ~gcx ~buf ~size op =
+  match op.Operand.value with
   | PhysicalRegister reg ->
     pp_sized_register ~buf reg size;
     if Opts.dump_debug () then (
       add_char ~buf ':';
-      add_string ~buf (string_of_int vreg.id)
+      add_string ~buf (string_of_int op.id)
     )
   | MemoryAddress addr -> pp_memory_address ~gcx ~buf addr
-  | VirtualStackSlot when Opts.dump_virtual_asm () -> pp_virtual_stack_slot ~buf vreg
-  | FunctionStackArgument when Opts.dump_virtual_asm () -> pp_function_stack_argument ~buf vreg
+  | VirtualStackSlot when Opts.dump_virtual_asm () -> pp_virtual_stack_slot ~buf op
+  | FunctionStackArgument when Opts.dump_virtual_asm () -> pp_function_stack_argument ~buf op
   | FunctionArgumentStackSlot _ when Opts.dump_virtual_asm () ->
-    pp_function_argument_stack_slot ~buf vreg
-  | Unresolved ->
+    pp_function_argument_stack_slot ~buf op
+  | VirtualRegister when Opts.dump_virtual_asm () ->
     add_char ~buf '%';
-    add_string ~buf (string_of_int vreg.id)
+    add_string ~buf (string_of_int op.id)
+  | VirtualRegister
   | VirtualStackSlot
   | FunctionStackArgument
   | FunctionArgumentStackSlot _ ->

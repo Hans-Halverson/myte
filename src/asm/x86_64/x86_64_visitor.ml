@@ -4,63 +4,63 @@ class instruction_visitor =
   object (this)
     method visit_instruction ~(block : Block.t) (instr : Instruction.t) =
       let open Instruction in
-      let visit_read_vreg vreg = this#visit_read_vreg ~block vreg in
-      let visit_write_vreg vreg = this#visit_write_vreg ~block vreg in
+      let visit_read_operand op = this#visit_read_operand ~block op in
+      let visit_write_operand op = this#visit_write_operand ~block op in
       let (_, instr) = instr in
       match instr with
-      | PushM read_vreg
-      | CmpMI (_, read_vreg, _)
-      | CallM (_, read_vreg)
-      | IDiv (_, read_vreg) ->
-        visit_read_vreg read_vreg
-      | PopM write_vreg
-      | MovIM (_, _, write_vreg)
-      | SetCC (_, write_vreg) ->
-        visit_write_vreg write_vreg
-      | NegM (_, read_write_vreg)
-      | NotM (_, read_write_vreg)
-      | AddIM (_, _, read_write_vreg)
-      | SubIM (_, _, read_write_vreg)
-      | AndIM (_, _, read_write_vreg)
-      | OrIM (_, _, read_write_vreg)
-      | XorIM (_, _, read_write_vreg)
-      | ShlI (_, _, read_write_vreg)
-      | ShrI (_, _, read_write_vreg)
-      | SarI (_, _, read_write_vreg)
-      | ShlR (_, read_write_vreg)
-      | ShrR (_, read_write_vreg)
-      | SarR (_, read_write_vreg) ->
-        visit_read_vreg read_write_vreg;
-        visit_write_vreg read_write_vreg
-      | CmpMM (_, read_vreg1, read_vreg2) ->
-        visit_read_vreg read_vreg1;
-        visit_read_vreg read_vreg2
-      | MovMM (_, read_vreg, write_vreg) ->
-        visit_read_vreg read_vreg;
-        visit_write_vreg write_vreg
-      | MovSX (_, _, read_vreg, write_vreg)
-      | MovZX (_, _, read_vreg, write_vreg)
-      | IMulMIR (_, read_vreg, _, write_vreg) ->
-        visit_read_vreg read_vreg;
-        visit_write_vreg write_vreg
-      | AddMM (_, read_vreg, read_write_vreg)
-      | SubMM (_, read_vreg, read_write_vreg)
-      | AndMM (_, read_vreg, read_write_vreg)
-      | OrMM (_, read_vreg, read_write_vreg)
-      | XorMM (_, read_vreg, read_write_vreg) ->
-        visit_read_vreg read_vreg;
-        visit_read_vreg read_write_vreg;
-        visit_write_vreg read_write_vreg
-      | TestMR (_, read_vreg1, read_vreg2) ->
-        visit_read_vreg read_vreg1;
-        visit_read_vreg read_vreg2
-      | IMulMR (_, read_vreg, read_write_vreg) ->
-        visit_read_vreg read_vreg;
-        visit_read_vreg read_write_vreg;
-        visit_write_vreg read_write_vreg
-      | Lea (_, addr, write_vreg) ->
+      | PushM read_op
+      | CmpMI (_, read_op, _)
+      | CallM (_, read_op)
+      | IDiv (_, read_op) ->
+        visit_read_operand read_op
+      | PopM write_op
+      | MovIM (_, _, write_op)
+      | SetCC (_, write_op) ->
+        visit_write_operand write_op
+      | NegM (_, read_write_op)
+      | NotM (_, read_write_op)
+      | AddIM (_, _, read_write_op)
+      | SubIM (_, _, read_write_op)
+      | AndIM (_, _, read_write_op)
+      | OrIM (_, _, read_write_op)
+      | XorIM (_, _, read_write_op)
+      | ShlI (_, _, read_write_op)
+      | ShrI (_, _, read_write_op)
+      | SarI (_, _, read_write_op)
+      | ShlR (_, read_write_op)
+      | ShrR (_, read_write_op)
+      | SarR (_, read_write_op) ->
+        visit_read_operand read_write_op;
+        visit_write_operand read_write_op
+      | CmpMM (_, read_op1, read_op2) ->
+        visit_read_operand read_op1;
+        visit_read_operand read_op2
+      | MovMM (_, read_op, write_op) ->
+        visit_read_operand read_op;
+        visit_write_operand write_op
+      | MovSX (_, _, read_op, write_op)
+      | MovZX (_, _, read_op, write_op)
+      | IMulMIR (_, read_op, _, write_op) ->
+        visit_read_operand read_op;
+        visit_write_operand write_op
+      | AddMM (_, read_op, read_write_op)
+      | SubMM (_, read_op, read_write_op)
+      | AndMM (_, read_op, read_write_op)
+      | OrMM (_, read_op, read_write_op)
+      | XorMM (_, read_op, read_write_op) ->
+        visit_read_operand read_op;
+        visit_read_operand read_write_op;
+        visit_write_operand read_write_op
+      | TestMR (_, read_op1, read_op2) ->
+        visit_read_operand read_op1;
+        visit_read_operand read_op2
+      | IMulMR (_, read_op, read_write_op) ->
+        visit_read_operand read_op;
+        visit_read_operand read_write_op;
+        visit_write_operand read_write_op
+      | Lea (_, addr, write_op) ->
         this#visit_memory_address ~block addr;
-        visit_write_vreg write_vreg
+        visit_write_operand write_op
       | Jmp next_block_id
       | JmpCC (_, next_block_id) ->
         this#visit_block_edge ~block next_block_id
@@ -77,19 +77,19 @@ class instruction_visitor =
     method visit_memory_address ~block memory_address =
       (match memory_address.base with
       | NoBase -> ()
-      | RegBase reg -> this#visit_read_vreg ~block reg
+      | RegBase reg -> this#visit_read_operand ~block reg
       | IPBase -> ());
       match memory_address.index_and_scale with
       | None -> ()
-      | Some (index_vreg, _) -> this#visit_read_vreg ~block index_vreg
+      | Some (index_op, _) -> this#visit_read_operand ~block index_op
 
-    method visit_read_vreg ~block vreg =
-      match vreg.resolution with
+    method visit_read_operand ~block op =
+      match op.value with
       | MemoryAddress addr -> this#visit_memory_address ~block addr
       | _ -> ()
 
-    method visit_write_vreg ~block vreg =
-      match vreg.resolution with
+    method visit_write_operand ~block op =
+      match op.value with
       | MemoryAddress addr -> this#visit_memory_address ~block addr
       | _ -> ()
   end

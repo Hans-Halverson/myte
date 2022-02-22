@@ -54,7 +54,7 @@ module rec MemoryAddress : sig
   type t = {
     offset: offset option;
     base: base;
-    index_and_scale: (VReg.t * scale) option;
+    index_and_scale: (Operand.t * scale) option;
   }
 
   and offset =
@@ -63,7 +63,7 @@ module rec MemoryAddress : sig
 
   and base =
     | NoBase
-    | RegBase of VReg.t
+    | RegBase of Operand.t
     | IPBase
 
   and scale =
@@ -74,17 +74,19 @@ module rec MemoryAddress : sig
 end =
   MemoryAddress
 
-and VReg : sig
+and Operand : sig
   type id = int
 
   type t = {
     id: id;
-    mutable resolution: resolution;
+    mutable value: value;
   }
 
-  and resolution =
-    (* This vreg has been mapped to a physical register in a particular register slot *)
+  and value =
+    (* A physical register in a particular register slot *)
     | PhysicalRegister of register_slot
+    (* This is a virtual register that has not yet been resolved *)
+    | VirtualRegister
     (* Memory address (which may contain vregs as the base, offset, or index) *)
     | MemoryAddress of MemoryAddress.t
     | VirtualStackSlot
@@ -94,16 +96,14 @@ and VReg : sig
     (* An argument to pass to a callee function on the stack. These arguments appear at this bottom
        of the current function's stack frame. Int is the index of the argument. *)
     | FunctionArgumentStackSlot of int
-    (* This vreg has not yet been resolved *)
-    | Unresolved
 
-  val of_value_id : resolution:resolution -> id -> t
+  val of_value_id : value:value -> id -> t
 
-  val mk : resolution:resolution -> t
+  val mk : value:value -> t
 
   val compare : t -> t -> int
 
-  val get_physical_register_resolution : t -> register_slot
+  val get_physical_register_value : t -> register_slot
 
   val is_memory_value : t -> bool
 
@@ -113,38 +113,38 @@ end = struct
 
   type t = {
     id: id;
-    mutable resolution: resolution;
+    mutable value: value;
   }
 
-  and resolution =
+  and value =
     | PhysicalRegister of register_slot
+    | VirtualRegister
     | MemoryAddress of MemoryAddress.t
     | VirtualStackSlot
     | FunctionStackArgument
     | FunctionArgumentStackSlot of int
-    | Unresolved
 
-  let vregs_by_id = ref IMap.empty
+  let ops_by_id = ref IMap.empty
 
-  let of_value_id ~resolution value_id =
-    match IMap.find_opt value_id !vregs_by_id with
+  let of_value_id ~value value_id =
+    match IMap.find_opt value_id !ops_by_id with
+    | Some existing_op -> existing_op
     | None ->
-      let new_vreg = { id = value_id; resolution } in
-      vregs_by_id := IMap.add value_id new_vreg !vregs_by_id;
-      new_vreg
-    | Some existing_vreg -> existing_vreg
+      let new_op = { id = value_id; value } in
+      ops_by_id := IMap.add value_id new_op !ops_by_id;
+      new_op
 
-  let mk ~resolution = { id = Mir.mk_value_id (); resolution }
+  let mk ~value = { id = Mir.mk_value_id (); value }
 
   let compare v1 v2 = Int.compare v1.id v2.id
 
-  let get_physical_register_resolution vreg =
-    match vreg.resolution with
+  let get_physical_register_value op =
+    match op.value with
     | PhysicalRegister reg -> reg
-    | _ -> failwith "Expected virtual register to be resolved to physical register"
+    | _ -> failwith "Expected operand to be physical register"
 
   let is_memory_value value =
-    match value.resolution with
+    match value.value with
     | MemoryAddress _
     | VirtualStackSlot
     | FunctionStackArgument
@@ -152,7 +152,12 @@ end = struct
       true
     | _ -> false
 
-  let is_reg_value value = not (is_memory_value value)
+  let is_reg_value value =
+    match value.value with
+    | PhysicalRegister _
+    | VirtualRegister ->
+      true
+    | _ -> false
 end
 
 let empty_memory_address = { MemoryAddress.offset = None; base = NoBase; index_and_scale = None }
@@ -169,16 +174,16 @@ type block_id = int
 
 type func_id = int
 
-module VRegSet = Set.Make (VReg)
-module VRegMap = Map.Make (VReg)
-module VVMMap = MultiMap.Make (VReg) (VReg)
-module VIMMap = MultiMap.Make (VReg) (Int)
+module OperandSet = Set.Make (Operand)
+module OperandMap = Map.Make (Operand)
+module OOMMap = MultiMap.Make (Operand) (Operand)
+module OIMMap = MultiMap.Make (Operand) (Int)
 
-let string_of_vset vset =
+let string_of_oset oset =
   let elements =
-    VRegSet.to_seq vset
+    OperandSet.to_seq oset
     |> List.of_seq
-    |> List.map (fun vreg -> string_of_int vreg.VReg.id)
+    |> List.map (fun op -> string_of_int op.Operand.id)
     |> String.concat ", "
   in
   "(" ^ elements ^ ")"
@@ -198,55 +203,55 @@ module Instruction = struct
         Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
     (* Stack instructions, all implicitly have size of 64 bits *)
     | PushI of immediate
-    | PushM of VReg.t
-    | PopM of VReg.t
+    | PushM of Operand.t
+    | PopM of Operand.t
     (* Data instructions *)
     (* Allows 64-bit immediate. register_size is destination size which may not match immediate size *)
-    | MovIM of register_size * immediate * VReg.t
+    | MovIM of register_size * immediate * Operand.t
     (* Allows 64-bit immediate. register_size is destination size *)
-    | MovMM of register_size * VReg.t * VReg.t
+    | MovMM of register_size * Operand.t * Operand.t
     (* Src size then dest size where src size < dest size *)
-    | MovSX of register_size * register_size * VReg.t * (* Register *) VReg.t
+    | MovSX of register_size * register_size * Operand.t * (* Register *) Operand.t
     (* Src size then dest size where src size < dest size *)
-    | MovZX of register_size * register_size * VReg.t * (* Register *) VReg.t
-    | Lea of register_size * MemoryAddress.t * VReg.t (* Only supports 32 or 64 bit register argument *)
+    | MovZX of register_size * register_size * Operand.t * (* Register *) Operand.t
+    | Lea of register_size * MemoryAddress.t * Operand.t (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
-    | NegM of register_size * VReg.t
-    | AddIM of register_size * immediate * VReg.t
-    | AddMM of register_size * VReg.t * VReg.t
+    | NegM of register_size * Operand.t
+    | AddIM of register_size * immediate * Operand.t
+    | AddMM of register_size * Operand.t * Operand.t
     (* For sub instructions, right/dest := right/dest - left/src *)
-    | SubIM of register_size * immediate * VReg.t
-    | SubMM of register_size * VReg.t * VReg.t
-    | IMulMR of register_size * VReg.t * (* Register *) VReg.t (* Only supports 16, 32, and 64-bit arguments *)
-    | IMulMIR of register_size * VReg.t * immediate * (* Register *) VReg.t (* Only supports 16 and 32-bit immediates *)
-    | IDiv of register_size * VReg.t
+    | SubIM of register_size * immediate * Operand.t
+    | SubMM of register_size * Operand.t * Operand.t
+    | IMulMR of register_size * Operand.t * (* Register *) Operand.t (* Only supports 16, 32, and 64-bit arguments *)
+    | IMulMIR of register_size * Operand.t * immediate * (* Register *) Operand.t (* Only supports 16 and 32-bit immediates *)
+    | IDiv of register_size * Operand.t
     (* Bitwise operations *)
-    | NotM of register_size * VReg.t
-    | AndIM of register_size * immediate * VReg.t
-    | AndMM of register_size * VReg.t * VReg.t
-    | OrIM of register_size * immediate * VReg.t
-    | OrMM of register_size * VReg.t * VReg.t
-    | XorIM of register_size * immediate * VReg.t
-    | XorMM of register_size * VReg.t * VReg.t
+    | NotM of register_size * Operand.t
+    | AndIM of register_size * immediate * Operand.t
+    | AndMM of register_size * Operand.t * Operand.t
+    | OrIM of register_size * immediate * Operand.t
+    | OrMM of register_size * Operand.t * Operand.t
+    | XorIM of register_size * immediate * Operand.t
+    | XorMM of register_size * Operand.t * Operand.t
     (* Bit shifts *)
-    | ShlI of register_size * immediate * VReg.t (* Requires 8-bit immediate *)
-    | ShlR of register_size * VReg.t
-    | ShrI of register_size * immediate * VReg.t (* Requires 8-bit immediate *)
-    | ShrR of register_size * VReg.t
-    | SarI of register_size * immediate * VReg.t (* Requires 8-bit immediate *)
-    | SarR of register_size * VReg.t
+    | ShlI of register_size * immediate * Operand.t (* Requires 8-bit immediate *)
+    | ShlR of register_size * Operand.t
+    | ShrI of register_size * immediate * Operand.t (* Requires 8-bit immediate *)
+    | ShrR of register_size * Operand.t
+    | SarI of register_size * immediate * Operand.t (* Requires 8-bit immediate *)
+    | SarR of register_size * Operand.t
     (* Comparisons *)
-    | CmpMI of register_size * VReg.t * immediate
-    | CmpMM of register_size * VReg.t * VReg.t
-    | TestMR of register_size * VReg.t * (* Register *) VReg.t
-    | SetCC of condition_code * VReg.t (* Only supports 8-bit destination *)
+    | CmpMI of register_size * Operand.t * immediate
+    | CmpMM of register_size * Operand.t * Operand.t
+    | TestMR of register_size * Operand.t * (* Register *) Operand.t
+    | SetCC of condition_code * Operand.t (* Only supports 8-bit destination *)
     (* Conversions *)
     | ConvertDouble of register_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
     (* Control flow *)
     | Jmp of block_id
     | JmpCC of condition_code * block_id
     | CallL of label
-    | CallM of register_size * VReg.t
+    | CallM of register_size * Operand.t
     | Leave
     | Ret
     | Syscall
@@ -284,15 +289,15 @@ module Function = struct
 
   type t = {
     id: id;
-    mutable params: VReg.t list;
+    mutable params: Operand.t list;
     mutable prologue: block_id;
     mutable blocks: Block.t list;
     mutable spilled_callee_saved_regs: RegSet.t;
-    mutable spilled_vregs: VRegSet.t;
+    mutable spilled_vslots: OperandSet.t;
     mutable num_stack_frame_slots: int;
     (* Stack slots in stack frame which hold arguments to pass on stack to callee functions. First
        element in list is at bottom of stack frame (closest to callee function's stack frame). *)
-    mutable argument_stack_slots: VReg.t list;
+    mutable argument_stack_slots: Operand.t list;
     mutable num_argument_stack_slots: int;
   }
 

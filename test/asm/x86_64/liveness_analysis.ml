@@ -2,7 +2,7 @@ open Basic_collections
 open Myte_test
 open X86_64_instructions
 
-let mk_vreg id = VReg.of_value_id ~resolution:Unresolved id
+let mk_vreg id = Operand.of_value_id ~value:VirtualRegister id
 
 let mk_blocks blocks =
   List.fold_left
@@ -18,9 +18,9 @@ let mk_blocks blocks =
     blocks
 
 let find_liveness_sets blocks =
-  let open VReg in
+  let open Operand in
   let blocks_by_id = mk_blocks blocks in
-  let (live_in, live_out) = X86_64_liveness_analysis.analyze_vregs blocks_by_id RegMap.empty in
+  let (live_in, live_out) = X86_64_liveness_analysis.analyze_regs blocks_by_id RegMap.empty in
   ( IMap.map
       (fun set_as_list -> List.fold_left (fun acc v -> ISet.add v.id acc) ISet.empty set_as_list)
       live_in,

@@ -76,17 +76,17 @@ let coalesce_lea_mapper =
 
     method has_coalesced = has_coalesced
 
-    method set_reg_and_address vreg addr =
+    method set_reg_and_address reg addr =
       has_coalesced <- false;
-      reg_to_replace <- VReg.get_physical_register_resolution vreg;
+      reg_to_replace <- Operand.get_physical_register_value reg;
       address_to_coalesce <- addr
 
     method! map_mem mem =
-      match mem.resolution with
-      | MemoryAddress { offset = None; base = RegBase vreg; index_and_scale = None }
-        when VReg.get_physical_register_resolution vreg = reg_to_replace ->
+      match mem.value with
+      | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None }
+        when Operand.get_physical_register_value reg = reg_to_replace ->
         has_coalesced <- true;
-        VReg.mk ~resolution:(MemoryAddress address_to_coalesce)
+        Operand.mk ~value:(MemoryAddress address_to_coalesce)
       | _ -> mem
   end
 
@@ -100,7 +100,7 @@ let coalesce_lea_mapper =
    Example After:
    mov 4(%rax, %rdi), %rdx
    
-   TODO: Track uses of vreg defs to make sure next instruction is only use of Lea result vreg *)
+   TODO: Track uses of reg defs to make sure next instruction is only use of Lea result reg *)
 let coalesce_lea_optimization ~gcx:_ instr next_instrs =
   let open Instruction in
   match instr with
@@ -123,7 +123,7 @@ let remove_byte_reg_reg_moves_optimization ~gcx:_ instr _ =
   let open Instruction in
   match instr with
   | (instr_id, MovMM (Size8, src_reg, dest_reg))
-    when VReg.is_reg_value src_reg && VReg.is_reg_value dest_reg ->
+    when Operand.is_reg_value src_reg && Operand.is_reg_value dest_reg ->
     Some (1, [(instr_id, MovMM (Size32, src_reg, dest_reg))])
   | _ -> None
 
@@ -132,7 +132,7 @@ let load_zero_to_register_optimization ~gcx:_ instr _ =
   let open Instruction in
   match instr with
   | (instr_id, MovIM (_, (Imm8 0 | Imm16 0 | Imm32 0l | Imm64 0L), dest_reg))
-    when VReg.is_reg_value dest_reg ->
+    when Operand.is_reg_value dest_reg ->
     Some (1, [(instr_id, XorMM (Size32, dest_reg, dest_reg))])
   | _ -> None
 
@@ -147,8 +147,8 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr _ =
     let shift_instr = (instr_id, ShlI (size, Imm8 power_of_two, dest_reg)) in
     (* If same register is source and dest, can shift it in place *)
     if
-      VReg.is_reg_value src
-      && VReg.get_physical_register_resolution src = VReg.get_physical_register_resolution dest_reg
+      Operand.is_reg_value src
+      && Operand.get_physical_register_value src = Operand.get_physical_register_value dest_reg
     then
       Some (1, [shift_instr])
     else

@@ -18,22 +18,20 @@ module Gcx = struct
     (* Map from instruction id to the block that contains it *)
     mutable instruction_to_block: Block.id IMap.t;
     mutable funcs_by_id: Function.t IMap.t;
-    (* Map from physical register to a precolored virtual register *)
-    mutable color_to_vreg: VReg.t RegMap.t;
+    (* Map from physical register to a precolored register operand *)
+    mutable color_to_op: Operand.t RegMap.t;
     mutable agg_to_layout: AggregateLayout.t IMap.t;
   }
 
   let mk () =
-    (* Initialize representative precolored vregs *)
-    let (color_to_vreg, _precolored_vregs, _interference_degree) =
+    (* Initialize representative precolored operands *)
+    let color_to_op =
       RegSet.fold
-        (fun reg (color_to_vreg, precolored_vregs, interference_degree) ->
-          let vreg = VReg.mk ~resolution:(PhysicalRegister reg) in
-          ( RegMap.add reg vreg color_to_vreg,
-            VRegSet.add vreg precolored_vregs,
-            VRegMap.add vreg Int.max_int interference_degree ))
+        (fun reg color_to_op ->
+          let op = Operand.mk ~value:(PhysicalRegister reg) in
+          RegMap.add reg op color_to_op)
         all_registers
-        (RegMap.empty, VRegSet.empty, VRegMap.empty)
+        RegMap.empty
     in
     {
       data = mk_data_section ();
@@ -45,7 +43,7 @@ module Gcx = struct
       mir_block_id_to_block_id = Mir.BlockMap.empty;
       instruction_to_block = IMap.empty;
       funcs_by_id = IMap.empty;
-      color_to_vreg;
+      color_to_op;
       agg_to_layout = IMap.empty;
     }
 
@@ -102,7 +100,7 @@ module Gcx = struct
     gcx.instruction_to_block <- IMap.add instr_id block.Block.id gcx.instruction_to_block;
     instr_id
 
-  let mk_precolored ~gcx color = RegMap.find color gcx.color_to_vreg
+  let mk_precolored ~gcx color = RegMap.find color gcx.color_to_op
 
   let start_function ~gcx params prologue =
     let id = Function.mk_id () in
@@ -113,7 +111,7 @@ module Gcx = struct
         prologue;
         blocks = [];
         spilled_callee_saved_regs = RegSet.empty;
-        spilled_vregs = VRegSet.empty;
+        spilled_vslots = OperandSet.empty;
         num_stack_frame_slots = 0;
         argument_stack_slots = [];
         num_argument_stack_slots = 0;
@@ -129,14 +127,14 @@ module Gcx = struct
     gcx.current_func_builder <- None
 
   let mk_function_argument_stack_slot ~gcx i =
-    (* Return stack slot vreg if one already exists for function, otherwise create new stack slot
-       vreg for function and return it. *)
+    (* Return stack slot operand if one already exists for function, otherwise create new stack slot
+       operand for function and return it. *)
     let current_func = Option.get gcx.current_func_builder in
     if current_func.num_argument_stack_slots <= i then
       current_func.num_argument_stack_slots <- i + 1;
-    let vreg = VReg.mk ~resolution:(FunctionArgumentStackSlot i) in
-    current_func.argument_stack_slots <- vreg :: current_func.argument_stack_slots;
-    vreg
+    let op = Operand.mk ~value:(FunctionArgumentStackSlot i) in
+    current_func.argument_stack_slots <- op :: current_func.argument_stack_slots;
+    op
 
   let get_instruction ~gcx instr_id =
     let block_id = IMap.find instr_id gcx.instruction_to_block in
@@ -230,8 +228,8 @@ module Gcx = struct
           List.filter
             (fun (_, instr) ->
               match instr with
-              | MovMM (_, vreg1, vreg2) ->
-                (match (vreg1.resolution, vreg2.resolution) with
+              | MovMM (_, op1, op2) ->
+                (match (op1.value, op2.value) with
                 | (PhysicalRegister reg1, PhysicalRegister reg2) when reg1 = reg2 -> false
                 | _ -> true)
               | _ -> true)
