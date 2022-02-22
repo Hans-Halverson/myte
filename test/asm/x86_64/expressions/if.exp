@@ -35,34 +35,36 @@ test.testIfWithExpressions:
 test.testNestedIfStatementInExpressionPosition:
   call test.bool
   testb %al, %al
-  je .L3
+  je .L4
   call test.bool
   testb %al, %al
   je .L2
   movl $1, %eax
-  jmp .L5
+  jmp .L3
 .L2:
   movl $2, %eax
-  jmp .L5
 .L3:
+  jmp .L7
+.L4:
   call test.bool
   testb %al, %al
-  je .L4
+  je .L5
   movl $3, %eax
-  jmp .L5
-.L4:
-  movl $4, %eax
+  jmp .L6
 .L5:
+  movl $4, %eax
+.L6:
+.L7:
   ret
 test.testSimpleIf:
   call test.bool
   testb %al, %al
-  je .L6
+  je .L8
   movl $1, %eax
-  jmp .L7
-.L6:
+  jmp .L9
+.L8:
   movl $2, %eax
-.L7:
+.L9:
   ret
 test.use$Function$:
   movq %rdi, %rax
