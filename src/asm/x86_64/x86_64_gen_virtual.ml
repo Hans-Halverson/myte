@@ -2,6 +2,7 @@ open Basic_collections
 open Mir
 open Mir_builders
 open Mir_type
+open X86_64_builders
 open X86_64_gen_context
 open X86_64_instructions
 open X86_64_layout
@@ -89,8 +90,8 @@ and gen_function_instruction_builder ~gcx ~ir func =
         (* First 6 parameters are passed in known registers *)
         let size = register_size_of_mir_value_type type_ in
         let move_from_precolored color =
-          let param_op = Operand.of_value_id ~value:VirtualRegister arg_id in
-          Gcx.emit ~gcx (MovMM (size, Operand.mk_precolored color, param_op));
+          let param_op = mk_virtual_register_of_value_id ~value_id:arg_id in
+          Gcx.emit ~gcx (MovMM (size, mk_precolored color, param_op));
           param_op
         in
         match i with
@@ -102,7 +103,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
         | 5 -> move_from_precolored R9
         (* All other parameters pushed onto stack before call. Address will be calculated once
            we know stack frame size after stack coloring. *)
-        | _ -> Operand.of_value_id ~value:FunctionStackArgument arg_id)
+        | _ -> mk_function_stack_argument ~arg_id)
       func.params;
   Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx func.start_block));
   Gcx.finish_block ~gcx;
@@ -130,8 +131,8 @@ and gen_blocks ~gcx ~ir start_block label func =
 and gen_instructions ~gcx ~ir ~block instructions =
   let open Instruction in
   let gen_instructions = gen_instructions ~gcx ~ir ~block in
-  let operand_of_value_id value_id = Operand.of_value_id ~value:VirtualRegister value_id in
-  let mk_vreg () = Operand.mk_virtual_register () in
+  let operand_of_value_id value_id = mk_virtual_register_of_value_id ~value_id in
+  let mk_vreg () = mk_virtual_register () in
   let resolve_ir_value ?(allow_imm64 = false) v = resolve_ir_value ~gcx ~allow_imm64 v in
   let emit_mem mem =
     match mem with
@@ -185,7 +186,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         | None -> ()
         | Some _ when i = 0 && is_zero_size_global arg_val -> ()
         | Some color ->
-          let precolored_reg = Operand.mk_precolored color in
+          let precolored_reg = mk_precolored color in
           (match resolve_ir_value ~allow_imm64:true arg_val with
           | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, precolored_reg))
           | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, precolored_reg))
@@ -205,7 +206,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx instr
   in
   let gen_idiv left_val right_val =
-    let precolored_a = Operand.mk_precolored A in
+    let precolored_a = mk_precolored A in
     match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     (* Convert 8-byte divides to 16-byte divides *)
@@ -271,7 +272,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     | (SImm target_imm, shift) ->
       let size = register_size_of_svalue shift in
-      let precolored_c = Operand.mk_precolored C in
+      let precolored_c = mk_precolored C in
       let shift_mem = emit_mem shift in
       (* Only low byte is used for shift, so avoid REX prefix for small code size optimization *)
       let shift_size =
@@ -301,7 +302,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         else
           shift_size
       in
-      let precolored_c = Operand.mk_precolored C in
+      let precolored_c = mk_precolored C in
       let shift_mem = emit_mem shift in
       Gcx.emit ~gcx (MovMM (shift_size, shift_mem, precolored_c));
       let target_mem = emit_mem target in
@@ -413,7 +414,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (* Move result from register A to return operand *)
     ( if has_return then
       let return_size = register_size_of_mir_value_type return_type in
-      Gcx.emit ~gcx (MovMM (return_size, Operand.mk_precolored A, operand_of_value_id return_id)) );
+      Gcx.emit ~gcx (MovMM (return_size, mk_precolored A, operand_of_value_id return_id)) );
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -424,7 +425,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (match value with
     | None -> ()
     | Some value ->
-      let precolored_reg = Operand.mk_precolored A in
+      let precolored_reg = mk_precolored A in
       (match resolve_ir_value ~allow_imm64:true value with
       | SImm imm -> Gcx.emit ~gcx (MovIM (size_of_immediate imm, imm, precolored_reg))
       | SAddr addr -> Gcx.emit ~gcx (Lea (Size64, addr, precolored_reg))
@@ -453,12 +454,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
     let src =
       match pointer.value.value with
-      | Lit (Global { name; _ }) -> Operand.mk ~value:(MemoryAddress (mk_label_memory_address name))
+      | Lit (Global { name; _ }) -> mk_memory_address ~address:(mk_label_memory_address name)
       | _ ->
         (match resolve_ir_value pointer with
         | SReg (reg, _) ->
-          Operand.mk
-            ~value:(MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None })
+          mk_memory_address ~address:{ offset = None; base = RegBase reg; index_and_scale = None }
         | SMem (mem, _) -> mem
         | SImm _
         | SAddr _ ->
@@ -488,13 +488,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let value = resolve_ir_value ~allow_imm64:true value in
     let dest =
       match pointer.value.value with
-      | Lit (Global { Global.name; _ }) ->
-        Operand.mk ~value:(MemoryAddress (mk_label_memory_address name))
+      | Lit (Global { Global.name; _ }) -> mk_memory_address ~address:(mk_label_memory_address name)
       | _ ->
         (match resolve_ir_value pointer with
         | SReg (reg, _) ->
-          Operand.mk
-            ~value:(MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None })
+          mk_memory_address ~address:{ offset = None; base = RegBase reg; index_and_scale = None }
         | SMem (mem, _) -> mem
         | SImm _
         | SAddr _ ->
@@ -605,7 +603,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       Gcx.emit ~gcx (SarI (size, Imm8 power_of_two, result_op))
     (* Otherwise emit a divide instruction *)
     | _ ->
-      let precolored_a = Operand.mk_precolored A in
+      let precolored_a = mk_precolored A in
       let size = gen_idiv left_val right_val in
       Gcx.emit ~gcx (MovMM (size, precolored_a, result_op)));
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
@@ -617,7 +615,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *)
   | { id = result_id; instr = Binary (Rem, left_val, right_val); _ } :: rest_instructions ->
     let result_op = operand_of_value_id result_id in
-    let precolored_d = Operand.mk_precolored D in
+    let precolored_d = mk_precolored D in
     let size = gen_idiv left_val right_val in
     Gcx.emit ~gcx (MovMM (size, precolored_d, result_op));
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
@@ -835,8 +833,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
      *)
     if name = myte_alloc.name then (
       let element_mir_ty = cast_to_pointer_type return_type in
-      let precolored_a = Operand.mk_precolored A in
-      let precolored_di = Operand.mk_precolored DI in
+      let precolored_a = mk_precolored A in
+      let precolored_di = mk_precolored DI in
       gen_size_from_count_and_type ~gcx (List.hd args) element_mir_ty precolored_di;
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_alloc_label);
       Gcx.emit ~gcx (MovMM (Size64, precolored_a, return_op ()))
@@ -848,7 +846,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     ) else if name = myte_copy.name then (
       let element_mir_ty = cast_to_pointer_type (type_of_use (List.hd args)) in
       let (pointer_args, count_arg) = List_utils.split_last args in
-      let precolored_d = Operand.mk_precolored D in
+      let precolored_d = mk_precolored D in
       gen_call_arguments pointer_args;
       gen_size_from_count_and_type ~gcx count_arg element_mir_ty precolored_d;
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_copy_label)
@@ -867,7 +865,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_write.name then (
       gen_call_arguments args;
-      let precolored_a = Operand.mk_precolored A in
+      let precolored_a = mk_precolored A in
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_write_label);
       Gcx.emit ~gcx (MovMM (Size64, precolored_a, return_op ()))
       (*
@@ -877,7 +875,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_read.name then (
       gen_call_arguments args;
-      let precolored_a = Operand.mk_precolored A in
+      let precolored_a = mk_precolored A in
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_read_label);
       Gcx.emit ~gcx (MovMM (Size64, precolored_a, return_op ()))
       (*
@@ -887,7 +885,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_open.name then (
       gen_call_arguments args;
-      let precolored_a = Operand.mk_precolored A in
+      let precolored_a = mk_precolored A in
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_open_label);
       Gcx.emit ~gcx (MovMM (Size64, precolored_a, return_op ()))
       (*
@@ -897,7 +895,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_close.name then (
       gen_call_arguments args;
-      let precolored_a = Operand.mk_precolored A in
+      let precolored_a = mk_precolored A in
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_close_label);
       Gcx.emit ~gcx (MovMM (Size64, precolored_a, return_op ()))
       (*
@@ -907,7 +905,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_unlink.name then (
       gen_call_arguments args;
-      let precolored_a = Operand.mk_precolored A in
+      let precolored_a = mk_precolored A in
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_unlink_label);
       Gcx.emit ~gcx (MovMM (Size64, precolored_a, return_op ()))
       (*
@@ -916,7 +914,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_get_heap_size.name then (
-      let precolored_a = Operand.mk_precolored A in
+      let precolored_a = mk_precolored A in
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_get_heap_size);
       Gcx.emit ~gcx (MovMM (Size64, precolored_a, return_op ()))
     ) else
@@ -1012,8 +1010,8 @@ and gen_get_pointer
   let element_ty = pointer_value_element_type pointer.value in
 
   (* Utilities for creating operands *)
-  let operand_of_value_id return_id = Operand.of_value_id ~value:VirtualRegister return_id in
-  let mk_vreg () = Operand.mk_virtual_register () in
+  let operand_of_value_id return_id = mk_virtual_register_of_value_id ~value_id:return_id in
+  let mk_vreg () = mk_virtual_register () in
 
   (* Current address calculation - updated as offsets are visited. Note that base and index_and_scale
      can only contain 64-bit registers. *)
@@ -1226,7 +1224,7 @@ and maybe_truncate_bool_operand ~gcx ~if_bool op =
 
 and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
   let operand_of_var value_id size =
-    let op = Operand.of_value_id ~value:VirtualRegister value_id in
+    let op = mk_virtual_register_of_value_id ~value_id in
     if Operand.is_memory_value op then
       SMem (op, size)
     else
@@ -1251,7 +1249,7 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
     else if not (Integers.is_out_of_signed_int_range l) then
       SImm (Imm32 (Int64.to_int32 l))
     else
-      let vreg = Operand.mk_virtual_register () in
+      let vreg = mk_virtual_register () in
       Gcx.emit ~gcx Instruction.(MovIM (Size64, Imm64 l, vreg));
       SReg (vreg, Size64)
   | Lit (Function { name; _ }) -> SAddr (mk_label_memory_address name)

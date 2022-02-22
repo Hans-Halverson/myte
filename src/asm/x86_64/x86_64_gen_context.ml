@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir_type
+open X86_64_builders
 open X86_64_instructions
 open X86_64_layout
 
@@ -27,7 +28,7 @@ module Gcx = struct
     (* Initialize representative precolored operands *)
     let color_to_op =
       RegSet.fold
-        (fun reg color_to_op -> RegMap.add reg (Operand.mk_precolored reg) color_to_op)
+        (fun reg color_to_op -> RegMap.add reg (mk_precolored reg) color_to_op)
         all_registers
         RegMap.empty
     in
@@ -128,7 +129,7 @@ module Gcx = struct
     let current_func = Option.get gcx.current_func_builder in
     if current_func.num_argument_stack_slots <= i then
       current_func.num_argument_stack_slots <- i + 1;
-    let op = Operand.mk ~value:(FunctionArgumentStackSlot i) in
+    let op = mk_function_argument_stack_slot ~i in
     current_func.argument_stack_slots <- op :: current_func.argument_stack_slots;
     op
 

@@ -1,4 +1,5 @@
 open Basic_collections
+open X86_64_builders
 open X86_64_gen_context
 open X86_64_instructions
 
@@ -60,7 +61,7 @@ let resolve_to_physical_stack_slot operand offset =
   operand.Operand.value <-
     MemoryAddress
       {
-        base = RegBase (Operand.mk_precolored SP);
+        base = RegBase (mk_precolored SP);
         offset = Some (ImmediateOffset (Int32.of_int offset));
         index_and_scale = None;
       }

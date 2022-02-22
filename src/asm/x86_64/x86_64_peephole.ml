@@ -1,4 +1,5 @@
 open Basic_collections
+open X86_64_builders
 open X86_64_instructions
 open X86_64_gen_context
 
@@ -86,7 +87,7 @@ let coalesce_lea_mapper =
       | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None }
         when Operand.get_physical_register_value reg = reg_to_replace ->
         has_coalesced <- true;
-        Operand.mk ~value:(MemoryAddress address_to_coalesce)
+        mk_memory_address ~address:address_to_coalesce
       | _ -> mem
   end
 

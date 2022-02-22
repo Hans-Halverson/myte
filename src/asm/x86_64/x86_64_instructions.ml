@@ -99,11 +99,7 @@ and Operand : sig
 
   val of_value_id : value:value -> id -> t
 
-  val mk : value:value -> t
-
-  val mk_precolored : register_slot -> t
-
-  val mk_virtual_register : unit -> t
+  val mk : id:id -> value:value -> t
 
   val compare : t -> t -> int
 
@@ -128,21 +124,17 @@ end = struct
     | FunctionStackArgument
     | FunctionArgumentStackSlot of int
 
+  let mk ~id ~value = { id; value }
+
   let ops_by_id = ref IMap.empty
 
   let of_value_id ~value value_id =
     match IMap.find_opt value_id !ops_by_id with
     | Some existing_op -> existing_op
     | None ->
-      let new_op = { id = value_id; value } in
+      let new_op = mk ~id:value_id ~value in
       ops_by_id := IMap.add value_id new_op !ops_by_id;
       new_op
-
-  let mk ~value = { id = Mir.mk_value_id (); value }
-
-  let mk_precolored color = mk ~value:(PhysicalRegister color)
-
-  let mk_virtual_register () = mk ~value:VirtualRegister
 
   let compare v1 v2 = Int.compare v1.id v2.id
 
