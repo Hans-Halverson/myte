@@ -116,6 +116,7 @@ module Gcx = struct
         spilled_vregs = VRegSet.empty;
         num_stack_frame_slots = 0;
         argument_stack_slots = [];
+        num_argument_stack_slots = 0;
       }
     in
     gcx.current_func_builder <- Some func;
@@ -127,16 +128,23 @@ module Gcx = struct
     current_func.blocks <- List.rev current_func.blocks;
     gcx.current_func_builder <- None
 
-  let get_current_argument_stack_slot ~gcx i =
+  let mk_function_argument_stack_slot ~gcx i =
     (* Return stack slot vreg if one already exists for function, otherwise create new stack slot
        vreg for function and return it. *)
     let current_func = Option.get gcx.current_func_builder in
-    match List.nth_opt current_func.argument_stack_slots i with
-    | Some stack_slot_vreg -> stack_slot_vreg
-    | None ->
-      let stack_slot_vreg = VReg.mk ~resolution:FunctionArgumentStackSlot in
-      current_func.argument_stack_slots <- current_func.argument_stack_slots @ [stack_slot_vreg];
-      stack_slot_vreg
+    if current_func.num_argument_stack_slots <= i then
+      current_func.num_argument_stack_slots <- i + 1;
+    let vreg = VReg.mk ~resolution:(FunctionArgumentStackSlot i) in
+    current_func.argument_stack_slots <- vreg :: current_func.argument_stack_slots;
+    vreg
+
+  (*
+     match List.nth_opt current_func.argument_stack_slots i with
+     | Some stack_slot_vreg -> stack_slot_vreg
+     | None ->
+       let stack_slot_vreg = VReg.mk ~resolution:(FunctionArgumentStackSlot i) in
+       current_func.argument_stack_slots <- current_func.argument_stack_slots @ [stack_slot_vreg];
+       stack_slot_vreg *)
 
   let get_instruction ~gcx instr_id =
     let block_id = IMap.find instr_id gcx.instruction_to_block in

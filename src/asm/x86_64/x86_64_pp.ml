@@ -155,7 +155,7 @@ let rec pp_register ~gcx ~buf ~size reg =
   | MemoryAddress addr -> pp_memory_address ~gcx ~buf addr
   | VirtualStackSlot when Opts.dump_virtual_asm () -> pp_virtual_stack_slot ~buf vreg
   | FunctionStackArgument when Opts.dump_virtual_asm () -> pp_function_stack_argument ~buf vreg
-  | FunctionArgumentStackSlot when Opts.dump_virtual_asm () ->
+  | FunctionArgumentStackSlot _ when Opts.dump_virtual_asm () ->
     pp_function_argument_stack_slot ~buf vreg
   | Unresolved ->
     add_char ~buf '%';
@@ -163,7 +163,7 @@ let rec pp_register ~gcx ~buf ~size reg =
   | Alias _ -> failwith "Alias cannot be final resolution"
   | VirtualStackSlot
   | FunctionStackArgument
-  | FunctionArgumentStackSlot ->
+  | FunctionArgumentStackSlot _ ->
     failwith "Must be resolved before printing"
 
 and pp_memory_address ~gcx ~buf mem =

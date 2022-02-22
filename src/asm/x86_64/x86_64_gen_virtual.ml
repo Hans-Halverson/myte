@@ -165,7 +165,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let stack_arg_vals = List_utils.drop 6 arg_vals in
     List.iteri
       (fun i arg_val ->
-        let argument_stack_slot_vreg = Gcx.get_current_argument_stack_slot ~gcx i in
+        let argument_stack_slot_vreg = Gcx.mk_function_argument_stack_slot ~gcx i in
         match resolve_ir_value arg_val with
         | SImm imm ->
           let dest_size = register_size_of_mir_value_type (type_of_use arg_val) in

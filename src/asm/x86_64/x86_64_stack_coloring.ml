@@ -114,16 +114,21 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
         func.spilled_vregs;
 
       (* Calculate total size of stack frame and its sections *)
-      let num_argument_stack_slots = List.length func.argument_stack_slots in
       let num_local_stack_slots = !max_stack_slot in
-      let arguments_stack_frame_section_size = num_argument_stack_slots * 8 in
+      let arguments_stack_frame_section_size = func.num_argument_stack_slots * 8 in
 
-      func.num_stack_frame_slots <- num_argument_stack_slots + num_local_stack_slots;
+      func.num_stack_frame_slots <- func.num_argument_stack_slots + num_local_stack_slots;
       let stack_frame_size = func.num_stack_frame_slots * 8 in
 
       (* Write physical addresses in stack for each argument stack slot in function *)
-      List.iteri
-        (fun i stack_slot_vreg -> resolve_to_physical_stack_slot ~gcx stack_slot_vreg (i * 8))
+      List.iter
+        (fun stack_slot_vreg ->
+          let i =
+            match stack_slot_vreg.VReg.resolution with
+            | FunctionArgumentStackSlot i -> i
+            | _ -> failwith "Expected FunctionArgumentStackSlot"
+          in
+          resolve_to_physical_stack_slot ~gcx stack_slot_vreg (i * 8))
         func.argument_stack_slots;
 
       (* Write physical addresses in stack for each vslot in function *)

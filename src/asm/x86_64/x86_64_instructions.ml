@@ -94,8 +94,8 @@ and VReg : sig
        the bottom of the previous function's stack frame. *)
     | FunctionStackArgument
     (* An argument to pass to a callee function on the stack. These arguments appear at this bottom
-       of the current function's stack frame. *)
-    | FunctionArgumentStackSlot
+       of the current function's stack frame. Int is the index of the argument. *)
+    | FunctionArgumentStackSlot of int
     (* This vreg has not yet been resolved *)
     | Unresolved
 
@@ -128,7 +128,7 @@ end = struct
     | MemoryAddress of MemoryAddress.t
     | VirtualStackSlot
     | FunctionStackArgument
-    | FunctionArgumentStackSlot
+    | FunctionArgumentStackSlot of int
     | Unresolved
 
   let vregs_by_id = ref IMap.empty
@@ -162,7 +162,7 @@ end = struct
     | MemoryAddress _
     | VirtualStackSlot
     | FunctionStackArgument
-    | FunctionArgumentStackSlot ->
+    | FunctionArgumentStackSlot _ ->
       true
     | _ -> false
 
@@ -307,6 +307,7 @@ module Function = struct
     (* Stack slots in stack frame which hold arguments to pass on stack to callee functions. First
        element in list is at bottom of stack frame (closest to callee function's stack frame). *)
     mutable argument_stack_slots: VReg.t list;
+    mutable num_argument_stack_slots: int;
   }
 
   let max_id = ref 0
