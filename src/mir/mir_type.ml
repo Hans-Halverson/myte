@@ -6,6 +6,7 @@ module rec Type : sig
   type t =
     | Bool
     | Byte
+    | Short
     | Int
     | Long
     | Function
@@ -96,6 +97,7 @@ let rec types_equal (ty1 : Type.t) (ty2 : Type.t) : bool =
 let rec type_to_string (ty : Type.t) =
   match ty with
   | Byte -> "byte"
+  | Short -> "short"
   | Int -> "int"
   | Long -> "long"
   | Bool -> "bool"
@@ -106,6 +108,8 @@ let rec type_to_string (ty : Type.t) =
 
 let byte_size = 1
 
+let short_size = 2
+
 let int_size = 4
 
 let ptr_size = 8
@@ -115,6 +119,7 @@ let rec size_of_type (mir_type : Type.t) =
   | Bool
   | Byte ->
     byte_size
+  | Short -> short_size
   | Int -> int_size
   | Long
   | Function
@@ -147,6 +152,7 @@ let is_numeric_type (v : Type.t) : bool =
   match v with
   | Bool
   | Byte
+  | Short
   | Int
   | Long ->
     true

@@ -8,7 +8,7 @@ class spill_writer ~(gcx : Gcx.t) ~(get_alias : Operand.t -> Operand.t) =
 
     val mutable current_block_builders = []
 
-    method mk_vreg () = mk_virtual_register ()
+    method mk_vreg_of_op (op : Operand.t) = mk_virtual_register ~type_:op.type_
 
     method add_instr instr = current_instruction_builder <- instr :: current_instruction_builder
 
@@ -41,13 +41,13 @@ class spill_writer ~(gcx : Gcx.t) ~(get_alias : Operand.t -> Operand.t) =
       let (instr_id, instr) = instr_with_id in
       let keep_instr () = this#add_instr instr_with_id in
       let replace_instr instr = this#add_instr (instr_id, instr) in
-      let mk_vreg () = this#mk_vreg () in
+      let mk_vreg_of_op op = this#mk_vreg_of_op op in
       let resolve_operator op = this#resolve_operator ~block op in
       (* Must have a register not a memory address - if necessary create new register then move *)
       let force_register_write size op f =
         resolve_operator op;
         if this#is_memory_value op then (
-          let vreg_dest = mk_vreg () in
+          let vreg_dest = mk_vreg_of_op op in
           this#add_instr (instr_id, f vreg_dest);
           this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (size, vreg_dest, op))
         ) else
@@ -57,7 +57,7 @@ class spill_writer ~(gcx : Gcx.t) ~(get_alias : Operand.t -> Operand.t) =
         resolve_operator src_op;
         resolve_operator dest_op;
         if this#is_memory_value src_op && this#is_memory_value dest_op then (
-          let src_vreg = mk_vreg () in
+          let src_vreg = mk_vreg_of_op src_op in
           this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (size, src_op, src_vreg));
           this#add_instr (instr_id, f src_vreg dest_op)
         ) else
@@ -71,7 +71,7 @@ class spill_writer ~(gcx : Gcx.t) ~(get_alias : Operand.t -> Operand.t) =
           replace_instr (MovIM (dest_size, imm, dest_op))
         else
           (* If loaded to a memory location first load immediate to register, then move to memory *)
-          let new_vreg = mk_vreg () in
+          let new_vreg = mk_virtual_register ~type_:Long in
           this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovIM (dest_size, imm, new_vreg));
           this#add_instr (instr_id, MovMM (dest_size, new_vreg, dest_op))
       (* TestMR must have a register as its second operand *)
@@ -85,7 +85,7 @@ class spill_writer ~(gcx : Gcx.t) ~(get_alias : Operand.t -> Operand.t) =
           replace_instr (TestMR (size, op2, op1))
         else
           (* If both operands are memory location, create and move to new vreg for second operand *)
-          let new_vreg = mk_vreg () in
+          let new_vreg = mk_vreg_of_op op2 in
           this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (size, op2, new_vreg));
           this#add_instr (instr_id, TestMR (size, op1, new_vreg))
       (* All instructions that allow register and memory operands need their operand resolved but
@@ -166,7 +166,7 @@ class spill_writer ~(gcx : Gcx.t) ~(get_alias : Operand.t -> Operand.t) =
         | RegBase base_reg ->
           this#resolve_operator ~block base_reg;
           if this#is_memory_value base_reg then (
-            let vreg = this#mk_vreg () in
+            let vreg = this#mk_vreg_of_op base_reg in
             this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (Size64, base_reg, vreg));
             MemoryAddress.RegBase vreg
           ) else
@@ -178,7 +178,7 @@ class spill_writer ~(gcx : Gcx.t) ~(get_alias : Operand.t -> Operand.t) =
         | Some (scale_reg, scale) ->
           this#resolve_operator ~block scale_reg;
           if this#is_memory_value scale_reg then (
-            let vreg = this#mk_vreg () in
+            let vreg = this#mk_vreg_of_op scale_reg in
             this#add_instr (Gcx.mk_instr_id_for_block ~gcx block, MovMM (Size64, scale_reg, vreg));
             Some (vreg, scale)
           ) else

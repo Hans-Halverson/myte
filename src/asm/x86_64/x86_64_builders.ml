@@ -1,3 +1,4 @@
+open Mir_type
 open X86_64_instructions
 
 (*
@@ -6,20 +7,25 @@ open X86_64_instructions
  * ============================
  *)
 
-let mk_operand ~(value : Operand.value) : Operand.t = Operand.mk ~id:(Mir.mk_value_id ()) ~value
+let mk_operand ~(value : Operand.value) ~(type_ : Type.t) : Operand.t =
+  Operand.mk ~id:(Mir.mk_value_id ()) ~value ~type_
 
-let mk_precolored (color : register_slot) : Operand.t = mk_operand ~value:(PhysicalRegister color)
+let mk_precolored ~(type_ : Type.t) (color : register_slot) : Operand.t =
+  mk_operand ~value:(PhysicalRegister color) ~type_
 
-let mk_virtual_register () : Operand.t = mk_operand ~value:VirtualRegister
+let mk_precolored_of_operand (color : register_slot) (op : Operand.t) : Operand.t =
+  mk_precolored ~type_:op.type_ color
 
-let mk_virtual_register_of_value_id ~(value_id : Mir.Value.id) : Operand.t =
-  Operand.of_value_id ~value:VirtualRegister value_id
+let mk_virtual_register ~(type_ : Type.t) : Operand.t = mk_operand ~value:VirtualRegister ~type_
 
-let mk_memory_address ~(address : MemoryAddress.t) : Operand.t =
-  mk_operand ~value:(MemoryAddress address)
+let mk_virtual_register_of_value_id ~(value_id : Mir.Value.id) ~(type_ : Type.t) : Operand.t =
+  Operand.of_value_id ~value:VirtualRegister ~type_ value_id
 
-let mk_function_argument_stack_slot ~(i : int) : Operand.t =
-  mk_operand ~value:(FunctionArgumentStackSlot i)
+let mk_memory_address ~(address : MemoryAddress.t) ~(type_ : Type.t) : Operand.t =
+  mk_operand ~value:(MemoryAddress address) ~type_
 
-let mk_function_stack_argument ~(arg_id : int) : Operand.t =
-  Operand.of_value_id ~value:FunctionStackArgument arg_id
+let mk_function_argument_stack_slot ~(i : int) ~(type_ : Type.t) : Operand.t =
+  mk_operand ~value:(FunctionArgumentStackSlot i) ~type_
+
+let mk_function_stack_argument ~(arg_id : int) ~(type_ : Type.t) : Operand.t =
+  Operand.of_value_id ~value:FunctionStackArgument arg_id ~type_

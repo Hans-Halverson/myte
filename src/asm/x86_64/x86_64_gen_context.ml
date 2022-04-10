@@ -25,10 +25,10 @@ module Gcx = struct
   }
 
   let mk () =
-    (* Initialize representative precolored operands *)
+    (* Initialize representative precolored operands, choosing arbitrary type *)
     let color_to_op =
       RegSet.fold
-        (fun reg color_to_op -> RegMap.add reg (mk_precolored reg) color_to_op)
+        (fun reg color_to_op -> RegMap.add reg (mk_precolored ~type_:Long reg) color_to_op)
         all_registers
         RegMap.empty
     in
@@ -123,13 +123,13 @@ module Gcx = struct
     current_func.blocks <- List.rev current_func.blocks;
     gcx.current_func_builder <- None
 
-  let mk_function_argument_stack_slot ~gcx i =
+  let mk_function_argument_stack_slot ~gcx ~i ~type_ =
     (* Return stack slot operand if one already exists for function, otherwise create new stack slot
        operand for function and return it. *)
     let current_func = Option.get gcx.current_func_builder in
     if current_func.num_argument_stack_slots <= i then
       current_func.num_argument_stack_slots <- i + 1;
-    let op = mk_function_argument_stack_slot ~i in
+    let op = mk_function_argument_stack_slot ~i ~type_ in
     current_func.argument_stack_slots <- op :: current_func.argument_stack_slots;
     op
 
@@ -146,6 +146,7 @@ module Gcx = struct
     | Type.Bool
     | Byte ->
       1
+    | Short -> 2
     | Int -> 4
     | Long
     | Function

@@ -61,7 +61,7 @@ let resolve_to_physical_stack_slot operand offset =
   operand.Operand.value <-
     MemoryAddress
       {
-        base = RegBase (mk_precolored SP);
+        base = RegBase (mk_precolored ~type_:Long SP);
         offset = Some (ImmediateOffset (Int32.of_int offset));
         index_and_scale = None;
       }

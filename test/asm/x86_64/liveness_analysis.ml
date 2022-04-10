@@ -3,7 +3,7 @@ open Myte_test
 open X86_64_builders
 open X86_64_instructions
 
-let mk_vreg id = mk_virtual_register_of_value_id ~value_id:id
+let mk_vreg id = mk_virtual_register_of_value_id ~value_id:id ~type_:Byte
 
 let mk_blocks blocks =
   List.fold_left

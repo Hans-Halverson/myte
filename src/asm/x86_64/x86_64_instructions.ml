@@ -80,6 +80,9 @@ and Operand : sig
   type t = {
     id: id;
     mutable value: value;
+    (* MIR type for this operand, only guaranteed to be accurate as necessary for tracking pointers
+       into the heap. *)
+    type_: Mir_type.Type.t;
   }
 
   and value =
@@ -97,9 +100,9 @@ and Operand : sig
        of the current function's stack frame. Int is the index of the argument. *)
     | FunctionArgumentStackSlot of int
 
-  val of_value_id : value:value -> id -> t
+  val of_value_id : value:value -> type_:Mir_type.Type.t -> id -> t
 
-  val mk : id:id -> value:value -> t
+  val mk : id:id -> value:value -> type_:Mir_type.Type.t -> t
 
   val compare : t -> t -> int
 
@@ -114,6 +117,7 @@ end = struct
   type t = {
     id: id;
     mutable value: value;
+    type_: Mir_type.Type.t;
   }
 
   and value =
@@ -124,15 +128,15 @@ end = struct
     | FunctionStackArgument
     | FunctionArgumentStackSlot of int
 
-  let mk ~id ~value = { id; value }
+  let mk ~id ~value ~type_ = { id; value; type_ }
 
   let ops_by_id = ref IMap.empty
 
-  let of_value_id ~value value_id =
+  let of_value_id ~value ~type_ value_id =
     match IMap.find_opt value_id !ops_by_id with
     | Some existing_op -> existing_op
     | None ->
-      let new_op = mk ~id:value_id ~value in
+      let new_op = mk ~id:value_id ~value ~type_ in
       ops_by_id := IMap.add value_id new_op !ops_by_id;
       new_op
 
