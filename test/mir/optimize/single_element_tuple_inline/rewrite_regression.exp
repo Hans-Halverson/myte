@@ -1,0 +1,8 @@
+func void @test.use<Bool>(bool %0) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Bool>(false)
+  Ret 0
+}

@@ -1,0 +1,11 @@
+module test
+
+type Tup (Bool)
+
+fun use<T>(x: T) {}
+
+fun main() {
+  val x1 = Tup (true);
+  val x2 = Tup (false);
+  use(x1[0] && x2[0]);
+}

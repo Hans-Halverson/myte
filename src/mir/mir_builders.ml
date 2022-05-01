@@ -556,8 +556,16 @@ and concat_instructions (b1 : Block.t) (b2 : Block.t) =
 (* Replace an instruction with another value, removing the instruction and replacing all its
    uses with the other value. *)
 and replace_instruction ~(from : Value.t) ~(to_ : Value.t) =
+  (* A configurable hook that runs on the replaced instruction*)
+  (match !replace_instruction_hook with
+  | Some replace_instruction_hook -> replace_instruction_hook from to_
+  | None -> ());
   value_replace_uses ~from ~to_;
   remove_instruction from
+
+and replace_instruction_hook : (Value.t -> Value.t -> unit) option ref = ref None
+
+and set_replace_instruction_hook f = replace_instruction_hook := f
 
 (* Utility function to check if an instruction list has a valid structure *)
 and assert_valid_instruction_list (block : Block.t) =

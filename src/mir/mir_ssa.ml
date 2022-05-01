@@ -368,11 +368,26 @@ and rewrite_program ~cx program =
       in
       let final_rewrite_map = VMap.map (fun to_val -> find_final_value to_val) rewrite_map in
 
+      (* Instructions that have been replaced by another value so that we can update mapped values
+         in the final_rewrite_map otherwise we could try to value_replace_uses with a to_ that should
+         have been replaced with another value. *)
+      let replaced_instrs_map = ref VMap.empty in
+      set_replace_instruction_hook
+        (Some (fun from to_ -> replaced_instrs_map := VMap.add from to_ !replaced_instrs_map));
+
       (* Rewrite uses of values in program *)
       VMap.iter
-        (fun load_instr write_val -> value_replace_uses ~from:load_instr ~to_:write_val)
+        (fun load_instr write_val ->
+          let to_ =
+            match VMap.find_opt write_val !replaced_instrs_map with
+            | Some replaced_write_val -> replaced_write_val
+            | None -> write_val
+          in
+          value_replace_uses ~from:load_instr ~to_)
         final_rewrite_map)
     program.funcs;
+
+  set_replace_instruction_hook None;
 
   (* Strip empty blocks *)
   program_iter_blocks program block_remove_if_empty;
