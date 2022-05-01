@@ -8,7 +8,7 @@ _start:
   push %rsi
   push %rdx
   call __myte_runtime_init
-  call _init
+  call _myte_init
   pop %rdx
   pop %rsi
   pop %rdi

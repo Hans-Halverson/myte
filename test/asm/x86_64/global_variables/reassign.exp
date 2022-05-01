@@ -16,7 +16,7 @@ test.l:
   .quad 0
 
   .text
-_init:
+_myte_init:
   movl $4, %edi
   call __myte_alloc
   movl $1, (%rax)

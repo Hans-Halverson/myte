@@ -1,5 +1,5 @@
   .global _main
-  .global _init
+  .global _myte_init
   .global std.sys.init
   .global bss_bitmap
   .global bss_bitmap_size
@@ -176,7 +176,7 @@ test.bss98:
 data_bitmap_start:
 
   .text
-_init:
+_myte_init:
   call test.getLong
   movq %rax, test.bss01(%rip)
   movl $16, %edi

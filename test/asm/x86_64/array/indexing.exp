@@ -6,7 +6,7 @@ test.intArray:
   .skip 8
 
   .text
-_init:
+_myte_init:
   movl $40, %edi
   call __myte_alloc
   movq %rax, test.intArray(%rip)

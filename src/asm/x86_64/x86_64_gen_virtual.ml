@@ -76,6 +76,8 @@ and gen_function_instruction_builder ~gcx ~ir func =
   let label =
     if func == ir.main_func then
       main_label
+    else if func.name == init_func_name then
+      init_label
     else
       label_of_mir_label func.name
   in

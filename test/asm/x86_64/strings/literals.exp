@@ -12,7 +12,7 @@ test.s:
   .ascii "foo"
 
   .text
-_init:
+_myte_init:
   movl $16, %edi
   call __myte_alloc
   leaq .S1(%rip), %rdx

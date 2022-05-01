@@ -28,9 +28,17 @@ let build_stdlib_path installation_path = Files.join_parts [installation_path; "
 
 let build_runtime_path installation_path = Files.join_parts [installation_path; "lib"; "runtime"]
 
+let build_gc_path installation_path = Files.join_parts [installation_path; "lib"; "gc"]
+
 let get_stdlib_path () = build_stdlib_path !installation_path
 
 let get_runtime_path () = build_runtime_path !installation_path
+
+let get_gc_path () = build_gc_path !installation_path
+
+let lib_myte_file () = Filename.concat (get_runtime_path ()) "libmyte.a"
+
+let lib_gc_file () = Filename.concat (get_gc_path ()) "libgc.a"
 
 let detect () =
   let is_directory path = Sys.file_exists path && Sys.is_directory path in
@@ -38,7 +46,13 @@ let detect () =
   let check_is_valid_installation path =
     (* Verify that all necessary directories exist *)
     let directories =
-      [path; Filename.concat path "lib"; build_stdlib_path path; build_runtime_path path]
+      [
+        path;
+        Filename.concat path "lib";
+        build_stdlib_path path;
+        build_runtime_path path;
+        build_gc_path path;
+      ]
     in
     let err_opt =
       List.fold_left

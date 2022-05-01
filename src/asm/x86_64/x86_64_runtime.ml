@@ -1,16 +1,16 @@
-let lib_myte_file () = Filename.concat (Installation.get_runtime_path ()) "libmyte.a"
-
-let myte_runtime_init_label = "__myte_runtime_init"
+(* Myte C runtime functions *)
 
 let myte_alloc_label = "__myte_alloc"
+
+let myte_get_heap_size = "__myte_get_heap_size"
+
+(* Syscall wrapper functions *)
 
 let myte_close_label = "__myte_close"
 
 let myte_copy_label = "__myte_copy"
 
 let myte_exit_label = "__myte_exit"
-
-let myte_get_heap_size = "__myte_get_heap_size"
 
 let myte_open_label = "__myte_open"
 

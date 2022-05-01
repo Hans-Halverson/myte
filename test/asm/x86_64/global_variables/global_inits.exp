@@ -25,7 +25,7 @@ test.constantL:
   .quad 123
 
   .text
-_init:
+_myte_init:
   call test.getByte
   movb %al, test.b(%rip)
   call test.getFunction

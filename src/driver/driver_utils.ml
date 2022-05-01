@@ -2,6 +2,8 @@ let assembler_env_variable = "ASSEMBLER"
 
 let linker_env_variable = "LINKER"
 
+let clang_env_variable = "CLANG"
+
 let assembler_path =
   match Sys.getenv_opt assembler_env_variable with
   | Some path -> path
@@ -11,6 +13,11 @@ let linker_path =
   match Sys.getenv_opt linker_env_variable with
   | Some path -> path
   | None -> "ld"
+
+let clang_path =
+  match Sys.getenv_opt clang_env_variable with
+  | Some path -> path
+  | None -> "clang"
 
 let print_errors errors =
   let errors = List.sort (fun (loc1, _) (loc2, _) -> Loc.compare loc1 loc2) errors in

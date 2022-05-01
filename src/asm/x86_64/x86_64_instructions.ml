@@ -504,4 +504,4 @@ let string_of_sized_reg reg size =
 
 let main_label = "_main"
 
-let init_label = "_init"
+let init_label = "_myte_init"

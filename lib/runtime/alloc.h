@@ -1,7 +1,7 @@
 #include <stdint.h>
 
-void myte_runtime_init() asm("__myte_runtime_init");
+void mytec_runtime_init() asm("mytec_runtime_init");
 
-char *myte_alloc(uintptr_t size) asm("__myte_alloc");
+char *mytec_alloc(uintptr_t size) asm("mytec_alloc");
 
-uint64_t myte_get_heap_size() asm("__myte_get_heap_size");
+uint64_t mytec_get_heap_size() asm("mytec_get_heap_size");

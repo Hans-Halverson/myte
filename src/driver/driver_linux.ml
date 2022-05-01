@@ -3,13 +3,14 @@ open Driver_utils
 let mk_assembler_command asm_file obj_file =
   Printf.sprintf "%s -o %s %s" assembler_path (Filename.quote asm_file) (Filename.quote obj_file)
 
-let mk_linker_command output_file program_obj_file lib_myte_file =
+let mk_linker_command output_file program_obj_file lib_myte_file lib_gc_file =
   Printf.sprintf
-    "%s -e _start -o %s %s %s"
-    linker_path
+    "%s -o %s %s %s %s"
+    clang_path
     (Filename.quote output_file)
     (Filename.quote program_obj_file)
     (Filename.quote lib_myte_file)
+    (Filename.quote lib_gc_file)
 
 let gen_executable program_asm_file =
   let output_file = Option.get (Opts.output_file ()) in
@@ -26,10 +27,13 @@ let gen_executable program_asm_file =
   assemble_file program_asm_file program_obj_file;
   Sys.remove program_asm_file;
 
-  let lib_myte_file = X86_64_runtime.lib_myte_file () in
+  let lib_myte_file = Installation.lib_myte_file () in
+  let lib_gc_file = Installation.lib_gc_file () in
 
   (* Link using system linker *)
-  let ret = Sys.command (mk_linker_command output_file program_obj_file lib_myte_file) in
+  let ret =
+    Sys.command (mk_linker_command output_file program_obj_file lib_myte_file lib_gc_file)
+  in
   Sys.remove program_obj_file;
   if ret <> 0 then (
     print_error_message (Printf.sprintf "Linker failed with exit code %d" ret);

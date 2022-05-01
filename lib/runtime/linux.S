@@ -1,15 +1,17 @@
-  .global _start
+  .global main
   .global __myte_copy
   .global mmap
 
   .text
 
-_start:
+main:
+  push %rdi
+  push %rsi
   call __myte_runtime_init
-  call _init
-  mov (%rsp), %rdi
-  lea 8(%rsp), %rsi
-  lea 16(%rsp, %rdi, 8), %rdx
+  call _myte_init
+  mov environ(%rip), %rdx
+  pop %rsi
+  pop %rdi
   call std.sys.init
   call _main
   mov %eax, %edi
