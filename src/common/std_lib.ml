@@ -34,6 +34,8 @@ let std_byte_byte_toInt = "std.byte.Byte.toInt"
 
 let std_byte_byte_toLong = "std.byte.Byte.toLong"
 
+let std_gc_collect = "std.gc.collect"
+
 let std_gc_getHeapSize = "std.gc.getHeapSize"
 
 let std_int_int = "std.int.Int"

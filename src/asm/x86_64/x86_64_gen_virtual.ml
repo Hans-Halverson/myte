@@ -933,8 +933,15 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_get_heap_size.name then (
       let precolored_a = mk_precolored_return_a () in
-      Gcx.emit ~gcx (CallL X86_64_runtime.myte_get_heap_size);
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_get_heap_size_label);
       Gcx.emit ~gcx (MovMM (Size64, precolored_a, return_op ()))
+      (*
+       * ===========================================
+       *              myte_collect
+       * ===========================================
+       *)
+    ) else if name = myte_collect.name then (
+      Gcx.emit ~gcx (CallL X86_64_runtime.myte_collect_label)
     ) else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions

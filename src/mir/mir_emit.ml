@@ -1374,6 +1374,7 @@ and builtin_functions =
         (Std_lib.std_byte_byte_equals, emit_eq);
         (Std_lib.std_byte_byte_toInt, emit_std_byte_byte_toInt);
         (Std_lib.std_byte_byte_toLong, emit_std_byte_byte_toLong);
+        (Std_lib.std_gc_collect, emit_std_gc_collect);
         (Std_lib.std_gc_getHeapSize, emit_std_gc_getHeapSize);
         (Std_lib.std_int_int_equals, emit_eq);
         (Std_lib.std_int_int_toByte, emit_std_int_int_toByte);
@@ -1404,6 +1405,10 @@ and emit_std_byte_byte_toInt ~ecx arg_vals _ =
 
 and emit_std_byte_byte_toLong ~ecx arg_vals _ =
   Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Long)
+
+and emit_std_gc_collect ~ecx _ _ =
+  mk_call_builtin_no_return_ ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_collect [];
+  None
 
 and emit_std_gc_getHeapSize ~ecx _ _ =
   Some (mk_call_builtin ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_get_heap_size [] [])

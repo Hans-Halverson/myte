@@ -58,6 +58,13 @@ let myte_close = { Builtin.name = "myte.builtin.close"; mk_return_ty = (fun _ ->
 let myte_unlink = { Builtin.name = "myte.builtin.unlink"; mk_return_ty = (fun _ -> Some Int) }
 
 (* 
+   myte.builtin.collect<T>()
+
+   Runs a garbage collection cycle.
+ *)
+let myte_collect = { Builtin.name = "myte.builtin.collect"; mk_return_ty = (fun _ -> None) }
+
+(* 
    myte.builtin.get_heap_size<T>(): long
 
    Return size of used myte heap in bytes.

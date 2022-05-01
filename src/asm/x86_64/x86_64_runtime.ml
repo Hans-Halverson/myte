@@ -2,7 +2,9 @@
 
 let myte_alloc_label = "__myte_alloc"
 
-let myte_get_heap_size = "__myte_get_heap_size"
+let myte_collect_label = "__myte_collect"
+
+let myte_get_heap_size_label = "__myte_get_heap_size"
 
 (* Syscall wrapper functions *)
 

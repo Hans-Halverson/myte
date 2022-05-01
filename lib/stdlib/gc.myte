@@ -3,6 +3,8 @@ module std.gc
 import std.long.Long
 import std.string.String
 
+builtin fun collect()
+
 builtin fun getHeapSize(): Long
 
 fun report(): String {

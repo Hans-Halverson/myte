@@ -4,9 +4,7 @@
 
 #define OOM_EXIT_CODE 97
 
-void mytec_runtime_init() {
-  GC_INIT();
-}
+void mytec_runtime_init() { GC_INIT(); }
 
 char *mytec_alloc(uintptr_t size) {
   char *ptr = GC_MALLOC(size);
@@ -17,6 +15,6 @@ char *mytec_alloc(uintptr_t size) {
   return ptr;
 }
 
-uint64_t mytec_get_heap_size() {
-  return (uint64_t)GC_get_heap_size();
-}
+uint64_t mytec_get_heap_size() { return (uint64_t)GC_get_heap_size(); }
+
+void mytec_collect() { return GC_gcollect(); }
