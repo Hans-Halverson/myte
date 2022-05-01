@@ -1,0 +1,10 @@
+module test
+
+import std.gc
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(gc.getHeapSize());
+  gc.collect();
+}

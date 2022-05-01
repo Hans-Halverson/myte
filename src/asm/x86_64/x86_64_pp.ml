@@ -542,7 +542,7 @@ let pp_program ~gcx =
   IMap.iter (fun _ func -> List.iter (pp_block ~gcx ~pcx ~buf) func.Function.blocks) gcx.funcs_by_id;
 
   (* Add data section bitmaps *)
-  if write_full_asm then (
+  if Opts.custom_gc () && write_full_asm then (
     let bss_bitmap = X86_64_bitmaps.gen_data_section_bitmap gcx.bss in
     pp_data_section_bitmap ~buf bss_bitmap "bss";
     let data_bitmap = X86_64_bitmaps.gen_data_section_bitmap gcx.data in

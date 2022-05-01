@@ -3,7 +3,7 @@ let commands ~config bin files =
   let (dump_command, options) =
     match config with
     | Some "OPTIMIZE" -> ("--dump-asm", " -O")
-    | Some "DUMP_FULL" -> ("--dump-full-asm", "")
+    | Some "DUMP_BITMAPS" -> ("--dump-full-asm", " --custom-gc")
     | _ -> ("--dump-asm", "")
   in
   [

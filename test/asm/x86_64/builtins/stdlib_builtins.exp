@@ -1,0 +1,12 @@
+  .global _main
+
+  .text
+_main:
+  call __myte_get_heap_size
+  movq %rax, %rdi
+  call test.use$Long$
+  call __myte_collect
+  movl $0, %eax
+  ret
+test.use$Long$:
+  ret

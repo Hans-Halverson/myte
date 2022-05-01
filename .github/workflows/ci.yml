@@ -14,8 +14,6 @@ jobs:
           ocaml-compiler: 4.09.1
       - name: Install Myte dependencies
         run: opam install . --deps-only
-      - name: Install Boehm GC
-        run: ./scripts/build_boehm_gc
       - name: Build Myte
         run: opam exec -- ./scripts/build
       - name: Bundle files
@@ -54,8 +52,6 @@ jobs:
           ocaml-compiler: 4.09.1
       - name: Install Myte dependencies
         run: opam install . --deps-only
-      - name: Install Boehm GC
-        run: ./scripts/build_boehm_gc
       - name: Build Myte
         run: opam exec -- ./scripts/build
       - name: Bundle files

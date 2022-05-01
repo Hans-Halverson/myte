@@ -1,5 +1,6 @@
 type t = {
   check: bool ref;
+  custom_gc: bool ref;
   dump_ast: bool ref;
   dump_resolved_ast: bool ref;
   dump_ir: bool ref;
@@ -20,6 +21,7 @@ type t = {
 let opts =
   {
     check = ref false;
+    custom_gc = ref false;
     dump_ast = ref false;
     dump_resolved_ast = ref false;
     dump_ir = ref false;
@@ -42,6 +44,7 @@ let split_comma_list string_list = String.split_on_char ',' string_list
 let spec =
   [
     ("--check", Arg.Set opts.check, " Check program for errors but do not compile");
+    ("--custom-gc", Arg.Set opts.custom_gc, " Use the custom garbage collector");
     ("--dump-ast", Arg.Set opts.dump_ast, " Print the AST to stdout");
     ("--dump-resolved-ast", Arg.Set opts.dump_resolved_ast, " Print the resolved AST to stdout");
     ("--dump-ir", Arg.Set opts.dump_ir, " Print the IR to stdout");
@@ -82,6 +85,8 @@ USAGE: myte [options] file...
 OPTIONS:"
 
 let check () = !(opts.check)
+
+let custom_gc () = !(opts.custom_gc)
 
 let dump_ast () = !(opts.dump_ast)
 
