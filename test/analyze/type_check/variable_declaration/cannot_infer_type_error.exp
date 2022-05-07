@@ -1,9 +1,19 @@
 Error: Cannot infer type for variable declaration. Partially inferred `Option<a>` but was unable to resolve `a`. Please provide additional type annotations.
-test/analyze/type_check/variable_declaration/cannot_infer_type_error.myte:12:2-15
- 12 |   val x = None;
+test/analyze/type_check/variable_declaration/cannot_infer_type_error.myte:18:2-15
+ 18 |   val x = None;
     |   ^^^^^^^^^^^^^
 
 Error: Cannot infer type for variable declaration. Partially inferred `ManyTParams<a, b, c>` but was unable to resolve `a`, `b`, or `c`. Please provide additional type annotations.
-test/analyze/type_check/variable_declaration/cannot_infer_type_error.myte:13:2-22
- 13 |   val x = EnumVariant;
+test/analyze/type_check/variable_declaration/cannot_infer_type_error.myte:19:2-22
+ 19 |   val x = EnumVariant;
     |   ^^^^^^^^^^^^^^^^^^^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `Vec<Equatable>` but was unable to resolve `Equatable`. Please provide additional type annotations.
+test/analyze/type_check/variable_declaration/cannot_infer_type_error.myte:21:2-28
+ 21 |   val x = useTraitBound([]);
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Cannot infer type for variable declaration. Partially inferred `ManyTParams<Equatable, a, b>` but was unable to resolve `a`, `b`, or `Equatable`. Please provide additional type annotations.
+test/analyze/type_check/variable_declaration/cannot_infer_type_error.myte:22:2-45
+ 22 |   val x = useTraitBoundWithTVar(EnumVariant);
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

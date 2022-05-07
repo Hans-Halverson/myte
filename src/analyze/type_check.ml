@@ -809,14 +809,14 @@ and check_variable_declaration_bindings
     (* If expression's type is fully resolved then use as type of id, otherwise error
        requesting an annotation. *)
     let rep_ty = Type_context.find_rep_type ~cx expr_ty in
-    let unresolved_tvars = Types.get_all_tvars [rep_ty] in
-    if unresolved_tvars = [] then
+    let (unresolved_tvars, unresolved_existentials) = Types.get_all_unresolved_types rep_ty in
+    if unresolved_tvars = [] && unresolved_existentials = [] then
       Type_context.assert_unify ~cx expr_loc expr_ty (TVar pattern_tvar_id)
     else
       let partial =
         match rep_ty with
         | TVar _ -> None
-        | _ -> Some (rep_ty, unresolved_tvars)
+        | _ -> Some (rep_ty, unresolved_tvars, unresolved_existentials)
       in
       Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeVariableDeclaration, partial))
   | Some annot ->
@@ -2445,12 +2445,12 @@ class ensure_expressions_typed_visitor ~cx =
       | Some tvar_id ->
         let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
         (* Error if expression's type is not fully resolved *)
-        let unresolved_tvars = Types.get_all_tvars [rep_ty] in
-        if unresolved_tvars <> [] then
+        let (unresolved_tvars, unresolved_existentials) = Types.get_all_unresolved_types rep_ty in
+        if unresolved_tvars <> [] || unresolved_existentials <> [] then
           let partial =
             match rep_ty with
             | TVar _ -> None
-            | _ -> Some (rep_ty, unresolved_tvars)
+            | _ -> Some (rep_ty, unresolved_tvars, unresolved_existentials)
           in
           Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeExpression, partial)));
       super#expression expr

@@ -1,0 +1,19 @@
+Error: Cannot infer type for expression. Partially inferred `(Vec<Equatable>) -> Unit` but was unable to resolve `Equatable`. Please provide additional type annotations.
+test/analyze/type_check/trait_bounds/unresolved_existential.myte:15:2-15
+ 15 |   useTraitBound([]);
+    |   ^^^^^^^^^^^^^
+
+Error: Cannot infer type for expression. Partially inferred `Vec<Equatable>` but was unable to resolve `Equatable`. Please provide additional type annotations.
+test/analyze/type_check/trait_bounds/unresolved_existential.myte:15:16-18
+ 15 |   useTraitBound([]);
+    |                 ^^
+
+Error: Cannot infer type for expression. Partially inferred `(Type1<Equatable, a>) -> Unit` but was unable to resolve `a` or `Equatable`. Please provide additional type annotations.
+test/analyze/type_check/trait_bounds/unresolved_existential.myte:16:2-23
+ 16 |   useTraitBoundWithTVar(Enum);
+    |   ^^^^^^^^^^^^^^^^^^^^^
+
+Error: Cannot infer type for expression. Partially inferred `Type1<Equatable, a>` but was unable to resolve `a` or `Equatable`. Please provide additional type annotations.
+test/analyze/type_check/trait_bounds/unresolved_existential.myte:16:24-28
+ 16 |   useTraitBoundWithTVar(Enum);
+    |                         ^^^^

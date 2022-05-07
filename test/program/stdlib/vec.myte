@@ -57,8 +57,7 @@ fun testClone() {
 
 fun testSlice() {
   val x: Vec<Int> = [2, 4, 6];
-  // TODO: Fix calling methods on empty vecs
-  // assertVecEqual([].slice(0, 0), []);
+  assertVecEqual(([]: Vec<Int>).slice(0, 0), []);
   assertVecEqual(x.slice(0, 0), []);
   assertVecEqual(x.slice(1, 1), []);
   assertVecEqual(x.slice(0, 2), [2, 4]);

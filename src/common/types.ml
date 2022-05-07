@@ -337,6 +337,44 @@ and Type : sig
 end =
   Type
 
+type unresolved_type =
+  | UnresolvedTVar of TVar.t
+  | UnresolvedBoundedExistential of BoundedExistential.t
+
+let rec visit_unresolved_types f ty =
+  let open Type in
+  match ty with
+  | TVar tvar_id -> f (UnresolvedTVar tvar_id)
+  | BoundedExistential ({ resolved = None; _ } as ty) -> f (UnresolvedBoundedExistential ty)
+  | Tuple elements -> List.iter (visit_unresolved_types f) elements
+  | Function { type_args = _; params; return } ->
+    List.iter (visit_unresolved_types f) params;
+    visit_unresolved_types f return
+  | ADT { type_args; _ }
+  | TraitBound { type_args; _ }
+  | TraitObject { type_args; _ } ->
+    List.iter (visit_unresolved_types f) type_args
+  | _ -> ()
+
+(* Return a tuple of all unresolved tvars and bounded existentials *)
+let get_all_unresolved_types ty =
+  let tvars = ref [] in
+  let all_tvars = ref ISet.empty in
+  let existentials = ref [] in
+  visit_unresolved_types
+    (fun ty ->
+      match ty with
+      | UnresolvedTVar tvar ->
+        if not (ISet.mem tvar !all_tvars) then (
+          tvars := tvar :: !tvars;
+          all_tvars := ISet.add tvar !all_tvars
+        )
+      | UnresolvedBoundedExistential exist ->
+        if List.for_all (fun ty -> ty != exist) !existentials then
+          existentials := exist :: !existentials)
+    ty;
+  (List.rev !tvars, List.rev !existentials)
+
 let get_all_tvars_with_duplicates ty =
   let rec inner acc ty =
     let open Type in

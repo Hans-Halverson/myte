@@ -1,0 +1,17 @@
+module test
+
+import std.ops.Equatable
+import std.test.assertVecEqual
+
+type Type1<T, U> =
+  | Enum
+  | Tuple (T, U)
+
+fun useTraitBound<T: Equatable>(x: Vec<T>) {}
+
+fun useTraitBoundWithTVar<T: Equatable, U>(x: Type1<T, U>) {}
+
+fun main() {
+  useTraitBound([]);
+  useTraitBoundWithTVar(Enum);
+}

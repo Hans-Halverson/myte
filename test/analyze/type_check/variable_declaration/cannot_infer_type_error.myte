@@ -1,5 +1,7 @@
 module test
 
+import std.ops.Equatable
+
 type Option<T> =
   | None
   | Some (T)
@@ -8,7 +10,14 @@ type ManyTParams<T, U, V> =
   | EnumVariant
   | OtherVariant (T)
 
+fun useTraitBound<T: Equatable>(x: Vec<T>): Vec<T> = x
+
+fun useTraitBoundWithTVar<T: Equatable, U, V>(x: ManyTParams<T, U, V>): ManyTParams<T, U, V> = x
+
 fun main() {
   val x = None;
   val x = EnumVariant;
+
+  val x = useTraitBound([]);
+  val x = useTraitBoundWithTVar(EnumVariant);
 }
