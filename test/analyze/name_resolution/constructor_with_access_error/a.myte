@@ -1,0 +1,10 @@
+module a1.a2.a3
+
+type ExportedType =
+  | EnumA
+  | TupleA (Int)
+  | RecordA { foo: Int }
+
+methods ExportedType {
+  static fun method() {}
+}

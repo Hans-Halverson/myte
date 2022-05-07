@@ -7,6 +7,7 @@ type Module {
   name: ModuleName,
   imports: Vec<Import>,
   toplevels: Vec<Toplevel>,
+  source: String,
 }
 
 type ModuleName {

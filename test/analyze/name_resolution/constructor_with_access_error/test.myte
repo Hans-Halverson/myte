@@ -1,0 +1,26 @@
+module test
+
+import a1
+
+type Type =
+  | Enum
+  | Tuple (Int)
+  | Record { foo: Int }
+
+methods Type {
+  static fun method() {}
+}
+
+fun main() {
+  match (true) {
+    | Tuple.nonexist _
+    | Tuple.method _
+    | Tuple.nonexist.another.another _
+    | Enum.method
+    | a1.a2.a3.TupleA.nonexist _
+    | a1.a2.a3.TupleA.method _
+    | a1.a2.a3.TupleA.nonexist.another.another _
+    | a1.a2.a3.EnumA.method -> ()
+    | _ -> ()
+  }
+}

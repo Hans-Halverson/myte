@@ -21,6 +21,42 @@ fun escapeCharLiteralValue(value: Byte): String =
 fun identifierToScopedIdentifier(ident: ast.Identifier): ast.ScopedIdentifier =
   ast.ScopedIdentifier { loc: ident.loc, scopes: [], name: ident }
 
+fun scopedIdentifierParts(scopedId: ast.ScopedIdentifier): Vec<ast.Identifier> {
+  val parts = scopedId.scopes.clone();
+  parts.push(scopedId.name);
+
+  return parts;
+}
+
+fun gatherPatternIdentifiers(pattern: ast.Pattern, ids: Vec<ast.Identifier>) =
+  match (pattern) {
+    | ast.PWildcard _
+    | ast.PNamedWildcard _
+    | ast.PLiteral _ -> ()
+    | ast.PIdentifier (ast.ScopedIdentifier { name, scopes, ... }) when scopes.isEmpty() -> {
+      ids.push(name);
+    }
+    | ast.PIdentifier _ -> ()
+    | ast.PBinding (ast.BindingPattern { pattern, name, ... }) -> {
+      ids.push(name);
+      gatherPatternIdentifiers(pattern, ids);
+    }
+    | ast.POr (ast.OrPattern { left, right, ... }) -> {
+      gatherPatternIdentifiers(left, ids);
+      gatherPatternIdentifiers(right, ids);
+    }
+    | ast.PTuple (ast.TuplePattern { elements, ... }) -> {
+      for (element in elements) {
+        gatherPatternIdentifiers(element, ids);
+      }
+    }
+    | ast.PRecord (ast.RecordPattern { fields, ... }) -> {
+      for (ast.RecordPatternField { value, ... } in fields) {
+        gatherPatternIdentifiers(value, ids);
+      }
+    }
+  }
+
 fun expressionLoc(expr: ast.Expression): Loc =
   match (expr) {
     | ast.EUnitLiteral (ast.UnitLiteral { loc })

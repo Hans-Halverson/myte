@@ -1,0 +1,21 @@
+module myte.analyze.context
+
+import myte.analyze.error.AnalyzeError
+import myte.analyze.modules.ModuleTree
+import myte.parse.ast
+
+type AnalyzeContext {
+  moduleTree: ModuleTree,
+}
+
+methods AnalyzeContext {
+  static fun analyze(asts: Vec<ast.Module>): AnalyzeContext {
+    val moduleTree = ModuleTree.buildFromAsts(asts);
+
+    return AnalyzeContext { moduleTree };
+  }
+
+  fun getErrors(): Vec<AnalyzeError> {
+    return this.moduleTree.errors;
+  }
+}

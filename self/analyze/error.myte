@@ -1,0 +1,50 @@
+module myte.analyze.error
+
+import std.string.ToString
+
+import myte.common.loc.Loc
+import myte.common.error.formatErrorWithLoc
+import myte.parse.ast
+
+type AnalyzeErrorData =
+  | DuplicateModuleNames { name: Vec<ast.Identifier> }
+  | ModuleAndExportDuplicateNames { name: ast.Identifier, parentScopes: Vec<ast.Identifier> }
+
+type AnalyzeError {
+  error: AnalyzeErrorData,
+  loc: Loc,
+}
+
+fun formatNameParts(scopes: Vec<ast.Identifier>): String {
+  val result = "";
+  val numScopes = scopes.size;
+
+  for (i in 0.to(scopes.size)) {
+    result.append(scopes[i].name);
+    if (i != numScopes - 1) {
+      result.push('.');
+    }
+  }
+
+  return result;
+}
+
+methods AnalyzeError {
+  implements ToString
+
+  static fun new(loc: Loc, error: AnalyzeErrorData): AnalyzeError {
+    return AnalyzeError { loc, error };
+  }
+
+  override fun toString(): String {
+    return formatErrorWithLoc(this.formatErrorData(), this.loc);
+  }
+
+  fun formatErrorData(): String =
+    match (this.error) {
+      | DuplicateModuleNames { name } ->
+        `Module already declared with name \`${formatNameParts(name)}\``
+      | ModuleAndExportDuplicateNames { name, parentScopes } ->
+        `Module and export with same name \`${name.name}\` in module \`${formatNameParts(parentScopes)}\``
+    }
+}

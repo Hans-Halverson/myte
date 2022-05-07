@@ -142,7 +142,7 @@ methods Parser {
     val startLoc = Loc { source: this.loc.source, start: START_POS, end: START_POS };
     val loc = Loc.between(startLoc, this.loc);
 
-    return ast.Module { loc, name, imports, toplevels };
+    return ast.Module { loc, name, imports, toplevels, source: this.lexer.source };
   }
 
   fun parseModuleName(): ast.ModuleName {

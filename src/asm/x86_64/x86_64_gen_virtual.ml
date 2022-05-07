@@ -940,9 +940,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *              myte_collect
        * ===========================================
        *)
-    ) else if name = myte_collect.name then (
+    ) else if name = myte_collect.name then
       Gcx.emit ~gcx (CallL X86_64_runtime.myte_collect_label)
-    ) else
+    else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions
   (*

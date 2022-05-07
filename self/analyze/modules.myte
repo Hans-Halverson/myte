@@ -1,0 +1,144 @@
+module myte.analyze.modules
+
+import myte.common.loc.Loc
+import myte.analyze.error
+import myte.analyze.error.{AnalyzeError, AnalyzeErrorData}
+import myte.parse.ast
+
+type alias ModuleScope = Map<String, ModuleTreeNode>
+
+type ModuleTree {
+  rootScope: ModuleScope,
+  errors: Vec<AnalyzeError>,
+}
+
+type ModuleType { exists: Bool }
+
+type ModuleTreeNode =
+  | Module { type_: ModuleType, scope: ModuleScope }
+  | Export { id: ast.Identifier }
+
+methods ModuleTree {
+  static fun new(): ModuleTree {
+    return ModuleTree {
+      rootScope: {},
+      errors: [],
+    };
+  }
+
+  static fun buildFromAsts(modules: Vec<ast.Module>): ModuleTree {
+    val moduleTree = ModuleTree.new();
+    for (module_ in modules) {
+      moduleTree.addModule(module_);
+    }
+
+    return moduleTree;
+  }
+
+  fun addError(loc: Loc, error: AnalyzeErrorData) {
+    this.errors.push(AnalyzeError.new(loc, error));
+  }
+
+  fun addModule(module_: ast.Module) {
+    val nameParts = ast.utils.scopedIdentifierParts(module_.name.name);
+    var currentScope = this.rootScope;
+
+    for (i in 0.to(nameParts.size)) {
+      val namePart = nameParts[i];
+      match (currentScope.get(namePart.name)) {
+        | Some (Export _) -> {
+          this.addError(module_.name.loc, error.ModuleAndExportDuplicateNames {
+            name: namePart,
+            parentScopes: nameParts.slice(0, i),
+          });
+          return;
+        }
+        | None -> {
+          val isLastPart = i == nameParts.size - 1;
+          val scope: ModuleScope = {};
+          val node = Module { type_: ModuleType { exists: isLastPart }, scope };
+
+          if (isLastPart) {
+            this.addExports(module_, scope);
+          }
+
+          currentScope.add(namePart.name, node);
+          currentScope = scope;
+        }
+        | Some (Module { type_: ModuleType { exists: true }, scope }) -> {
+          if (i == nameParts.size - 1) {
+            this.addError(module_.name.loc, error.DuplicateModuleNames { name: nameParts });
+            return;
+          }
+
+          currentScope = scope;
+        }
+        | Some (Module { type_, scope }) -> {
+          val isLastPart = i == nameParts.size - 1;
+          if (isLastPart) {
+            type_.exists = true;
+            this.addExports(module_, scope);
+          }
+
+          currentScope = scope;
+        }
+      }
+    }
+  }
+
+  /**
+   * Add the toplevel exports of a module to a module scope.
+   */
+  fun addExports(module_: ast.Module, scope: ModuleScope) {
+    for (toplevel in module_.toplevels) {
+      match (toplevel) {
+        | ast.TLTrait (ast.TraitDeclaration { kind: ast.TKMethods, ... }) -> ()
+        | ast.TLTrait (ast.TraitDeclaration { kind: ast.TKTrait, loc, name, ... })
+        | ast.TLFunction (ast.FunctionDeclaration { loc, name, ... }) -> {
+          this.addExport(loc, name, scope, module_);
+        }
+        | ast.TLVariable (ast.VariableDeclaration { loc, pattern, ... }) -> {
+          val ids: Vec<ast.Identifier> = [];
+          ast.utils.gatherPatternIdentifiers(pattern, ids);
+
+          for (id in ids) {
+            this.addExport(loc, id, scope, module_);
+          }
+        }
+        | ast.TLType (ast.TypeDeclaration { loc, name, decl, ... }) -> {
+          this.addExport(loc, name, scope, module_);
+
+          match (decl) {
+            | ast.TDVariant (variants) -> {
+              for (variant in variants) {
+                match (variant) {
+                  | ast.EnumVariant ((ast.Identifier { loc, ... } as name))
+                  | ast.TupleVariant (ast.TupleDeclaration { loc, name, ... })
+                  | ast.RecordVariant (ast.RecordDeclaration { loc, name, ... }) -> {
+                    this.addExport(loc, name, scope, module_);
+                  }
+                }
+              }
+            }
+            | _ -> ()
+          }
+        }
+      }
+    }
+  }
+
+  fun addExport(loc: Loc, id: ast.Identifier, scope: ModuleScope, module_: ast.Module) {
+    match (scope.get(id.name)) {
+      | None
+      // May overwrite export with same name, but error will be detected during name resolution
+      | Some (Export _) -> scope.add(id.name, Export { id })
+      | Some (Module _) -> {
+        val nameParts = ast.utils.scopedIdentifierParts(module_.name.name);
+        this.addError(loc, error.ModuleAndExportDuplicateNames {
+          name: id,
+          parentScopes: nameParts,
+        });
+      }
+    }
+  }
+}

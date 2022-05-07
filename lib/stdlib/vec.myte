@@ -1,5 +1,6 @@
 module std.vec
 
+import std.bool.Bool
 import std.int.Int
 import std.iterator.{Iterable, Iterator}
 import std.memory.Array
@@ -89,6 +90,30 @@ methods Vec<T> {
     val newData: Array<T> = Array.new(newCapacity);
     Array.copy(newData, 0, this.data, 0, oldCapacity);
     this.data = newData;
+  }
+
+  fun isEmpty(): Bool = this.size == 0
+
+  fun clone(): Vec<T> {
+    val capacity = this.capacity;
+    val data: Array<T> = Array.new(capacity);
+    val size = this.size;
+
+    Array.copy(data, 0, this.data, 0, this.size);
+
+    return Vec { data, size, capacity };
+  }
+
+  fun slice(start: Int, end: Int): Vec<T> {
+    if (start < 0 || end > this.size || end < start) {
+      abort();
+    }
+
+    val size = end - start;
+    val slice: Vec<T> = Vec { data: Array.new(size), size, capacity: size };
+    Array.copy(slice.data, 0, this.data, start, size);
+
+    return slice;
   }
 
   static fun copyRange<T>(src: Vec<T>, srcIndex: Int, dest: Vec<T>, destIndex: Int, count: Int) {

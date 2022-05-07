@@ -1,6 +1,6 @@
 module test
 
-import std.test.{assertEqual, assertNone, assertSome}
+import std.test.{assertEqual, assertFalse, assertNone, assertSome, assertTrue, assertVecEqual}
 
 fun intToString(x: Int): String = x.toString()
 
@@ -37,7 +37,42 @@ fun testMap() {
   assertEqual(y[2], "3");
 }
 
+fun testIsEmpty() {
+  val x: Vec<Int> = [];
+  assertTrue(x.isEmpty());
+
+  x.push(0);
+  assertFalse(x.isEmpty());
+}
+
+fun testClone() {
+  val x: Vec<Int> = [2, 4, 6];
+  val y = x.clone();
+  assertVecEqual(x, y);
+
+  x.push(8);
+  assertEqual(x.size, 4);
+  assertEqual(y.size, 3);
+}
+
+fun testSlice() {
+  val x: Vec<Int> = [2, 4, 6];
+  // TODO: Fix calling methods on empty vecs
+  // assertVecEqual([].slice(0, 0), []);
+  assertVecEqual(x.slice(0, 0), []);
+  assertVecEqual(x.slice(1, 1), []);
+  assertVecEqual(x.slice(0, 2), [2, 4]);
+  assertVecEqual(x.slice(0, 3), [2, 4, 6]);
+  assertVecEqual(x.slice(1, 2), [4]);
+  assertVecEqual(x.slice(1, 3), [4, 6]);
+  assertVecEqual(x.slice(2, 3), [6]);
+  assertVecEqual(x.slice(2, 2), []);
+}
+
 fun main() {
   testPop();
   testMap();
+  testIsEmpty();
+  testClone();
+  testSlice();
 }

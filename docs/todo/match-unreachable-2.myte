@@ -1,0 +1,15 @@
+module test
+
+type Variant =
+  | Variant1 { foo: Bool, bar: Bool }
+  | Variant2
+
+fun test(x: Variant) {
+  match (x) {
+    | Variant2 -> {}
+    | Variant1 { foo: true, ... } -> {}
+    | _ -> ()
+  }
+}
+
+fun main() {}

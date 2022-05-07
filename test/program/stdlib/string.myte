@@ -112,6 +112,15 @@ fun testRepeat() {
   assertEqual(String.repeat("", 3), "");
 }
 
+fun testJoin() {
+  assertEqual(String.join("", []), "");
+  assertEqual(String.join("", ["a", "b", "c"]), "abc");
+  assertEqual(String.join("a", []), "");
+  assertEqual(String.join(", ", ["a"]), "a");
+  assertEqual(String.join(", ", ["a", "b"]), "a, b");
+  assertEqual(String.join(", ", ["a", "b", "c"]), "a, b, c");
+}
+
 fun testClone() {
   val s = "";
   assertEqual(s, s.clone());
@@ -148,6 +157,7 @@ fun main() {
   testReverse();
   testSubstring();
   testRepeat();
+  testJoin();
   testClone();
   testHash();
   testBytesIterator();

@@ -118,7 +118,7 @@ fun printModule(mod: ast.Module): String {
 }
 
 fun nodeOfModule(mod: ast.Module): PrintNode {
-  val ast.Module { loc, name, imports, toplevels } = mod;
+  val ast.Module { loc, name, imports, toplevels, source: _ } = mod;
   return Node {
     name: "Module",
     loc,

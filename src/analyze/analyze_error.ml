@@ -40,6 +40,7 @@ type t =
   | CyclicTrait of string
   | SuperOutsideMethod
   | TypeWithAccess of string list
+  | ConstructorWithAccess of string list
   | CyclicTypeAlias of string
   | NonTraitAsBound
   | TypeAliasWithBounds
@@ -316,6 +317,10 @@ let to_string error =
     Printf.sprintf
       "Could not resolve access on type `%s`. Types do not have members that can be accessed."
       (String.concat "." type_name_parts)
+  | ConstructorWithAccess ctor_name_parts ->
+    Printf.sprintf
+      "Could not resolve access on constructor `%s`. Constructors do not have members that can be accessed."
+      (String.concat "." ctor_name_parts)
   | CyclicTypeAlias name -> Printf.sprintf "Cycle detected in definition of type `%s`" name
   | NonTraitAsBound -> "Type parameter bound is not a trait"
   | TypeAliasWithBounds -> "Type parameters cannot have bounds in type aliases"

@@ -1,30 +1,59 @@
 module myte.main
 
 import std.io.{print, println}
+import std.string.ToString
+import std.sys.exit
 
+import myte.analyze.context.AnalyzeContext
 import myte.common.error.formatErrorWithoutLoc
 import myte.common.files.stripRoot
 import myte.common.options.{options, parseCliArgs}
+import myte.parse.ast
 import myte.parse.parser.parseFile
 import myte.parse.printer.printModule
 
-fun parse(filename: String) {
+fun parse(filename: String): ast.Module =
   match (parseFile(filename)) {
-    | Ok (mod) -> {
-      if (options.dumpAst) {
-        println(stripRoot(filename));
-        println(printModule(mod));
-      }
-    }
+    | Ok (ast) -> ast
     | Error (error) -> {
       print(formatErrorWithoutLoc(error.toString()));
+      exit(1);
     }
   }
+
+fun dumpAsts(asts: Vec<ast.Module>) {
+  for (ast in asts) {
+    println(stripRoot(ast.source));
+    println(printModule(ast));
+  }
+}
+
+fun printErrors(errors: Vec<ToString>) {
+  val errorStrings: Vec<String> = [];
+  for (error in errors) {
+    errorStrings.push(error.toString());
+  }
+
+  val combinedString = String.join("\n", errorStrings);
+  print(combinedString);
 }
 
 fun main() {
   val files = parseCliArgs();
+  val asts: Vec<ast.Module> = [];
+
   for (file in files) {
-    parse(file);
+    asts.push(parse(file));
+  }
+
+  if (options.dumpAst) {
+    dumpAsts(asts);
+  }
+
+  val analyzeContext = AnalyzeContext.analyze(asts);
+  val analyzeErrors = analyzeContext.getErrors();
+  if (!analyzeErrors.isEmpty()) {
+    printErrors(analyzeErrors);
+    exit(1);
   }
 }
