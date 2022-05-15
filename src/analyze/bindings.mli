@@ -101,6 +101,7 @@ type type_declaration =
 
 module ValueBinding : sig
   type t = {
+    id: id;
     name: string;
     loc: Loc.t;
     declaration: value_declaration;
@@ -108,6 +109,8 @@ module ValueBinding : sig
     context: context;
     module_: string list;
   }
+
+  and id = int
 
   and context =
     | Module
@@ -125,6 +128,7 @@ end
 
 module TypeBinding : sig
   type t = {
+    id: id;
     name: string;
     loc: Loc.t;
     declaration: type_declaration;
@@ -132,15 +136,15 @@ module TypeBinding : sig
     module_: string list;
   }
 
+  and id = int
+
   val mk : name:string -> loc:Loc.t -> declaration:type_declaration -> module_:string list -> t
 end
 
 module Bindings : sig
   type t = {
-    mutable value_bindings: ValueBinding.t LocMap.t;
-    mutable type_bindings: TypeBinding.t LocMap.t;
-    mutable value_use_to_decl: Loc.t LocMap.t;
-    mutable type_use_to_decl: Loc.t LocMap.t;
+    mutable value_use_to_binding: ValueBinding.t LocMap.t;
+    mutable type_use_to_binding: TypeBinding.t LocMap.t;
   }
 
   val mk : unit -> t
@@ -149,16 +153,26 @@ module Bindings : sig
 
   val add_type_binding : t -> TypeBinding.t -> unit
 
-  val add_value_use : t -> Loc.t -> Loc.t -> unit
+  val add_value_use : t -> Loc.t -> ValueBinding.t -> unit
 
-  val add_type_use : t -> Loc.t -> Loc.t -> unit
+  val add_type_use : t -> Loc.t -> TypeBinding.t -> unit
+
+  val is_value_decl_loc : t -> Loc.t -> bool
+
+  val is_type_decl_loc : t -> Loc.t -> bool
 end
+
+module VTSet : Set.S with type elt = ValueBinding.t
+
+module VTMap : Map.S with type key = ValueBinding.t
+
+module BTSet : Set.S with type elt = TypeBinding.t
+
+module BTMap : Map.S with type key = TypeBinding.t
 
 val get_value_binding : Bindings.t -> Loc.t -> ValueBinding.t
 
 val get_type_binding : Bindings.t -> Loc.t -> TypeBinding.t
-
-val get_type_binding_from_decl : Bindings.t -> Loc.t -> TypeBinding.t
 
 val get_decl_loc_from_value_use : Bindings.t -> Loc.t -> Loc.t
 

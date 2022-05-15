@@ -193,7 +193,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
 
   (* Add implicit this param *)
   let params =
-    match LocMap.find_opt full_loc ecx.pcx.bindings.value_bindings with
+    match LocMap.find_opt full_loc ecx.pcx.bindings.value_use_to_binding with
     | Some { declaration = FunParamDecl { tvar }; _ } ->
       (* Method receiver parameters cannot be removed if they are zero sized due to compatability
          with trait objects. Instead use pointer to zero type type for receiver. *)

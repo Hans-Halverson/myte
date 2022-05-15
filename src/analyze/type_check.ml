@@ -166,7 +166,7 @@ and build_type_and_trait_parameters ~cx module_ =
         let type_params = build_type_parameters ~cx type_params in
         type_decl.adt_sig.type_params <- type_params
       | TraitDeclaration { name; type_params; _ } ->
-        let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
+        let binding = Type_context.get_type_binding ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
         let type_params = build_type_parameters ~cx type_params in
         trait_decl.trait_sig.type_params <- type_params
@@ -195,7 +195,7 @@ and build_type_and_trait_parameters ~cx module_ =
           type_params
           type_decl.adt_sig.type_params
       | TraitDeclaration { name; type_params; _ } ->
-        let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
+        let binding = Type_context.get_type_binding ~cx name.loc in
         let trait_decl = Bindings.get_trait_decl binding in
         build_type_parameter_bounds
           ~cx
@@ -268,9 +268,7 @@ and build_type_aliases ~cx modules =
    each trait and type. *)
 and build_trait_hierarchy ~cx modules =
   let open Ast.TraitDeclaration in
-  let get_trait_decl ~cx loc =
-    Type_context.get_type_binding_from_decl ~cx loc |> Bindings.get_trait_decl
-  in
+  let get_trait_decl ~cx loc = Type_context.get_type_binding ~cx loc |> Bindings.get_trait_decl in
   let set_this_type ~cx loc this_type =
     let this_type_binding = Type_context.get_type_binding ~cx loc in
     let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
@@ -531,7 +529,7 @@ and check_main_declaration ~cx decl params return =
    on the checked trait sig as we go. *)
 and check_trait_implementations ~cx modules =
   let check_trait_implementation ~cx { Ast.TraitDeclaration.loc; name; _ } =
-    let binding = Type_context.get_type_binding_from_decl ~cx name.loc in
+    let binding = Type_context.get_type_binding ~cx name.loc in
     let trait_decl = Bindings.get_trait_decl binding in
     let trait_sig = trait_decl.trait_sig in
 

@@ -81,7 +81,6 @@ let implicit_type_imports =
 
 let build_implicit_imports ~is_stdlib ~bindings =
   let open Std_lib in
-  let open Bindings in
   (* There are no implicit imports in stdlib since implicit imports have not yet been declared *)
   if is_stdlib then
     (SMap.empty, SMap.empty)
@@ -90,7 +89,7 @@ let build_implicit_imports ~is_stdlib ~bindings =
       List.fold_left
         (fun acc (name, full_name) ->
           let decl_loc = lookup_stdlib_decl_loc full_name in
-          SMap.add name (Decl (LocMap.find decl_loc bindings.value_bindings)) acc)
+          SMap.add name (Decl (get_value_binding bindings decl_loc)) acc)
         SMap.empty
         implicit_value_imports
     in
@@ -98,7 +97,7 @@ let build_implicit_imports ~is_stdlib ~bindings =
       List.fold_left
         (fun acc (name, full_name) ->
           let decl_loc = lookup_stdlib_decl_loc full_name in
-          SMap.add name (Decl (LocMap.find decl_loc bindings.type_bindings)) acc)
+          SMap.add name (Decl (get_type_binding bindings decl_loc)) acc)
         SMap.empty
         implicit_type_imports
     in
@@ -176,17 +175,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       Bindings.add_type_binding bindings binding;
       binding
 
-    method is_value_decl decl_loc = LocMap.mem decl_loc bindings.value_bindings
+    method is_value_decl_loc decl_loc = Bindings.is_value_decl_loc bindings decl_loc
 
-    method is_type_decl decl_loc = LocMap.mem decl_loc bindings.type_bindings
+    method is_type_decl_loc decl_loc = Bindings.is_type_decl_loc bindings decl_loc
 
-    method get_value_binding decl_loc = LocMap.find decl_loc bindings.value_bindings
+    method get_value_binding decl_loc = get_value_binding bindings decl_loc
 
-    method get_type_binding decl_loc = LocMap.find decl_loc bindings.type_bindings
+    method get_type_binding decl_loc = get_type_binding bindings decl_loc
 
-    method add_value_use decl_loc use_loc = Bindings.add_value_use bindings use_loc decl_loc
+    method add_value_use binding use_loc = Bindings.add_value_use bindings use_loc binding
 
-    method add_type_use decl_loc use_loc = Bindings.add_type_use bindings use_loc decl_loc
+    method add_type_use binding use_loc = Bindings.add_type_use bindings use_loc binding
 
     method is_current_module name_parts = List.for_all2 ( = ) name_parts module_name
 
@@ -368,9 +367,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             match lookup name_parts module_tree with
             | LookupResultExport { loc = decl_loc; _ } ->
               check_duplicate_toplevel_name local_name;
-              if this#is_value_decl decl_loc then
+              if this#is_value_decl_loc decl_loc then
                 add_imported_value_to_scope local_name.name decl_loc;
-              if this#is_type_decl decl_loc then add_imported_type_to_scope local_name.name decl_loc
+              if this#is_type_decl_loc decl_loc then
+                add_imported_type_to_scope local_name.name decl_loc
             | LookupResultModule (_, module_tree) ->
               (* Modules appear in both value and type namespaces *)
               check_duplicate_toplevel_name local_name;
@@ -465,14 +465,13 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             (fun implemented { Type.Identifier.name; _ } ->
               (* Resolve implemented trait name *)
               this#resolve_type_scoped_id name;
-              match LocMap.find_opt name.name.loc bindings.type_use_to_decl with
+              match LocMap.find_opt name.name.loc bindings.type_use_to_binding with
               (* Implemented trait name could not be resolved. Error has already been generated
                  so skip implemented trait. *)
               | None -> implemented
               (* Otherwise fill in implemented trait if name resolves to trait, otherwise error
                  and skip implemented trait. *)
-              | Some decl_loc ->
-                let binding = this#get_type_binding decl_loc in
+              | Some binding ->
                 (match binding.declaration with
                 | TraitDecl implemented_trait ->
                   let loc = implemented_trait.loc in
@@ -506,21 +505,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             | None -> this#add_error loc (UnresolvedName (name, NamePositionType))
             | Some (ModuleDecl _) ->
               this#add_error loc (ModuleInvalidPosition ([name], NamePositionType))
-            | Some (Decl binding) ->
-              if not (this#is_current_module binding.module_) then
-                this#add_error loc (MethodDeclarationsInSameModule (name, module_name))
-              else
-                this#add_type_use binding.loc loc;
+            | Some (Decl type_binding) ->
+              if not (this#is_current_module type_binding.module_) then
+                this#add_error loc (MethodDeclarationsInSameModule (name, module_name));
+              let trait_binding = this#get_type_binding loc in
+              let trait_decl = get_trait_decl trait_binding in
+              let type_decl = get_type_decl type_binding in
               (* Fill in trait for this method block *)
-              (match binding.declaration with
-              | TypeDecl type_decl ->
-                let binding = this#get_type_binding loc in
-                let trait = get_trait_decl binding in
-                fill_trait_from_decl trait decl;
-                TypeDeclaration.add_trait type_decl trait;
-                type_decl.adt_sig.traits <- trait.trait_sig :: type_decl.adt_sig.traits;
-                trait.trait_sig.adt_sig <- Some type_decl.adt_sig
-              | _ -> failwith "Expected type"))
+              fill_trait_from_decl trait_decl decl;
+              TypeDeclaration.add_trait type_decl trait_decl;
+              type_decl.adt_sig.traits <- trait_decl.trait_sig :: type_decl.adt_sig.traits;
+              trait_decl.trait_sig.adt_sig <- Some type_decl.adt_sig)
           | _ -> ())
         toplevels;
       this#exit_scope ()
@@ -594,8 +589,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       if is_toplevel then
         match pattern with
         | Identifier { name = { loc; name }; _ } ->
-          let var_decl = VarDecl (VariableDeclaration.mk kind) in
-          let binding = this#add_value_declaration loc name Module var_decl in
+          let binding = this#get_value_binding loc in
           this#add_value_to_scope name (Decl binding)
         | _ -> this#add_error (Ast_utils.pattern_loc pattern) ToplevelVarWithPattern
       else
@@ -794,8 +788,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         let find_name ~is_value name module_tree =
           match SMap.find_opt name module_tree with
           | Some (Export { loc = decl_loc; _ })
-            when (is_value && not (this#is_value_decl decl_loc))
-                 || ((not is_value) && not (this#is_type_decl decl_loc)) ->
+            when (is_value && not (this#is_value_decl_loc decl_loc))
+                 || ((not is_value) && not (this#is_type_decl_loc decl_loc)) ->
             None
           | result -> result
         in
@@ -847,10 +841,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], position));
             None
           | (Some (Export { loc = decl_loc; _ }), rest_parts)
-            when is_value && this#is_value_decl decl_loc && ((not resolve_full) || rest_parts = [])
-            ->
+            when is_value
+                 && this#is_value_decl_loc decl_loc
+                 && ((not resolve_full) || rest_parts = []) ->
             (* Values may have additional name parts, as these will be field accesses *)
-            this#add_value_use decl_loc loc;
+            let binding = this#get_value_binding decl_loc in
+            this#add_value_use binding loc;
             on_export prev_parts part rest_parts
           | (Some (Export _), _) when is_value ->
             let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
@@ -858,7 +854,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             None
           | (Some (Export { loc = decl_loc; _ }), []) ->
             (* Types are only fully resolved if all name parts have been matched *)
-            this#add_type_use decl_loc loc;
+            let binding = this#get_type_binding decl_loc in
+            this#add_type_use binding loc;
             on_export prev_parts part rest_parts
           | (Some (Export ty_name), next_part :: _) ->
             (* Type was fully resolved, but there are still name parts to resolve *)
@@ -942,7 +939,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       | None -> this#add_error loc (UnresolvedName (name, NamePositionValue))
       | Some (ModuleDecl _) ->
         this#add_error loc (ModuleInvalidPosition ([name], NamePositionValue))
-      | Some (Decl binding) -> this#add_value_use binding.loc loc
+      | Some (Decl binding) -> this#add_value_use binding loc
 
     method! expression expr =
       let open Ast.Expression in
@@ -986,7 +983,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             (match this#lookup_value_in_scope first_part.name scopes with
             (* Name may be a direct declaration *)
             | Some (Decl binding) ->
-              this#add_value_use binding.loc first_part.loc;
+              this#add_value_use binding first_part.loc;
               expr
             (* Name may be a value qualified by a module *)
             | Some (ModuleDecl module_tree) ->
@@ -1014,7 +1011,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             else
               match SMap.find_opt name trait.TraitDeclaration.methods with
               | Some { FunctionDeclaration.loc; is_static; _ } when is_static ->
-                this#add_value_use loc name_loc;
+                let binding = this#get_value_binding loc in
+                this#add_value_use binding name_loc;
                 true
               | _ -> false)
           false
@@ -1060,7 +1058,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | _ :: _ -> this#match_module_parts_type module_tree first_part rest_parts)
       | Some (Decl binding) ->
         if rest_parts = [] then
-          this#add_type_use binding.loc first_part.loc
+          this#add_type_use binding first_part.loc
         else
           (* Error if there are other parts, as types cannot have accesses *)
           let full_loc = Loc.between first_part.loc (List.hd rest_parts).loc in
@@ -1090,7 +1088,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | _ :: _ -> this#match_module_parts_pattern module_tree first_part rest_parts)
       | Some (Decl binding) ->
         if rest_parts = [] then
-          this#add_value_use binding.loc first_part.loc
+          this#add_value_use binding first_part.loc
         else
           (* Error if there are other parts, as ctors cannot have accesses *)
           let full_loc = Loc.between first_part.loc (List.hd rest_parts).loc in
@@ -1112,7 +1110,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
          hand side so add a use if def exists. *)
       let add_name_in_or_rhs loc name names =
         (match this#lookup_value_in_scope name scopes with
-        | Some (Decl { loc = binding_loc; _ }) -> this#add_value_use binding_loc loc
+        | Some (Decl binding) -> this#add_value_use binding loc
         | _ -> ());
         add_name loc name names
       in
@@ -1121,8 +1119,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         let is_match_ctor =
           if is_match then
             match this#lookup_value_in_scope name scopes with
-            | Some (Decl { loc = binding_loc; declaration = CtorDecl _; _ }) when may_be_ctor ->
-              this#add_value_use binding_loc loc;
+            | Some (Decl ({ declaration = CtorDecl _; _ } as binding)) when may_be_ctor ->
+              this#add_value_use binding loc;
               true
             | _ -> false
           else
@@ -1407,8 +1405,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       in
 
       LocMap.iter
-        (fun _ { TypeBinding.name; loc; declaration; _ } ->
+        (fun use_loc { TypeBinding.name; loc; declaration; _ } ->
           match declaration with
+          | _ when not (this#is_type_decl_loc use_loc) -> ()
           | TypeDecl type_decl ->
             let (methods, super_traits) =
               List.fold_left
@@ -1425,7 +1424,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             let names = collect_method_names methods super_traits in
             check_errors name loc names
           | _ -> ())
-        bindings.Bindings.type_bindings;
+        bindings.Bindings.type_use_to_binding;
       List.rev !errors
   end
 

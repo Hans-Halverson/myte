@@ -112,8 +112,6 @@ let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 
 let get_type_binding ~cx use_loc = get_type_binding cx.bindings use_loc
 
-let get_type_binding_from_decl ~cx use_loc = get_type_binding_from_decl cx.bindings use_loc
-
 let get_tvar_from_loc ~cx loc = LocMap.find loc cx.loc_to_tvar
 
 let get_tvar_from_loc_opt ~cx loc = LocMap.find_opt loc cx.loc_to_tvar

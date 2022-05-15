@@ -122,6 +122,7 @@ type type_declaration =
 
 module ValueBinding = struct
   type t = {
+    id: id;
     name: string;
     loc: Loc.t;
     declaration: value_declaration;
@@ -130,17 +131,29 @@ module ValueBinding = struct
     module_: string list;
   }
 
+  and id = int
+
   and context =
     | Module
     | Trait of string
     | Function
 
+  let max_id = ref 0
+
+  let mk_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+
   let mk ~name ~loc ~declaration ~context ~module_ =
-    { name; loc; declaration; uses = LocSet.singleton loc; context; module_ }
+    { id = mk_id (); name; loc; declaration; uses = LocSet.singleton loc; context; module_ }
+
+  let compare b1 b2 = Int.compare b1.id b2.id
 end
 
 module TypeBinding = struct
   type t = {
+    id: id;
     name: string;
     loc: Loc.t;
     declaration: type_declaration;
@@ -148,56 +161,66 @@ module TypeBinding = struct
     module_: string list;
   }
 
+  and id = int
+
+  let max_id = ref 0
+
+  let mk_id () =
+    let id = !max_id in
+    max_id := id + 1;
+    id
+
   let mk ~name ~loc ~declaration ~module_ =
-    { name; loc; declaration; uses = LocSet.singleton loc; module_ }
+    { id = mk_id (); name; loc; declaration; uses = LocSet.singleton loc; module_ }
+
+  let compare b1 b2 = Int.compare b1.id b2.id
 end
 
 module Bindings = struct
   type t = {
-    mutable value_bindings: ValueBinding.t LocMap.t;
-    mutable type_bindings: TypeBinding.t LocMap.t;
-    mutable value_use_to_decl: Loc.t LocMap.t;
-    mutable type_use_to_decl: Loc.t LocMap.t;
+    mutable value_use_to_binding: ValueBinding.t LocMap.t;
+    mutable type_use_to_binding: TypeBinding.t LocMap.t;
   }
 
-  let mk () =
-    {
-      value_bindings = LocMap.empty;
-      type_bindings = LocMap.empty;
-      value_use_to_decl = LocMap.empty;
-      type_use_to_decl = LocMap.empty;
-    }
+  let mk () = { value_use_to_binding = LocMap.empty; type_use_to_binding = LocMap.empty }
 
   let add_value_binding bindings binding =
     let open ValueBinding in
-    bindings.value_bindings <- LocMap.add binding.loc binding bindings.value_bindings;
-    bindings.value_use_to_decl <- LocMap.add binding.loc binding.loc bindings.value_use_to_decl
+    bindings.value_use_to_binding <- LocMap.add binding.loc binding bindings.value_use_to_binding
 
   let add_type_binding bindings binding =
     let open TypeBinding in
-    bindings.type_bindings <- LocMap.add binding.loc binding bindings.type_bindings;
-    bindings.type_use_to_decl <- LocMap.add binding.loc binding.loc bindings.type_use_to_decl
+    bindings.type_use_to_binding <- LocMap.add binding.loc binding bindings.type_use_to_binding
 
-  let add_value_use bindings use_loc decl_loc =
-    bindings.value_use_to_decl <- LocMap.add use_loc decl_loc bindings.value_use_to_decl
+  let add_value_use bindings use_loc binding =
+    bindings.value_use_to_binding <- LocMap.add use_loc binding bindings.value_use_to_binding
 
-  let add_type_use bindings use_loc decl_loc =
-    bindings.type_use_to_decl <- LocMap.add use_loc decl_loc bindings.type_use_to_decl
+  let add_type_use bindings use_loc binding =
+    bindings.type_use_to_binding <- LocMap.add use_loc binding bindings.type_use_to_binding
+
+  let is_value_decl_loc bindings decl_loc =
+    match LocMap.find_opt decl_loc bindings.value_use_to_binding with
+    | Some { ValueBinding.loc; _ } when Loc.compare loc decl_loc = 0 -> true
+    | _ -> false
+
+  let is_type_decl_loc bindings decl_loc =
+    match LocMap.find_opt decl_loc bindings.type_use_to_binding with
+    | Some { TypeBinding.loc; _ } when Loc.compare loc decl_loc = 0 -> true
+    | _ -> false
 end
+
+module VTSet = Set.Make (ValueBinding)
+module VTMap = Map.Make (ValueBinding)
+module BTSet = Set.Make (TypeBinding)
+module BTMap = Map.Make (TypeBinding)
 
 let get_value_binding bindings use_loc =
   let open Bindings in
-  let decl_loc = LocMap.find use_loc bindings.value_use_to_decl in
-  LocMap.find decl_loc bindings.value_bindings
+  LocMap.find use_loc bindings.value_use_to_binding
 
 let get_type_binding bindings use_loc =
   let open Bindings in
-  let decl_loc = LocMap.find use_loc bindings.type_use_to_decl in
-  LocMap.find decl_loc bindings.type_bindings
-
-let get_type_binding_from_decl bindings decl_loc =
-  let open Bindings in
-  LocMap.find decl_loc bindings.type_bindings
+  LocMap.find use_loc bindings.type_use_to_binding
 
 let get_decl_loc_from_value_use bindings use_loc =
   let binding = get_value_binding bindings use_loc in
