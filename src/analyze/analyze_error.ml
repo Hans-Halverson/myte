@@ -95,6 +95,7 @@ and invalid_assignment_kind =
   | InvalidAssignmentImmutableVariable
   | InvalidAssignmentFunction
   | InvalidAssignmentFunctionParam
+  | InvalidAssignmentThis
   | InvalidAssignmentConstructor
   | InvalidAssignmentMatchCaseVariable
 
@@ -192,13 +193,14 @@ let to_string error =
   | InvalidAssignment (name, kind) ->
     let kind_string =
       match kind with
-      | InvalidAssignmentImmutableVariable -> "immutable variable"
-      | InvalidAssignmentFunction -> "function"
-      | InvalidAssignmentFunctionParam -> "function parameter"
-      | InvalidAssignmentConstructor -> "constructor"
-      | InvalidAssignmentMatchCaseVariable -> "match case variable"
+      | InvalidAssignmentImmutableVariable -> " immutable variable"
+      | InvalidAssignmentFunction -> " function"
+      | InvalidAssignmentFunctionParam -> " function parameter"
+      | InvalidAssignmentThis -> ""
+      | InvalidAssignmentConstructor -> " constructor"
+      | InvalidAssignmentMatchCaseVariable -> " match case variable"
     in
-    Printf.sprintf "Cannot reassign %s `%s`" kind_string name
+    Printf.sprintf "Cannot reassign%s `%s`" kind_string name
   | InvalidLValue kind ->
     let kind_string =
       match kind with

@@ -67,3 +67,8 @@ Error: Cannot reassign immutable variable `x`
 test/analyze/type_check/assignment/invalid_reassignment/test.myte:53:4
  53 |     x = 1;
     |     ^
+
+Error: Cannot reassign `this`
+test/analyze/type_check/assignment/invalid_reassignment/test.myte:60:4-8
+ 60 |     this = TupleCtor (1);
+    |     ^^^^

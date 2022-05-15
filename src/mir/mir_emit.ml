@@ -198,7 +198,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
     match func_decl.this_binding_id with
     | Some this_binding_id ->
       let binding = Bindings.get_this_binding ecx.pcx.bindings this_binding_id in
-      let { Bindings.FunctionParamDeclaration.tvar } = Bindings.get_func_param_decl binding in
+      let { Bindings.ThisDeclaration.tvar } = Bindings.get_this_decl binding in
       (* Method receiver parameters cannot be removed if they are zero sized due to compatability
          with trait objects. Instead use pointer to zero type type for receiver. *)
       let this_type =
@@ -542,7 +542,8 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
         in
         Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr))
     (* Function parameters can have their corresponding MIR value referenced directly *)
-    | FunParamDecl { tvar } ->
+    | FunParamDecl { tvar }
+    | ThisDecl { tvar } ->
       (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
       | None -> None
       | Some _ -> Some (Ecx.get_function_argument_value ~ecx binding))

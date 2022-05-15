@@ -23,6 +23,12 @@ module MatchCaseVariableDeclaration = struct
   let mk () = { tvar = TVar.mk () }
 end
 
+module ThisDeclaration = struct
+  type t = { tvar: TVar.t }
+
+  let mk () = { tvar = TVar.mk () }
+end
+
 module FunctionDeclaration = struct
   type t = {
     name: string;
@@ -116,6 +122,7 @@ type value_declaration =
   | CtorDecl of TypeDeclaration.t
   | FunParamDecl of FunctionParamDeclaration.t
   | MatchCaseVarDecl of MatchCaseVariableDeclaration.t
+  | ThisDecl of ThisDeclaration.t
 
 type type_declaration =
   | TypeDecl of TypeDeclaration.t
@@ -258,6 +265,11 @@ let get_func_param_decl binding =
   match binding.ValueBinding.declaration with
   | FunParamDecl param_decl -> param_decl
   | _ -> failwith "Expected function parameter"
+
+let get_this_decl binding =
+  match binding.ValueBinding.declaration with
+  | ThisDecl this_decl -> this_decl
+  | _ -> failwith "Expected this"
 
 let get_type_decl binding =
   match binding.TypeBinding.declaration with

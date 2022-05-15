@@ -21,6 +21,12 @@ module MatchCaseVariableDeclaration : sig
   val mk : unit -> t
 end
 
+module ThisDeclaration : sig
+  type t = { tvar: Types.TVar.t }
+
+  val mk : unit -> t
+end
+
 module FunctionDeclaration : sig
   type t = {
     name: string;
@@ -93,6 +99,7 @@ type value_declaration =
   | CtorDecl of TypeDeclaration.t
   | FunParamDecl of FunctionParamDeclaration.t
   | MatchCaseVarDecl of MatchCaseVariableDeclaration.t
+  | ThisDecl of ThisDeclaration.t
 
 type type_declaration =
   | TypeDecl of TypeDeclaration.t
@@ -189,6 +196,8 @@ val get_func_decl : ValueBinding.t -> FunctionDeclaration.t
 val get_ctor_decl : ValueBinding.t -> TypeDeclaration.t
 
 val get_func_param_decl : ValueBinding.t -> FunctionParamDeclaration.t
+
+val get_this_decl : ValueBinding.t -> ThisDeclaration.t
 
 val get_type_decl : TypeBinding.t -> TypeDeclaration.t
 

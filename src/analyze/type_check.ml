@@ -777,7 +777,7 @@ and check_module ~cx module_ =
                 let this_param_binding =
                   Type_context.get_this_binding ~cx (Option.get func_decl.this_binding_id)
                 in
-                let this_param_decl = Bindings.get_func_param_decl this_param_binding in
+                let this_param_decl = Bindings.get_this_decl this_param_binding in
                 ignore (Type_context.unify ~cx this_type_alias.body (TVar this_param_decl.tvar)) );
               check_function_body ~cx method_
             ))
@@ -933,9 +933,11 @@ and check_expression ~cx expr =
         else
           Types.fresh_function_instance func_decl.type_params func_decl.params func_decl.return
       (* Otherwise identifier has same type as its declaration *)
-      | FunParamDecl param_decl -> TVar param_decl.tvar
-      | MatchCaseVarDecl var_decl -> TVar var_decl.tvar
-      | VarDecl var_decl -> TVar var_decl.tvar
+      | FunParamDecl { tvar; _ }
+      | MatchCaseVarDecl { tvar }
+      | VarDecl { tvar; _ }
+      | ThisDecl { tvar } ->
+        TVar tvar
     in
     ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
     (loc, tvar_id)
@@ -1835,7 +1837,8 @@ and check_pattern ~cx patt =
         (* Represents an error, but should error in assignment.
            Cannot appear in variable declarations or match patterns. *)
       | FunDecl _
-      | FunParamDecl _ ->
+      | FunParamDecl _
+      | ThisDecl _ ->
         None
     in
     let ty =
@@ -1866,7 +1869,8 @@ and check_pattern ~cx patt =
            Cannot appear in variable declarations or match patterns. *)
       | CtorDecl _
       | FunDecl _
-      | FunParamDecl _ ->
+      | FunParamDecl _
+      | ThisDecl _ ->
         None
     in
     let decl_ty =
@@ -2280,6 +2284,7 @@ and check_statement ~cx ~is_expr stmt =
                   has_error
               | FunDecl _ -> add_invalid_assign_error InvalidAssignmentFunction
               | FunParamDecl _ -> add_invalid_assign_error InvalidAssignmentFunctionParam
+              | ThisDecl _ -> add_invalid_assign_error InvalidAssignmentThis
               | MatchCaseVarDecl _ -> add_invalid_assign_error InvalidAssignmentMatchCaseVariable
               | CtorDecl ctor_decl ->
                 (* Only add error on Enum variant, Tuple and Record variants will error due to

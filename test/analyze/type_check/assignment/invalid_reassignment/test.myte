@@ -54,4 +54,15 @@ fun func(funcParam: Int) {
   }
 }
 
+methods TupleCtor {
+  fun method() {
+    // Error when reassigning this param
+    this = TupleCtor (1);
+
+    // But not when "this" is a variable
+    var this = 1;
+    this = 1;
+  }
+}
+
 fun main() {}

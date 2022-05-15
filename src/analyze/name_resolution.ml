@@ -181,7 +181,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           ~name:"this"
           ~loc:Loc.none
           ~context:ValueBinding.Function
-          ~declaration:(FunParamDecl (FunctionParamDeclaration.mk ()))
+          ~declaration:(ThisDecl (ThisDeclaration.mk ()))
           ~module_:module_name
       in
       Bindings.add_this_binding bindings binding;
