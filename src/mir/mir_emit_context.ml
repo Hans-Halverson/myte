@@ -6,6 +6,7 @@ open Mir_emit_utils
 open Mir_trait_object_layout
 open Mir_type
 open Mir_type_args_hashtbl
+module BVMap = Bindings.BVMap
 
 (* Break block and continue block for a loop *)
 type loop_context = Block.t * Block.t
@@ -41,10 +42,10 @@ type t = {
   mutable current_loop_contexts: loop_context list;
   (* Whether to filter out the standard library when dumping IR or asm *)
   filter_std_lib: bool;
-  (* Local variable decl loc to the StackAlloc instruction that defines that variable *)
-  mutable local_variable_to_alloc_instr: Value.t LocMap.t;
-  (* Function parameter decl loc to the argument value for that parameter *)
-  mutable param_to_argument: Value.t LocMap.t;
+  (* Local variable binding to the StackAlloc instruction that defines that variable *)
+  mutable local_variable_to_alloc_instr: Value.t BVMap.t;
+  (* Function parameter binding to the argument value for that parameter *)
+  mutable param_to_argument: Value.t BVMap.t;
   (* ADT signature id to its corresponding MIR layout *)
   mutable adt_sig_to_mir_layout: MirAdtLayout.t IMap.t;
   (* Trait signature id to its corresponding trait object vtables *)
@@ -71,8 +72,8 @@ type t = {
   mutable current_type_param_bindings: Types.Type.t IMap.t;
   (* All function declaration AST nodes, indexed by their full name *)
   mutable func_decl_nodes: Ast.Function.t SMap.t;
-  (* All globals in program indexed by their decl loc *)
-  mutable global_variable_decl_nodes: Ast.Statement.VariableDeclaration.t LocMap.t;
+  (* All globals in program indexed by their binding *)
+  mutable global_variable_decl_nodes: Ast.Statement.VariableDeclaration.t BVMap.t;
   (* Whether we are currently emitting blocks for the init function *)
   mutable in_init: bool;
   (* The last init block that was completed *)
@@ -116,8 +117,8 @@ let mk ~pcx =
       || Opts.dump_asm ()
       || Opts.dump_full_asm () )
       && not (Opts.dump_stdlib ());
-    local_variable_to_alloc_instr = LocMap.empty;
-    param_to_argument = LocMap.empty;
+    local_variable_to_alloc_instr = BVMap.empty;
+    param_to_argument = BVMap.empty;
     adt_sig_to_mir_layout = IMap.empty;
     trait_sig_to_trait_object_layout = IMap.empty;
     pending_nongeneric_funcs = FunctionSet.empty;
@@ -128,7 +129,7 @@ let mk ~pcx =
     pending_generic_func_instantiations = SMap.empty;
     current_type_param_bindings = IMap.empty;
     func_decl_nodes = SMap.empty;
-    global_variable_decl_nodes = LocMap.empty;
+    global_variable_decl_nodes = BVMap.empty;
     in_init = false;
     last_init_block = None;
     max_mutable_string_literal_id = 0;
@@ -205,22 +206,20 @@ let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loo
 let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
 
 let get_local_ptr_def_instr ~ecx use_loc type_ =
-  let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings use_loc in
-  match LocMap.find_opt decl_loc ecx.local_variable_to_alloc_instr with
+  let binding = Bindings.get_value_binding ecx.pcx.bindings use_loc in
+  match BVMap.find_opt binding ecx.local_variable_to_alloc_instr with
   | Some instr -> instr
   | None ->
     let instr = mk_blockless_stack_alloc ~type_ in
-    ecx.local_variable_to_alloc_instr <- LocMap.add decl_loc instr ecx.local_variable_to_alloc_instr;
+    ecx.local_variable_to_alloc_instr <- BVMap.add binding instr ecx.local_variable_to_alloc_instr;
     instr
 
-let add_function_argument ~ecx ~func decl_loc type_ =
-  let argument = mk_argument ~func ~decl_loc ~type_ in
-  ecx.param_to_argument <- LocMap.add decl_loc argument ecx.param_to_argument;
+let add_function_argument ~ecx ~func binding type_ =
+  let argument = mk_argument ~func ~decl_loc:binding.Bindings.ValueBinding.loc ~type_ in
+  ecx.param_to_argument <- BVMap.add binding argument ecx.param_to_argument;
   argument
 
-let get_function_argument_value ~ecx use_loc =
-  let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings use_loc in
-  LocMap.find decl_loc ecx.param_to_argument
+let get_function_argument_value ~ecx binding = BVMap.find binding ecx.param_to_argument
 
 let emit_init_section ~ecx f =
   let old_in_init = ecx.in_init in
@@ -1050,8 +1049,7 @@ let pop_pending_generic_func_instantiation ~ecx =
  *
  * If global variable has zero size then instead return None.
  *)
-let get_global_pointer ~ecx binding : Value.t option =
-  let loc = binding.Bindings.ValueBinding.loc in
+let get_global_pointer ~ecx (binding : Bindings.ValueBinding.t) : Value.t option =
   let name = mk_value_binding_name binding in
   match SMap.find_opt name ecx.program.globals with
   (* Global will be in MIR globals map if it has already been created or is pending *)
@@ -1063,12 +1061,17 @@ let get_global_pointer ~ecx binding : Value.t option =
     | None -> None
     | Some type_ ->
       (* Add global to pending globals queue *)
-      let decl_node = LocMap.find loc ecx.global_variable_decl_nodes in
+      let decl_node = BVMap.find binding ecx.global_variable_decl_nodes in
       ecx.pending_globals <- SMap.add name decl_node ecx.pending_globals;
 
       (* Add global to MIR globals map *)
       let global =
-        mk_global ~loc ~name ~type_ ~init_val:None ~is_constant:(decl_node.kind = Immutable)
+        mk_global
+          ~loc:binding.loc
+          ~name
+          ~type_
+          ~init_val:None
+          ~is_constant:(decl_node.kind = Immutable)
       in
       add_global ~ecx global;
 
@@ -1091,5 +1094,6 @@ let in_type_binding_context ~ecx type_param_bindings f =
 let add_function_declaration_node ~ecx name decl_node =
   ecx.func_decl_nodes <- SMap.add name decl_node ecx.func_decl_nodes
 
-let add_global_variable_declaration_node ~ecx loc decl =
-  ecx.global_variable_decl_nodes <- LocMap.add loc decl ecx.global_variable_decl_nodes
+let add_global_variable_declaration_node ~ecx decl_loc decl =
+  let binding = Bindings.get_value_binding ecx.pcx.bindings decl_loc in
+  ecx.global_variable_decl_nodes <- BVMap.add binding decl ecx.global_variable_decl_nodes

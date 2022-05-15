@@ -32,6 +32,7 @@ module FunctionDeclaration : sig
     mutable type_params: Types.TypeParam.t list;
     mutable params: Types.Type.t list;
     mutable return: Types.Type.t;
+    mutable this_binding_id: int option;
   }
 
   val mk :
@@ -145,26 +146,25 @@ module Bindings : sig
   type t = {
     mutable value_use_to_binding: ValueBinding.t LocMap.t;
     mutable type_use_to_binding: TypeBinding.t LocMap.t;
+    mutable this_bindings: ValueBinding.t IMap.t;
   }
 
   val mk : unit -> t
 
-  val add_value_binding : t -> ValueBinding.t -> unit
-
-  val add_type_binding : t -> TypeBinding.t -> unit
-
   val add_value_use : t -> Loc.t -> ValueBinding.t -> unit
 
   val add_type_use : t -> Loc.t -> TypeBinding.t -> unit
+
+  val add_this_binding : t -> ValueBinding.t -> unit
 
   val is_value_decl_loc : t -> Loc.t -> bool
 
   val is_type_decl_loc : t -> Loc.t -> bool
 end
 
-module VTSet : Set.S with type elt = ValueBinding.t
+module BVSet : Set.S with type elt = ValueBinding.t
 
-module VTMap : Map.S with type key = ValueBinding.t
+module BVMap : Map.S with type key = ValueBinding.t
 
 module BTSet : Set.S with type elt = TypeBinding.t
 
@@ -173,6 +173,8 @@ module BTMap : Map.S with type key = TypeBinding.t
 val get_value_binding : Bindings.t -> Loc.t -> ValueBinding.t
 
 val get_type_binding : Bindings.t -> Loc.t -> TypeBinding.t
+
+val get_this_binding : Bindings.t -> ValueBinding.id -> ValueBinding.t
 
 val get_decl_loc_from_value_use : Bindings.t -> Loc.t -> Loc.t
 

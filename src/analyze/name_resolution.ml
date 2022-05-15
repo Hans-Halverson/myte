@@ -167,12 +167,26 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method add_value_declaration loc name context declaration =
       let binding = ValueBinding.mk ~name ~loc ~declaration ~context ~module_:module_name in
-      Bindings.add_value_binding bindings binding;
+      Bindings.add_value_use bindings binding.loc binding;
       binding
 
     method add_type_declaration loc name declaration =
       let binding = TypeBinding.mk ~name ~loc ~declaration ~module_:module_name in
-      Bindings.add_type_binding bindings binding;
+      Bindings.add_type_use bindings binding.loc binding;
+      binding
+
+    method add_this_declaration func_binding =
+      let binding =
+        ValueBinding.mk
+          ~name:"this"
+          ~loc:Loc.none
+          ~context:ValueBinding.Function
+          ~declaration:(FunParamDecl (FunctionParamDeclaration.mk ()))
+          ~module_:module_name
+      in
+      Bindings.add_this_binding bindings binding;
+      let func_decl = get_func_decl func_binding in
+      func_decl.this_binding_id <- Some binding.id;
       binding
 
     method is_value_decl_loc decl_loc = Bindings.is_value_decl_loc bindings decl_loc
@@ -639,7 +653,6 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     method visit_function_declaration ~is_nested ~is_method decl =
       let open Ast.Function in
       let {
-        loc = full_loc;
         name = { Ast.Identifier.loc; name = func_name };
         params;
         type_params;
@@ -651,33 +664,32 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       } =
         decl
       in
-      ( if is_nested then
-        let binding =
-          this#add_value_declaration
-            loc
-            func_name
-            ValueBinding.Function
-            (FunDecl
-               (FunctionDeclaration.mk
-                  ~name:func_name
-                  ~loc
-                  ~is_builtin:builtin
-                  ~is_static:static
-                  ~is_override:override
-                  ~is_signature:(body = Signature)))
-        in
-        this#add_value_to_scope func_name (Decl binding) );
+      let func_binding =
+        if is_nested then (
+          let binding =
+            this#add_value_declaration
+              loc
+              func_name
+              ValueBinding.Function
+              (FunDecl
+                 (FunctionDeclaration.mk
+                    ~name:func_name
+                    ~loc
+                    ~is_builtin:builtin
+                    ~is_static:static
+                    ~is_override:override
+                    ~is_signature:(body = Signature)))
+          in
+          this#add_value_to_scope func_name (Decl binding);
+          binding
+        ) else
+          this#get_value_binding loc
+      in
       this#enter_scope ();
       this#visit_type_parameters type_params (FunctionName func_name);
       (* Add implicit `this` type to scope within method *)
-      ( if is_method && not static then
-        let binding =
-          this#add_value_declaration
-            full_loc
-            "this"
-            ValueBinding.Function
-            (FunParamDecl (FunctionParamDeclaration.mk ()))
-        in
+      ( if is_method && (not static) && body <> Signature then
+        let binding = this#add_this_declaration func_binding in
         this#add_value_to_scope "this" (Decl binding) );
       this#visit_function_params (Some func_name) params;
       let function_ = super#function_ decl in

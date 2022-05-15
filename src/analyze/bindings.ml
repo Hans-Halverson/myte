@@ -39,6 +39,8 @@ module FunctionDeclaration = struct
     mutable params: Type.t list;
     (* Return types for the function. If the function has type params, this is a signature *)
     mutable return: Type.t;
+    (* Id of the implicit `this` binding for this function if it is a method *)
+    mutable this_binding_id: int option;
   }
 
   let mk ~name ~loc ~is_builtin ~is_static ~is_override ~is_signature =
@@ -52,6 +54,7 @@ module FunctionDeclaration = struct
       type_params = [];
       params = [];
       return = Any;
+      this_binding_id = None;
     }
 end
 
@@ -180,23 +183,25 @@ module Bindings = struct
   type t = {
     mutable value_use_to_binding: ValueBinding.t LocMap.t;
     mutable type_use_to_binding: TypeBinding.t LocMap.t;
+    (* Collection of all "this" bindings indexed by their binding id *)
+    mutable this_bindings: ValueBinding.t IMap.t;
   }
 
-  let mk () = { value_use_to_binding = LocMap.empty; type_use_to_binding = LocMap.empty }
-
-  let add_value_binding bindings binding =
-    let open ValueBinding in
-    bindings.value_use_to_binding <- LocMap.add binding.loc binding bindings.value_use_to_binding
-
-  let add_type_binding bindings binding =
-    let open TypeBinding in
-    bindings.type_use_to_binding <- LocMap.add binding.loc binding bindings.type_use_to_binding
+  let mk () =
+    {
+      value_use_to_binding = LocMap.empty;
+      type_use_to_binding = LocMap.empty;
+      this_bindings = IMap.empty;
+    }
 
   let add_value_use bindings use_loc binding =
     bindings.value_use_to_binding <- LocMap.add use_loc binding bindings.value_use_to_binding
 
   let add_type_use bindings use_loc binding =
     bindings.type_use_to_binding <- LocMap.add use_loc binding bindings.type_use_to_binding
+
+  let add_this_binding bindings binding =
+    bindings.this_bindings <- IMap.add binding.ValueBinding.id binding bindings.this_bindings
 
   let is_value_decl_loc bindings decl_loc =
     match LocMap.find_opt decl_loc bindings.value_use_to_binding with
@@ -209,8 +214,8 @@ module Bindings = struct
     | _ -> false
 end
 
-module VTSet = Set.Make (ValueBinding)
-module VTMap = Map.Make (ValueBinding)
+module BVSet = Set.Make (ValueBinding)
+module BVMap = Map.Make (ValueBinding)
 module BTSet = Set.Make (TypeBinding)
 module BTMap = Map.Make (TypeBinding)
 
@@ -221,6 +226,10 @@ let get_value_binding bindings use_loc =
 let get_type_binding bindings use_loc =
   let open Bindings in
   LocMap.find use_loc bindings.type_use_to_binding
+
+let get_this_binding bindings this_binding_id =
+  let open Bindings in
+  IMap.find this_binding_id bindings.this_bindings
 
 let get_decl_loc_from_value_use bindings use_loc =
   let binding = get_value_binding bindings use_loc in

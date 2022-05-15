@@ -767,11 +767,16 @@ and check_module ~cx module_ =
         let this_type_binding = Type_context.get_type_binding ~cx loc in
         let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
         List.iter
-          (fun ({ Ast.Function.loc; body; static; _ } as method_) ->
+          (fun ({ Ast.Function.name; body; static; _ } as method_) ->
             if body <> Signature then (
               (* Set up type of implicit `this` parameter for non-static methods  *)
               ( if not static then
-                let this_param_binding = Type_context.get_value_binding ~cx loc in
+                let func_decl =
+                  Bindings.get_func_decl (Type_context.get_value_binding ~cx name.loc)
+                in
+                let this_param_binding =
+                  Type_context.get_this_binding ~cx (Option.get func_decl.this_binding_id)
+                in
                 let this_param_decl = Bindings.get_func_param_decl this_param_binding in
                 ignore (Type_context.unify ~cx this_type_alias.body (TVar this_param_decl.tvar)) );
               check_function_body ~cx method_

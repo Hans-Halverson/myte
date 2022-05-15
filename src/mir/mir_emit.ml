@@ -171,13 +171,13 @@ and emit_generic_function_instantiation ~ecx (name, (func, type_param_bindings))
 
 and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
   let open Ast.Function in
-  let { loc = full_loc; name = { Identifier.loc; _ }; params; body; _ } = decl in
+  let { name = { Identifier.loc; _ }; params; body; _ } = decl in
   let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
   ecx.current_in_std_lib <- Bindings.is_std_lib_value binding;
 
   (* Clear emit context function context *)
-  ecx.local_variable_to_alloc_instr <- LocMap.empty;
-  ecx.param_to_argument <- LocMap.empty;
+  ecx.local_variable_to_alloc_instr <- Bindings.BVMap.empty;
+  ecx.param_to_argument <- Bindings.BVMap.empty;
 
   (* Create MIR vars for function params *)
   let func_decl = Bindings.get_func_decl binding in
@@ -185,7 +185,9 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
     List_utils.filter_map2
       (fun { Param.name = { Identifier.loc; _ }; _ } ty ->
         match type_to_mir_type ~ecx ty with
-        | Some mir_type -> Some (Ecx.add_function_argument ~ecx ~func loc mir_type)
+        | Some mir_type ->
+          let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
+          Some (Ecx.add_function_argument ~ecx ~func binding mir_type)
         | None -> None)
       params
       func_decl.params
@@ -193,8 +195,10 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
 
   (* Add implicit this param *)
   let params =
-    match LocMap.find_opt full_loc ecx.pcx.bindings.value_use_to_binding with
-    | Some { declaration = FunParamDecl { tvar }; _ } ->
+    match func_decl.this_binding_id with
+    | Some this_binding_id ->
+      let binding = Bindings.get_this_binding ecx.pcx.bindings this_binding_id in
+      let { Bindings.FunctionParamDeclaration.tvar } = Bindings.get_func_param_decl binding in
       (* Method receiver parameters cannot be removed if they are zero sized due to compatability
          with trait objects. Instead use pointer to zero type type for receiver. *)
       let this_type =
@@ -202,7 +206,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
         | Some this_type -> this_type
         | None -> Pointer (Ecx.get_zero_size_type ~ecx)
       in
-      Ecx.add_function_argument ~ecx ~func full_loc this_type :: params
+      Ecx.add_function_argument ~ecx ~func binding this_type :: params
     | _ -> params
   in
 
@@ -541,7 +545,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | FunParamDecl { tvar } ->
       (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
       | None -> None
-      | Some _ -> Some (Ecx.get_function_argument_value ~ecx binding.loc))
+      | Some _ -> Some (Ecx.get_function_argument_value ~ecx binding))
     (* Match cases variables are locals, and must be loaded from their StackAlloc *)
     | MatchCaseVarDecl { tvar } ->
       (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
