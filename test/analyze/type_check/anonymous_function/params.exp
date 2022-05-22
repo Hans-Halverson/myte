@@ -43,7 +43,17 @@ test/analyze/type_check/anonymous_function/params.myte:37:25-49
  37 |   val x: (Int) -> Bool = fn (x) -> x == (1: Byte);
     |                          ^^^^^^^^^^^^^^^^^^^^^^^^
 
+Error: Expected type `Unit` but found `(Int, T)`
+test/analyze/type_check/anonymous_function/params.myte:42:3-24
+ 42 |   ((fn (x) -> (x, y))(1): Unit);
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `(Int) -> (Int, T)`
+test/analyze/type_check/anonymous_function/params.myte:43:3-24
+ 43 |   (fn (x: Int) -> (x, y): Unit);
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
 Error: Expected type `Unit` but found `Vec<Bool>`
-test/analyze/type_check/anonymous_function/params.myte:44:3
- 44 |   (y: Unit);
+test/analyze/type_check/anonymous_function/params.myte:50:3
+ 50 |   (y: Unit);
     |    ^

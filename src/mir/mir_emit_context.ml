@@ -25,9 +25,16 @@ module FunctionContext = struct
     return_ty: Types.Type.t;
     return_block: Block.t;
     return_pointer: Value.t option;
+    mutable num_anonymous_functions: int;
   }
 
-  let null = { return_ty = Unit; return_block = null_block; return_pointer = None }
+  let null =
+    {
+      return_ty = Unit;
+      return_block = null_block;
+      return_pointer = None;
+      num_anonymous_functions = 0;
+    }
 end
 
 type t = {
@@ -52,6 +59,10 @@ type t = {
   mutable trait_sig_to_trait_object_layout: MirTraitObjectLayout.t IMap.t;
   (* Names for all nongeneric functions that are pending generation *)
   mutable pending_nongeneric_funcs: FunctionSet.t;
+  (* Map from pending anonymous functions to their AST node, the type param binding context, and
+     the params to argument context. *)
+  mutable pending_anonymous_funcs:
+    (Ast.Expression.AnonymousFunction.t * Types.Type.t IMap.t * Value.t BVMap.t) FunctionMap.t;
   (* Names for all trampoline functions that are pending generation *)
   mutable pending_trampoline_funcs: FunctionSet.t;
   (* All AST nodes for all globals that should be generated, indexed by their full name *)
@@ -122,6 +133,7 @@ let mk ~pcx =
     adt_sig_to_mir_layout = IMap.empty;
     trait_sig_to_trait_object_layout = IMap.empty;
     pending_nongeneric_funcs = FunctionSet.empty;
+    pending_anonymous_funcs = FunctionMap.empty;
     pending_trampoline_funcs = FunctionSet.empty;
     pending_globals = SMap.empty;
     tuple_instantiations = TypeArgsHashtbl.create 10;
@@ -336,7 +348,8 @@ let start_function ~(ecx : t) ~(func : Function.t) ~loc ~params ~return_type =
   func.start_block <- start_block
 
 let start_function_context ~ecx ~return_ty ~return_block ~return_pointer =
-  ecx.current_func_context <- { return_ty; return_block; return_pointer }
+  ecx.current_func_context <-
+    { return_ty; return_block; return_pointer; num_anonymous_functions = 0 }
 
 (*
  * Generic Types
@@ -873,6 +886,26 @@ and pop_pending_nongeneric_function ~ecx =
 
 and mark_pending_nongeneric_function_completed ~ecx func =
   ecx.pending_nongeneric_funcs <- FunctionSet.remove func ecx.pending_nongeneric_funcs
+
+(*
+ * Anonymous Functions
+ *)
+and get_anonymous_function_value ~ecx name anon_func_node : Value.t =
+  let func = mk_empty_function ~ecx ~name in
+  ecx.pending_anonymous_funcs <-
+    FunctionMap.add
+      func
+      (anon_func_node, ecx.current_type_param_bindings, ecx.param_to_argument)
+      ecx.pending_anonymous_funcs;
+  func.value
+
+and pop_pending_anonymous_function ~ecx =
+  match FunctionMap.choose_opt ecx.pending_anonymous_funcs with
+  | None -> None
+  | Some (anon_func, anon_func_node) -> Some (anon_func, anon_func_node)
+
+and mark_pending_anonymous_function_completed ~ecx func =
+  ecx.pending_anonymous_funcs <- FunctionMap.remove func ecx.pending_anonymous_funcs
 
 (*
  * Trampoline Functions

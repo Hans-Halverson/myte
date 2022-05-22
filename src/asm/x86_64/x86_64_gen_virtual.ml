@@ -17,7 +17,7 @@ type resolved_source_value =
   (* Value is a memory address *)
   | SAddr of MemoryAddress.t * Type.t
 
-let invalid_label_chars = Str.regexp "[<>,*()]"
+let invalid_label_chars = Str.regexp "[<>,*():]"
 
 let rec gen ~gcx (ir : Program.t) =
   (* Calculate layout of all aggregate types *)

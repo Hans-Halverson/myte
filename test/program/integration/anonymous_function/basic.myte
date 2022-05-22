@@ -1,0 +1,18 @@
+module test
+
+import std.test.{assertEqual, assertVecEqual}
+
+fun testDirectUsage() {
+  assertEqual((fn (x) -> x + 2)(3), 5);
+  assertEqual((fn (x, y) -> (y, x))(7, true)[1], 7);
+}
+
+fun testHigherOrderFunction() {
+  val x = [1, 2, 3, 4].map(fn (x) -> x == 1 || x == 3);
+  assertVecEqual(x, [true, false, true, false]);
+}
+
+fun main() {
+  testDirectUsage();
+  testHigherOrderFunction();
+}

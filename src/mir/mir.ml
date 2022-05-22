@@ -312,6 +312,7 @@ end =
 and BlockSet : (Set.S with type elt = Block.t) = Set.Make (Block)
 and BlockMap : (Map.S with type key = Block.t) = Map.Make (Block)
 and FunctionSet : (Set.S with type elt = Function.t) = Set.Make (Function)
+and FunctionMap : (Map.S with type key = Function.t) = Map.Make (Function)
 
 and BlockMMap : (MultiMap.S with type key = Block.t and type value = Block.t) =
   MultiMap.Make (Block) (Block)

@@ -37,6 +37,12 @@ fun inferParamTypes() {
   val x: (Int) -> Bool = fn (x) -> x == (1: Byte);
 }
 
+fun inferParamTypesInGenericFunction<T>(y: T) {
+  // Intentionally print types
+  ((fn (x) -> (x, y))(1): Unit);
+  (fn (x: Int) -> (x, y): Unit);
+}
+
 fun testHigherOrderFunction() {
   val x: Vec<Int> = [];
   val y = x.map(fn (x) -> x == 1);

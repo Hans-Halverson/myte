@@ -114,6 +114,17 @@ and emit_pending ~ecx =
       emit_pending_generic_func_instantations ()
   in
 
+  (* Emit all pending anonymous functions *)
+  let rec emit_pending_anonymous_functions () =
+    match Ecx.pop_pending_anonymous_function ~ecx with
+    | None -> ()
+    | Some (func, func_instantiation) ->
+      emit_anonymous_function_instantiation ~ecx func func_instantiation;
+      Ecx.mark_pending_anonymous_function_completed ~ecx func;
+      complete := false;
+      emit_pending_anonymous_functions ()
+  in
+
   (* Emit all pending trampoline functions *)
   let rec emit_pending_trampoline_functions () =
     match Ecx.pop_pending_trampoline_function ~ecx with
@@ -130,6 +141,7 @@ and emit_pending ~ecx =
     emit_pending_globals ();
     emit_pending_nongeneric_functions ();
     emit_pending_generic_func_instantations ();
+    emit_pending_anonymous_functions ();
     emit_pending_trampoline_functions ();
     if not !complete then emit_all_pending ()
   in
@@ -168,6 +180,15 @@ and emit_generic_function_instantiation ~ecx (name, (func, type_param_bindings))
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
       if not func_decl_node.builtin then emit_function_body ~ecx func func_decl_node)
+
+and emit_anonymous_function_instantiation
+    ~ecx func (anon_func_node, type_param_bindings, param_to_argument) =
+  Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
+      (* Reset emit context function context to that of parent function *)
+      ecx.local_variable_to_alloc_instr <- Bindings.BVMap.empty;
+      ecx.param_to_argument <- param_to_argument;
+
+      emit_anonymous_function ~ecx func anon_func_node)
 
 and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
   let open Ast.Function in
@@ -223,6 +244,18 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
 
   if is_main_func then ecx.program.main_func <- ecx.current_func;
 
+  (* Set up return pointer and block, and create function context *)
+  emit_function_return_block ~ecx return_ty return_type;
+
+  (* Build IR for function body *)
+  Ecx.set_current_block ~ecx ecx.current_func.start_block;
+  (match body with
+  | Block block -> emit_function_block_body ~ecx ~is_main_func block
+  | Expression expr -> emit_function_expression_body ~ecx expr
+  | Signature -> failwith "Cannot emit function signature");
+  Ecx.finish_block_unreachable ~ecx
+
+and emit_function_return_block ~ecx return_ty return_type =
   (* Set up return value and return block *)
   let return_block = Ecx.mk_block ~ecx in
   let return_pointer =
@@ -241,37 +274,70 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
       Ecx.finish_block_ret ~ecx ~arg:(Some return_val);
       Some return_pointer
   in
-  Ecx.start_function_context ~ecx ~return_ty ~return_block ~return_pointer;
+  Ecx.start_function_context ~ecx ~return_ty ~return_block ~return_pointer
+
+and emit_function_block_body ~ecx ~is_main_func block =
+  ignore (emit_block ~ecx ~is_expr:false block);
+  (* Add an implicit return if the last instruction is not a terminator *)
+  match ecx.current_block with
+  | Some current_block ->
+    (match get_terminator current_block with
+    | None ->
+      (* Handle implicit return from main *)
+      ( if is_main_func then
+        let return_pointer = Option.get ecx.current_func_context.return_pointer in
+        mk_store_
+          ~block:(Ecx.get_current_block ~ecx)
+          ~ptr:return_pointer
+          ~value:(mk_int_lit_of_int32 Int32.zero) );
+      Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
+    | Some _ -> ())
+  | None -> ()
+
+and emit_function_expression_body ~ecx expr =
+  let return_val_opt = emit_expression ~ecx expr in
+  (match return_val_opt with
+  | None -> ()
+  | Some return_val ->
+    let return_pointer = Option.get ecx.current_func_context.return_pointer in
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:return_pointer ~value:return_val);
+  Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
+
+and emit_anonymous_function ~ecx func anon_func_node =
+  let open Ast.Expression.AnonymousFunction in
+  let { loc; params; body; _ } = anon_func_node in
+  ecx.current_in_std_lib <- String.sub func.name 0 4 = "std.";
+
+  (* Create MIR values for anonymous function params *)
+  let params =
+    List.filter_map
+      (fun { Param.name = { Identifier.loc; _ }; _ } ->
+        let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx loc in
+        let param_decl = Bindings.get_func_param_decl binding in
+        match type_to_mir_type ~ecx (Types.Type.TVar param_decl.tvar) with
+        | Some mir_type ->
+          let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
+          Some (Ecx.add_function_argument ~ecx ~func binding mir_type)
+        | None -> None)
+      params
+  in
+
+  (* Get return type of anonymous function *)
+  let anon_func_ty = type_of_loc ~ecx loc in
+  let func_decl = Type_util.cast_to_function_type anon_func_ty in
+  let return_ty = Ecx.find_rep_non_generic_type ~ecx func_decl.return in
+  let return_type = Ecx.to_mir_type ~ecx return_ty in
+
+  Ecx.start_function ~ecx ~func ~loc ~params ~return_type;
+
+  (* Set up return pointer and block, and create function context *)
+  emit_function_return_block ~ecx return_ty return_type;
 
   (* Build IR for function body *)
   Ecx.set_current_block ~ecx ecx.current_func.start_block;
   (match body with
-  | Block block ->
-    ignore (emit_block ~ecx ~is_expr:false block);
-    (* Add an implicit return if the last instruction is not a terminator *)
-    (match ecx.current_block with
-    | Some current_block ->
-      (match get_terminator current_block with
-      | None ->
-        (* Handle implicit return from main *)
-        ( if is_main_func then
-          let return_pointer = Option.get return_pointer in
-          mk_store_
-            ~block:(Ecx.get_current_block ~ecx)
-            ~ptr:return_pointer
-            ~value:(mk_int_lit_of_int32 Int32.zero) );
-        Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
-      | Some _ -> ())
-    | None -> ())
-  | Expression expr ->
-    let return_val_opt = emit_expression ~ecx expr in
-    (match return_val_opt with
-    | None -> ()
-    | Some return_val ->
-      let return_pointer = Option.get ecx.current_func_context.return_pointer in
-      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:return_pointer ~value:return_val);
-    Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
-  | Signature -> failwith "Cannot emit function signature");
+  | Block block -> emit_function_block_body ~ecx ~is_main_func:false block
+  | Expression expr -> emit_function_expression_body ~ecx expr);
   Ecx.finish_block_unreachable ~ecx
 
 and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
@@ -990,7 +1056,16 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       Ecx.set_current_block ~ecx ok_branch_block;
       ok_item_val
     | _ -> failwith "Only option and result types can be unwrapped")
-  | AnonymousFunction _ -> failwith "TODO: Emit anonymous functions"
+  (*
+   * ============================
+   *      Anonymous Function
+   * ============================
+   *)
+  | AnonymousFunction anon_func_node ->
+    let anon_func_num = ecx.current_func_context.num_anonymous_functions in
+    ecx.current_func_context.num_anonymous_functions <- anon_func_num + 1;
+    let anon_func_name = Printf.sprintf "%s:%d" ecx.current_func.name anon_func_num in
+    Some (Ecx.get_anonymous_function_value ~ecx anon_func_name anon_func_node)
 
 and emit_string_literal ~ecx loc value =
   (* Add string global string literal unless this is the empty string, in which case use null pointer *)

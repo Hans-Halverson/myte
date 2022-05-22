@@ -1,0 +1,378 @@
+type $tuple<Bool,Bool> {bool, bool}
+
+type $tuple<Bool,Byte,Bool> {bool, byte, bool}
+
+type $tuple<Bool,Byte,Int> {bool, byte, int}
+
+type $tuple<Bool,Byte> {bool, byte}
+
+type $tuple<Bool,Int> {bool, int}
+
+type $tuple<Bool,Long,Bool> {bool, long, bool}
+
+type $tuple<Bool,Long,Int> {bool, long, int}
+
+type $tuple<Bool,Long> {bool, long}
+
+type $tuple<Int,Bool> {int, bool}
+
+type $tuple<Int,Byte,Bool> {int, byte, bool}
+
+type $tuple<Int,Byte,Int> {int, byte, int}
+
+type $tuple<Int,Byte> {int, byte}
+
+type $tuple<Int,Int> {int, int}
+
+type $tuple<Int,Long,Bool> {int, long, bool}
+
+type $tuple<Int,Long,Int> {int, long, int}
+
+type $tuple<Int,Long> {int, long}
+
+func void @test.testNongenericInToplevel() {
+  %0 := Call int @test.testNongenericInToplevel:0(1)
+  %1 := Call bool @test.testNongenericInToplevel:1(true)
+  %2 := Call int @test.testNongenericInToplevel:2(3)
+  Ret
+}
+
+func int @test.testNongenericInToplevel:0(int %0) {
+  Ret %0
+}
+
+func bool @test.testNongenericInToplevel:1(bool %0) {
+  Ret %0
+}
+
+func int @test.testNongenericInToplevel:2(int %0) {
+  %1 := Add int %0, 1
+  %2 := Mul int 2, %1
+  Ret %2
+}
+
+func void @test.genericInToplevel<Bool>(bool %0) {
+  %1 := Call $tuple<Int,Bool>* @test.genericInToplevel<Bool>:0(1)
+  %2 := Call $tuple<Bool,Bool>* @test.genericInToplevel<Bool>:1(true)
+  Ret
+}
+
+func void @test.genericInToplevel<Int>(int %0) {
+  %1 := Call $tuple<Int,Int>* @test.genericInToplevel<Int>:0(1)
+  %2 := Call $tuple<Bool,Int>* @test.genericInToplevel<Int>:1(true)
+  Ret
+}
+
+func $tuple<Int,Bool>* @test.genericInToplevel<Bool>:0(int %0) {
+  %1 := Call $tuple<Int,Bool>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Bool>* %1.0
+  Store int %2, %0
+  %3 := GetPointer bool, $tuple<Int,Bool>* %1.1
+  Store bool %3, %0
+  Ret %1
+}
+
+func $tuple<Int,Int>* @test.genericInToplevel<Int>:0(int %0) {
+  %1 := Call $tuple<Int,Int>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Int>* %1.0
+  Store int %2, %0
+  %3 := GetPointer int, $tuple<Int,Int>* %1.1
+  Store int %3, %0
+  Ret %1
+}
+
+func $tuple<Bool,Bool>* @test.genericInToplevel<Bool>:1(bool %0) {
+  %1 := Call $tuple<Bool,Bool>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Bool>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer bool, $tuple<Bool,Bool>* %1.1
+  Store bool %3, %0
+  Ret %1
+}
+
+func $tuple<Bool,Int>* @test.genericInToplevel<Int>:1(bool %0) {
+  %1 := Call $tuple<Bool,Int>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Int>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer int, $tuple<Bool,Int>* %1.1
+  Store int %3, %0
+  Ret %1
+}
+
+func void @test.testGenericInToplevel() {
+  Call void @test.genericInToplevel<Int>(1)
+  Call void @test.genericInToplevel<Bool>(false)
+  Ret
+}
+
+type test.Type1 {int}
+
+func void @test.Type1.nongeneric(test.Type1* %0) {
+  %1 := Call int @test.Type1.nongeneric:0(1)
+  %2 := Call bool @test.Type1.nongeneric:1(true)
+  Ret
+}
+
+func int @test.Type1.nongeneric:0(int %0) {
+  Ret %0
+}
+
+func bool @test.Type1.nongeneric:1(bool %0) {
+  Ret %0
+}
+
+func void @test.testNongenericInMethod(test.Type1* %0) {
+  Call void @test.Type1.nongeneric(%0)
+  Ret
+}
+
+type test.Type2<Byte> {byte}
+
+type test.Type2<Long> {long}
+
+func void @test.Type2.nongeneric<Byte>(test.Type2<Byte>* %0, byte %1) {
+  %2 := Call $tuple<Int,Byte>* @test.Type2.nongeneric<Byte>:0(1)
+  %3 := Call $tuple<Bool,Byte>* @test.Type2.nongeneric<Byte>:1(true)
+  Ret
+}
+
+func void @test.Type2.nongeneric<Long>(test.Type2<Long>* %0, long %1) {
+  %2 := Call $tuple<Int,Long>* @test.Type2.nongeneric<Long>:0(1)
+  %3 := Call $tuple<Bool,Long>* @test.Type2.nongeneric<Long>:1(true)
+  Ret
+}
+
+func $tuple<Int,Byte>* @test.Type2.nongeneric<Byte>:0(int %0) {
+  %1 := Call $tuple<Int,Byte>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Byte>* %1.0
+  Store int %2, %0
+  %3 := GetPointer byte, $tuple<Int,Byte>* %1.1
+  Store byte %3, %1
+  Ret %1
+}
+
+func $tuple<Int,Long>* @test.Type2.nongeneric<Long>:0(int %0) {
+  %1 := Call $tuple<Int,Long>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Long>* %1.0
+  Store int %2, %0
+  %3 := GetPointer long, $tuple<Int,Long>* %1.1
+  Store long %3, %1
+  Ret %1
+}
+
+func $tuple<Bool,Byte>* @test.Type2.nongeneric<Byte>:1(bool %0) {
+  %1 := Call $tuple<Bool,Byte>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Byte>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer byte, $tuple<Bool,Byte>* %1.1
+  Store byte %3, %1
+  Ret %1
+}
+
+func $tuple<Bool,Long>* @test.Type2.nongeneric<Long>:1(bool %0) {
+  %1 := Call $tuple<Bool,Long>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Long>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer long, $tuple<Bool,Long>* %1.1
+  Store long %3, %1
+  Ret %1
+}
+
+func void @test.Type2.generic<Byte,Bool>(test.Type2<Byte>* %0, byte %1, bool %2) {
+  %3 := Call $tuple<Int,Byte,Bool>* @test.Type2.generic<Byte,Bool>:0(1)
+  %4 := Call $tuple<Bool,Byte,Bool>* @test.Type2.generic<Byte,Bool>:1(true)
+  Ret
+}
+
+func void @test.Type2.generic<Byte,Int>(test.Type2<Byte>* %0, byte %1, int %2) {
+  %3 := Call $tuple<Int,Byte,Int>* @test.Type2.generic<Byte,Int>:0(1)
+  %4 := Call $tuple<Bool,Byte,Int>* @test.Type2.generic<Byte,Int>:1(true)
+  Ret
+}
+
+func void @test.Type2.generic<Long,Bool>(test.Type2<Long>* %0, long %1, bool %2) {
+  %3 := Call $tuple<Int,Long,Bool>* @test.Type2.generic<Long,Bool>:0(1)
+  %4 := Call $tuple<Bool,Long,Bool>* @test.Type2.generic<Long,Bool>:1(true)
+  Ret
+}
+
+func void @test.Type2.generic<Long,Int>(test.Type2<Long>* %0, long %1, int %2) {
+  %3 := Call $tuple<Int,Long,Int>* @test.Type2.generic<Long,Int>:0(1)
+  %4 := Call $tuple<Bool,Long,Int>* @test.Type2.generic<Long,Int>:1(true)
+  Ret
+}
+
+func $tuple<Int,Byte,Bool>* @test.Type2.generic<Byte,Bool>:0(int %0) {
+  %1 := Call $tuple<Int,Byte,Bool>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Byte,Bool>* %1.0
+  Store int %2, %0
+  %3 := GetPointer byte, $tuple<Int,Byte,Bool>* %1.1
+  Store byte %3, %1
+  %4 := GetPointer bool, $tuple<Int,Byte,Bool>* %1.2
+  Store bool %4, %2
+  Ret %1
+}
+
+func $tuple<Int,Byte,Int>* @test.Type2.generic<Byte,Int>:0(int %0) {
+  %1 := Call $tuple<Int,Byte,Int>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Byte,Int>* %1.0
+  Store int %2, %0
+  %3 := GetPointer byte, $tuple<Int,Byte,Int>* %1.1
+  Store byte %3, %1
+  %4 := GetPointer int, $tuple<Int,Byte,Int>* %1.2
+  Store int %4, %2
+  Ret %1
+}
+
+func $tuple<Int,Long,Bool>* @test.Type2.generic<Long,Bool>:0(int %0) {
+  %1 := Call $tuple<Int,Long,Bool>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Long,Bool>* %1.0
+  Store int %2, %0
+  %3 := GetPointer long, $tuple<Int,Long,Bool>* %1.1
+  Store long %3, %1
+  %4 := GetPointer bool, $tuple<Int,Long,Bool>* %1.2
+  Store bool %4, %2
+  Ret %1
+}
+
+func $tuple<Int,Long,Int>* @test.Type2.generic<Long,Int>:0(int %0) {
+  %1 := Call $tuple<Int,Long,Int>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Long,Int>* %1.0
+  Store int %2, %0
+  %3 := GetPointer long, $tuple<Int,Long,Int>* %1.1
+  Store long %3, %1
+  %4 := GetPointer int, $tuple<Int,Long,Int>* %1.2
+  Store int %4, %2
+  Ret %1
+}
+
+func $tuple<Bool,Byte,Bool>* @test.Type2.generic<Byte,Bool>:1(bool %0) {
+  %1 := Call $tuple<Bool,Byte,Bool>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Byte,Bool>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer byte, $tuple<Bool,Byte,Bool>* %1.1
+  Store byte %3, %1
+  %4 := GetPointer bool, $tuple<Bool,Byte,Bool>* %1.2
+  Store bool %4, %2
+  Ret %1
+}
+
+func $tuple<Bool,Byte,Int>* @test.Type2.generic<Byte,Int>:1(bool %0) {
+  %1 := Call $tuple<Bool,Byte,Int>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Byte,Int>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer byte, $tuple<Bool,Byte,Int>* %1.1
+  Store byte %3, %1
+  %4 := GetPointer int, $tuple<Bool,Byte,Int>* %1.2
+  Store int %4, %2
+  Ret %1
+}
+
+func $tuple<Bool,Long,Bool>* @test.Type2.generic<Long,Bool>:1(bool %0) {
+  %1 := Call $tuple<Bool,Long,Bool>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Long,Bool>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer long, $tuple<Bool,Long,Bool>* %1.1
+  Store long %3, %1
+  %4 := GetPointer bool, $tuple<Bool,Long,Bool>* %1.2
+  Store bool %4, %2
+  Ret %1
+}
+
+func $tuple<Bool,Long,Int>* @test.Type2.generic<Long,Int>:1(bool %0) {
+  %1 := Call $tuple<Bool,Long,Int>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Long,Int>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer long, $tuple<Bool,Long,Int>* %1.1
+  Store long %3, %1
+  %4 := GetPointer int, $tuple<Bool,Long,Int>* %1.2
+  Store int %4, %2
+  Ret %1
+}
+
+func void @test.testGenericInMethod(test.Type2<Long>* %0, test.Type2<Byte>* %1) {
+  Call void @test.Type2.nongeneric<Long>(%0, 1)
+  Call void @test.Type2.nongeneric<Byte>(%1, 1)
+  Call void @test.Type2.generic<Long,Int>(%0, 1, 1)
+  Call void @test.Type2.generic<Long,Bool>(%0, 1, true)
+  Call void @test.Type2.generic<Byte,Int>(%1, 1, 1)
+  Call void @test.Type2.generic<Byte,Bool>(%1, 1, true)
+  Ret
+}
+
+func void @test.Trait3.generic<test.Type3<Long>,Long,Bool>(test.Type3<Long>* %0, long %1, bool %2) {
+  %3 := Call $tuple<Int,Long,Bool>* @test.Trait3.generic<test.Type3<Long>,Long,Bool>:0(1)
+  %4 := Call $tuple<Bool,Long,Bool>* @test.Trait3.generic<test.Type3<Long>,Long,Bool>:1(true)
+  Ret
+}
+
+func void @test.Trait3.generic<test.Type3<Long>,Long,Int>(test.Type3<Long>* %0, long %1, int %2) {
+  %3 := Call $tuple<Int,Long,Int>* @test.Trait3.generic<test.Type3<Long>,Long,Int>:0(1)
+  %4 := Call $tuple<Bool,Long,Int>* @test.Trait3.generic<test.Type3<Long>,Long,Int>:1(true)
+  Ret
+}
+
+func $tuple<Int,Long,Bool>* @test.Trait3.generic<test.Type3<Long>,Long,Bool>:0(int %0) {
+  %1 := Call $tuple<Int,Long,Bool>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Long,Bool>* %1.0
+  Store int %2, %0
+  %3 := GetPointer long, $tuple<Int,Long,Bool>* %1.1
+  Store long %3, %1
+  %4 := GetPointer bool, $tuple<Int,Long,Bool>* %1.2
+  Store bool %4, %2
+  Ret %1
+}
+
+func $tuple<Int,Long,Int>* @test.Trait3.generic<test.Type3<Long>,Long,Int>:0(int %0) {
+  %1 := Call $tuple<Int,Long,Int>* myte.builtin.alloc(1)
+  %2 := GetPointer int, $tuple<Int,Long,Int>* %1.0
+  Store int %2, %0
+  %3 := GetPointer long, $tuple<Int,Long,Int>* %1.1
+  Store long %3, %1
+  %4 := GetPointer int, $tuple<Int,Long,Int>* %1.2
+  Store int %4, %2
+  Ret %1
+}
+
+func $tuple<Bool,Long,Bool>* @test.Trait3.generic<test.Type3<Long>,Long,Bool>:1(bool %0) {
+  %1 := Call $tuple<Bool,Long,Bool>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Long,Bool>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer long, $tuple<Bool,Long,Bool>* %1.1
+  Store long %3, %1
+  %4 := GetPointer bool, $tuple<Bool,Long,Bool>* %1.2
+  Store bool %4, %2
+  Ret %1
+}
+
+func $tuple<Bool,Long,Int>* @test.Trait3.generic<test.Type3<Long>,Long,Int>:1(bool %0) {
+  %1 := Call $tuple<Bool,Long,Int>* myte.builtin.alloc(1)
+  %2 := GetPointer bool, $tuple<Bool,Long,Int>* %1.0
+  Store bool %2, %0
+  %3 := GetPointer long, $tuple<Bool,Long,Int>* %1.1
+  Store long %3, %1
+  %4 := GetPointer int, $tuple<Bool,Long,Int>* %1.2
+  Store int %4, %2
+  Ret %1
+}
+
+type test.Type3<Long> {long}
+
+func void @test.testGenericInInheritedMethod(test.Type3<Long>* %0) {
+  Call void @test.Trait3.generic<test.Type3<Long>,Long,Int>(%0, 1, 1)
+  Call void @test.Trait3.generic<test.Type3<Long>,Long,Bool>(%0, 1, true)
+  Ret
+}
+
+func void @test.use<Function>(fn %0) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.testNongenericInToplevel)
+  Call void @test.use<Function>(@test.testGenericInToplevel)
+  Call void @test.use<Function>(@test.testNongenericInMethod)
+  Call void @test.use<Function>(@test.testGenericInMethod)
+  Call void @test.use<Function>(@test.testGenericInInheritedMethod)
+  Ret 0
+}

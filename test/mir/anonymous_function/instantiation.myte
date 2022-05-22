@@ -1,0 +1,80 @@
+module test
+
+fun testNongenericInToplevel() {
+  (fn (x) -> x)(1);
+  (fn (x) -> x)(true);
+
+  (fn (x) -> 2 * (x + 1))(3);
+}
+
+fun genericInToplevel<T>(y: T) {
+  (fn (x) -> (x, y))(1);
+  (fn (x) -> (x, y))(true);
+}
+
+fun testGenericInToplevel() {
+  genericInToplevel(1);
+  genericInToplevel(false);
+}
+
+type Type1 (Int)
+methods Type1 {
+  fun nongeneric() {
+    (fn (x) -> x)(1);
+    (fn (x) -> x)(true);
+  }
+}
+
+fun testNongenericInMethod(x: Type1) {
+  x.nongeneric();
+}
+
+type Type2<T> (T)
+methods Type2<T> {
+  fun nongeneric(y: T) {
+    (fn (x) -> (x, y))(1);
+    (fn (x) -> (x, y))(true);
+  }
+
+  fun generic<U>(y: T, z: U) {
+    (fn (x) -> (x, y, z))(1);
+    (fn (x) -> (x, y, z))(true);
+  }
+}
+
+fun testGenericInMethod(x: Type2<Long>, y: Type2<Byte>) {
+  x.nongeneric(1);
+  y.nongeneric(1);
+
+  x.generic(1, 1);
+  x.generic(1, true);
+  y.generic(1, 1);
+  y.generic(1, true);
+}
+
+trait Trait3<T> {
+  fun generic<U>(y: T, z: U) {
+    (fn (x) -> (x, y, z))(1);
+    (fn (x) -> (x, y, z))(true);
+  }
+}
+
+type Type3<T> (T)
+methods Type3<T> {
+  implements Trait3<T>
+}
+
+fun testGenericInInheritedMethod(x: Type3<Long>) {
+  x.generic(1, 1);
+  x.generic(1, true);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(testNongenericInToplevel);
+  use(testGenericInToplevel);
+  use(testNongenericInMethod);
+  use(testGenericInMethod);
+  use(testGenericInInheritedMethod);
+}
