@@ -1690,7 +1690,7 @@ and check_expression ~cx expr =
    *      Anonymous Function
    * ============================
    *)
-  | AnonymousFunction ({ loc; params; return; body } as func) ->
+  | AnonymousFunction { loc; params; return; body } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
 
     (* Build params and return type, creating overall function type *)
@@ -1707,19 +1707,16 @@ and check_expression ~cx expr =
             param_ty)
         params
     in
-    let return = Option.fold ~none:Type.Unit ~some:(fun return -> build_type ~cx return) return in
+    let return =
+      match return with
+      | None -> Type.TVar (TVar.mk ())
+      | Some return -> build_type ~cx return
+    in
     let func_ty = Type.Function { type_args = []; params; return } in
 
-    (* Check for exhaustiveness of returns *)
-    (match return with
-    | Unit
-    | Never ->
-      ()
-    | _ -> Exhaustive_returns.analyze_anonymous_function ~cx func);
-
+    (* Check anonymous function body *)
     Type_context.push_current_function ~cx return;
 
-    (* Check anonymous function body *)
     (match body with
     | Expression expr -> check_function_expression_body ~cx expr return
     | Block block -> check_function_block_body ~cx block return);
@@ -2503,26 +2500,29 @@ and check_fully_resolved ~cx loc ty kind =
   let rep_ty = Type_context.find_rep_type ~cx ty in
   let (unresolved_tvars, unresolved_existentials) = Types.get_all_unresolved_types rep_ty in
   let is_not_fully_resolved = unresolved_tvars <> [] || unresolved_existentials <> [] in
-  ( if is_not_fully_resolved then
+  if is_not_fully_resolved then (
+    (* Resolve unresolved tvars to any with tvar source *)
+    let resolved_tvar_anys = List.map (fun id -> Type.Any (Some id)) unresolved_tvars in
+    let unresolved_tvars = List.map (fun id -> Type.TVar id) unresolved_tvars in
+
+    List.iter2
+      (fun ty tvar_any -> ignore (Type_context.unify ~cx tvar_any ty))
+      unresolved_tvars
+      resolved_tvar_anys;
+
+    (* Resolve unresolved existentials to any *)
+    let unresolved_existentials =
+      List.map (fun exist -> Type.BoundedExistential exist) unresolved_existentials
+    in
+    List.iter (fun ty -> ignore (Type_context.unify ~cx any ty)) unresolved_existentials;
+
     let partial =
       match rep_ty with
       | TVar _ -> None
-      | _ ->
-        let resolved_tvar_anys = List.map (fun id -> Type.Any (Some id)) unresolved_tvars in
-        let unresolved_tvars = List.map (fun id -> Type.TVar id) unresolved_tvars in
-        let unresolved_existentials =
-          List.map (fun exist -> Type.BoundedExistential exist) unresolved_existentials
-        in
-
-        List.iter2
-          (fun ty tvar_any -> ignore (Type_context.unify ~cx tvar_any ty))
-          unresolved_tvars
-          resolved_tvar_anys;
-        List.iter (fun ty -> ignore (Type_context.unify ~cx any ty)) unresolved_existentials;
-
-        Some (rep_ty, unresolved_tvars @ unresolved_existentials)
+      | _ -> Some (rep_ty, unresolved_tvars @ unresolved_existentials)
     in
-    Type_context.add_error ~cx loc (CannotInferType (kind, partial)) );
+    Type_context.add_error ~cx loc (CannotInferType (kind, partial))
+  );
   not is_not_fully_resolved
 
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
@@ -2538,7 +2538,7 @@ let resolve_unresolved_int_literals ~cx =
   done
 
 (* Visit every expression, making sure that it has been resolved to a non-TVar type. *)
-class ensure_expressions_typed_visitor ~cx =
+class ensure_resolved_types_visitor ~cx =
   object
     inherit Ast_visitor.visitor as super
 
@@ -2559,10 +2559,46 @@ class ensure_expressions_typed_visitor ~cx =
       (* Error if expression's type is not fully resolved *)
       | Some tvar_id ->
         ignore (check_fully_resolved ~cx loc (TVar tvar_id) CannotInferTypeExpression)
+
+    method! anonymous_function func =
+      let open Ast.Expression.AnonymousFunction in
+      (* Error if anonymous function's param types are not fully resolved *)
+      List.iter
+        (fun { Param.name = { loc; name }; annot; _ } ->
+          if Option.is_none annot then
+            let binding = Type_context.get_value_binding ~cx loc in
+            let param_decl = Bindings.get_func_param_decl binding in
+            ignore
+              (check_fully_resolved
+                 ~cx
+                 loc
+                 (TVar param_decl.tvar)
+                 (CannotInferTypeAnonFuncParam name)))
+        func.params;
+
+      super#anonymous_function func;
+
+      let tvar_id = Type_context.get_tvar_from_loc_opt ~cx func.loc |> Option.get in
+      let { Function.return; _ } =
+        Type_util.cast_to_function_type (Type_context.find_rep_type ~cx (TVar tvar_id))
+      in
+
+      match return with
+      | Unit
+      | Never ->
+        ()
+      (* Return type is implicitly unit if completely unresolved, as this means there were no
+         return statements in body of anonymous function. *)
+      | TVar _ -> Type_context.assert_unify ~cx func.loc Type.Unit return
+      (* For non-unit return type error if not fully resolved and check for exhaustive returns *)
+      | _ ->
+        if Option.is_none func.return then
+          ignore (check_fully_resolved ~cx func.loc return CannotInferTypeAnonFuncReturn);
+        Exhaustive_returns.analyze_anonymous_function ~cx func
   end
 
-let ensure_all_expression_are_typed ~cx modules =
-  let visitor = new ensure_expressions_typed_visitor ~cx in
+let ensure_all_types_are_resolved ~cx modules =
+  let visitor = new ensure_resolved_types_visitor ~cx in
   List.iter (fun (_, module_) -> ignore (visitor#module_ module_)) modules
 
 let analyze ~cx modules =
@@ -2583,5 +2619,5 @@ let analyze ~cx modules =
   if_no_errors (fun _ -> Type_context.resolve_unchecked_trait_object_uses ~cx);
   if_no_errors (fun _ -> List.iter (fun (_, module_) -> check_module ~cx module_) modules);
   resolve_unresolved_int_literals ~cx;
-  if_no_errors (fun _ -> ensure_all_expression_are_typed ~cx modules);
+  if_no_errors (fun _ -> ensure_all_types_are_resolved ~cx modules);
   Type_context.set_errors ~cx (List.rev (Type_context.get_errors ~cx))

@@ -1,0 +1,19 @@
+Error: Cannot infer type for expression. Partially inferred `Vec<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/anonymous_function/cannot_infer.myte:5:11-13
+ 5 |   fn () -> [];
+   |            ^^
+
+Error: Cannot infer type for `x`. Please provide additional type annotations.
+test/analyze/type_check/anonymous_function/cannot_infer.myte:9:6
+ 9 |   fn (x) -> 1;
+   |       ^
+
+Error: Cannot infer type for `x`. Please provide additional type annotations.
+test/analyze/type_check/anonymous_function/cannot_infer.myte:10:6
+ 10 |   fn (x) -> x;
+    |       ^
+
+Error: Cannot infer type for `x`. Please provide additional type annotations.
+test/analyze/type_check/anonymous_function/cannot_infer.myte:11:6
+ 11 |   fn (x) {
+    |       ^

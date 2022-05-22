@@ -46,18 +46,35 @@ fun explicitUnitReturn(): Int {
   return 1;
 }
 
-fun implicitUnitReturn(): Int {
-  // Success
+fun inferredUnitReturnType(): Int {
   fn () {};
   fn () { return; };
   fn () { return (); };
   fn () -> ();
 
-  // Failure
+  return 1;
+}
+
+fun inferredReturnType(): String {
+  // Success
   fn () { return 1; };
   fn () -> 1;
 
-  return 1;
+  // Errors to check inferred types
+  (fn () { return 1; }: () -> Bool);
+  (fn () -> 1: () -> Bool);
+
+  // Success
+  (fn (x) -> x)(true);
+  
+  // Error to print inferred return type
+  (fn (x: Int) -> x == 1: Unit);
+
+  // Error as return type is not resolved
+  val x = fn (x) -> x;
+  x(true);
+
+  return "";
 }
 
 fun nestedAnonymousFunctionReturn(): String {

@@ -1,0 +1,67 @@
+module test
+
+fun testExhaustive() {
+  fn (): Int {
+    if (true) {
+      return 1;
+    } else {
+      return 2;
+    }
+  };
+
+  fn (): Int {
+    match (1) {
+      | _ -> return 1
+      | _ -> match (2) {
+        | _ -> return 2
+        | _ -> return 3
+      }
+    }
+  };
+
+  fn () {
+    if (true) {
+      return 1;
+    } else {
+      return 2;
+    }
+  };
+}
+
+fun testUnitReturn() {
+  fn (): Unit {};
+  fn () {};
+  fn () {
+    if (true) {
+      return;
+    }
+  };
+}
+
+fun testInexhaustiveReturns() {
+  fn (): Int {};
+
+  fn (): Int {
+    if (true) {
+      return 1;
+    }
+  };
+
+  fn (): Int {
+    match (1) {
+      | _ -> return 1
+      | _ -> ()
+      | _ -> return 3
+    }
+  };
+}
+
+fun testInexhaustiveReturnsInferredReturnType() {
+  fn () {
+    if (true) {
+      return 1;
+    }
+  };
+}
+
+fun main() {}

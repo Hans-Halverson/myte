@@ -105,23 +105,3 @@ fun testMatchNested(): Int {
 type Unit (Int)
 
 fun testShadowedUnitReturn(): Unit {}
-
-fun testAnonymousFunction() {
-  fn (): Int {};
-
-  fn (): Int {
-    if (true) {
-      return 1;
-    }
-  };
-
-  fn (): Int {
-    match (1) {
-      | _ -> return 1
-      | _ -> ()
-      | _ -> return 3
-    }
-  };
-
-  fn (): Unit {};
-}

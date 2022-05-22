@@ -1,0 +1,17 @@
+module test
+
+fun unresolvedReturnType() {
+  // Error as return type has unresolved tvars
+  fn () -> [];
+}
+
+fun unresolvedParameterType() {
+  fn (x) -> 1;
+  fn (x) -> x;
+  fn (x) {
+    x;
+    return 1;
+  };
+}
+
+fun main() {}

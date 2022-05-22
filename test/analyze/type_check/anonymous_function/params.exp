@@ -22,3 +22,28 @@ Error: Expected type `Unit` but found `Byte`
 test/analyze/type_check/anonymous_function/params.myte:17:7
  17 |       (z: Unit);
     |        ^
+
+Error: Expected type `Unit` but found `Bool`
+test/analyze/type_check/anonymous_function/params.myte:29:3-22
+ 29 |   ((fn (x) -> x)(true): Unit);
+    |    ^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `(Int, Bool)`
+test/analyze/type_check/anonymous_function/params.myte:30:3-33
+ 30 |   ((fn (x, y) -> (y, x))(true, 1): Unit);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `(Bool, Int)`
+test/analyze/type_check/anonymous_function/params.myte:31:3-33
+ 31 |   ((fn (x, y) -> (y, x))(1, true): Unit);
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `(Int) -> Bool` but found `(Byte) -> Bool`
+test/analyze/type_check/anonymous_function/params.myte:37:25-49
+ 37 |   val x: (Int) -> Bool = fn (x) -> x == (1: Byte);
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Vec<Bool>`
+test/analyze/type_check/anonymous_function/params.myte:44:3
+ 44 |   (y: Unit);
+    |    ^

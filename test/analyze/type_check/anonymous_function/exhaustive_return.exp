@@ -1,0 +1,19 @@
+Error: All branches of anonymous function must end in a return statement
+test/analyze/type_check/anonymous_function/exhaustive_return.myte:42:14
+ 42 |   fn (): Int {};
+    |               ^
+
+Error: All branches of anonymous function must end in a return statement
+test/analyze/type_check/anonymous_function/exhaustive_return.myte:47:4
+ 47 |     }
+    |     ^
+
+Error: All branches of anonymous function must end in a return statement
+test/analyze/type_check/anonymous_function/exhaustive_return.myte:53:14
+ 53 |       | _ -> ()
+    |               ^
+
+Error: All branches of anonymous function must end in a return statement
+test/analyze/type_check/anonymous_function/exhaustive_return.myte:63:4
+ 63 |     }
+    |     ^

@@ -105,6 +105,8 @@ and invalid_lvalue_kind = InvalidLValueTuple
 and cannot_infer_type_kind =
   | CannotInferTypeVariableDeclaration
   | CannotInferTypeExpression
+  | CannotInferTypeAnonFuncParam of string
+  | CannotInferTypeAnonFuncReturn
 
 and operator_requires_trait_kind =
   | OperatorRequiresTraitEquals
@@ -353,8 +355,10 @@ let to_string error =
   | CannotInferType (kind, partial) ->
     let kind_string =
       match kind with
-      | CannotInferTypeVariableDeclaration -> "variable declaration"
-      | CannotInferTypeExpression -> "expression"
+      | CannotInferTypeVariableDeclaration -> "type for variable declaration"
+      | CannotInferTypeExpression -> "type for expression"
+      | CannotInferTypeAnonFuncParam param_name -> Printf.sprintf "type for `%s`" param_name
+      | CannotInferTypeAnonFuncReturn -> "anonymous function's return type"
     in
     let partial_string =
       match partial with
@@ -370,7 +374,7 @@ let to_string error =
           unresolved_types
     in
     Printf.sprintf
-      "Cannot infer type for %s. %sPlease provide additional type annotations."
+      "Cannot infer %s. %sPlease provide additional type annotations."
       kind_string
       partial_string
   | OperatorRequiresTrait (kind, ty) ->

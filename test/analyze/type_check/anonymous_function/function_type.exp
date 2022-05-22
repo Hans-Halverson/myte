@@ -3,7 +3,7 @@ test/analyze/type_check/anonymous_function/function_type.myte:5:16-37
  5 |   val x: Unit = fn (x: Int): Int -> x;
    |                 ^^^^^^^^^^^^^^^^^^^^^
 
-Error: Expected type `Unit` but found `() -> Unit`
+Error: Expected type `Unit` but found `() -> a`
 test/analyze/type_check/anonymous_function/function_type.myte:6:16-24
  6 |   val x: Unit = fn () {};
    |                 ^^^^^^^^

@@ -112,24 +112,4 @@ fun testMatchNested(): Int {
   }
 }
 
-fun testExhaustiveAnonymousFunction() {
-  fn (): Int {
-    if (true) {
-      return 1;
-    } else {
-      return 2;
-    }
-  };
-
-  fn (): Int {
-    match (1) {
-      | _ -> return 1
-      | _ -> match (2) {
-        | _ -> return 2
-        | _ -> return 3
-      }
-    }
-  };
-}
-
 fun main() {}

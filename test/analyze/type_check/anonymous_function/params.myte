@@ -24,4 +24,24 @@ fun paramTypes() {
   };
 }
 
+fun inferParamTypes() {
+  // Intentionally print type to check inference through params and return
+  ((fn (x) -> x)(true): Unit);
+  ((fn (x, y) -> (y, x))(true, 1): Unit);
+  ((fn (x, y) -> (y, x))(1, true): Unit);
+
+  // Success
+  val x: (Int) -> Bool = fn (x) -> x == 1;
+
+  // Failure
+  val x: (Int) -> Bool = fn (x) -> x == (1: Byte);
+}
+
+fun testHigherOrderFunction() {
+  val x: Vec<Int> = [];
+  val y = x.map(fn (x) -> x == 1);
+  // Intentionally print type to verify inference
+  (y: Unit);
+}
+
 fun main() {}
