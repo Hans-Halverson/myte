@@ -1,0 +1,21 @@
+module test
+
+trait T1 {}
+trait T2 { extends T1 }
+trait T3 { extends T2 }
+
+fun f(x: T2) {}
+
+fun use1(x: (T1) -> Unit) {}
+fun use2(x: (T2) -> Unit) {}
+fun use3(x: (T3) -> Unit) {}
+
+fun testSubtypes() {
+  // Should error?
+  use1(f);
+  use2(f);
+  // Should error?
+  use3(f);
+}
+
+fun main() {}

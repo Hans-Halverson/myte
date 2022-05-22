@@ -1,0 +1,206 @@
+type $tuple<Bool,Bool> {bool, bool}
+
+type $tuple<Bool,Int> {bool, int}
+
+type $tuple<Int,Bool> {int, bool}
+
+type $tuple<Int,Int> {int, int}
+
+func int @test.Trait1.method<test.Type1>(test.Type1* %0, int %1) {
+  Ret 1
+}
+
+type test.Type1 {bool}
+
+func int @test.Type1.method(test.Type1* %0, int %1) {
+  %2 := Call int @test.Trait1.method<test.Type1>(%0, 1)
+  Call void @test.use<Int>(%2)
+  %3 := Call int @test.Type1.method(%0, 1)
+  Call void @test.use<Int>(%3)
+  Ret 2
+}
+
+func void @test.test1(test.Type1* %0) {
+  %1 := Call int @test.Type1.method(%0, 1)
+  Ret
+}
+
+func int @test.Test2Trait1.method<test.Test2Type>(test.Test2Type* %0) {
+  Ret 1
+}
+
+func int @test.Test2Trait2.method<test.Test2Type>(test.Test2Type* %0) {
+  %1 := Call int @test.Test2Trait1.method<test.Test2Type>(%0)
+  %2 := Add int %1, 2
+  Ret %2
+}
+
+func int @test.Test2Trait3.method<test.Test2Type>(test.Test2Type* %0) {
+  %1 := Call int @test.Test2Trait2.method<test.Test2Type>(%0)
+  %2 := Add int %1, 3
+  Ret %2
+}
+
+func int @test.Test2Trait4.method<test.Test2Type>(test.Test2Type* %0) {
+  %1 := Call int @test.Test2Trait3.method<test.Test2Type>(%0)
+  %2 := Add int %1, 4
+  Ret %2
+}
+
+func int @test.Test2Trait5.method<test.Test2Type>(test.Test2Type* %0) {
+  %1 := Call int @test.Test2Trait4.method<test.Test2Type>(%0)
+  %2 := Add int %1, 5
+  Ret %2
+}
+
+type test.Test2Type {int}
+
+func int @test.Test2Type.foo(test.Test2Type* %0) {
+  %1 := Call int @test.Test2Trait5.method<test.Test2Type>(%0)
+  Ret %1
+}
+
+func void @test.test2(test.Test2Type* %0) {
+  %1 := Call int @test.Test2Type.foo(%0)
+  Ret
+}
+
+func bool @test.GenericTrait.nongeneric<test.GenericType<Bool>,Bool>(test.GenericType<Bool>* %0, bool %1) {
+  Ret %1
+}
+
+func int @test.GenericTrait.nongeneric<test.GenericType<Int>,Int>(test.GenericType<Int>* %0, int %1) {
+  Ret %1
+}
+
+func $tuple<Bool,Bool>* @test.GenericTrait.generic<test.GenericType<Bool>,Bool,Bool>(test.GenericType<Bool>* %0, bool %1, bool %2) {
+  %3 := Call $tuple<Bool,Bool>* myte.builtin.alloc(1)
+  %4 := GetPointer bool, $tuple<Bool,Bool>* %3.0
+  Store bool %4, %1
+  %5 := GetPointer bool, $tuple<Bool,Bool>* %3.1
+  Store bool %5, %2
+  Ret %3
+}
+
+func $tuple<Bool,Int>* @test.GenericTrait.generic<test.GenericType<Bool>,Bool,Int>(test.GenericType<Bool>* %0, bool %1, int %2) {
+  %3 := Call $tuple<Bool,Int>* myte.builtin.alloc(1)
+  %4 := GetPointer bool, $tuple<Bool,Int>* %3.0
+  Store bool %4, %1
+  %5 := GetPointer int, $tuple<Bool,Int>* %3.1
+  Store int %5, %2
+  Ret %3
+}
+
+func $tuple<Int,Bool>* @test.GenericTrait.generic<test.GenericType<Int>,Int,Bool>(test.GenericType<Int>* %0, int %1, bool %2) {
+  %3 := Call $tuple<Int,Bool>* myte.builtin.alloc(1)
+  %4 := GetPointer int, $tuple<Int,Bool>* %3.0
+  Store int %4, %1
+  %5 := GetPointer bool, $tuple<Int,Bool>* %3.1
+  Store bool %5, %2
+  Ret %3
+}
+
+func $tuple<Int,Int>* @test.GenericTrait.generic<test.GenericType<Int>,Int,Int>(test.GenericType<Int>* %0, int %1, int %2) {
+  %3 := Call $tuple<Int,Int>* myte.builtin.alloc(1)
+  %4 := GetPointer int, $tuple<Int,Int>* %3.0
+  Store int %4, %1
+  %5 := GetPointer int, $tuple<Int,Int>* %3.1
+  Store int %5, %2
+  Ret %3
+}
+
+type test.GenericType<Bool> {bool}
+
+type test.GenericType<Int> {int}
+
+func bool @test.GenericType.nongeneric<Bool>(test.GenericType<Bool>* %0, bool %1) {
+  %2 := Call bool @test.GenericTrait.nongeneric<test.GenericType<Bool>,Bool>(%0, %1)
+  Ret %2
+}
+
+func int @test.GenericType.nongeneric<Int>(test.GenericType<Int>* %0, int %1) {
+  %2 := Call int @test.GenericTrait.nongeneric<test.GenericType<Int>,Int>(%0, %1)
+  Ret %2
+}
+
+func $tuple<Bool,Bool>* @test.GenericType.generic<Bool,Bool>(test.GenericType<Bool>* %0, bool %1, bool %2) {
+  %3 := Call $tuple<Bool,Bool>* @test.GenericTrait.generic<test.GenericType<Bool>,Bool,Bool>(%0, %1, %2)
+  Ret %3
+}
+
+func $tuple<Bool,Int>* @test.GenericType.generic<Bool,Int>(test.GenericType<Bool>* %0, bool %1, int %2) {
+  %3 := Call $tuple<Bool,Int>* @test.GenericTrait.generic<test.GenericType<Bool>,Bool,Int>(%0, %1, %2)
+  Ret %3
+}
+
+func $tuple<Int,Bool>* @test.GenericType.generic<Int,Bool>(test.GenericType<Int>* %0, int %1, bool %2) {
+  %3 := Call $tuple<Int,Bool>* @test.GenericTrait.generic<test.GenericType<Int>,Int,Bool>(%0, %1, %2)
+  Ret %3
+}
+
+func $tuple<Int,Int>* @test.GenericType.generic<Int,Int>(test.GenericType<Int>* %0, int %1, int %2) {
+  %3 := Call $tuple<Int,Int>* @test.GenericTrait.generic<test.GenericType<Int>,Int,Int>(%0, %1, %2)
+  Ret %3
+}
+
+func void @test.test3(test.GenericType<Int>* %0, test.GenericType<Bool>* %1) {
+  %2 := Call int @test.GenericType.nongeneric<Int>(%0, 1)
+  %3 := Call bool @test.GenericType.nongeneric<Bool>(%1, true)
+  %4 := Call $tuple<Int,Int>* @test.GenericType.generic<Int,Int>(%0, 1, 1)
+  %5 := Call $tuple<Int,Bool>* @test.GenericType.generic<Int,Bool>(%0, 1, true)
+  %6 := Call $tuple<Bool,Int>* @test.GenericType.generic<Bool,Int>(%1, true, 1)
+  %7 := Call $tuple<Bool,Bool>* @test.GenericType.generic<Bool,Bool>(%1, true, true)
+  Ret
+}
+
+func bool @test.Test4Trait.func<test.Test4Type,Bool>(test.Test4Type* %0, bool %1) {
+  Ret %1
+}
+
+type test.Test4Type {int}
+
+func bool @test.Test4Type.func(test.Test4Type* %0, bool %1) {
+  %2 := Call bool @test.Test4Trait.func<test.Test4Type,Bool>(%0, %1)
+  %3 := Not bool %2
+  Ret %3
+}
+
+func void @test.test4(test.Test4Type* %0) {
+  %1 := Call bool @test.Test4Type.func(%0, true)
+  Ret
+}
+
+func bool @test.Test5Trait1.func<test.Test5Type,Bool>(test.Test5Type* %0, bool %1) {
+  Ret %1
+}
+
+type test.Test5Type {int}
+
+func bool @test.Test5Type.func(test.Test5Type* %0, bool %1) {
+  %2 := Call bool @test.Test5Trait1.func<test.Test5Type,Bool>(%0, %1)
+  %3 := Not bool %2
+  %4 := Not bool %3
+  Ret %4
+}
+
+func void @test.test5(test.Test5Type* %0) {
+  %1 := Call bool @test.Test5Type.func(%0, true)
+  Ret
+}
+
+func void @test.use<Function>(fn %0) {
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func int @test.main() {
+  Call void @test.use<Function>(@test.test1)
+  Call void @test.use<Function>(@test.test2)
+  Call void @test.use<Function>(@test.test3)
+  Call void @test.use<Function>(@test.test4)
+  Call void @test.use<Function>(@test.test5)
+  Ret 0
+}

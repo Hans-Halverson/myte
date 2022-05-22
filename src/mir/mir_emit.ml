@@ -461,6 +461,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
         ~method_instance_type_args:[]
         ~ret_type:(Some Type.Bool)
     in
+
     if op = Equal then
       equals_result_val
     else
@@ -525,7 +526,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
         else if type_params = [] then
           Ecx.get_nongeneric_function_value ~ecx func_name
         else
-          let (type_args, _, _) = Type_util.cast_to_function_type ty in
+          let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
           Ecx.get_generic_function_value ~ecx func_name type_params type_args
       in
       Some func_val
@@ -585,16 +586,32 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let receiver_val = emit_expression ~ecx receiver in
     let arg_vals = List.filter_map (emit_expression ~ecx) args in
     let method_ty = type_of_loc ~ecx method_loc in
-    let (method_instance_type_args, _, _) = Type_util.cast_to_function_type method_ty in
+    let { Types.Function.type_args = method_instance_type_args; _ } =
+      Type_util.cast_to_function_type method_ty
+    in
     let ret_type = mir_type_of_loc ~ecx loc in
-    emit_method_call
-      ~ecx
-      ~method_name:method_name.name
-      ~receiver_val
-      ~receiver_ty
-      ~arg_vals
-      ~method_instance_type_args
-      ~ret_type
+
+    (* Determine if this is a super call *)
+    let method_use = Type_context.get_method_use ~cx:ecx.pcx.type_ctx method_name.loc in
+    if method_use.is_super_call then
+      emit_super_method_call
+        ~ecx
+        ~method_name:method_name.name
+        ~method_sig:method_use.method_sig
+        ~receiver_val
+        ~receiver_ty
+        ~arg_vals
+        ~method_instance_type_args
+        ~ret_type
+    else
+      emit_method_call
+        ~ecx
+        ~method_name:method_name.name
+        ~receiver_val
+        ~receiver_ty
+        ~arg_vals
+        ~method_instance_type_args
+        ~ret_type
   (*
    * =======================================
    *  Function Calls and Tuple Constructors
@@ -1336,9 +1353,38 @@ and emit_method_call
       | None -> Ecx.get_zero_size_global_pointer ~ecx
     in
     let func_val =
-      Ecx.get_method_function_value ~ecx ~method_name ~receiver_ty ~method_instance_type_args
+      Ecx.get_method_function_value
+        ~ecx
+        ~method_name
+        ~super_method_sig:None
+        ~receiver_ty
+        ~method_instance_type_args
     in
     emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some receiver_val) ~ret_type
+
+and emit_super_method_call
+    ~ecx
+    ~(method_name : string)
+    ~(method_sig : Types.MethodSig.t)
+    ~(receiver_val : Value.t option)
+    ~(receiver_ty : Types.Type.t)
+    ~(arg_vals : Value.t list)
+    ~(method_instance_type_args : Types.Type.t list)
+    ~(ret_type : Type.t option) =
+  let receiver_val =
+    match receiver_val with
+    | Some receiver_val -> receiver_val
+    | None -> Ecx.get_zero_size_global_pointer ~ecx
+  in
+  let func_val =
+    Ecx.get_method_function_value
+      ~ecx
+      ~method_name
+      ~super_method_sig:(Some method_sig)
+      ~receiver_ty
+      ~method_instance_type_args
+  in
+  emit_call ~ecx ~func_val ~arg_vals ~receiver_val:(Some receiver_val) ~ret_type
 
 and emit_call
     ~ecx

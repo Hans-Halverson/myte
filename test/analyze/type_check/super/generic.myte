@@ -1,0 +1,16 @@
+module test
+
+trait GenericTrait<T> {
+  fun nongeneric(x: T): T = x
+  fun generic<U>(x: T, y: U): (T, U) = (x, y)
+}
+
+type GenericType<T> (T)
+methods GenericType<T> {
+  implements GenericTrait<T>
+
+  override fun nongeneric(x: T): T = super.nongeneric(x)
+  override fun generic<U>(x: T, y: U): (T, U) = super.generic(x, y)
+}
+
+fun main() {}

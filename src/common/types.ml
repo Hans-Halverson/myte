@@ -191,6 +191,9 @@ and MethodSig : sig
        super trait sig on which the method is declared with type args matching how the sub trait
        implements the super trait. *)
     source_trait_instance: TraitSig.instance;
+    (* Super method signature if one exists, along with the type of the super method in terms
+       of the trait this MethodSig is for. *)
+    mutable super_method_sig: (MethodSig.t * Function.t) option;
     is_signature: bool;
     type_params: TypeParam.t list;
     params: Type.t list;
@@ -205,6 +208,7 @@ end = struct
     loc: Loc.t;
     trait_sig: TraitSig.t;
     source_trait_instance: TraitSig.instance;
+    mutable super_method_sig: (MethodSig.t * Function.t) option;
     is_signature: bool;
     type_params: TypeParam.t list;
     params: Type.t list;

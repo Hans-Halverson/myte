@@ -1,0 +1,41 @@
+module test
+
+// Single chain is allowed
+
+trait Test1Trait1 {
+  fun method(): Int = 1
+}
+
+trait Test1Trait2 {
+  extends Test1Trait1
+  override fun method(): Int = 1
+}
+
+trait Test1Trait3 {
+  extends Test1Trait2
+  override fun method(): Int = 1
+}
+
+trait Test1Trait4 {
+  extends Test1Trait3
+  override fun method(): Int = 1
+}
+
+// Cannot multiple parent chains
+
+trait Test2Trait1 {
+  fun method(): Int = 1
+}
+
+trait Test2Trait2 {
+  extends Test2Trait1
+  override fun method(): Int = 1
+}
+
+trait Test2Trait3 {
+  extends Test1Trait4
+  extends Test2Trait2
+  override fun method(): Int = 1
+}
+
+fun main() {}

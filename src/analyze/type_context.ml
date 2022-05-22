@@ -3,6 +3,13 @@ open Bindings
 open Immutable_utils
 open Types
 
+module MethodUse = struct
+  type t = {
+    method_sig: MethodSig.t;
+    is_super_call: bool;
+  }
+end
+
 type t = {
   mutable bindings: Bindings.t;
   mutable errors: (Loc.t * Analyze_error.t) list;
@@ -12,8 +19,8 @@ type t = {
   mutable current_function_stack: Type.t list;
   (* Set of all int literal locs that have not been resolved *)
   mutable unresolved_int_literals: LocSet.t;
-  (* Set of all method uses locs *)
-  mutable method_uses: LocSet.t;
+  (* Map of all method uses indexed by their loc *)
+  mutable method_uses: MethodUse.t LocMap.t;
   mutable main_loc: Loc.t;
   (* Order of (non-type) trait declarations in current compilation unit *)
   mutable ordered_traits: Ast.TraitDeclaration.t list;
@@ -41,7 +48,7 @@ let mk ~bindings =
     union_forest_nodes = IMap.empty;
     current_function_stack = [];
     unresolved_int_literals = LocSet.empty;
-    method_uses = LocSet.empty;
+    method_uses = LocMap.empty;
     main_loc = Loc.none;
     ordered_traits = [];
     trait_object_promotions = LocMap.empty;
@@ -66,9 +73,12 @@ let is_in_function ~cx = cx.current_function_stack <> []
 
 let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
 
-let add_method_use ~cx use_loc = cx.method_uses <- LocSet.add use_loc cx.method_uses
+let add_method_use ~cx use_loc method_use =
+  cx.method_uses <- LocMap.add use_loc method_use cx.method_uses
 
-let is_method_use ~cx use_loc = LocSet.mem use_loc cx.method_uses
+let get_method_use ~cx use_loc = LocMap.find use_loc cx.method_uses
+
+let is_method_use ~cx use_loc = LocMap.mem use_loc cx.method_uses
 
 let set_main_loc ~cx main_loc = cx.main_loc <- main_loc
 

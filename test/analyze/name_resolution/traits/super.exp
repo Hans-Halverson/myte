@@ -1,0 +1,4 @@
+Error: Could not resolve name `super` to value
+test/analyze/name_resolution/traits/super.myte:12:1-6
+ 12 |  super;
+    |  ^^^^^

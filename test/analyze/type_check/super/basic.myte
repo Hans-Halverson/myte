@@ -1,0 +1,77 @@
+module test
+
+trait SuperTrait1 {}
+
+type SubType1 (Int)
+methods SubType1 {
+  implements SuperTrait1
+}
+
+trait Trait1 {
+  fun foo(): SubType1 {
+    return SubType1 (1);
+  }
+
+  fun inherited() {}
+}
+
+type RecordLikeTrait1 { foo: Long }
+
+type Type1 (Int)
+methods Type1 {
+  implements Trait1
+
+  override fun foo(): SubType1 {
+    return SubType1 (1);
+  }
+
+  fun bar() {
+    // Intentionally wrong to print type
+    (super.foo(): Bool);
+    (super.foo(): SubType1);
+
+    // Super can be shadowed
+    val super: RecordLikeTrait1 = RecordLikeTrait1 { foo: 1 };
+    // Intentionally wrong to print type
+    (super.foo: Unit);
+    (super: Unit);
+  }
+
+  fun superCallInheritedError() {
+    // Fine to call inherited methods via this
+    this.inherited();
+    // Cannot call inherited methods via super
+    super.inherited();
+  }
+
+  fun superCallNonexistent() {
+    // Cannot call method that doesn't exist
+    super.nonexist();
+  }
+
+  fun testUnresolvedSuper() {
+    super;
+    use(super); 
+  }
+}
+
+trait Trait2 {
+  fun a(): Bool
+}
+
+trait Trait3 {
+  extends Trait2
+
+  override fun a(): Bool = true
+
+  fun b(): Bool
+
+  fun superCallSignatureErrors() {
+    super.a();
+    super.b();
+  }
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

@@ -1,0 +1,4 @@
+Error: Overriding multiple methods with name `method`, but only a single method can be overridden. Method `method` is declared in super traits `Test1Trait4` and `Test2Trait2`.
+test/analyze/name_resolution/traits/override_chain.myte:38:15-21
+ 38 |   override fun method(): Int = 1
+    |                ^^^^^^

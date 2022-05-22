@@ -6,6 +6,13 @@ type t
 
 val mk : bindings:Bindings.t -> t
 
+module MethodUse : sig
+  type t = {
+    method_sig: MethodSig.t;
+    is_super_call: bool;
+  }
+end
+
 (* Getters and Setters *)
 
 val add_error : cx:t -> Loc.t -> Analyze_error.t -> unit
@@ -24,7 +31,9 @@ val is_in_function : cx:t -> bool
 
 val get_unresolved_int_literals : cx:t -> LocSet.t
 
-val add_method_use : cx:t -> Loc.t -> unit
+val add_method_use : cx:t -> Loc.t -> MethodUse.t -> unit
+
+val get_method_use : cx:t -> Loc.t -> MethodUse.t
 
 val is_method_use : cx:t -> Loc.t -> bool
 

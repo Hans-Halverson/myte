@@ -585,7 +585,6 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           decl
           stmt
           (fun decl' -> FunctionDeclaration decl')
-      | Block block -> id_map this#block block stmt (fun block' -> Block block')
       | _ -> super#statement stmt
 
     method! block block =
@@ -688,9 +687,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       this#enter_scope ();
       this#visit_type_parameters type_params (FunctionName func_name);
       (* Add implicit `this` type to scope within method *)
-      ( if is_method && (not static) && body <> Signature then
+      if is_method && (not static) && body <> Signature then (
         let binding = this#add_this_declaration func_binding in
-        this#add_value_to_scope "this" (Decl binding) );
+        this#add_value_to_scope "this" (Decl binding);
+        this#add_value_to_scope "super" (Decl binding)
+      );
       this#visit_function_params (Some func_name) params;
       let function_ = super#function_ decl in
       this#exit_scope ();
@@ -1220,73 +1221,77 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let errors = ref [] in
       let add_error loc err = errors := (loc, err) :: !errors in
 
-      (* Collect all method names and *)
-      let gather_methods_and_super_traits
-          (methods_acc, super_traits_acc) ({ TraitDeclaration.methods; _ } as trait) =
-        (* Recursively gather all super trait definitions, deduplicating super traits *)
-        let rec gather_super_traits
-            super_traits_acc ({ TraitDeclaration.loc; implemented; _ } as super_trait) is_base =
-          let super_traits_acc =
-            if is_base then
-              super_traits_acc
-            else
-              LocMap.add loc super_trait super_traits_acc
-          in
-          LocMap.fold
-            (fun _ implemented_trait super_traits_acc ->
-              gather_super_traits super_traits_acc implemented_trait false)
-            implemented
-            super_traits_acc
-        in
-        let methods_acc =
+      (* Collect all method names in a trait *)
+      let gather_method_names names_acc { TraitDeclaration.methods; implemented; _ } =
+        (* Gather names of all methods on the base trait *)
+        let names_acc =
           SMap.fold
-            (fun _
-                 ( { FunctionDeclaration.loc; is_static; is_override; is_signature; is_builtin; _ }
-                 as method_ )
-                 methods_acc ->
+            (fun name
+                 { FunctionDeclaration.loc; is_static; is_override; is_signature; is_builtin; _ }
+                 names_acc ->
+              let add_base_trait_method_name () =
+                MethodMMap.add
+                  name
+                  (MethodLocation.BaseTrait (loc, is_override, is_static))
+                  names_acc
+              in
               if is_static then
                 (* Static methods cannot be overridden and must have an implementation *)
                 if is_override then (
                   this#add_error loc StaticMethodOverride;
-                  methods_acc
+                  names_acc
                 ) else if is_signature && not is_builtin then (
                   this#add_error loc StaticMethodSignature;
-                  methods_acc
+                  names_acc
                 ) else
-                  LocMap.add loc method_ methods_acc
+                  add_base_trait_method_name ()
               else
-                LocMap.add loc method_ methods_acc)
+                add_base_trait_method_name ())
             methods
-            methods_acc
+            names_acc
         in
-        let super_traits_acc = gather_super_traits super_traits_acc trait true in
-        (methods_acc, super_traits_acc)
-      in
 
-      (* Combine all methods names in base trait and its super traits into single data structure *)
-      let collect_method_names methods super_traits =
-        let names =
+        (* Recursively gather all method names in super traits. For each method only gather the
+           super methods that are in the lowest super trait that defines that method. Note that
+           there could be duplicate super methods defined in that same trait. *)
+        let rec gather_super_traits names_acc already_implemented trait =
+          let { TraitDeclaration.name = trait_name; methods; implemented; _ } = trait in
+          let (names_acc, new_already_implemented) =
+            SMap.fold
+              (fun name
+                   { FunctionDeclaration.is_signature; is_static; _ }
+                   (names_acc, new_already_implemented) ->
+                if SSet.mem name already_implemented then
+                  (names_acc, new_already_implemented)
+                else
+                  let names_acc =
+                    MethodMMap.add
+                      name
+                      (MethodLocation.SuperTrait (trait_name, is_signature, is_static))
+                      names_acc
+                  in
+                  let new_already_implemented = SSet.add name new_already_implemented in
+                  (names_acc, new_already_implemented))
+              methods
+              (names_acc, already_implemented)
+          in
+
           LocMap.fold
-            (fun loc { FunctionDeclaration.name; is_override; is_static; _ } names ->
-              MethodMMap.add name (MethodLocation.BaseTrait (loc, is_override, is_static)) names)
-            methods
-            MethodMMap.empty
+            (fun _ implemented_trait names_acc ->
+              gather_super_traits names_acc new_already_implemented implemented_trait)
+            implemented
+            names_acc
         in
-        let names =
+
+        let names_acc =
           LocMap.fold
-            (fun _ { TraitDeclaration.name = trait_name; methods; _ } names ->
-              SMap.fold
-                (fun name { FunctionDeclaration.is_signature; is_static; _ } names ->
-                  MethodMMap.add
-                    name
-                    (MethodLocation.SuperTrait (trait_name, is_signature, is_static))
-                    names)
-                methods
-                names)
-            super_traits
-            names
+            (fun _ implemented_trait names_acc ->
+              gather_super_traits names_acc SSet.empty implemented_trait)
+            implemented
+            names_acc
         in
-        names
+
+        names_acc
       in
 
       (* Find errors for methods. Error on duplicate method names, and override methods that do not
@@ -1421,19 +1426,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           match declaration with
           | _ when not (this#is_type_decl_loc use_loc) -> ()
           | TypeDecl type_decl ->
-            let (methods, super_traits) =
-              List.fold_left
-                gather_methods_and_super_traits
-                (LocMap.empty, LocMap.empty)
-                type_decl.traits
-            in
-            let names = collect_method_names methods super_traits in
+            let names = List.fold_left gather_method_names MethodMMap.empty type_decl.traits in
             check_errors name loc names
           | TraitDecl trait when LocMap.mem loc traits ->
-            let (methods, super_traits) =
-              gather_methods_and_super_traits (LocMap.empty, LocMap.empty) trait
-            in
-            let names = collect_method_names methods super_traits in
+            let names = gather_method_names MethodMMap.empty trait in
             check_errors name loc names
           | _ -> ())
         bindings.Bindings.type_use_to_binding;

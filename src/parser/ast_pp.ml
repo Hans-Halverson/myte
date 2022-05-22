@@ -544,10 +544,6 @@ and node_of_match_case case =
         | Statement stmt -> node_of_statement stmt );
     ]
 
-and node_of_this loc = node "This" loc []
-
-and node_of_super loc = node "Super" loc []
-
 and node_of_variable_decl decl =
   let { Statement.VariableDeclaration.loc; kind; pattern; init; annot } = decl in
   let kind =

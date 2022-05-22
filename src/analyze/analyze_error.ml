@@ -38,7 +38,9 @@ type t =
   | OverrideMultipleMethods of string * string * string
   | MissingOverrideKeyword of string * string
   | CyclicTrait of string
-  | SuperOutsideMethod
+  | SuperWithoutAccess
+  | SuperNonOverridenMethod of string
+  | NoImplementedSuperMethod of string
   | TypeWithAccess of string list
   | ConstructorWithAccess of string list
   | CyclicTypeAlias of string
@@ -315,7 +317,13 @@ let to_string error =
       method_name
       trait_name
   | CyclicTrait name -> Printf.sprintf "Cycle detected in super traits of `%s`" name
-  | SuperOutsideMethod -> "The `super` keyword cannot be used outside a method"
+  | SuperWithoutAccess -> Printf.sprintf "`super` can only be used when accessing a method"
+  | SuperNonOverridenMethod method_name ->
+    Printf.sprintf
+      "Cannot access super method since `%s` is not overridden by this type"
+      method_name
+  | NoImplementedSuperMethod method_name ->
+    Printf.sprintf "No implemented method with name `%s` found in super traits" method_name
   | TypeWithAccess type_name_parts ->
     Printf.sprintf
       "Could not resolve access on type `%s`. Types do not have members that can be accessed."

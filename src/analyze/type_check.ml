@@ -558,6 +558,7 @@ and check_trait_implementations ~cx modules =
               type_params;
               params;
               return;
+              super_method_sig = None;
             }
           in
           TraitSig.add_method trait_sig name method_sig)
@@ -677,7 +678,7 @@ and check_implemented_methods
             let super_method_ty =
               Types.substitute_type_params type_param_bindings super_method_ty
             in
-            let (_, params, return) = Type_util.cast_to_function_type super_method_ty in
+            let { Function.params; return; _ } = Type_util.cast_to_function_type super_method_ty in
             let method_sig =
               {
                 MethodSig.loc = super_method.loc;
@@ -687,6 +688,7 @@ and check_implemented_methods
                 type_params = super_method.type_params;
                 params;
                 return;
+                super_method_sig = None;
               }
             in
             TraitSig.add_method trait_sig method_name method_sig );
@@ -731,7 +733,7 @@ and check_implemented_methods
               let super_method_ty =
                 Types.substitute_type_params type_param_bindings super_method_ty
               in
-              if
+              ( if
                 not
                   (Type_context.is_subtype
                      ~cx
@@ -745,7 +747,35 @@ and check_implemented_methods
                   ~cx
                   sub_method.loc
                   (IncompatibleOverridenMethodType
-                     (method_name, implemented.trait_sig.name, sub_rep_ty, sup_rep_ty))
+                     (method_name, implemented.trait_sig.name, sub_rep_ty, sup_rep_ty)) );
+
+              (* Check if super_method is a super method of sub_method by walking up from
+                 sub_method and see if super_method is in its super chain. All parent traits
+                 have already their super chains due to trait ordering. *)
+              let rec is_super_method_of
+                  (super_method_sig : MethodSig.t) (sub_method_sig : MethodSig.t) =
+                super_method_sig == sub_method_sig
+                ||
+                match sub_method_sig.super_method_sig with
+                | None -> false
+                | Some (next_sub_method_sig, _) ->
+                  is_super_method_of super_method_sig next_sub_method_sig
+              in
+
+              (* Connect sub method to its lowest implemented super method, by checking if the new
+                 super method is a subtype of the previously lowest super method stored on the
+                 MethodSig record. *)
+              let is_lowest_implemented_super_method =
+                (not super_method.is_signature)
+                &&
+                match sub_method.super_method_sig with
+                | None -> true
+                | Some (existing_super_method_sig, _) ->
+                  is_super_method_of existing_super_method_sig super_method
+              in
+              if is_lowest_implemented_super_method then
+                let super_method_func_ty = Type_util.cast_to_function_type super_method_ty in
+                sub_method.super_method_sig <- Some (super_method, super_method_func_ty)
           | _ ->
             if not is_trait then
               Type_context.add_error
@@ -932,6 +962,10 @@ and check_expression ~cx expr =
           Type.Function { type_args = []; params = func_decl.params; return = func_decl.return }
         else
           Types.fresh_function_instance func_decl.type_params func_decl.params func_decl.return
+      (* If we reach a super this cannot be part of an access *)
+      | ThisDecl _ when name = "super" ->
+        Type_context.add_error ~cx loc SuperWithoutAccess;
+        Any
       (* Otherwise identifier has same type as its declaration *)
       | FunParamDecl { tvar; _ }
       | MatchCaseVarDecl { tvar }
@@ -1427,7 +1461,28 @@ and check_expression ~cx expr =
    *)
   | NamedAccess { NamedAccess.loc; target; name } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let (target_loc, target_tvar_id) = check_expression ~cx target in
+
+    (* Determine if this is a super access *)
+    let super_data =
+      match target with
+      | Identifier { name = "super"; loc } ->
+        let binding = Type_context.get_value_binding ~cx loc in
+        (match binding.declaration with
+        | ThisDecl { tvar = this_tvar_id } ->
+          (* Bind super node to `this` type *)
+          let target_tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+          ignore (Type_context.unify ~cx (TVar this_tvar_id) (TVar target_tvar_id));
+          Some (loc, target_tvar_id)
+        | _ -> None)
+      | _ -> None
+    in
+
+    (* Find type and loc of the target if this is not a super access *)
+    let (target_loc, target_tvar_id) =
+      match super_data with
+      | Some (target_loc, tvar_id) -> (target_loc, tvar_id)
+      | None -> check_expression ~cx target
+    in
     let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
 
     (* Try to find a method with the given name in a set of trait sigs *)
@@ -1436,8 +1491,30 @@ and check_expression ~cx expr =
         (fun { TraitSig.type_params = trait_type_params; methods; _ } ->
           match SMap.find_opt name.name methods with
           | None -> false
-          | Some { MethodSig.type_params; params; return; _ } ->
-            Type_context.add_method_use ~cx name.loc;
+          | Some ({ MethodSig.type_params; params; return; super_method_sig; _ } as method_sig) ->
+            let open Type_context.MethodUse in
+            (* Use type of super method if this is a super access *)
+            let is_super_access = Option.is_some super_data in
+            let (_type_params, params, return, method_use) =
+              match super_method_sig with
+              | Some
+                  ( ({ MethodSig.type_params; _ } as super_method_sig),
+                    { Function.params; return; _ } )
+                when is_super_access ->
+                let method_use = { method_sig = super_method_sig; is_super_call = true } in
+                (type_params, params, return, method_use)
+              | _ ->
+                if is_super_access then
+                  if MethodSig.is_inherited method_sig then
+                    Type_context.add_error ~cx loc (SuperNonOverridenMethod name.name)
+                  else
+                    Type_context.add_error ~cx loc (NoImplementedSuperMethod name.name);
+                let method_use = { method_sig; is_super_call = false } in
+                (type_params, params, return, method_use)
+            in
+
+            Type_context.add_method_use ~cx name.loc method_use;
+
             (* Create fresh function type (refreshing only type params bound to the method itself).
                Also must substitute trait's type params with true type args for ADT, since method will
                be using trait's type args. *)

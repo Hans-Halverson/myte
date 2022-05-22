@@ -1,0 +1,130 @@
+module test
+
+// Simple super method call
+
+trait Trait1 {
+  fun method(x: Int): Int = 1
+}
+
+type Type1 (Bool)
+methods Type1 {
+  implements Trait1
+
+  override fun method(x: Int): Int {
+    use(super.method(1));
+    use(this.method(1));
+    return 2;
+  }
+}
+
+fun test1(x: Type1) {
+  x.method(1);
+}
+
+// Chained super method calls
+
+trait Test2Trait1 {
+  fun method(): Int = 1
+}
+
+trait Test2Trait2 {
+  extends Test2Trait1
+  override fun method(): Int = super.method() + 2
+}
+
+trait Test2Trait3 {
+  extends Test2Trait2
+  override fun method(): Int = super.method() + 3
+}
+
+trait Test2Trait4 {
+  extends Test2Trait3
+  override fun method(): Int = super.method() + 4
+}
+
+trait Test2Trait5 {
+  extends Test2Trait4
+  override fun method(): Int = super.method() + 5
+}
+
+type Test2Type (Int)
+methods Test2Type {
+  implements Test2Trait5
+  fun foo(): Int = this.method()
+}
+
+fun test2(x: Test2Type) {
+  x.foo();
+}
+
+// Generics
+
+trait GenericTrait<T> {
+  fun nongeneric(x: T): T = x
+  fun generic<U>(x: T, y: U): (T, U) = (x, y)
+}
+
+type GenericType<T> (T)
+methods GenericType<T> {
+  implements GenericTrait<T>
+
+  override fun nongeneric(x: T): T = super.nongeneric(x)
+  override fun generic<U>(x: T, y: U): (T, U) = super.generic(x, y)
+}
+
+fun test3(x: GenericType<Int>, y: GenericType<Bool>) {
+  x.nongeneric(1);
+  y.nongeneric(true);
+  x.generic(1, 1);
+  x.generic(1, true);
+  y.generic(true, 1);
+  y.generic(true, true);
+}
+
+// Test nongeneric submethod but generic supermethod
+
+trait Test4Trait<T> {
+  fun func(x: T): T = x
+}
+
+type Test4Type (Int)
+methods Test4Type {
+  implements Test4Trait<Bool>
+
+  override fun func(x: Bool): Bool = !super.func(x)
+}
+
+fun test4(x: Test4Type) {
+  x.func(true);
+}
+
+// Test inherited super methods
+
+trait Test5Trait1<T> {
+  fun func(x: T): T = x
+}
+
+trait Test5Trait2 {
+  extends Test5Trait1<Bool>
+}
+
+type Test5Type (Int)
+methods Test5Type {
+  implements Test5Trait2
+
+  override fun func(x: Bool): Bool = !!super.func(x)
+}
+
+fun test5(x: Test5Type) {
+  x.func(true);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {
+  use(test1);
+  use(test2);
+  use(test3);
+  use(test4);
+  use(test5);
+}

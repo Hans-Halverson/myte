@@ -1,0 +1,118 @@
+module test
+
+import std.test.assertEqual
+
+// Direct super method call
+
+trait Test1Trait {
+  fun method(): Int = 1
+}
+
+type Test1Type (Int)
+methods Test1Type {
+  implements Test1Trait
+
+  override fun method(): Int = 2
+
+  fun combine(): Int = this.method() * 5 + super.method() * 7
+}
+
+fun testCallDirectSuperMethod() {
+  val x = Test1Type (0);
+  assertEqual(x.combine(), 17);
+}
+
+// Chained super method calls
+
+trait Test2Trait1 {
+  fun method(): Int = 1
+}
+
+trait Test2Trait2 {
+  extends Test2Trait1
+  override fun method(): Int = super.method() * 10 + 2
+}
+
+trait Test2Trait3 {
+  extends Test2Trait2
+  override fun method(): Int = super.method() * 10 + 3
+}
+
+trait Test2Trait4 {
+  extends Test2Trait3
+  override fun method(): Int = super.method() * 10 + 4
+}
+
+trait Test2Trait5 {
+  extends Test2Trait4
+  override fun method(): Int = super.method() * 10 + 5
+}
+
+type Test2Type (Int)
+methods Test2Type {
+  implements Test2Trait5
+  fun foo(): Int = this.method()
+}
+
+fun testChainedSuperMethodCalls() {
+  val x = Test2Type (1);
+  assertEqual(x.foo(), 12345);
+}
+
+// Nongeneric submethod but generic supermethod
+
+trait Test3Trait<T> {
+  fun func(x: T): (T, T) = (x, x)
+}
+
+type Test3Type (Bool)
+methods Test3Type {
+  implements Test3Trait<Int>
+
+  override fun func(x: Int): (Int, Int) {
+    val double = super.func(x);
+    return (double[0] + 1, double[1] + 3);
+  }
+}
+
+fun testDifferentGenerics() {
+  val x = Test3Type (false);
+  val result = x.func(2);
+  assertEqual(result[0], 3);
+  assertEqual(result[1], 5);
+}
+
+
+// Inherited super methods
+
+trait Test4Trait1<T> {
+  fun func(x: T): (T, T) = (x, x)
+}
+
+trait Test4Trait2 {
+  extends Test4Trait1<Int>
+}
+
+type Test4Type (Bool)
+methods Test4Type {
+  implements Test4Trait2
+
+  override fun func(x: Int): (Int, Int) {
+    val double = super.func(x);
+    return (double[0] + 3, double[1] + 5);
+  }
+}
+
+fun testInheritedSuperMethod() {
+  val x = Test4Type (false);
+  val result = x.func(2);
+  assertEqual(result[0], 5);
+  assertEqual(result[1], 7);
+}
+
+fun main() {
+  testCallDirectSuperMethod();
+  testChainedSuperMethodCalls();
+  testDifferentGenerics();
+  testInheritedSuperMethod();
+}

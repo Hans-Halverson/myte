@@ -1,0 +1,44 @@
+Error: Expected type `Bool` but found `SubType1`
+test/analyze/type_check/super/basic.myte:30:5-16
+ 30 |     (super.foo(): Bool);
+    |      ^^^^^^^^^^^
+
+Error: Expected type `Unit` but found `Long`
+test/analyze/type_check/super/basic.myte:36:5-14
+ 36 |     (super.foo: Unit);
+    |      ^^^^^^^^^
+
+Error: Expected type `Unit` but found `RecordLikeTrait1`
+test/analyze/type_check/super/basic.myte:37:5-10
+ 37 |     (super: Unit);
+    |      ^^^^^
+
+Error: Cannot access super method since `inherited` is not overridden by this type
+test/analyze/type_check/super/basic.myte:44:4-19
+ 44 |     super.inherited();
+    |     ^^^^^^^^^^^^^^^
+
+Error: Cannot resolve field or method with name `nonexist` on type `Type1`
+test/analyze/type_check/super/basic.myte:49:4-9
+ 49 |     super.nonexist();
+    |     ^^^^^
+
+Error: `super` can only be used when accessing a method
+test/analyze/type_check/super/basic.myte:53:4-9
+ 53 |     super;
+    |     ^^^^^
+
+Error: `super` can only be used when accessing a method
+test/analyze/type_check/super/basic.myte:54:8-13
+ 54 |     use(super); 
+    |         ^^^^^
+
+Error: No implemented method with name `a` found in super traits
+test/analyze/type_check/super/basic.myte:70:4-11
+ 70 |     super.a();
+    |     ^^^^^^^
+
+Error: No implemented method with name `b` found in super traits
+test/analyze/type_check/super/basic.myte:71:4-11
+ 71 |     super.b();
+    |     ^^^^^^^

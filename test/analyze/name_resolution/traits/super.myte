@@ -1,0 +1,15 @@
+module test
+
+type Type1 (Int)
+methods Type1 {
+  fun method() {
+    super;
+    super.foo();
+  }
+}
+
+fun testSuperOutsideMethodError() {
+ super;
+}
+
+fun main() {}

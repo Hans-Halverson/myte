@@ -682,6 +682,7 @@ and instantiate_trait_object_vtable ~ecx trait_instance ty =
               get_method_function_value
                 ~ecx
                 ~method_name
+                ~super_method_sig:None
                 ~receiver_ty:ty
                 ~method_instance_type_args:[]
               |> cast_to_function_literal
@@ -956,39 +957,59 @@ and get_generic_function_value
 and get_method_function_value
     ~ecx
     ~(method_name : string)
+    ~(super_method_sig : Types.MethodSig.t option)
     ~(receiver_ty : Types.Type.t)
-    ~(method_instance_type_args : Types.Type.t list) : Value.t =
+    ~(method_instance_type_args : Types.Type.t list) =
   let (receiver_adt_sig, receiver_type_args) =
     match receiver_ty with
     | ADT { adt_sig; type_args; _ } -> (adt_sig, type_args)
     | _ -> (Std_lib.get_primitive_adt_sig receiver_ty, [])
   in
 
-  (* Find method, along with the trait it was defined in *)
-  let method_sig = Types.AdtSig.lookup_method receiver_adt_sig method_name in
-  let method_sig = Option.get method_sig in
-  let source_trait_instance = method_sig.source_trait_instance in
-  let source_trait_sig = source_trait_instance.trait_sig in
+  (* Find method sig on the ADT's type trait itself, ignoring super. This may be an inherited method. *)
+  let type_trait_method_sig =
+    Types.AdtSig.lookup_method receiver_adt_sig method_name |> Option.get
+  in
+  let type_trait_sig = type_trait_method_sig.trait_sig in
+
+  (* If we are looking for a super method make sure to use it instead *)
+  let method_sig =
+    match super_method_sig with
+    | Some super_method_sig -> super_method_sig
+    | None -> type_trait_method_sig
+  in
+  (* Find the source trait for this method, the trait where the method is defined. *)
+  let source_trait_sig = method_sig.source_trait_instance.trait_sig in
 
   (* Calculate generic keys from trait/type *)
   let (extra_key_type_params, extra_key_type_args) =
-    if method_sig.trait_sig == source_trait_sig then
+    if type_trait_sig == source_trait_sig && Option.is_none super_method_sig then
       (* Method was directly declared on the ADT's trait. Substitute type args for trait's type args *)
       (source_trait_sig.type_params, receiver_type_args)
     else
-      (* Method was declared on a trait that the ADT implements. The source trait instance's type
-         args are in terms of the ADT trait's type params, so first map from the ADT trait's type
-         params to the actual ADT instance's type args in the source trait instance's type args.
-         The key args are these mapped source trait instance's type args along with the a `this`
+      (* Find the implemention of the trait where this method is defined, which will contain
+         the type args for that trait in terms of the type parameters of the ADT's type trait. *)
+      let implemented_trait = ref None in
+      List.iter
+        (fun type_trait ->
+          List.iter
+            (fun (_, ({ Types.TraitSig.trait_sig; _ } as instance)) ->
+              if trait_sig == source_trait_sig then implemented_trait := Some instance)
+            type_trait.Types.TraitSig.implemented)
+        receiver_adt_sig.traits;
+      let implemented_trait_type_args = (Option.get !implemented_trait).type_args in
+
+      (* Map from ADT's type trait type parameters to the receiver's type args in these implemented
+         type args, so that they are in terms of the receiver's own type args. *)
+      let bindings = Types.bind_type_params_to_args type_trait_sig.type_params receiver_type_args in
+      let source_trait_type_args =
+        List.map (Types.substitute_type_params bindings) implemented_trait_type_args
+      in
+
+      (* The key args are these mapped source trait instance's type args along with the a `this`
          type of the ADT instance. *)
-      let bindings =
-        Types.bind_type_params_to_args method_sig.trait_sig.type_params receiver_type_args
-      in
-      let type_args =
-        List.map (Types.substitute_type_params bindings) source_trait_instance.type_args
-      in
       let all_key_type_params = source_trait_sig.this_type_param :: source_trait_sig.type_params in
-      let all_key_type_args = receiver_ty :: type_args in
+      let all_key_type_args = receiver_ty :: source_trait_type_args in
       (all_key_type_params, all_key_type_args)
   in
 
