@@ -47,6 +47,7 @@ type t =
   | NonTraitAsBound
   | TypeAliasWithBounds
   | ImplicitTypeParamOutsideFunction
+  | ImplicitTypeParamInAnonymousFunction
   | TraitObjectExpectsTrait
   | ToplevelVarWithoutAnnotation
   | ToplevelVarWithPattern
@@ -338,6 +339,8 @@ let to_string error =
   | TypeAliasWithBounds -> "Type parameters cannot have bounds in type aliases"
   | ImplicitTypeParamOutsideFunction ->
     "Implicit trait type parameters can only appear in function parameter types"
+  | ImplicitTypeParamInAnonymousFunction ->
+    "Implicit trait type parameters cannot appear in anonymous function parameter types"
   | TraitObjectExpectsTrait -> "Trait object expects trait"
   | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
   | ToplevelVarWithPattern ->

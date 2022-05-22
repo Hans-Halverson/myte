@@ -1,7 +1,6 @@
 ## Current List
 - Correct array GetElement accesses - allow for value types (agg literals)
 - Create reference vs value types (potentially <2 words is a value type, anything mutable is ref)
-- Parse and type check anonymous functions
 - Implement signed and unsigned integers
 - Guarantee 16-byte stack alignment for x64 at calls
 - Optimize `!=` in MIR/assembly to consolidate `LogNot` after call `Eq` instruction or call to `equals` method

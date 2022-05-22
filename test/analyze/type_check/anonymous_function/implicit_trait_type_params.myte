@@ -1,0 +1,15 @@
+module test
+
+trait Trait {}
+
+fun paramTypes() {
+  fn (x: Trait) {};
+  fn (x: Option<Trait>) {};
+}
+
+fun returnTypes() {
+  fn (): Trait {};
+  fn (): Option<Trait> {};
+}
+
+fun main() {}

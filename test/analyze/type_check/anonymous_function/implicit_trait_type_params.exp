@@ -1,0 +1,19 @@
+Error: Implicit trait type parameters cannot appear in anonymous function parameter types
+test/analyze/type_check/anonymous_function/implicit_trait_type_params.myte:6:9-14
+ 6 |   fn (x: Trait) {};
+   |          ^^^^^
+
+Error: Implicit trait type parameters cannot appear in anonymous function parameter types
+test/analyze/type_check/anonymous_function/implicit_trait_type_params.myte:7:16-21
+ 7 |   fn (x: Option<Trait>) {};
+   |                 ^^^^^
+
+Error: Implicit trait type parameters can only appear in function parameter types
+test/analyze/type_check/anonymous_function/implicit_trait_type_params.myte:11:9-14
+ 11 |   fn (): Trait {};
+    |          ^^^^^
+
+Error: Implicit trait type parameters can only appear in function parameter types
+test/analyze/type_check/anonymous_function/implicit_trait_type_params.myte:12:16-21
+ 12 |   fn (): Option<Trait> {};
+    |                 ^^^^^

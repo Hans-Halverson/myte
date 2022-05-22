@@ -3,11 +3,12 @@ open Basic_collections
 open Types
 
 type trait_ctx =
-  | TraitDisallowed
+  | TraitDisallowedGeneral
+  | TraitDisallowedAnonymousFunction
   | TraitImplicitParam of (TypeParam.t * Loc.t) list ref
   | TraitToBound
 
-let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisallowed) ty =
+let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisallowedGeneral) ty =
   let open Ast.Type in
   let build_type ty = build_type ~cx ~check_type_param_bounds ~trait_ctx ty in
   let type_param_arity_error loc actual expected =
@@ -94,8 +95,11 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
       | TraitDecl trait_decl ->
         (match trait_ctx with
         (* Implicit type parameters are only allowed in the types of function parameters *)
-        | TraitDisallowed ->
+        | TraitDisallowedGeneral ->
           Type_context.add_error ~cx loc ImplicitTypeParamOutsideFunction;
+          any
+        | TraitDisallowedAnonymousFunction ->
+          Type_context.add_error ~cx loc ImplicitTypeParamInAnonymousFunction;
           any
         | TraitImplicitParam _
         | TraitToBound ->
@@ -1702,7 +1706,7 @@ and check_expression ~cx expr =
           match annot with
           | None -> Type.TVar param_decl.tvar
           | Some annot ->
-            let param_ty = build_type ~cx annot in
+            let param_ty = build_type ~cx ~trait_ctx:TraitDisallowedAnonymousFunction annot in
             ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar));
             param_ty)
         params
