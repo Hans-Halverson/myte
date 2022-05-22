@@ -631,10 +631,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             SSet.empty)
            params)
 
-    method visit_function_params func_name params =
+    method visit_function_params func_name param_ids =
       ignore
         (List.fold_left
-           (fun param_names { Function.Param.name = { Ast.Identifier.loc; name; _ }; _ } ->
+           (fun param_names { Ast.Identifier.loc; name; _ } ->
              if SSet.mem name param_names then
                this#add_error loc (DuplicateParameterNames (name, func_name));
              let binding =
@@ -647,7 +647,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
              this#add_value_to_scope name (Decl binding);
              SSet.add name param_names)
            SSet.empty
-           params)
+           param_ids)
 
     method visit_function_declaration ~is_nested ~is_method decl =
       let open Ast.Function in
@@ -692,16 +692,19 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         this#add_value_to_scope "this" (Decl binding);
         this#add_value_to_scope "super" (Decl binding)
       );
-      this#visit_function_params (Some func_name) params;
+      let param_ids = List.map (fun { Param.name; _ } -> name) params in
+      this#visit_function_params (Some func_name) param_ids;
       let function_ = super#function_ decl in
       this#exit_scope ();
       function_
 
     method! anonymous_function func =
-      let { Expression.AnonymousFunction.params; _ } = func in
+      let open Expression.AnonymousFunction in
+      let { params; _ } = func in
       (* Anonymous function body is in new scope that includes function parameters *)
       this#enter_scope ();
-      this#visit_function_params None params;
+      let param_ids = List.map (fun { Param.name; _ } -> name) params in
+      this#visit_function_params None param_ids;
       let func = super#anonymous_function func in
       this#exit_scope ();
       func

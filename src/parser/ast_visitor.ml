@@ -227,9 +227,15 @@ class visitor =
     method anonymous_function func =
       let open Expression.AnonymousFunction in
       let { loc = _; params; return; body } = func in
-      List.iter this#function_param params;
+      List.iter this#anonymous_function_param params;
       Option.iter this#type_ return;
       this#anonymous_function_body body
+
+    method anonymous_function_param param =
+      let open Expression.AnonymousFunction.Param in
+      let { loc = _; name; annot } = param in
+      this#identifier name;
+      Option.iter this#type_ annot
 
     method anonymous_function_body body =
       let open Expression.AnonymousFunction in

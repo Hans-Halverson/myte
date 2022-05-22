@@ -441,9 +441,15 @@ type SetLiteral {
 
 type AnonymousFunction {
   loc: Loc,
-  params: Vec<FunctionParam>,
+  params: Vec<AnonymousFunctionParam>,
   return_: Option<Type>,
   body: AnonymousFunctionBody,
+}
+
+type AnonymousFunctionParam {
+  loc: Loc,
+  name: Identifier,
+  annot: Option<Type>,
 }
 
 type AnonymousFunctionBody =

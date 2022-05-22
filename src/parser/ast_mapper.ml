@@ -323,13 +323,23 @@ class mapper =
     method anonymous_function func =
       let open Expression.AnonymousFunction in
       let { loc; params; body; return } = func in
-      let params' = id_map_list this#function_param params in
+      let params' = id_map_list this#anonymous_function_param params in
       let return' = id_map_opt this#type_ return in
       let body' = this#anonymous_function_body body in
       if params == params' && return == return' && body == body' then
         func
       else
         { loc; params = params'; return = return'; body = body' }
+
+    method anonymous_function_param param =
+      let open Expression.AnonymousFunction.Param in
+      let { loc; name; annot } = param in
+      let name' = this#identifier name in
+      let annot' = id_map_opt this#type_ annot in
+      if name == name' && annot == annot' then
+        param
+      else
+        { loc; name = name'; annot = annot' }
 
     method anonymous_function_body body =
       let open Expression.AnonymousFunction in

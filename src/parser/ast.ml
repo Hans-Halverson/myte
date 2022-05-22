@@ -337,13 +337,21 @@ and Expression : sig
   end
 
   module AnonymousFunction : sig
+    module Param : sig
+      type t = {
+        loc: Loc.t;
+        name: Identifier.t;
+        annot: Type.t option;
+      }
+    end
+
     type body =
       | Block of Statement.Block.t
       | Expression of Expression.t
 
     and t = {
       loc: Loc.t;
-      params: Function.Param.t list;
+      params: Param.t list;
       return: Type.t option;
       body: body;
     }

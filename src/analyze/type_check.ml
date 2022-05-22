@@ -1696,12 +1696,15 @@ and check_expression ~cx expr =
     (* Build params and return type, creating overall function type *)
     let params =
       List.map
-        (fun { Ast.Function.Param.name = { loc; _ }; annot; _ } ->
+        (fun { Ast.Expression.AnonymousFunction.Param.name = { loc; _ }; annot; _ } ->
           let binding = Type_context.get_value_binding ~cx loc in
           let param_decl = Bindings.get_func_param_decl binding in
-          let param_ty = build_type ~cx annot in
-          ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar));
-          param_ty)
+          match annot with
+          | None -> Type.TVar param_decl.tvar
+          | Some annot ->
+            let param_ty = build_type ~cx annot in
+            ignore (Type_context.unify ~cx param_ty (TVar param_decl.tvar));
+            param_ty)
         params
     in
     let return = Option.fold ~none:Type.Unit ~some:(fun return -> build_type ~cx return) return in

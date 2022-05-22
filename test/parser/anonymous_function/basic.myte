@@ -13,3 +13,11 @@ val x = fn (): (Int) -> Int -> 1
 val x = fn (a: Int, b: String, c: Bool): Int {}
 
 val x = fn (a: Int, b: String, c: Bool,): Int {}
+
+val x = fn (a) {}
+
+val x = fn (a, b, c) {}
+
+val x = fn (a, b, c,) {}
+
+val x = fn (a, b: Int, c) {}

@@ -771,7 +771,7 @@ and parse_anonymous_function env =
   let open Expression.AnonymousFunction in
   let marker = mark_loc env in
   Env.expect env T_FN;
-  let (params, return) = parse_function_signature env in
+  let (params, return) = parse_anonymous_function_signature env in
   let body =
     match Env.token env with
     | T_LEFT_BRACE -> Block (parse_block env)
@@ -1406,6 +1406,43 @@ and parse_function_signature env =
         | _ -> Env.expect env T_RIGHT_PAREN
       end;
       let param = { Function.Param.loc; name; annot } in
+      param :: params env
+  in
+  let params = params env in
+  let return =
+    match Env.token env with
+    | T_COLON ->
+      Env.advance env;
+      Some (parse_type env)
+    | _ -> None
+  in
+  (params, return)
+
+and parse_anonymous_function_signature env =
+  Env.expect env T_LEFT_PAREN;
+  let rec params env =
+    match Env.token env with
+    | T_RIGHT_PAREN ->
+      Env.advance env;
+      []
+    | _ ->
+      let marker = mark_loc env in
+      let name = parse_identifier env in
+      let annot =
+        match Env.token env with
+        | T_COLON ->
+          Env.advance env;
+          Some (parse_type env)
+        | _ -> None
+      in
+      let loc = marker env in
+      begin
+        match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN
+      end;
+      let param = { Expression.AnonymousFunction.Param.loc; name; annot } in
       param :: params env
   in
   let params = params env in

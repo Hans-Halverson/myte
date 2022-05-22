@@ -1,1089 +1,1072 @@
 {
-	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-	"name": "Myte",
-	"patterns": [
-		{ "include": "#comments" },
-		{ "include": "#function-declarations" },
-		{ "include": "#function-bodies" },
-		{ "include": "#imports"},
-		{ "include": "#literals" },
-		{ "include": "#module" },
-		{ "include": "#string" },
-		{ "include": "#trait-declarations" },
-		{ "include": "#type-declarations" },
-		{ "include": "#variable-declarations" }
-	],
-	"repository": {
-		"anonymous-function": {
-			"name": "meta.anonymous-function.myte",
-			"begin": "\\bfn\\b",
-			"beginCaptures": {
-				"0": { "name": "keyword.other.fn.myte" }
-			},
-			"end": "(?<=\\})|(->)",
-			"endCaptures": {
-				"1": { "name": "keyword.operator.arrow.myte" }
-			},
-			"patterns": [
-				{ "include": "#function-parameters" },
-				{ "include": "#function-return-type" },
-				{ "include": "#block" }
-			]
-		},
-		"block": {
-			"name": "meta.block.myte",
-			"begin": "{",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"end": "}",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"patterns": [
-				{ "include": "#statements" }
-			]
-		},
-		"bracketed-expression": {
-			"name": "meta.bracketed-expression.myte",
-			"begin": "\\[",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.square.myte" }
-			},
-			"end": "\\]",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.square.myte" }
-			},
-			"patterns": [
-				{ "include": "#expressions" },
-				{ 
-					"name": "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"call-expression": {
-			"name": "meta.call-expression.myte",
-			"begin": "(?:(\\.)\\s*)?\\b([_a-z]\\w*)\\s*(\\()",
-			"beginCaptures": {
-				"1": { "name": "keyword.operator.accessor.myte" },
-				"2": { "name": "entity.name.function.myte" },
-				"3": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "\\)",
-			"endCaptures": {
-				"1": { "name": "punctuation.brackets.round.myte" }
-			},
-			"patterns": [
-				{ "include": "#expressions" },
-				{
-					"name":  "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"comments": {
-			"patterns": [
-				{
-					"name": "comment.line.double-slash.myte",
-					"match": "//.*"
-				},
-				{
-					"name": "comment.block.myte",
-					"begin": "/\\*",
-					"end": "\\*/"
-				}
-		  ]
-		},
-		"expressions": {
-			"patterns": [
-				{ "include": "#comments" },
-				{ "include": "#string" },
-				{ "include": "#string-interpolation" },
-				{ "include": "#literals" },
-				{ "include": "#expression-operators" },
-				{ "include": "#parenthesized-expression" },
-				{ "include": "#bracketed-expression" },
-				{ "include": "#set-literal" },
-				{ "include": "#map-literal" },
-				{ "include": "#if" },
-				{ "include": "#match" },
-				{ "include": "#anonymous-function" },
-				{
-					"name": "variable.language.this.myte",
-					"match": "\\b(this)\\b"
-				},
-				{	"include": "#call-expression" },
-				{ "include": "#named-tuple-expression" },
-				{ "include": "#named-record-expression" },
-				{
-					"name": "variable.other.constant.myte",
-					"match": "\\b[A-Z0-9_]+\\b"
-				},
-				{
-					"name": "entity.name.constructor.myte",
-					"match": "\\b[A-Z]\\w+\\b(?!\\.)"
-				},
-				{
-					"name": "variable.other.myte",
-					"match": "\\b\\w+\\b"
-				},
-				{
-					"match": "(\\.)\\s*(\\w+)\\b",
-					"captures": {
-						"1": { "name": "keyword.operator.accessor.myte" },
-						"2": { "name": "variable.other.accessed.myte" }
-					}
-				}
-			]
-		},
-		"expression-operators": {
-			"patterns": [
-				{
-					"name": "keyword.operator.numeric.myte",
-					"match": "\\+|-|\\*|/|%"
-				},
-				{
-					"name": "keyword.operator.bitwise.myte",
-					"match": ">>>|>>|<<"
-				},
-				{
-					"name": "keyword.operator.comparison.myte",
-					"match": "==|!=|<=|>=|<|>"
-				},
-				{
-					"name": "keyword.operator.logical.myte",
-					"match": "!|&&|\\|\\|"
-				},
-				{
-					"name": "keyword.operator.bitwise.myte",
-					"match": "&|\\||\\^"
-				},
-				{
-					"name": "keyword.operator.assignment.myte",
-					"match": "="
-				},
-				{
-					"name": "keyword.other.is.myte",
-					"match": "\\bis\\b"
-				}
-			]
-		},
-		"for": {
-			"name": "meta.for.myte",
-			"begin": "\\b(for)\\b\\s*(\\()",
-			"beginCaptures": {
-				"1": { "name": "keyword.control.myte" },
-				"2": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "\\)",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"patterns": [
-				{
-					"begin": ":",
-					"beginCaptures": {
-						"0": { "name": "punctuation.colon.myte" }
-					},
-					"end": "(?=\\bin\\b)",
-					"patterns": [
-						{ "include": "#types" }
-					]
-				},
-				{
-					"begin": "\\bin\\b",
-					"beginCaptures": {
-						"0": { "name": "keyword.control.myte" }
-					},
-					"end": "(?=\\))",
-					"patterns": [
-						{ "include": "#expressions" }
-					]
-				},
-				{ "include": "#pattern" }
-			]
-		},
-		"function-bodies": {
-			"patterns": [
-				{ "include": "#block" },
-				{
-					"name": "meta.function-expression-body.myte",
-					"begin": "=",
-					"beginCaptures": {
-						"0": { "name": "keyword.operator.assignment.myte"}
-					},
-					"end": "(?=\\})|(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)|(?=\\b(fun|builtin|override|static|extends|implements)\\b)",
-					"patterns": [
-						{ "include": "#expressions" }
-					]
-				}
-			]
-		},
-		"function-declarations": {
-			"name": "meta.function-declaration.myte",
-			"begin": "\\b(builtin)?\\s*\\b(fun)\\s(\\w+)*",
-			"beginCaptures": {
-				"1": { "name": "storage.modifier.myte" },
-				"2": { "name": "keyword.other.fun.myte" },
-				"3": { "name": "entity.name.function.myte" }
-			},
-			"end": "(?=\\{|\\}|=)|(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)|(?=\\b(fun|builtin|override|static|extends|implements)\\b)",
-			"patterns": [
-				{ "include": "#type-parameters" },
-				{ "include": "#function-parameters" },
-				{ "include": "#function-return-type" }
-			]
-		},
-		"function-parameters": {
-			"name": "meta.function-parameters.myte",
-			"begin": "(?<=>\\s*|\\w\\s*)(\\()",
-			"beginCaptures": {
-				"1": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "\\)",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"patterns": [
-				{ "include": "#comments" },
-				{
-					"match": "(\\w+)\\s*(:)",
-					"captures": {
-						"1": { "name": "variable.parameter.myte" },
-						"2": { "name": "punctuation.colon.myte" }
-					}
-				},
-				{ "include": "#types" },
-				{
-					"name": "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"function-return-type": {
-			"patterns": [
-				{
-					"match": "(:)\\s*(trait\\b)",
-					"captures": {
-						"1": { "name": "punctuation.colon.myte" },
-						"2": { "name": "storage.modifier.myte" }
-					}
-				},
-				{
-					"name": "punctuation.colon.myte",
-					"match": ":"
-				},
-				{
-					"include": "#types"
-				}
-			]
-		},
-		"function-type": {
-			"begin": "\\(",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "(\\))\\s*(->)?",
-			"endCaptures": {
-				"1": { "name": "punctuation.brackets.round.myte" },
-				"2": { "name": "keyword.operator.arrow.myte" }
-			},
-			"patterns": [
-				{ "include": "#types" },
-				{
-					"name": "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"if": {
-			"name": "meta.if.myte",
-			"begin": "\\bif\\b",
-			"beginCaptures": {
-				"0": { "name": "keyword.control.myte" }
-			},
-			"end": "(?<=\\})",
-			"patterns": [
-				{ "include": "#comments" },
-				{
-					"name": "meta.if.test.myte",
-					"begin": "\\(",
-					"beginCaptures": {
-						"0": { "name": "punctuation.brackets.round.myte" }
-					},
-					"end": "\\)",
-					"endCaptures": {
-						"0": { "name": "punctuation.brackets.round.myte" }
-					},
-					"patterns": [
-						{ "include": "#expressions" }
-					]
-				},
-				{
-					"name": "meta.if.block.myte",
-			    "begin": "{",
-					"beginCaptures": {
-						"0": { "name": "punctuation.brackets.curly.myte" }
-					},
-					"end": "(})(\\s*\\b(else)\\b)?",
-					"endCaptures": {
-						"1": { "name": "punctuation.brackets.curly.myte" },
-						"3": { "name": "keyword.control.myte" }
-					},
-					"patterns": [
-						{ "include": "#statements" }
-					]
-				},
-				{ "include": "#if" }
-			]
-		},
-		"literals": {
-			"patterns": [
-				{
-					"name": "constant.language.bool.myte",
-					"match": "\\b(true|false)\\b"
-				},
-				{
-					"match": "(-)?(\\d+)\\b",
-					"captures": {
-						"1": { "name": "keyword.operator.numeric.myte" },
-						"2": { "name": "constant.numeric.decimal.myte" }
-					}
-				},
-				{
-					"match": "(-)?(0b[01]+)\\b",
-					"captures": {
-						"1": { "name": "keyword.operator.numeric.myte" },
-						"2": { "name": "constant.numeric.bin.myte" }
-					}
-				},
-				{
-					"match": "(-)?(0x[\\da-fA-F]+)\\b",
-					"captures": {
-						"1": { "name": "keyword.operator.numeric.myte" },
-						"2": { "name": "constant.numeric.hex.myte" }
-					}
-				},
-				{
-					"name": "string.quoted.single.myte",
-					"begin": "'",
-					"end": "'",
-					"patterns": [
-						{
-							"name": "constant.character.escape.myte",
-							"match": "\\\\(n|r|t|\\\\|')"
-						}
-					]
-				}
-			]
-		},
-		"imports": {
-			"name": "meta.import.myte",
-			"begin": "\\b(import)\\b",
-			"beginCaptures": {
-				"1": { "name": "keyword.control.import.myte" }
-			},
-			"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
-			"patterns": [
-				{ "include": "#comments" },
-				{
-					"name": "entity.name.import.myte",
-					"match": "\\w+"
-				},
-				{
-					"name": "keyword.operator.accessor.myte",
-					"match": "\\."
-				},
-				{
-					"begin": "{",
-					"beginCaptures": {
-						"0": { "name": "punctuation.brackets.curly.myte" }
-					},
-					"end": "}",
-					"endCaptures": {
-						"0": { "name": "punctuation.brackets.curly.myte" }
-					},
-					"patterns": [
-						{ "include": "#comments" },
-						{
-							"match": "(\\w+)\\s+(as)\\s+(\\w+)",
-							"captures": {
-								"1": { "name": "entity.name.import.myte" },
-								"2": { "name": "keyword.other.as.myte" },
-								"3": { "name": "entity.name.import.myte" }
-							}
-						},
-						{
-							"name": "entity.name.import.myte",
-							"match": "\\w+"
-						},
-						{
-							"name": "punctuation.comma.myte",
-							"match": ","
-						}
-					]	
-				}
-			]
-		},
-		"map-literal": {
-			"name": "meta.map-literal.myte",
-			"begin": "{",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"end": "}",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"patterns": [
-				{ "include": "#expressions" },
-				{
-					"begin": ":",
-					"beginCaptures": {
-						"0": { "name": "punctuation.colon.myte" }
-					},
-					"end": "(,|(?=}))",
-					"endCaptures": {
-						"1": { "name": "punctuation.comma.myte" }
-					},
-					"patterns": [
-						{ "include": "#expressions" }
-					]
-				}
-			]
-		},
-		"match": {
-			"name": "meta.match.myte",
-			"begin": "\\b(match)\\b",
-			"beginCaptures": {
-				"1": { "name": "keyword.control.myte" }
-			},
-			"end": "(?<=\\})",
-			"patterns": [
-				{ "include": "#comments "},
-				{
-					"name": "meta.match.arguments.myte",
-					"begin": "\\(",
-					"beginCaptures": {
-						"0": { "name": "punctuation.brackets.round.myte" }
-					},
-					"end": "\\)",
-					"endCaptures": {
-						"0": { "name": "punctuation.brackets.round.myte" }
-					},
-					"patterns": [
-						{ "include": "#expressions" },
-						{
-							"name": "punctuation.comma.myte",
-							"match": ","
-						}
-					]
-				},
-				{
-					"name": "meta.match.body.myte",
-					"begin": "{",
-					"beginCaptures": {
-						"0": { "name": "punctuation.brackets.curly.myte" }
-					},
-					"end": "}",
-					"endCaptures": {
-						"0": { "name": "punctuation.brackets.curly.myte" }
-					},
-					"patterns": [
-						{ "include": "#comments" },
-						{
-							"name": "meta.match.case.myte",
-							"begin": "(?<=\\{)|(\\|)",
-							"beginCaptures": {
-								"1": { "name": "keyword.operator.or.myte" }
-							},
-							"end": "(?=\\||\\})",
-							"patterns": [
-								{ 
-									"name": "meta.match.case.guard.myte",
-									"begin": "\\bwhen\\b",
-									"beginCaptures": {
-										"0": { "name": "keyword.control.when.myte" }
-									},
-									"end": "(?=->)",
-									"patterns": [
-										{ "include": "#expressions" }
-									]
-								},
-								{ "include": "#pattern" },
-								{
-									"name": "meta.match.case.right.myte",
-									"begin": "->",
-									"beginCaptures": {
-										"0": { "name": "keyword.operator.arrow.myte" }
-									},
-									"end": "(?=\\||\\})",
-									"patterns": [
-										{ "include": "#statements" }
-									]
-								}
-							]
-						}
-					]
-				}
-			]
-		},
-		"module": {
-			"meta": "meta.module.myte",
-			"begin": "\\b(module)\\b",
-			"beginCaptures": {
-				"1": { "name": "storage.type.myte" }
-			},
-			"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
-			"patterns": [
-				{ "include": "#comments" },
-				{
-					"name": "entity.name.module.myte",
-					"match": "\\w+"
-				},
-				{
-					"name": "keyword.operator.accessor.myte",
-					"match": "\\."
-				}
-			]
-		},
-		"named-record-expression": {
-			"name": "meta.named-record-expression.myte",
-			"begin": "\\b(\\w+)\\s*(\\{)",
-			"beginCaptures": {
-				"1": { "name": "entity.name.constructor.myte" },
-				"2": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"end": "}",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"patterns": [
-				{
-					"match": "\\b(\\w+)\\s*(,|(?=}))",
-					"captures": {
-						"1": { "name": "variable.other.myte" },
-						"2": { "name": "punctuation.comma.myte" }
-					}
-				},
-				{
-					"begin": "\\b(\\w+)\\s*(:)",
-					"beginCaptures": {
-						"1": { "name": "variable.other.field.myte" },
-						"2": { "name": "punctuation.colon.myte" }
-					},
-					"end": "(,|(?=}))",
-					"endCaptures": {
-						"1": { "name": "punctuation.comma.myte" }
-					},
-					"patterns": [
-						{ "include": "#expressions" }
-					]
-				},
-				{
-					"name":  "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"named-record-pattern": {
-			"name": "meta.named-record-pattern.myte",
-			"begin": "\\b(\\w+)\\s*(\\{)",
-			"beginCaptures": {
-				"1": { "name": "entity.name.constructor.myte" },
-				"2": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"end": "}",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"patterns": [
-				{
-					"match": "\\b(\\w+)\\s*(,|(?=}))",
-					"captures": {
-						"1": { "name": "variable.other.myte" },
-						"2": { "name": "punctuation.comma.myte" }
-					}
-				},
-				{
-					"begin": "\\b(\\w+)\\s*(:)",
-					"beginCaptures": {
-						"1": { "name": "variable.other.field.myte" },
-						"2": { "name": "punctuation.colon.myte" }
-					},
-					"end": "(,|(?=}))",
-					"endCaptures": {
-						"1": { "name": "punctuation.comma.myte" }
-					},
-					"patterns": [
-						{ "include": "#pattern" }
-					]
-				},
-				{
-					"name":  "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"named-tuple-expression": {
-			"name": "meta.named-tuple-expression",
-			"begin": "\\b([A-Z]\\w*)\\s*(\\()",
-			"beginCaptures": {
-				"1": { "name": "entity.name.constructor.myte" },
-				"2": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "\\)",
-			"endCaptures": {
-				"1": { "name": "punctuation.brackets.round.myte" }
-			},
-			"patterns": [
-				{ "include": "#expressions" },
-				{
-					"name":  "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"named-tuple-pattern": {
-			"name": "meta.named-tuple-pattern",
-			"begin": "\\b(\\w+)\\s*(\\()",
-			"beginCaptures": {
-				"1": { "name": "entity.name.constructor.myte" },
-				"2": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "\\)",
-			"endCaptures": {
-				"1": { "name": "punctuation.brackets.round.myte" }
-			},
-			"patterns": [
-				{ "include": "#pattern" },
-				{
-					"name":  "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"pattern": {
-			"patterns": [
-				{ "include": "#comments" },
-				{ "include": "#literals" },
-				{ "include": "#string" },
-				{ "include": "#named-tuple-pattern" },
-				{ "include": "#named-record-pattern" },
-				{ "include": "#parenthesized-pattern" },
-				{
-					"name": "keyword.operator.or.myte",
-					"match": "\\|"
-				},
-				{
-					"name": "keyword.other.as.myte",
-					"match": "\\bas\\b"
-				},
-				{
-					"name": "variable.other.constant.myte",
-					"match": "\\b[A-Z0-9_]+\\b"
-				},
-				{
-					"name": "entity.name.constructor.myte",
-					"match": "\\b[A-Z]\\w+\\b"
-				},
-				{
-					"name": "variable.other.myte",
-					"match": "\\b\\w+\\b"
-				}
-			]
-		},
-		"parenthesized-expression": {
-			"name": "meta.parenthesized-expression.myte",
-			"begin": "\\(",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "\\)",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"patterns": [
-				{ "include": "#expressions" },
-				{
-					"name": "punctuation.comma.myte",
-					"match": ","
-				},
-				{
-					"begin": ":",
-					"beginCaptures": {
-						"0": { "name": "punctuation.colon.myte" }
-					},
-					"end": "(?=\\))",
-					"patterns": [
-						{ "include": "#types" }
-					]
-				}
-			]
-		},
-		"parenthesized-pattern": {
-			"name": "meta.parenthesized-pattern.myte",
-			"begin": "\\(",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "\\)",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"patterns": [
-				{ "include": "#pattern" },
-				{
-					"name": "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"record-type": {
-			"begin": "{",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"end": "}",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.curly.myte" }
-			},
-			"patterns": [
-				{
-					"match": "(\\w+)\\s*(:)",
-					"captures": {
-						"1": { "name": "variable.other.field.myte" },
-						"2": { "name": "punctuation.colon.myte" }
-					}
-				},
-				{ "include": "#types" },
-				{
-					"name": "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"set-literal": {
-			"name": "meta.set-literal.myte",
-			"begin": "{\\|",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.set-open.myte" }
-			},
-			"end": "\\|}",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.set-close.myte" }
-			},
-			"patterns": [
-				{ "include": "#expressions" },
-				{
-					"name": "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"statements": {
-			"patterns": [
-				{ "include": "#comments" },
-				{
-					"name": "punctuation.semicolon.myte",
-					"match": ";"
-				},
-				{ "include": "#function-declarations" },
-				{ "include": "#variable-declarations" },
-				{
-					"name": "keyword.control.myte",
-					"match": "\\b(while|break|continue|return)\\b"
-				},
-				{ "include": "#for" },
-				{ "include": "#if" },
-				{ "include": "#match" },
-				{ "include": "#set-literal" },
-				{ "include": "#block" },
-				{ "include": "#expressions" }
-			]
-		},
-		"string": {
-			"name": "string.quoted.double.myte",
-			"begin": "\"",
-			"end": "\"",
-			"patterns": [
-				{
-					"name": "constant.character.escape.myte",
-					"match": "\\\\(n|r|t|\\\\|\")"
-				},
-				{
-					"name": "constant.character.escape.hex.myte",
-					"match": "\\\\x[0-9a-fA-F]{2}"
-				}
-			]
-		},
-		"string-interpolation": {
-			"name": "string.interpolated.myte",
-			"begin": "`",
-			"end": "`",
-			"patterns": [
-				{
-					"name": "constant.character.escape.myte",
-					"match": "\\\\(n|r|t|\\\\|`|\\$)"
-				},
-				{
-					"name": "constant.character.escape.hex.myte",
-					"match": "\\\\x[0-9a-fA-F]{2}"
-				},
-				{
-					"name": "meta.template.expression.myte",
-					"begin": "\\${",
-					"beginCaptures": {
-						"0": { "name": "punctuation.definition.template-expression.begin.myte" }
-					},
-					"end": "}",
-					"endCaptures": {
-						"0": { "name": "punctuation.definition.template-expression.begin.myte" }
-					},
-					"patterns": [
-						{ "include": "#expressions" }
-					]
-				}
-			]
-		},
-		"trait-declarations": {
-			"name": "meta.trait-declaration.myte",
-			"begin": "\\b(trait|methods)\\s+(\\w+)",
-			"beginCaptures": {
-				"1": { "name": "storage.type.myte" },
-				"2": { "name": "entity.name.type.myte" }
-			},
-			"end": "(?<=\\})",
-			"patterns": [
-				{ "include": "#comments" },
-				{ "include": "#type-parameters" },
-				{
-					"begin": "{",
-					"beginCaptures": {
-						"0": { "name": "punctuation.brackets.curly.myte" }
-					},
-					"end": "}",
-					"endCaptures": {
-						"0": { "name": "punctuation.brackets.curly.myte" }
-					},
-					"patterns": [
-						{ "include": "#comments" },
-						{
-							"name": "meta.trait-implemented.myte",
-							"begin": "\\b(extends|implements)\\b",
-							"beginCaptures": {
-								"1": { "name": "storage.modifier.myte" }
-							},
-							"end": "(?=\\})|(?=\\b(fun|builtin|override|static|extends|implements)\\b)",
-							"patterns": [
-								{ "include": "#types" }
-							]
-						},
-						{
-							"name": "storage.modifier.myte",
-							"match": "\\b(builtin)\\b"
-						},
-						{
-							"name": "storage.modifier.myte",
-							"match": "\\b(override)\\b"
-						},
-						{
-							"name": "storage.modifier.myte",
-							"match": "\\b(static)\\b"
-						},
-						{ "include": "#function-declarations" },
-						{ "include": "#function-bodies" }
-					]
-				}
-			]
-		},
-		"tuple-type": {
-			"begin": "\\(",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"end": "\\)",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.round.myte" }
-			},
-			"patterns": [
-				{ "include": "#types" },
-				{
-					"name": "punctuation.comma.myte",
-					"match": ","
-				}
-			]
-		},
-		"types": {
-			"patterns": [
-				{ "include": "#comments" },
-				{ "include": "#function-type" },
-				{ "include": "#tuple-type" },
-				{ 
-					"name": "keyword.operator.arrow.myte",
-					"match": "->"
-				},
-				{
-					"match": "(\\btrait)?\\s*\\b(\\w+)\\s*(\\.)",
-					"captures": {
-						"1": { "name": "storage.modifier.myte" },
-						"2": { "name": "entity.name.type.myte" },
-						"3": { "name": "keyword.operator.accessor.myte" }
-					}
-				},
-				{
-					"begin": "(\\btrait)?\\s*\\b(\\w+)\\s*(<)",
-					"beginCaptures": {
-						"1": { "name": "storage.modifier.myte" },
-						"2": { "name": "entity.name.type.myte" },
-						"3": { "name": "punctuation.brackets.angle.myte" }
-					},
-					"end": ">",
-					"endCaptures": {
-						"0": { "name": "punctuation.brackets.angle.myte" }
-					},
-					"patterns": [
-						{ "include": "#types" }
-					]
-				},
-				{
-					"match": "\\b(trait)\\s+(\\w+)\\b",
-					"captures": {
-						"1": { "name": "storage.modifier.myte" },
-						"2": { "name": "entity.name.type.myte" }
-					}
-				},
-				{
-					"name": "entity.name.type.myte",
-					"match": "\\w+"
-				}
-			]
-		},
-		"type-declarations": {
-			"patterns": [
-				{
-					"name": "meta.type-alias-declaration.myte",
-					"begin": "\\b(type)\\b\\s+(alias)\\b\\s+(\\w+)",
-					"beginCaptures": {
-						"1": { "name": "storage.type.myte" },
-						"2": { "name": "storage.modifier.myte" },
-						"3": { "name": "entity.name.type.myte" }
-					},
-					"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
-					"patterns": [
-						{ "include": "#type-parameters" },
-						{
-							"begin": "(=)\\s*(trait\\b)?",
-							"beginCaptures": {
-								"1": { "name": "keyword.operator.assigment.myte" },
-								"2": { "name": "storage.modifier.myte" }
-							},
-							"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
-							"patterns": [
-								{ "include": "#types" }
-							]
-						}
-					]
-				},
-				{
-					"name": "meta.type-declaration.myte",
-					"begin": "\\b(builtin)?\\s*\\b(type)\\s+(\\w+)",
-					"beginCaptures": {
-						"1": { "name": "storage.modifier.myte" },
-						"2": { "name": "storage.type.myte" },
-						"3": { "name": "entity.name.type.myte entity.name.constructor.myte" }
-					},
-					"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
-					"patterns": [
-						{ "include": "#comments" },
-						{ "include": "#type-parameters" },
-						{ "include": "#tuple-type" },
-				    { "include": "#record-type" },
-						{
-							"begin": "=",
-							"beginCaptures": {
-								"0": { "name": "keyword.operator.assigment.myte" }
-							},
-							"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
-							"patterns": [
-								{ "include": "#comments" },
-								{
-									"name": "entity.name.constructor.myte",
-									"match": "\\w+"
-								},
-								{
-									"name": "keyword.operator.or.myte",
-									"match": "\\|"
-								},
-								{ "include": "#tuple-type" },
-								{ "include": "#record-type" }
-							]
-						}
-					]
-				}
-			]
-		},
-		"type-parameters": {
-			"name": "meta.type.parameters.myte",
-			"begin": "<",
-			"beginCaptures": {
-				"0": { "name": "punctuation.brackets.angle.myte" }
-			},
-			"end": ">",
-			"endCaptures": {
-				"0": { "name": "punctuation.brackets.angle.myte" }
-			},
-			"patterns": [
-				{ "include": "#comments" },
-				{ "include": "#types" },
-				{
-					"name": "punctuation.colon.myte",
-					"match": ":"
-				},
-				{
-					"name": "punctuation.comma.myte",
-					"match": ","
-				},
-				{
-					"name": "keyword.operator.and.myte",
-					"match": "&"
-				}
-			]
-		},
-		"variable-declarations": {
-			"name": "meta.variable-declaration.myte",
-			"begin": "\\b(val|var)\\b",
-			"beginCaptures": {
-				"1": { "name": "storage.type.myte" }
-			},
-			"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)|(?=;)",
-			"patterns": [
-				{ "include": "#comments" },
-				{ "include": "#pattern" },
-				{
-					"begin": ":",
-					"beginCaptures": {
-						"0": { "name": "punctuation.colon.myte" }
-					},
-					"end": "(?==)",
-					"patterns": [
-						{ "include": "#comments" },
-						{ "include": "#types" }
-					]
-				},
-				{
-					"begin": "=",
-					"beginCaptures": {
-						"0": { "name": "keyword.operator.assigment.myte" }
-					},
-					"end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)|(?=;)",
-					"patterns": [
-						{ "include": "#expressions" }
-					]
-				}
-			]
-		}
-	},
-	"scopeName": "source.myte"
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Myte",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#function-declarations" },
+    { "include": "#function-bodies" },
+    { "include": "#imports" },
+    { "include": "#literals" },
+    { "include": "#module" },
+    { "include": "#string" },
+    { "include": "#trait-declarations" },
+    { "include": "#type-declarations" },
+    { "include": "#variable-declarations" }
+  ],
+  "repository": {
+    "anonymous-function": {
+      "name": "meta.anonymous-function.myte",
+      "begin": "\\bfn\\b",
+      "beginCaptures": {
+        "0": { "name": "keyword.other.fn.myte" }
+      },
+      "end": "(?<=\\})|(->)",
+      "endCaptures": {
+        "1": { "name": "keyword.operator.arrow.myte" }
+      },
+      "patterns": [
+        { "include": "#function-parameters" },
+        { "include": "#function-return-type" },
+        { "include": "#block" }
+      ]
+    },
+    "block": {
+      "name": "meta.block.myte",
+      "begin": "{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "end": "}",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "patterns": [{ "include": "#statements" }]
+    },
+    "bracketed-expression": {
+      "name": "meta.bracketed-expression.myte",
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.square.myte" }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.square.myte" }
+      },
+      "patterns": [
+        { "include": "#expressions" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "call-expression": {
+      "name": "meta.call-expression.myte",
+      "begin": "(?:(\\.)\\s*)?\\b([_a-z]\\w*)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "keyword.operator.accessor.myte" },
+        "2": { "name": "entity.name.function.myte" },
+        "3": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "1": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        { "include": "#expressions" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.myte",
+          "match": "//.*"
+        },
+        {
+          "name": "comment.block.myte",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "expressions": {
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#string" },
+        { "include": "#string-interpolation" },
+        { "include": "#literals" },
+        { "include": "#expression-operators" },
+        { "include": "#parenthesized-expression" },
+        { "include": "#bracketed-expression" },
+        { "include": "#set-literal" },
+        { "include": "#map-literal" },
+        { "include": "#if" },
+        { "include": "#match" },
+        { "include": "#anonymous-function" },
+        {
+          "name": "variable.language.this.myte",
+          "match": "\\b(this)\\b"
+        },
+        { "include": "#call-expression" },
+        { "include": "#named-tuple-expression" },
+        { "include": "#named-record-expression" },
+        {
+          "name": "variable.other.constant.myte",
+          "match": "\\b[A-Z0-9_]+\\b"
+        },
+        {
+          "name": "entity.name.constructor.myte",
+          "match": "\\b[A-Z]\\w+\\b(?!\\.)"
+        },
+        {
+          "name": "variable.other.myte",
+          "match": "\\b\\w+\\b"
+        },
+        {
+          "match": "(\\.)\\s*(\\w+)\\b",
+          "captures": {
+            "1": { "name": "keyword.operator.accessor.myte" },
+            "2": { "name": "variable.other.accessed.myte" }
+          }
+        }
+      ]
+    },
+    "expression-operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.numeric.myte",
+          "match": "\\+|-|\\*|/|%"
+        },
+        {
+          "name": "keyword.operator.bitwise.myte",
+          "match": ">>>|>>|<<"
+        },
+        {
+          "name": "keyword.operator.comparison.myte",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.myte",
+          "match": "!|&&|\\|\\|"
+        },
+        {
+          "name": "keyword.operator.bitwise.myte",
+          "match": "&|\\||\\^"
+        },
+        {
+          "name": "keyword.operator.assignment.myte",
+          "match": "="
+        },
+        {
+          "name": "keyword.other.is.myte",
+          "match": "\\bis\\b"
+        }
+      ]
+    },
+    "for": {
+      "name": "meta.for.myte",
+      "begin": "\\b(for)\\b\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.myte" },
+        "2": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        {
+          "begin": ":",
+          "beginCaptures": {
+            "0": { "name": "punctuation.colon.myte" }
+          },
+          "end": "(?=\\bin\\b)",
+          "patterns": [{ "include": "#types" }]
+        },
+        {
+          "begin": "\\bin\\b",
+          "beginCaptures": {
+            "0": { "name": "keyword.control.myte" }
+          },
+          "end": "(?=\\))",
+          "patterns": [{ "include": "#expressions" }]
+        },
+        { "include": "#pattern" }
+      ]
+    },
+    "function-bodies": {
+      "patterns": [
+        { "include": "#block" },
+        {
+          "name": "meta.function-expression-body.myte",
+          "begin": "=",
+          "beginCaptures": {
+            "0": { "name": "keyword.operator.assignment.myte" }
+          },
+          "end": "(?=\\})|(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)|(?=\\b(fun|builtin|override|static|extends|implements)\\b)",
+          "patterns": [{ "include": "#expressions" }]
+        }
+      ]
+    },
+    "function-declarations": {
+      "name": "meta.function-declaration.myte",
+      "begin": "\\b(builtin)?\\s*\\b(fun)\\s(\\w+)*",
+      "beginCaptures": {
+        "1": { "name": "storage.modifier.myte" },
+        "2": { "name": "keyword.other.fun.myte" },
+        "3": { "name": "entity.name.function.myte" }
+      },
+      "end": "(?=\\{|\\}|=)|(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)|(?=\\b(fun|builtin|override|static|extends|implements)\\b)",
+      "patterns": [
+        { "include": "#type-parameters" },
+        { "include": "#function-parameters" },
+        { "include": "#function-return-type" }
+      ]
+    },
+    "function-parameters": {
+      "name": "meta.function-parameters.myte",
+      "begin": "(?<=>\\s*|\\w\\s*)(\\()",
+      "beginCaptures": {
+        "1": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        { "include": "#comments" },
+        {
+          "match": "(\\w+)\\s*(:)\\s*(\\w+)\\s(?=,|\\))",
+          "captures": {
+            "1": { "name": "variable.parameter.myte" },
+            "2": { "name": "punctuation.colon.myte" },
+            "3": { "name": "entity.name.type.myte" }
+          }
+        },
+        {
+          "match": "\\w+",
+          "captures": {
+            "0": { "name": "variable.parameter.myte" }
+          }
+        },
+        {
+          "begin": ":",
+          "beginCaptures": {
+            "0": { "name": "punctuation.colon.myte" }
+          },
+          "end": "(?=,|\\))",
+          "patterns": [{ "include": "#types" }]
+        },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "function-return-type": {
+      "patterns": [
+        {
+          "match": "(:)\\s*(trait\\b)",
+          "captures": {
+            "1": { "name": "punctuation.colon.myte" },
+            "2": { "name": "storage.modifier.myte" }
+          }
+        },
+        {
+          "name": "punctuation.colon.myte",
+          "match": ":"
+        },
+        {
+          "include": "#types"
+        }
+      ]
+    },
+    "function-type": {
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "(\\))\\s*(->)?",
+      "endCaptures": {
+        "1": { "name": "punctuation.brackets.round.myte" },
+        "2": { "name": "keyword.operator.arrow.myte" }
+      },
+      "patterns": [
+        { "include": "#types" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "if": {
+      "name": "meta.if.myte",
+      "begin": "\\bif\\b",
+      "beginCaptures": {
+        "0": { "name": "keyword.control.myte" }
+      },
+      "end": "(?<=\\})",
+      "patterns": [
+        { "include": "#comments" },
+        {
+          "name": "meta.if.test.myte",
+          "begin": "\\(",
+          "beginCaptures": {
+            "0": { "name": "punctuation.brackets.round.myte" }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": { "name": "punctuation.brackets.round.myte" }
+          },
+          "patterns": [{ "include": "#expressions" }]
+        },
+        {
+          "name": "meta.if.block.myte",
+          "begin": "{",
+          "beginCaptures": {
+            "0": { "name": "punctuation.brackets.curly.myte" }
+          },
+          "end": "(})(\\s*\\b(else)\\b)?",
+          "endCaptures": {
+            "1": { "name": "punctuation.brackets.curly.myte" },
+            "3": { "name": "keyword.control.myte" }
+          },
+          "patterns": [{ "include": "#statements" }]
+        },
+        { "include": "#if" }
+      ]
+    },
+    "literals": {
+      "patterns": [
+        {
+          "name": "constant.language.bool.myte",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "match": "(-)?(\\d+)\\b",
+          "captures": {
+            "1": { "name": "keyword.operator.numeric.myte" },
+            "2": { "name": "constant.numeric.decimal.myte" }
+          }
+        },
+        {
+          "match": "(-)?(0b[01]+)\\b",
+          "captures": {
+            "1": { "name": "keyword.operator.numeric.myte" },
+            "2": { "name": "constant.numeric.bin.myte" }
+          }
+        },
+        {
+          "match": "(-)?(0x[\\da-fA-F]+)\\b",
+          "captures": {
+            "1": { "name": "keyword.operator.numeric.myte" },
+            "2": { "name": "constant.numeric.hex.myte" }
+          }
+        },
+        {
+          "name": "string.quoted.single.myte",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.myte",
+              "match": "\\\\(n|r|t|\\\\|')"
+            }
+          ]
+        }
+      ]
+    },
+    "imports": {
+      "name": "meta.import.myte",
+      "begin": "\\b(import)\\b",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.import.myte" }
+      },
+      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
+      "patterns": [
+        { "include": "#comments" },
+        {
+          "name": "entity.name.import.myte",
+          "match": "\\w+"
+        },
+        {
+          "name": "keyword.operator.accessor.myte",
+          "match": "\\."
+        },
+        {
+          "begin": "{",
+          "beginCaptures": {
+            "0": { "name": "punctuation.brackets.curly.myte" }
+          },
+          "end": "}",
+          "endCaptures": {
+            "0": { "name": "punctuation.brackets.curly.myte" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            {
+              "match": "(\\w+)\\s+(as)\\s+(\\w+)",
+              "captures": {
+                "1": { "name": "entity.name.import.myte" },
+                "2": { "name": "keyword.other.as.myte" },
+                "3": { "name": "entity.name.import.myte" }
+              }
+            },
+            {
+              "name": "entity.name.import.myte",
+              "match": "\\w+"
+            },
+            {
+              "name": "punctuation.comma.myte",
+              "match": ","
+            }
+          ]
+        }
+      ]
+    },
+    "map-literal": {
+      "name": "meta.map-literal.myte",
+      "begin": "{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "end": "}",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "patterns": [
+        { "include": "#expressions" },
+        {
+          "begin": ":",
+          "beginCaptures": {
+            "0": { "name": "punctuation.colon.myte" }
+          },
+          "end": "(,|(?=}))",
+          "endCaptures": {
+            "1": { "name": "punctuation.comma.myte" }
+          },
+          "patterns": [{ "include": "#expressions" }]
+        }
+      ]
+    },
+    "match": {
+      "name": "meta.match.myte",
+      "begin": "\\b(match)\\b",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.myte" }
+      },
+      "end": "(?<=\\})",
+      "patterns": [
+        { "include": "#comments " },
+        {
+          "name": "meta.match.arguments.myte",
+          "begin": "\\(",
+          "beginCaptures": {
+            "0": { "name": "punctuation.brackets.round.myte" }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": { "name": "punctuation.brackets.round.myte" }
+          },
+          "patterns": [
+            { "include": "#expressions" },
+            {
+              "name": "punctuation.comma.myte",
+              "match": ","
+            }
+          ]
+        },
+        {
+          "name": "meta.match.body.myte",
+          "begin": "{",
+          "beginCaptures": {
+            "0": { "name": "punctuation.brackets.curly.myte" }
+          },
+          "end": "}",
+          "endCaptures": {
+            "0": { "name": "punctuation.brackets.curly.myte" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            {
+              "name": "meta.match.case.myte",
+              "begin": "(?<=\\{)|(\\|)",
+              "beginCaptures": {
+                "1": { "name": "keyword.operator.or.myte" }
+              },
+              "end": "(?=\\||\\})",
+              "patterns": [
+                {
+                  "name": "meta.match.case.guard.myte",
+                  "begin": "\\bwhen\\b",
+                  "beginCaptures": {
+                    "0": { "name": "keyword.control.when.myte" }
+                  },
+                  "end": "(?=->)",
+                  "patterns": [{ "include": "#expressions" }]
+                },
+                { "include": "#pattern" },
+                {
+                  "name": "meta.match.case.right.myte",
+                  "begin": "->",
+                  "beginCaptures": {
+                    "0": { "name": "keyword.operator.arrow.myte" }
+                  },
+                  "end": "(?=\\||\\})",
+                  "patterns": [{ "include": "#statements" }]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "module": {
+      "meta": "meta.module.myte",
+      "begin": "\\b(module)\\b",
+      "beginCaptures": {
+        "1": { "name": "storage.type.myte" }
+      },
+      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
+      "patterns": [
+        { "include": "#comments" },
+        {
+          "name": "entity.name.module.myte",
+          "match": "\\w+"
+        },
+        {
+          "name": "keyword.operator.accessor.myte",
+          "match": "\\."
+        }
+      ]
+    },
+    "named-record-expression": {
+      "name": "meta.named-record-expression.myte",
+      "begin": "\\b(\\w+)\\s*(\\{)",
+      "beginCaptures": {
+        "1": { "name": "entity.name.constructor.myte" },
+        "2": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "end": "}",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "patterns": [
+        {
+          "match": "\\b(\\w+)\\s*(,|(?=}))",
+          "captures": {
+            "1": { "name": "variable.other.myte" },
+            "2": { "name": "punctuation.comma.myte" }
+          }
+        },
+        {
+          "begin": "\\b(\\w+)\\s*(:)",
+          "beginCaptures": {
+            "1": { "name": "variable.other.field.myte" },
+            "2": { "name": "punctuation.colon.myte" }
+          },
+          "end": "(,|(?=}))",
+          "endCaptures": {
+            "1": { "name": "punctuation.comma.myte" }
+          },
+          "patterns": [{ "include": "#expressions" }]
+        },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "named-record-pattern": {
+      "name": "meta.named-record-pattern.myte",
+      "begin": "\\b(\\w+)\\s*(\\{)",
+      "beginCaptures": {
+        "1": { "name": "entity.name.constructor.myte" },
+        "2": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "end": "}",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "patterns": [
+        {
+          "match": "\\b(\\w+)\\s*(,|(?=}))",
+          "captures": {
+            "1": { "name": "variable.other.myte" },
+            "2": { "name": "punctuation.comma.myte" }
+          }
+        },
+        {
+          "begin": "\\b(\\w+)\\s*(:)",
+          "beginCaptures": {
+            "1": { "name": "variable.other.field.myte" },
+            "2": { "name": "punctuation.colon.myte" }
+          },
+          "end": "(,|(?=}))",
+          "endCaptures": {
+            "1": { "name": "punctuation.comma.myte" }
+          },
+          "patterns": [{ "include": "#pattern" }]
+        },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "named-tuple-expression": {
+      "name": "meta.named-tuple-expression",
+      "begin": "\\b([A-Z]\\w*)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.name.constructor.myte" },
+        "2": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "1": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        { "include": "#expressions" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "named-tuple-pattern": {
+      "name": "meta.named-tuple-pattern",
+      "begin": "\\b(\\w+)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.name.constructor.myte" },
+        "2": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "1": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        { "include": "#pattern" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "pattern": {
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#literals" },
+        { "include": "#string" },
+        { "include": "#named-tuple-pattern" },
+        { "include": "#named-record-pattern" },
+        { "include": "#parenthesized-pattern" },
+        {
+          "name": "keyword.operator.or.myte",
+          "match": "\\|"
+        },
+        {
+          "name": "keyword.other.as.myte",
+          "match": "\\bas\\b"
+        },
+        {
+          "name": "variable.other.constant.myte",
+          "match": "\\b[A-Z0-9_]+\\b"
+        },
+        {
+          "name": "entity.name.constructor.myte",
+          "match": "\\b[A-Z]\\w+\\b"
+        },
+        {
+          "name": "variable.other.myte",
+          "match": "\\b\\w+\\b"
+        }
+      ]
+    },
+    "parenthesized-expression": {
+      "name": "meta.parenthesized-expression.myte",
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        { "include": "#expressions" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        },
+        {
+          "begin": ":",
+          "beginCaptures": {
+            "0": { "name": "punctuation.colon.myte" }
+          },
+          "end": "(?=\\))",
+          "patterns": [{ "include": "#types" }]
+        }
+      ]
+    },
+    "parenthesized-pattern": {
+      "name": "meta.parenthesized-pattern.myte",
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        { "include": "#pattern" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "record-type": {
+      "begin": "{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "end": "}",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.curly.myte" }
+      },
+      "patterns": [
+        {
+          "match": "(\\w+)\\s*(:)",
+          "captures": {
+            "1": { "name": "variable.other.field.myte" },
+            "2": { "name": "punctuation.colon.myte" }
+          }
+        },
+        { "include": "#types" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "set-literal": {
+      "name": "meta.set-literal.myte",
+      "begin": "{\\|",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.set-open.myte" }
+      },
+      "end": "\\|}",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.set-close.myte" }
+      },
+      "patterns": [
+        { "include": "#expressions" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "statements": {
+      "patterns": [
+        { "include": "#comments" },
+        {
+          "name": "punctuation.semicolon.myte",
+          "match": ";"
+        },
+        { "include": "#function-declarations" },
+        { "include": "#variable-declarations" },
+        {
+          "name": "keyword.control.myte",
+          "match": "\\b(while|break|continue|return)\\b"
+        },
+        { "include": "#for" },
+        { "include": "#if" },
+        { "include": "#match" },
+        { "include": "#set-literal" },
+        { "include": "#block" },
+        { "include": "#expressions" }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.double.myte",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.myte",
+          "match": "\\\\(n|r|t|\\\\|\")"
+        },
+        {
+          "name": "constant.character.escape.hex.myte",
+          "match": "\\\\x[0-9a-fA-F]{2}"
+        }
+      ]
+    },
+    "string-interpolation": {
+      "name": "string.interpolated.myte",
+      "begin": "`",
+      "end": "`",
+      "patterns": [
+        {
+          "name": "constant.character.escape.myte",
+          "match": "\\\\(n|r|t|\\\\|`|\\$)"
+        },
+        {
+          "name": "constant.character.escape.hex.myte",
+          "match": "\\\\x[0-9a-fA-F]{2}"
+        },
+        {
+          "name": "meta.template.expression.myte",
+          "begin": "\\${",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.template-expression.begin.myte"
+            }
+          },
+          "end": "}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.template-expression.begin.myte"
+            }
+          },
+          "patterns": [{ "include": "#expressions" }]
+        }
+      ]
+    },
+    "trait-declarations": {
+      "name": "meta.trait-declaration.myte",
+      "begin": "\\b(trait|methods)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": { "name": "storage.type.myte" },
+        "2": { "name": "entity.name.type.myte" }
+      },
+      "end": "(?<=\\})",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#type-parameters" },
+        {
+          "begin": "{",
+          "beginCaptures": {
+            "0": { "name": "punctuation.brackets.curly.myte" }
+          },
+          "end": "}",
+          "endCaptures": {
+            "0": { "name": "punctuation.brackets.curly.myte" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            {
+              "name": "meta.trait-implemented.myte",
+              "begin": "\\b(extends|implements)\\b",
+              "beginCaptures": {
+                "1": { "name": "storage.modifier.myte" }
+              },
+              "end": "(?=\\})|(?=\\b(fun|builtin|override|static|extends|implements)\\b)",
+              "patterns": [{ "include": "#types" }]
+            },
+            {
+              "name": "storage.modifier.myte",
+              "match": "\\b(builtin)\\b"
+            },
+            {
+              "name": "storage.modifier.myte",
+              "match": "\\b(override)\\b"
+            },
+            {
+              "name": "storage.modifier.myte",
+              "match": "\\b(static)\\b"
+            },
+            { "include": "#function-declarations" },
+            { "include": "#function-bodies" }
+          ]
+        }
+      ]
+    },
+    "tuple-type": {
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        { "include": "#types" },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#function-type" },
+        { "include": "#tuple-type" },
+        {
+          "name": "keyword.operator.arrow.myte",
+          "match": "->"
+        },
+        {
+          "match": "(\\btrait)?\\s*\\b(\\w+)\\s*(\\.)",
+          "captures": {
+            "1": { "name": "storage.modifier.myte" },
+            "2": { "name": "entity.name.type.myte" },
+            "3": { "name": "keyword.operator.accessor.myte" }
+          }
+        },
+        {
+          "begin": "(\\btrait)?\\s*\\b(\\w+)\\s*(<)",
+          "beginCaptures": {
+            "1": { "name": "storage.modifier.myte" },
+            "2": { "name": "entity.name.type.myte" },
+            "3": { "name": "punctuation.brackets.angle.myte" }
+          },
+          "end": ">",
+          "endCaptures": {
+            "0": { "name": "punctuation.brackets.angle.myte" }
+          },
+          "patterns": [{ "include": "#types" }]
+        },
+        {
+          "match": "\\b(trait)\\s+(\\w+)\\b",
+          "captures": {
+            "1": { "name": "storage.modifier.myte" },
+            "2": { "name": "entity.name.type.myte" }
+          }
+        },
+        {
+          "name": "entity.name.type.myte",
+          "match": "\\w+"
+        }
+      ]
+    },
+    "type-declarations": {
+      "patterns": [
+        {
+          "name": "meta.type-alias-declaration.myte",
+          "begin": "\\b(type)\\b\\s+(alias)\\b\\s+(\\w+)",
+          "beginCaptures": {
+            "1": { "name": "storage.type.myte" },
+            "2": { "name": "storage.modifier.myte" },
+            "3": { "name": "entity.name.type.myte" }
+          },
+          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
+          "patterns": [
+            { "include": "#type-parameters" },
+            {
+              "begin": "(=)\\s*(trait\\b)?",
+              "beginCaptures": {
+                "1": { "name": "keyword.operator.assigment.myte" },
+                "2": { "name": "storage.modifier.myte" }
+              },
+              "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
+              "patterns": [{ "include": "#types" }]
+            }
+          ]
+        },
+        {
+          "name": "meta.type-declaration.myte",
+          "begin": "\\b(builtin)?\\s*\\b(type)\\s+(\\w+)",
+          "beginCaptures": {
+            "1": { "name": "storage.modifier.myte" },
+            "2": { "name": "storage.type.myte" },
+            "3": {
+              "name": "entity.name.type.myte entity.name.constructor.myte"
+            }
+          },
+          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#type-parameters" },
+            { "include": "#tuple-type" },
+            { "include": "#record-type" },
+            {
+              "begin": "=",
+              "beginCaptures": {
+                "0": { "name": "keyword.operator.assigment.myte" }
+              },
+              "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)",
+              "patterns": [
+                { "include": "#comments" },
+                {
+                  "name": "entity.name.constructor.myte",
+                  "match": "\\w+"
+                },
+                {
+                  "name": "keyword.operator.or.myte",
+                  "match": "\\|"
+                },
+                { "include": "#tuple-type" },
+                { "include": "#record-type" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "type-parameters": {
+      "name": "meta.type.parameters.myte",
+      "begin": "<",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.angle.myte" }
+      },
+      "end": ">",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.angle.myte" }
+      },
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#types" },
+        {
+          "name": "punctuation.colon.myte",
+          "match": ":"
+        },
+        {
+          "name": "punctuation.comma.myte",
+          "match": ","
+        },
+        {
+          "name": "keyword.operator.and.myte",
+          "match": "&"
+        }
+      ]
+    },
+    "variable-declarations": {
+      "name": "meta.variable-declaration.myte",
+      "begin": "\\b(val|var)\\b",
+      "beginCaptures": {
+        "1": { "name": "storage.type.myte" }
+      },
+      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)|(?=;)",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#pattern" },
+        {
+          "begin": ":",
+          "beginCaptures": {
+            "0": { "name": "punctuation.colon.myte" }
+          },
+          "end": "(?==)",
+          "patterns": [{ "include": "#comments" }, { "include": "#types" }]
+        },
+        {
+          "begin": "=",
+          "beginCaptures": {
+            "0": { "name": "keyword.operator.assigment.myte" }
+          },
+          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|builtin)\\b)|(?=;)",
+          "patterns": [{ "include": "#expressions" }]
+        }
+      ]
+    }
+  },
+  "scopeName": "source.myte"
 }

@@ -758,10 +758,19 @@ fun nodeOfAnonymousFunction(func: ast.AnonymousFunction): PrintNode {
     name: "AnonymousFunction",
     loc,
     fields: [
-      ("params", List (params.map(nodeOfFunctionParam))),
+      ("params", List (params.map(nodeOfAnonymousFunctionParam))),
       ("return", optional(return_, nodeOfType)),
       ("body", body),
     ]
+  };
+}
+
+fun nodeOfAnonymousFunctionParam(param: ast.AnonymousFunctionParam): PrintNode {
+  val ast.AnonymousFunctionParam { loc, name, annot } = param;
+  return Node {
+    name: "Param",
+    loc,
+    fields: [("name", nodeOfIdentifier(name)), ("annot", optional(annot, nodeOfType))],
   };
 }
 

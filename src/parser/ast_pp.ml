@@ -383,10 +383,15 @@ and node_of_anonymous_function func =
     "AnonymousFunction"
     loc
     [
-      ("params", List (List.map node_of_function_param params));
+      ("params", List (List.map node_of_anonymous_function_param params));
       ("return", opt node_of_type return);
       ("body", body);
     ]
+
+and node_of_anonymous_function_param param =
+  let open Expression.AnonymousFunction.Param in
+  let { loc; name; annot } = param in
+  node "Param" loc [("name", node_of_identifier name); ("annot", opt node_of_type annot)]
 
 and node_of_unwrap unwrap =
   let { Expression.Unwrap.loc; operand } = unwrap in

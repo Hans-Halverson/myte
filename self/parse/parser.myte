@@ -367,6 +367,47 @@ methods Parser {
     return (params, return_);
   }
 
+  fun parseAnonymousFunctionSignature(): (Vec<ast.AnonymousFunctionParam>, Option<ast.Type>) {
+    // Parse function parameters
+    val params: Vec<ast.AnonymousFunctionParam> = [];
+    this.expect(token.LeftParen);
+
+    while (this.token != token.RightParen) {
+      val startLoc = this.loc;
+      val name = this.parseIdentifier();
+
+      val annot = match (this.token) {
+        | token.Colon -> {
+          this.advance();
+          Some (this.parseType())
+        }
+        | _ -> None
+      };
+
+      val loc = this.currentLoc(startLoc);
+      params.push(ast.AnonymousFunctionParam { loc, name, annot });
+
+      match (this.token) {
+        | token.RightParen -> ()
+        | token.Comma -> this.advance()
+        | _ -> this.expect(token.RightParen)
+      }
+    }
+
+    this.advance();
+
+    // Parse optional return type
+    val return_ = match (this.token) {
+      | token.Colon -> {
+        this.advance();
+        Some (this.parseType())
+      }
+      | _ -> None
+    };
+
+    return (params, return_);
+  }
+
   fun parseVariableDeclaration(isToplevel: Bool): ast.VariableDeclaration {
     val startLoc = this.loc;
     val kind = if (this.token == token.Val) {
@@ -1430,7 +1471,7 @@ methods Parser {
     val startLoc = this.loc;
     this.expect(token.Fn);
 
-    val (params, return_) = this.parseFunctionSignature();
+    val (params, return_) = this.parseAnonymousFunctionSignature();
 
     // Parse function body
     val body = match (this.token) {
