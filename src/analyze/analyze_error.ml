@@ -51,8 +51,7 @@ type t =
   | ToplevelVarWithoutAnnotation
   | ToplevelVarWithPattern
   | IncompatibleTypes of Type.t * Type.t list
-  | CannotInferType of
-      cannot_infer_type_kind * (Type.t * TVar.t list * BoundedExistential.t list) option
+  | CannotInferType of cannot_infer_type_kind * (Type.t * Type.t list) option
   | OperatorRequiresTrait of operator_requires_trait_kind * Type.t
   | InterpolatedExpressionRequiresToString of Type.t
   | ForLoopRequiresIterable of Type.t
@@ -360,12 +359,8 @@ let to_string error =
     let partial_string =
       match partial with
       | None -> ""
-      | Some (partial_type, unresolved_tvar_ids, unresolved_existentials) ->
-        let type_strings =
-          Types.pps
-            ( (partial_type :: List.map (fun id -> Type.TVar id) unresolved_tvar_ids)
-            @ List.map (fun exist -> Type.BoundedExistential exist) unresolved_existentials )
-        in
+      | Some (partial_type, unresolved_types) ->
+        let type_strings = Types.pps (partial_type :: unresolved_types) in
         let partial_type_string = List.hd type_strings in
         let unresolved_type_names = List.tl type_strings |> List.map (fun s -> "`" ^ s ^ "`") in
         let unresolved_types = Error_utils.concat_with_or unresolved_type_names in

@@ -324,7 +324,9 @@ and Type : sig
   type t =
     | TVar of TVar.t
     | TypeParam of TypeParam.t
-    | Any
+    (* Optional source tvar if this was an unresolved tvar converted to an Any. TVar is retained
+       for printing. *)
+    | Any of TVar.t option
     | Never
     | Unit
     | Bool
@@ -344,12 +346,14 @@ end =
 type unresolved_type =
   | UnresolvedTVar of TVar.t
   | UnresolvedBoundedExistential of BoundedExistential.t
+  | AlreadyResolvedTVar of TVar.t
 
 let rec visit_unresolved_types f ty =
   let open Type in
   match ty with
   | TVar tvar_id -> f (UnresolvedTVar tvar_id)
   | BoundedExistential ({ resolved = None; _ } as ty) -> f (UnresolvedBoundedExistential ty)
+  | Any (Some tvar_id) -> f (AlreadyResolvedTVar tvar_id)
   | Tuple elements -> List.iter (visit_unresolved_types f) elements
   | Function { type_args = _; params; return } ->
     List.iter (visit_unresolved_types f) params;
@@ -365,6 +369,8 @@ let get_all_unresolved_types ty =
   let tvars = ref [] in
   let all_tvars = ref ISet.empty in
   let existentials = ref [] in
+  let already_resolved_tvars = ref [] in
+  let all_already_resolved_tvars = ref ISet.empty in
   visit_unresolved_types
     (fun ty ->
       match ty with
@@ -375,15 +381,30 @@ let get_all_unresolved_types ty =
         )
       | UnresolvedBoundedExistential exist ->
         if List.for_all (fun ty -> ty != exist) !existentials then
-          existentials := exist :: !existentials)
+          existentials := exist :: !existentials
+      | AlreadyResolvedTVar tvar ->
+        if not (ISet.mem tvar !all_already_resolved_tvars) then (
+          already_resolved_tvars := tvar :: !already_resolved_tvars;
+          all_already_resolved_tvars := ISet.add tvar !all_already_resolved_tvars
+        ))
     ty;
-  (List.rev !tvars, List.rev !existentials)
+
+  (* Include already resolved tvars if there are any unresolved tvars or existentials *)
+  let tvars =
+    if !tvars <> [] || !existentials <> [] then
+      !already_resolved_tvars @ !tvars
+    else
+      !tvars
+  in
+
+  (List.rev tvars, List.rev !existentials)
 
 let get_all_tvars_with_duplicates ty =
   let rec inner acc ty =
     let open Type in
     match ty with
     | TVar tvar_id -> tvar_id :: acc
+    | Any (Some tvar_id) -> tvar_id :: acc
     | Tuple elements -> List.fold_left inner acc elements
     | Function { type_args = _; params; return } ->
       let acc = List.fold_left inner acc params in
@@ -417,7 +438,7 @@ let rec has_type_param type_param ty =
   match ty with
   | Type.TypeParam { id; bounds; _ } ->
     id = type_param.TypeParam.id || trait_bounds_have_type_param bounds
-  | Any
+  | Any _
   | Never
   | Unit
   | Bool
@@ -447,7 +468,7 @@ let rec substitute_type_params type_params ty =
       bounds
   in
   match ty with
-  | Any
+  | Any _
   | Never
   | Unit
   | Bool
@@ -543,7 +564,7 @@ let rec pp_with_names ~tvar_to_name ty =
     String.concat " & " pp_bounds
   in
   match ty with
-  | Any -> "Any"
+  | Any None -> "Any"
   | Never -> "Never"
   | Unit -> "Unit"
   | Bool -> "Bool"
@@ -559,7 +580,9 @@ let rec pp_with_names ~tvar_to_name ty =
   | ADT { adt_sig = { name; _ }; type_args }
   | TraitBound { trait_sig = { name; _ }; type_args } ->
     pp_name_with_args name type_args
-  | TVar tvar_id -> IMap.find tvar_id tvar_to_name
+  | TVar tvar_id
+  | Any (Some tvar_id) ->
+    IMap.find tvar_id tvar_to_name
   | TypeParam { TypeParam.name; id = _; bounds } ->
     (match name with
     | Implicit -> "implicit " ^ pp_trait_bounds bounds
@@ -639,5 +662,7 @@ let get_record_variant adt_sig name =
   match SMap.find name adt_sig.variants with
   | { kind = Record field_sigs; _ } -> field_sigs
   | _ -> failwith "Expected Record"
+
+let any = Type.Any None
 
 module TraitSigMap = Map.Make (TraitSig)

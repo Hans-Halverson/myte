@@ -787,7 +787,7 @@ and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
   | TypeParam _
   | TraitBound _
   | TVar _
-  | Any ->
+  | Any _ ->
     failwith "Not allowed as value in IR"
 
 and get_zero_size_type ~ecx =

@@ -59,7 +59,7 @@ module FunctionDeclaration = struct
       is_signature;
       type_params = [];
       params = [];
-      return = Any;
+      return = Types.any;
       this_binding_id = None;
     }
 end
@@ -73,7 +73,7 @@ module TypeAliasDeclaration = struct
     mutable body: Type.t;
   }
 
-  let mk () = { type_params = []; body = Any }
+  let mk () = { type_params = []; body = Types.any }
 end
 
 module TypeParamDeclaration = struct

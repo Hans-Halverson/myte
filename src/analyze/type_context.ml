@@ -250,7 +250,7 @@ let rec find_rep_type ~cx (ty : Type.t) =
       { TraitSig.trait_sig; type_args = type_args' }
   in
   match ty with
-  | Any
+  | Any _
   | Never
   | Unit
   | Bool
@@ -316,7 +316,7 @@ let rec find_rep_type ~cx (ty : Type.t) =
 
 let rec tvar_occurs_in ~cx tvar ty =
   match find_union_rep_type ~cx ty with
-  | Any
+  | Any _
   | Never
   | Unit
   | Bool
@@ -424,7 +424,7 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
 
   match ty with
   (* The any type implements all traits *)
-  | Type.Any -> true
+  | Type.Any _ -> true
   (* Look up known ADT sig in stdlib for each primitive type *)
   | Unit
   | Bool
@@ -459,8 +459,8 @@ and unify ~cx ty1 ty2 =
   | (TVar _, _)
   | (_, TVar _) ->
     union_tvars ~cx rep_ty1 rep_ty2
-  | (Any, _)
-  | (_, Any)
+  | (Any _, _)
+  | (_, Any _)
   | (Never, Never)
   | (Unit, Unit)
   | (Bool, Bool)
@@ -531,8 +531,8 @@ and is_subtype ~cx ~trait_object_promotion_loc sub sup =
   | (_, TVar _) ->
     unify ~cx rep_sub rep_sup
   (* The Any type allows all subtype relations *)
-  | (Any, _)
-  | (_, Any)
+  | (Any _, _)
+  | (_, Any _)
   | (Unit, Unit)
   | (Bool, Bool)
   | (Byte, Byte)
@@ -669,7 +669,8 @@ let get_implemented_trait ty trait_sig =
       bounds
   in
   match ty with
-  | Type.Any -> Some { trait_sig; type_args = List.map (fun _ -> Type.Any) trait_sig.type_params }
+  | Type.Any _ ->
+    Some { trait_sig; type_args = List.map (fun _ -> Types.any) trait_sig.type_params }
   | Unit
   | Bool
   | Byte

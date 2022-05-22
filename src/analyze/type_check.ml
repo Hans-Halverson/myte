@@ -49,7 +49,7 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
         mk_ty ()
       else (
         type_param_arity_error loc num_type_args arity;
-        Type.Any
+        any
       )
     in
     (* Check if this is a builtin type *)
@@ -85,7 +85,7 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
         let num_type_params = List.length adt_sig.type_params in
         if num_type_args <> num_type_params then (
           type_param_arity_error loc num_type_args num_type_params;
-          Type.Any
+          any
         ) else (
           check_type_param_bounds_satisfied adt_sig.type_params type_args type_arg_nodes;
           Type.ADT { adt_sig; type_args }
@@ -96,14 +96,14 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
         (* Implicit type parameters are only allowed in the types of function parameters *)
         | TraitDisallowed ->
           Type_context.add_error ~cx loc ImplicitTypeParamOutsideFunction;
-          Type.Any
+          any
         | TraitImplicitParam _
         | TraitToBound ->
           let trait_sig = trait_decl.trait_sig in
           let num_type_params = List.length trait_sig.type_params in
           if num_type_params <> num_type_args then (
             type_param_arity_error loc num_type_args num_type_params;
-            Type.Any
+            any
           ) else (
             check_type_param_bounds_satisfied trait_sig.type_params type_args type_arg_nodes;
             (* Create implicit type parameter and save in list of implicits *)
@@ -121,7 +121,7 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
     (match binding.declaration with
     | TraitDecl { trait_sig = { can_be_trait_object = Some false; _ }; _ } ->
       Type_context.add_error ~cx loc InvalidTraitObject;
-      Type.Any
+      any
     | TraitDecl { trait_sig; _ } ->
       if trait_sig.can_be_trait_object = None then
         Type_context.add_unchecked_trait_object_use ~cx trait_sig loc;
@@ -129,14 +129,14 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
       let num_type_params = List.length trait_sig.type_params in
       if num_type_params <> num_type_args then (
         type_param_arity_error loc num_type_args num_type_params;
-        Type.Any
+        any
       ) else (
         check_type_param_bounds_satisfied trait_sig.type_params type_args type_arg_nodes;
         Type.TraitObject { TraitSig.trait_sig; type_args }
       )
     | _ ->
       Type_context.add_error ~cx loc TraitObjectExpectsTrait;
-      Type.Any)
+      any)
 
 (* Build type parameters for all types, traits, and aliases. Type parameter bounds are built, but
    are not yet checked for correctness. *)
@@ -841,17 +841,16 @@ and check_variable_declaration_bindings
   | None ->
     (* If expression's type is fully resolved then use as type of id, otherwise error
        requesting an annotation. *)
-    let rep_ty = Type_context.find_rep_type ~cx expr_ty in
-    let (unresolved_tvars, unresolved_existentials) = Types.get_all_unresolved_types rep_ty in
-    if unresolved_tvars = [] && unresolved_existentials = [] then
-      Type_context.assert_unify ~cx expr_loc expr_ty (TVar pattern_tvar_id)
-    else
-      let partial =
-        match rep_ty with
-        | TVar _ -> None
-        | _ -> Some (rep_ty, unresolved_tvars, unresolved_existentials)
-      in
-      Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeVariableDeclaration, partial))
+    let is_fully_resolved =
+      check_fully_resolved ~cx loc expr_ty CannotInferTypeVariableDeclaration
+    in
+    let expr_ty =
+      if is_fully_resolved then
+        Type_context.find_rep_type ~cx expr_ty
+      else
+        any
+    in
+    Type_context.assert_unify ~cx expr_loc expr_ty (TVar pattern_tvar_id)
   | Some annot ->
     let annot_ty = build_type ~cx annot in
     if Type_context.unify ~cx annot_ty (TVar pattern_tvar_id) then
@@ -965,7 +964,7 @@ and check_expression ~cx expr =
       (* If we reach a super this cannot be part of an access *)
       | ThisDecl _ when name = "super" ->
         Type_context.add_error ~cx loc SuperWithoutAccess;
-        Any
+        any
       (* Otherwise identifier has same type as its declaration *)
       | FunParamDecl { tvar; _ }
       | MatchCaseVarDecl { tvar }
@@ -1044,7 +1043,7 @@ and check_expression ~cx expr =
       match (operand_rep_ty, op) with
       | ((Byte | Int | Long | IntLiteral _), (Plus | Minus | Not))
       | (Bool, Not)
-      | (Any, _) ->
+      | (Any _, _) ->
         operand_rep_ty
       | _ ->
         let expected_tys =
@@ -1055,7 +1054,7 @@ and check_expression ~cx expr =
           | Not -> [Type.Bool; Type.Int]
         in
         Type_context.add_error ~cx operand_loc (IncompatibleTypes (operand_rep_ty, expected_tys));
-        Any
+        any
     in
     ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
     (loc, tvar_id)
@@ -1073,7 +1072,7 @@ and check_expression ~cx expr =
     let is_integer_or_string tvar_id =
       let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
       match rep_ty with
-      | Any
+      | Any _
       | Byte
       | Int
       | Long
@@ -1118,7 +1117,7 @@ and check_expression ~cx expr =
         (* Otherwise force expression's type to be any to avoid erroring at uses *)
         error_not_int left_loc left_tvar_id;
         error_not_int right_loc right_tvar_id;
-        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+        ignore (Type_context.unify ~cx any (TVar tvar_id))
       )
     | LeftShift
     | ArithmeticRightShift
@@ -1128,7 +1127,7 @@ and check_expression ~cx expr =
         ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id))
       else (
         error_not_int left_loc left_tvar_id;
-        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+        ignore (Type_context.unify ~cx any (TVar tvar_id))
       );
       (* Right expression must also be an int, but does not need to be same type as left *)
       if not (is_integer right_tvar_id) then error_not_int right_loc right_tvar_id
@@ -1153,7 +1152,7 @@ and check_expression ~cx expr =
           ~cx
           left_loc
           (OperatorRequiresTrait (err_kind, Type_context.find_rep_type ~cx (TVar left_tvar_id)));
-        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+        ignore (Type_context.unify ~cx any (TVar tvar_id))
     | LessThan
     | GreaterThan
     | LessThanOrEqual
@@ -1204,7 +1203,7 @@ and check_expression ~cx expr =
               ~cx
               loc
               (IncorrectTupleConstructorArity (List.length args, List.length elements));
-            ignore (Type_context.unify ~cx Any (TVar tvar_id));
+            ignore (Type_context.unify ~cx any (TVar tvar_id));
             true
           (* Supplied arguments must each be a subtype of the element types. Overall expression
              type is the ADT's type. *)
@@ -1228,7 +1227,7 @@ and check_expression ~cx expr =
           (* Special error if record constructor is called as a function *)
           | Record _ ->
             Type_context.add_error ~cx loc (RecordConstructorCalled name);
-            ignore (Type_context.unify ~cx Any (TVar tvar_id));
+            ignore (Type_context.unify ~cx any (TVar tvar_id));
             true
           | Enum -> false)
         | _ -> false)
@@ -1246,7 +1245,7 @@ and check_expression ~cx expr =
           ~cx
           loc
           (IncorrectFunctionArity (List.length args, List.length params));
-        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+        ignore (Type_context.unify ~cx any (TVar tvar_id))
       (* Supplied arguments must each be a subtype of the annotated parameter type *)
       | Function { type_args = _; params; return } ->
         List.iter2
@@ -1256,14 +1255,14 @@ and check_expression ~cx expr =
           params;
         ignore (Type_context.unify ~cx return (TVar tvar_id))
       (* Do not error on any being called *)
-      | Any -> ignore (Type_context.unify ~cx Any (TVar tvar_id))
+      | Any _ -> ignore (Type_context.unify ~cx func_rep_ty (TVar tvar_id))
       (* Error if type other than a function is called *)
       | _ ->
         Type_context.add_error
           ~cx
           func_loc
           (NonFunctionCalled (Type_context.find_rep_type ~cx (TVar func_tvar_id)));
-        ignore (Type_context.unify ~cx Any (TVar tvar_id)) );
+        ignore (Type_context.unify ~cx any (TVar tvar_id)) );
     (loc, tvar_id)
   (*
    * ============================
@@ -1353,7 +1352,7 @@ and check_expression ~cx expr =
               if missing_fields = [] && unexpected_fields = [] then
                 adt
               else
-                Any
+                any
             in
             ignore (Type_context.unify ~cx result_ty (TVar tvar_id));
             true
@@ -1367,7 +1366,7 @@ and check_expression ~cx expr =
         ~cx
         (Ast_utils.expression_loc name)
         (ExpectedConstructorKind (false, true));
-      ignore (Type_context.unify ~cx Any (TVar tvar_id))
+      ignore (Type_context.unify ~cx any (TVar tvar_id))
     );
     (loc, tvar_id)
   (*
@@ -1397,12 +1396,12 @@ and check_expression ~cx expr =
               Types.substitute_type_params type_param_bindings element_ty
           | _ ->
             Type_context.add_error ~cx index_loc (TupleIndexOutOfBounds (List.length elements));
-            Type.Any
+            any
         in
         ignore (Type_context.unify ~cx ty (TVar tvar_id))
       | _ ->
         Type_context.add_error ~cx index_loc TupleIndexIsNotLiteral;
-        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+        ignore (Type_context.unify ~cx any (TVar tvar_id))
     in
     let check_arrayish_indexed_access element_ty =
       (* Verify that index is an integer *)
@@ -1415,7 +1414,7 @@ and check_expression ~cx expr =
         ignore (Type_context.unify ~cx element_ty (TVar tvar_id))
       | ty ->
         Type_context.add_error ~cx index_loc (IndexIsNotInteger (Type_context.find_rep_type ~cx ty));
-        ignore (Type_context.unify ~cx Any (TVar tvar_id))
+        ignore (Type_context.unify ~cx any (TVar tvar_id))
     in
     let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
     let is_indexable_ty =
@@ -1444,14 +1443,14 @@ and check_expression ~cx expr =
           true
         | _ -> false)
       (* Propagate anys *)
-      | Any ->
-        ignore (Type_context.unify ~cx Any (TVar tvar_id));
+      | Any _ ->
+        ignore (Type_context.unify ~cx target_rep_ty (TVar tvar_id));
         true
       | _ -> false
     in
     if not is_indexable_ty then (
       Type_context.add_error ~cx target_loc (NonIndexableIndexed target_rep_ty);
-      ignore (Type_context.unify ~cx Any (TVar tvar_id))
+      ignore (Type_context.unify ~cx any (TVar tvar_id))
     );
     (loc, tvar_id)
   (*
@@ -1543,8 +1542,8 @@ and check_expression ~cx expr =
     let is_resolved =
       match target_rep_ty with
       (* Propagate anys *)
-      | Type.Any ->
-        ignore (Type_context.unify ~cx Any (TVar tvar_id));
+      | Type.Any _ ->
+        ignore (Type_context.unify ~cx target_rep_ty (TVar tvar_id));
         true
       | Unit
       | Bool
@@ -1588,7 +1587,7 @@ and check_expression ~cx expr =
 
     if not is_resolved then (
       Type_context.add_error ~cx target_loc (UnresolvedNamedAccess (name.name, target_rep_ty));
-      ignore (Type_context.unify ~cx Type.Any (TVar tvar_id))
+      ignore (Type_context.unify ~cx any (TVar tvar_id))
     );
     (loc, tvar_id)
   (*
@@ -1743,15 +1742,15 @@ and check_expression ~cx expr =
       (* Unwrap expression can only appear within functions *)
       | _ when not (Type_context.is_in_function ~cx) ->
         Type_context.add_error ~cx loc UnwrapOutsideFunction;
-        Type.Any
+        any
       (* Any types are propagated without new errors *)
-      | Any -> Any
+      | Any _ -> any
       (* An unwrapped option type can only be used in a function with return type option (with any
          any element type). *)
       | ADT { adt_sig; type_args = [element_ty] } when adt_sig == !Std_lib.option_adt_sig ->
         let return_ty = return_ty () in
         (match return_ty with
-        | Any -> ()
+        | Any _ -> ()
         | ADT { adt_sig; _ } when adt_sig == !Std_lib.option_adt_sig -> ()
         | _ -> return_error InvalidUnwrappedReturnTypeOption return_ty);
         element_ty
@@ -1760,7 +1759,7 @@ and check_expression ~cx expr =
       | ADT { adt_sig; type_args = [ok_ty; err_ty] } when adt_sig == !Std_lib.result_adt_sig ->
         let return_ty = return_ty () in
         (match return_ty with
-        | Any -> ()
+        | Any _ -> ()
         | ADT { adt_sig; type_args = [_; return_err_ty] } when adt_sig == !Std_lib.result_adt_sig ->
           if not (Type_context.is_subtype ~cx ~trait_object_promotion_loc:None err_ty return_err_ty)
           then
@@ -1770,7 +1769,7 @@ and check_expression ~cx expr =
       (* Only option or result types can be unwrapped *)
       | other_ty ->
         Type_context.add_error ~cx operand_loc (InvalidTypeUnwrapped other_ty);
-        Any
+        any
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
@@ -1810,7 +1809,7 @@ and check_if ~cx ~is_expr if_ =
     | None ->
       if is_expr then (
         Type_context.add_error ~cx loc IfExpressionMissingElse;
-        Type.Any
+        any
       ) else
         Unit
   in
@@ -1921,7 +1920,7 @@ and check_pattern ~cx patt =
     let ty =
       match decl_ty_opt with
       | Some ty -> ty
-      | None -> Type.Any
+      | None -> any
     in
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
@@ -1953,7 +1952,7 @@ and check_pattern ~cx patt =
     let decl_ty =
       match decl_ty_opt with
       | Some ty -> ty
-      | None -> Type.Any
+      | None -> any
     in
     (* Variable must have same type as pattern - note that variable could be declared in multiple or
        patterns so declaration may already have been unified with a type, so assert_unify is needed. *)
@@ -2063,7 +2062,7 @@ and check_pattern ~cx patt =
             ~cx
             loc
             (IncorrectTupleConstructorArity (List.length elements, List.length element_sigs));
-          Some Type.Any
+          Some any
         | Tuple element_sigs ->
           let type_param_bindings = Types.get_adt_type_param_bindings adt in
           List.iter2
@@ -2081,7 +2080,7 @@ and check_pattern ~cx patt =
       match tuple_adt_ty_opt with
       | None ->
         Type_context.add_error ~cx scoped_id.loc (ExpectedConstructorKind (true, false));
-        Type.Any
+        any
       | Some ty -> ty
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
@@ -2160,7 +2159,7 @@ and check_pattern ~cx patt =
           if (not has_unexpected_fields) && not has_missing_fields then
             Some adt
           else
-            Some Any
+            Some any
         | _ -> None)
       | _ -> None
     in
@@ -2169,7 +2168,7 @@ and check_pattern ~cx patt =
       match record_adt_ty_opt with
       | None ->
         Type_context.add_error ~cx scoped_id.loc (ExpectedConstructorKind (false, true));
-        Type.Any
+        any
       | Some ty -> ty
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
@@ -2185,11 +2184,11 @@ and check_enum_variant ~cx name loc ctor_decl =
       Types.fresh_adt_instance adt_sig
   | Tuple elements ->
     Type_context.add_error ~cx loc (IncorrectTupleConstructorArity (0, List.length elements));
-    Any
+    any
   | Record fields ->
     let field_names = SMap.fold (fun name _ names -> name :: names) fields [] |> List.rev in
     Type_context.add_error ~cx loc (MissingRecordConstructorFields field_names);
-    Any
+    any
 
 and check_statement ~cx ~is_expr stmt =
   let open Ast.Statement in
@@ -2317,7 +2316,7 @@ and check_statement ~cx ~is_expr stmt =
       match iter_trait_instance with
       | None ->
         Type_context.add_error ~cx iter_loc (ForLoopRequiresIterable iter_rep_ty);
-        Type.Any
+        any
       | Some { type_args; _ } -> List.hd type_args
     in
     (* Check bindings and optional annotation against iterator element type *)
@@ -2486,7 +2485,7 @@ and check_block ~cx ~is_expr block =
 and is_integer ~cx ty =
   let rep_ty = Type_context.find_rep_type ~cx ty in
   match rep_ty with
-  | Any
+  | Any _
   | Byte
   | Int
   | Long
@@ -2496,6 +2495,32 @@ and is_integer ~cx ty =
 
 and error_not_int ~cx loc ty =
   Type_context.add_error ~cx loc (IncompatibleTypes (Type_context.find_rep_type ~cx ty, [Type.Int]))
+
+and check_fully_resolved ~cx loc ty kind =
+  let rep_ty = Type_context.find_rep_type ~cx ty in
+  let (unresolved_tvars, unresolved_existentials) = Types.get_all_unresolved_types rep_ty in
+  let is_not_fully_resolved = unresolved_tvars <> [] || unresolved_existentials <> [] in
+  ( if is_not_fully_resolved then
+    let partial =
+      match rep_ty with
+      | TVar _ -> None
+      | _ ->
+        let resolved_tvar_anys = List.map (fun id -> Type.Any (Some id)) unresolved_tvars in
+        let unresolved_tvars = List.map (fun id -> Type.TVar id) unresolved_tvars in
+        let unresolved_existentials =
+          List.map (fun exist -> Type.BoundedExistential exist) unresolved_existentials
+        in
+
+        List.iter2
+          (fun ty tvar_any -> ignore (Type_context.unify ~cx tvar_any ty))
+          unresolved_tvars
+          resolved_tvar_anys;
+        List.iter (fun ty -> ignore (Type_context.unify ~cx any ty)) unresolved_existentials;
+
+        Some (rep_ty, unresolved_tvars @ unresolved_existentials)
+    in
+    Type_context.add_error ~cx loc (CannotInferType (kind, partial)) );
+  not is_not_fully_resolved
 
 (* Resolve all IntLiteral placeholder types to an actual integer type. Infer as Int if all
    literals are within the Int range, otherwise infer as Long. *)
@@ -2522,23 +2547,15 @@ class ensure_expressions_typed_visitor ~cx =
         super#function_ decl
 
     method! expression expr =
+      super#expression expr;
       let loc = Ast_utils.expression_loc expr in
-      (match Type_context.get_tvar_from_loc_opt ~cx loc with
+      match Type_context.get_tvar_from_loc_opt ~cx loc with
       (* Some expression nodes not appear in the tvar map, meaning they are never referenced and
          do not need to be checked. *)
       | None -> ()
+      (* Error if expression's type is not fully resolved *)
       | Some tvar_id ->
-        let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
-        (* Error if expression's type is not fully resolved *)
-        let (unresolved_tvars, unresolved_existentials) = Types.get_all_unresolved_types rep_ty in
-        if unresolved_tvars <> [] || unresolved_existentials <> [] then
-          let partial =
-            match rep_ty with
-            | TVar _ -> None
-            | _ -> Some (rep_ty, unresolved_tvars, unresolved_existentials)
-          in
-          Type_context.add_error ~cx loc (CannotInferType (CannotInferTypeExpression, partial)));
-      super#expression expr
+        ignore (check_fully_resolved ~cx loc (TVar tvar_id) CannotInferTypeExpression)
   end
 
 let ensure_all_expression_are_typed ~cx modules =

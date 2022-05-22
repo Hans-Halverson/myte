@@ -1,0 +1,29 @@
+Error: Cannot infer type for expression. Partially inferred `Vec<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/expression/cannot_infer.myte:4:2-4
+ 4 |   [];
+   |   ^^
+
+Error: Cannot infer type for expression. Partially inferred `Option<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/expression/cannot_infer.myte:5:2-6
+ 5 |   None;
+   |   ^^^^
+
+Error: Cannot infer type for expression. Partially inferred `Result<Bool, a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/expression/cannot_infer.myte:6:2-11
+ 6 |   Ok (true);
+   |   ^^^^^^^^^
+
+Error: Cannot infer type for expression. Partially inferred `Vec<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/expression/cannot_infer.myte:11:4-6
+ 11 |   [[[]]];
+    |     ^^
+
+Error: Cannot infer type for expression. Partially inferred `Option<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/expression/cannot_infer.myte:12:3-7
+ 12 |   [None, None, None];
+    |    ^^^^
+
+Error: Cannot infer type for expression. Partially inferred `Vec<a>` but was unable to resolve `a`. Please provide additional type annotations.
+test/analyze/type_check/expression/cannot_infer.myte:13:2-4
+ 13 |   [][0];
+    |   ^^

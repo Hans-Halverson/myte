@@ -1,0 +1,16 @@
+module test
+
+fun cannotInferExpression() {
+  [];
+  None;
+  Ok (true);
+}
+
+fun cannotInferNested() {
+  // Only the first/innermost expression has error, parents do not error
+  [[[]]];
+  [None, None, None];
+  [][0];
+}
+
+fun main() {}

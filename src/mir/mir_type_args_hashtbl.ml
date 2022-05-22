@@ -55,7 +55,7 @@ module TypeArgs = struct
       | ADT { adt_sig = { id; _ }; type_args } -> hash_nums (8 :: id :: List.map hash type_args)
       | TraitObject { trait_sig = { id; _ }; type_args } ->
         hash_nums (9 :: id :: List.map hash type_args)
-      | Any
+      | Any _
       | TVar _
       | TypeParam _
       | TraitBound _
@@ -93,7 +93,7 @@ module TypeArgs = struct
         ty_with_args_to_string loc (IMap.find_opt id (Lazy.force adt_short_names)) type_args
       | TraitObject { trait_sig = { loc; _ }; type_args } ->
         ty_with_args_to_string loc None type_args
-      | Any
+      | Any _
       | TVar _
       | TypeParam _
       | TraitBound _
