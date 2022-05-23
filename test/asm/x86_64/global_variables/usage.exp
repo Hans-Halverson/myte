@@ -7,8 +7,11 @@ test.b:
 test.i:
   .long 0
   .balign 8
-test.f:
+_closure$test.getByte:
   .quad test.getByte
+  .quad 0
+test.f:
+  .quad _closure$test.getByte
 test.l:
   .quad 0
 
@@ -32,5 +35,7 @@ test.testReferencing:
   movl test.i(%rip), %eax
   addl %ecx, %eax
   movq test.f(%rip), %rax
-  callq *%rax
+  movq (%rax), %rcx
+  movq 8(%rax), %rdi
+  callq *%rcx
   ret

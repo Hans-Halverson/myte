@@ -40,6 +40,9 @@ let mk_array_vtable_lit (funcs : Function.t list) : Value.t =
   let size = List.length funcs in
   mk_value (Lit (ArrayVtable (size, funcs)))
 
+let mk_aggregate_closure (ty : Type.t) (func : Function.t) : Value.t =
+  mk_value (Lit (AggregateClosure (ty, func)))
+
 (*
  * ============================
  *   Instruction Constructors

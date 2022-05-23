@@ -37,6 +37,8 @@ let mk_aggregate_id () =
 
 let zero_size_name = "std._ZeroSize"
 
+let closure_type_name = "_closure"
+
 let lookup_element_opt agg name =
   let open Aggregate in
   let rec inner elements i =

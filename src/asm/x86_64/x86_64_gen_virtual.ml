@@ -52,9 +52,17 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     in
     let size = List.length label_values * pointer_size in
     Gcx.add_data ~gcx { label; value = LabelData label_values; size; is_pointer = false }
+  (* Aggregate closure globals are special cased, with 0 set as environment *)
+  | Some { value = { value = Lit (AggregateClosure (_, func)); _ }; _ } ->
+    let func_data = LabelData [label_of_mir_label func.name] in
+    let env_data = ImmediateData (Imm64 0L) in
+    Gcx.add_data
+      ~gcx
+      { label; value = ArrayData [func_data; env_data]; size = ptr_size * 2; is_pointer = false }
   (* Pointer and function literals are labels, so insert into initialized data section *)
   | Some { value = { value = Lit (Global { name = init_label; _ }); _ }; _ }
   | Some { value = { value = Lit (Function { name = init_label; _ }); _ }; _ } ->
+    let init_label = label_of_mir_label init_label in
     let is_pointer = is_pointer_type global.type_ in
     let data = { label; value = LabelData [init_label]; size = pointer_size; is_pointer } in
     Gcx.add_data ~gcx data
@@ -1277,7 +1285,8 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
   | Lit (NullPointer _) -> SImm (Imm64 0L)
   | Lit (ArrayString _)
   | Lit (ArrayVtable _) ->
-    failwith "TODO: Cannot compile array literals yet"
+    failwith "TODO: Cannot compile array literals"
+  | Lit (AggregateClosure _) -> failwith "TODO: Cannot compile aggregate literals"
   | Instr { id; type_; _ }
   | Argument { id; type_; _ } ->
     let op = mk_virtual_register_of_value_id ~value_id:id ~type_ in

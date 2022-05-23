@@ -73,6 +73,9 @@ and Literal : sig
     | MyteBuiltin of string
     | ArrayString of string
     | ArrayVtable of int * Function.t list
+    (* A closure aggregate for a known function, where the environment is the null pointer. Also
+       contains closure type. *)
+    | AggregateClosure of Type.t * Function.t
 end =
   Literal
 
@@ -372,6 +375,7 @@ and type_of_literal (lit : Literal.t) : Type.t =
   | NullPointer ty -> Pointer ty
   | ArrayString str -> Array (Byte, String.length str)
   | ArrayVtable (size, _) -> Array (Function, size)
+  | AggregateClosure (type_, _) -> type_
 
 let pointer_value_element_type (ptr : Value.t) : Type.t =
   match type_of_value ptr with

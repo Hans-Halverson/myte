@@ -1,3 +1,5 @@
+type _closure {fn, byte*}
+
 type test.Tup1<Bool> {bool, int}
 
 type test.Tup1<Byte> {byte, int}
@@ -64,9 +66,11 @@ func void @test.testSingleParameter() {
   Ret
 }
 
-func fn @test.testInstantiationFromNonCallUse() {
-  Ret @test.id<Unit>
+func _closure* @test.testInstantiationFromNonCallUse() {
+  Ret @_closure$test.id<Unit>
 }
+
+global _closure @_closure$test.id<Unit> = {@test.id<Unit>, null}
 
 func int @test.main() {
   Ret 0

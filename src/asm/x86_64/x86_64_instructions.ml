@@ -317,6 +317,7 @@ type data_value =
   | ImmediateData of immediate
   | AsciiData of string
   | LabelData of string list
+  | ArrayData of data_value list
 
 type 'a data_item = {
   label: label;
@@ -367,11 +368,21 @@ let int64_of_immediate imm =
   | Imm32 i -> Int64.of_int32 i
   | Imm64 i -> i
 
-let align_of_data_value d =
+let rec align_of_data_value d =
   match d with
   | ImmediateData imm -> bytes_of_size (size_of_immediate imm)
   | AsciiData _ -> 1
   | LabelData _ -> 8
+  | ArrayData data ->
+    List.fold_left
+      (fun max_align value ->
+        let align = align_of_data_value value in
+        if align > max_align then
+          align
+        else
+          max_align)
+      1
+      data
 
 let align_to_data_section_align_index align =
   match align with

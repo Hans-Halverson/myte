@@ -635,6 +635,23 @@ and instantiate_tuple ~ecx element_types =
       TypeArgsHashtbl.add ecx.tuple_instantiations element_types agg;
       Some agg
 
+and get_closure_global_value ~ecx ~loc ~func =
+  let closure_global_name = "_closure$" ^ func.Function.name in
+  match SMap.find_opt closure_global_name ecx.program.globals with
+  | Some global -> global.value
+  | None ->
+    let closure_ty = get_closure_type ~ecx in
+    let global =
+      mk_global
+        ~loc
+        ~name:closure_global_name
+        ~type_:(get_closure_type ~ecx)
+        ~init_val:(Some (mk_aggregate_closure closure_ty func))
+        ~is_constant:false
+    in
+    add_global ~ecx global;
+    global.value
+
 and get_trait_object_layout ~ecx (trait_sig : Types.TraitSig.t) =
   match IMap.find_opt trait_sig.id ecx.trait_sig_to_trait_object_layout with
   | Some trait_object -> trait_object
@@ -782,7 +799,7 @@ and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
   | IntLiteral { resolved; _ }
   | BoundedExistential { resolved; _ } ->
     to_mir_type ~ecx (Option.get resolved)
-  | Function _ -> Some Function
+  | Function _ -> Some (Pointer (get_closure_type ~ecx))
   | Tuple elements ->
     instantiate_tuple ~ecx elements
     |> Option.map (fun tuple_agg -> Type.Pointer (Aggregate tuple_agg))
@@ -810,6 +827,15 @@ and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
   | TVar _
   | Any _ ->
     failwith "Not allowed as value in IR"
+
+and get_closure_type ~ecx : Type.t =
+  match SMap.find_opt closure_type_name ecx.program.types with
+  | Some agg -> Aggregate agg
+  | None ->
+    let agg =
+      mk_aggregate ~ecx closure_type_name Loc.none [("func", Function); ("env", Pointer Byte)]
+    in
+    Aggregate agg
 
 and get_zero_size_type ~ecx =
   (* Add zero size type if it does not already exist *)

@@ -1,15 +1,19 @@
+type _closure {fn, byte*}
+
 func void @test.f() {
   Ret
 }
 
-func void @test.higherOrder(fn %0) {
+func void @test.higherOrder(_closure* %0) {
   Ret
 }
 
 func void @test.test() {
-  Call void @test.higherOrder(@test.f)
+  Call void @test.higherOrder(@_closure$test.f)
   Ret
 }
+
+global _closure @_closure$test.f = {@test.f, null}
 
 func int @test.main() {
   Call void @test.test()

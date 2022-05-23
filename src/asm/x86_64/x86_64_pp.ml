@@ -418,10 +418,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
       | Ret -> add_string "ret"
       | Syscall -> add_string "syscall")
 
-let pp_initialized_data_item ~buf (init_data : initialized_data_item) =
-  (* Data blocks have the form:
-     label:
-       .directive immediate *)
+let rec pp_data_value ~buf (data_value : data_value) =
   let add_directive directive value =
     add_line ~buf (fun buf ->
         add_char ~buf '.';
@@ -429,14 +426,21 @@ let pp_initialized_data_item ~buf (init_data : initialized_data_item) =
         add_char ~buf ' ';
         add_string ~buf value)
   in
-  add_label_line ~buf init_data.label;
-  match init_data.value with
+  match data_value with
   | ImmediateData (Imm8 imm) -> add_directive "byte" (string_of_int imm)
   | ImmediateData (Imm16 imm) -> add_directive "value" (string_of_int imm)
   | ImmediateData (Imm32 imm) -> add_directive "long" (Int32.to_string imm)
   | ImmediateData (Imm64 imm) -> add_directive "quad" (Int64.to_string imm)
   | AsciiData str -> add_directive "ascii" (quote_string str)
   | LabelData labels -> List.iter (fun label -> add_directive "quad" label) labels
+  | ArrayData values -> List.iter (pp_data_value ~buf) values
+
+let pp_initialized_data_item ~buf (init_data : initialized_data_item) =
+  (* Data blocks have the form:
+     label:
+       .directive immediate *)
+  add_label_line ~buf init_data.label;
+  pp_data_value ~buf init_data.value
 
 let pp_uninitialized_data_item ~buf (uninit_data : uninitialized_data_item) =
   add_label_line ~buf uninit_data.label;

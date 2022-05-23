@@ -1,12 +1,16 @@
+type _closure {fn, byte*}
+
 global int @test.i = 1
 
-global fn @test.f = @test.test
+global _closure* @test.f = @_closure$test.test
+
+global _closure @_closure$test.test = {@test.test, null}
 
 func void @test.test() {
   Ret
 }
 
-func fn @test.use<Function>(fn %0) {
+func _closure* @test.use<Function>(_closure* %0) {
   Ret %0
 }
 
@@ -17,7 +21,7 @@ func int @test.use<Int>(int %0) {
 func int @test.main() {
   %0 := Load int @test.i
   %1 := Call int @test.use<Int>(%0)
-  %2 := Load fn @test.f
-  %3 := Call fn @test.use<Function>(%2)
+  %2 := Load _closure* @test.f
+  %3 := Call _closure* @test.use<Function>(%2)
   Ret 0
 }

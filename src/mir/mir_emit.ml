@@ -338,6 +338,9 @@ and emit_anonymous_function ~ecx func anon_func_node =
   let { loc; params; body; _ } = anon_func_node in
   ecx.current_in_std_lib <- String.sub func.name 0 4 = "std.";
 
+  (* Create environment param where environment is the closure *)
+  let env_param = mk_argument ~func ~decl_loc:loc ~type_:(Pointer Byte) in
+
   (* Create MIR values for anonymous function params *)
   let params =
     List.filter_map
@@ -351,6 +354,7 @@ and emit_anonymous_function ~ecx func anon_func_node =
         | None -> None)
       params
   in
+  let params = params @ [env_param] in
 
   (* Get return type of anonymous function *)
   let anon_func_ty = type_of_loc ~ecx loc in
@@ -371,9 +375,31 @@ and emit_anonymous_function ~ecx func anon_func_node =
   Ecx.finish_block_unreachable ~ecx
 
 and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
-  (* Trampolines are created after wrapped function, so we can always lookup the function IR object *)
+  (* Trampolines are created after wrapped function, so we can always look up the function IR object *)
   let func_name = Ecx.strip_trampoline_name trampoline_func.name in
   let func = SMap.find func_name ecx.program.funcs in
+
+  let copy_args arg_vals =
+    List.map
+      (fun param ->
+        let { Argument.type_; decl_loc; _ } = cast_to_argument param in
+        mk_argument ~func:trampoline_func ~decl_loc ~type_)
+      arg_vals
+  in
+
+  let call_inner_func_and_return args =
+    let return_val =
+      mk_call ~block:(Ecx.get_current_block ~ecx) ~func:func.value ~args ~return:func.return_type
+    in
+
+    (* Return value from call if applicable *)
+    let arg =
+      match func.return_type with
+      | None -> None
+      | Some _ -> Some return_val
+    in
+    Ecx.finish_block_ret ~ecx ~arg
+  in
 
   (* Copy parameters to new parameters with same type but for trampoline function, except receiver
      has pointer type since it is boxed. *)
@@ -385,13 +411,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
       ~decl_loc:receiver_param.decl_loc
       ~type_:(Pointer receiver_param.type_)
   in
-  let rest_args =
-    List.map
-      (fun param ->
-        let { Argument.type_; decl_loc; _ } = cast_to_argument param in
-        mk_argument ~func:trampoline_func ~decl_loc ~type_)
-      rest_params
-  in
+  let rest_args = copy_args rest_params in
   let params = receiver_ptr_arg :: rest_args in
 
   Ecx.start_function ~ecx ~func:trampoline_func ~loc:func.loc ~params ~return_type:func.return_type;
@@ -399,17 +419,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   (* Load receiver and call the wrapped function, passing original args with loaded receiver *)
   let receiver_arg = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:receiver_ptr_arg in
   let args = receiver_arg :: rest_args in
-  let return_val =
-    mk_call ~block:(Ecx.get_current_block ~ecx) ~func:func.value ~args ~return:func.return_type
-  in
-
-  (* Return value from call if applicable *)
-  let arg =
-    match func.return_type with
-    | None -> None
-    | Some _ -> Some return_val
-  in
-  Ecx.finish_block_ret ~ecx ~arg
+  call_inner_func_and_return args
 
 and start_init_function ~ecx =
   let func = Ecx.mk_empty_function ~ecx ~name:init_func_name in
@@ -612,18 +622,24 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | CtorDecl _ ->
       let ty = type_of_loc ~ecx loc in
       Some (emit_construct_enum_variant ~ecx ~name ~ty)
-    (* Create function literal for functions *)
+    (* This is a function that is not statically called, so create its closure object *)
     | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
       let func_name = mk_value_binding_name binding in
-      let ty = type_of_loc ~ecx loc in
       let func_val =
         if is_builtin then
-          mk_myte_builtin_lit func_name
-        else if type_params = [] then
-          Ecx.get_nongeneric_function_value ~ecx func_name
+          failwith
+            "TODO: Cannot use myte builtin as closure object. Generate MIR for myte builtins."
         else
-          let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
-          Ecx.get_generic_function_value ~ecx func_name type_params type_args
+          let func_val =
+            if type_params = [] then
+              Ecx.get_nongeneric_function_value ~ecx func_name
+            else
+              let ty = type_of_loc ~ecx loc in
+              let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
+              Ecx.get_generic_function_value ~ecx func_name type_params type_args
+          in
+          let func = cast_to_function_literal func_val in
+          Ecx.get_closure_global_value ~ecx ~loc ~func
       in
       Some func_val
     (* Variables may be either globals or locals *)
@@ -732,8 +748,61 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     (match ctor_result_opt with
     | Some result -> result
     | None ->
-      let func_val = emit_function_expression ~ecx func in
-      let arg_vals = List.filter_map (emit_expression ~ecx) args in
+      (* First check if this is a statically known function call *)
+      let static_func_val_opt =
+        match func with
+        | Identifier { Identifier.loc = loc as id_loc; _ }
+        | ScopedIdentifier { ScopedIdentifier.loc; name = { loc = id_loc; _ }; _ } ->
+          let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx id_loc in
+          (match binding.declaration with
+          | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
+            let func_name = mk_value_binding_name binding in
+            let ty = type_of_loc ~ecx loc in
+            let func_val =
+              if is_builtin then
+                mk_myte_builtin_lit func_name
+              else if type_params = [] then
+                Ecx.get_nongeneric_function_value ~ecx func_name
+              else
+                let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
+                Ecx.get_generic_function_value ~ecx func_name type_params type_args
+            in
+            Some func_val
+          | _ -> None)
+        | _ -> None
+      in
+      (* Otherwise this is a dynamic call on a closure object *)
+      let (func_val, env_opt) =
+        match static_func_val_opt with
+        | Some static_func_val -> (static_func_val, None)
+        | None ->
+          (* Load the function from the closure *)
+          let closure_ptr = emit_expression ~ecx func |> Option.get in
+          let closure_agg = cast_to_aggregate_type (pointer_value_element_type closure_ptr) in
+          let func_ptr = emit_cast_ptr ~ecx ~element_type:Type.Function ~ptr:closure_ptr in
+          let func_val = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:func_ptr in
+
+          (* Load the environment from the closure *)
+          let (element_ty, element_idx) = lookup_element closure_agg "env" in
+          let env_ptr =
+            mk_get_pointer_instr
+              ~block:(Ecx.get_current_block ~ecx)
+              ~type_:element_ty
+              ~ptr:closure_ptr
+              ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
+              ()
+          in
+          let env_val = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:env_ptr in
+
+          (func_val, Some env_val)
+      in
+      (* Add env to end of arguments list if this is a dynamic call *)
+      let arg_vals =
+        let arg_vals = List.filter_map (emit_expression ~ecx) args in
+        match env_opt with
+        | None -> arg_vals
+        | Some env_val -> arg_vals @ [env_val]
+      in
       let ret_type = mir_type_of_loc ~ecx loc in
       emit_call ~ecx ~func_val ~arg_vals ~receiver_val:None ~ret_type)
   (*
@@ -1095,7 +1164,36 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let anon_func_num = ecx.current_func_context.num_anonymous_functions in
     ecx.current_func_context.num_anonymous_functions <- anon_func_num + 1;
     let anon_func_name = Printf.sprintf "%s:%d" ecx.current_func.name anon_func_num in
-    Some (Ecx.get_anonymous_function_value ~ecx anon_func_name anon_func_node)
+    let func_val = Ecx.get_anonymous_function_value ~ecx anon_func_name anon_func_node in
+
+    (* Allocate closure *)
+    let closure_type = Ecx.get_closure_type ~ecx in
+    let closure_agg = cast_to_aggregate_type closure_type in
+    let closure_ptr =
+      mk_call_builtin
+        ~block:(Ecx.get_current_block ~ecx)
+        Mir_builtin.myte_alloc
+        [mk_int_lit_of_int32 Int32.one]
+        [closure_type]
+    in
+
+    (* Store function pointer *)
+    let func_ptr = emit_cast_ptr ~ecx ~element_type:Function ~ptr:closure_ptr in
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:func_ptr ~value:func_val;
+
+    (* Store environment *)
+    let (element_ty, element_idx) = lookup_element closure_agg "env" in
+    let env_ptr =
+      mk_get_pointer_instr
+        ~block:(Ecx.get_current_block ~ecx)
+        ~type_:element_ty
+        ~ptr:closure_ptr
+        ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
+        ()
+    in
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:env_ptr ~value:(mk_null_ptr_lit Byte);
+
+    Some closure_ptr
 
 and emit_string_literal ~ecx loc value =
   (* Add string global string literal unless this is the empty string, in which case use null pointer *)

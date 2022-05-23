@@ -1,0 +1,35 @@
+module test
+
+import std.test.assertEqual
+
+val addThreeGlobal: (Int) -> Int = addThree
+
+fun addThree(x: Int): Int = x + 3
+
+fun applyInt(f: (Int) -> Int, x: Int): Int = f(x)
+
+fun testGlobals() {
+  assertEqual(addThreeGlobal(1), 4);
+  assertEqual(applyInt(addThreeGlobal, 2), 5);
+}
+
+fun testAnonymousFunction() {
+  assertEqual((fn (x) -> x + 4)(3), 7);
+  assertEqual(applyInt(fn (x) -> x + 4, 3), 7);
+}
+
+fun testVariableFunction() {
+  var func = addThree;
+  if (1 + 2 == addThree(0)) {
+    func = fn (x) -> x + 5;
+  }
+
+  assertEqual(func(9), 14);
+  assertEqual(applyInt(func, 9), 14);
+}
+
+fun main() {
+  testGlobals();
+  testAnonymousFunction();
+  testVariableFunction();
+}

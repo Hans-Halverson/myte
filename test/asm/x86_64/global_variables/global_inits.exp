@@ -19,10 +19,15 @@ test.constantB:
 test.constantI:
   .long 123
   .balign 8
-test.constantF:
+_closure$test.getByte:
   .quad test.getByte
+  .quad 0
+test.constantF:
+  .quad _closure$test.getByte
 test.constantL:
   .quad 123
+test.immConstantF:
+  .quad _closure$test.getByte
 
   .text
 _myte_init:
@@ -39,7 +44,7 @@ test.getByte:
   movb $22, %al
   ret
 test.getFunction:
-  leaq test.getByte(%rip), %rax
+  leaq _closure$test.getByte(%rip), %rax
   ret
 test.getInt:
   movl $23, %eax
@@ -54,7 +59,7 @@ _main:
   call test.use$Int$
   movl $125, %edi
   call test.use$Int$
-  leaq test.getByte(%rip), %rdi
+  movq test.immConstantF(%rip), %rdi
   call test.use$Function$
   movb test.constantB(%rip), %dil
   call test.use$Byte$

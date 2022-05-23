@@ -213,6 +213,7 @@ and pp_literal lit =
   | ArrayVtable (_, funcs) ->
     let funcs = List.map (fun func -> "@" ^ func.Function.name) funcs in
     "[" ^ String.concat ", " funcs ^ "]"
+  | AggregateClosure (_, { name; _ }) -> Printf.sprintf "{@%s, null}" name
 
 and pp_type ty = type_to_string ty
 
