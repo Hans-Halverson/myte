@@ -44,12 +44,6 @@ label @4:
   Ret %11
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testNamedTuple)
-  Call void @test.use<Function>(@test.testNamedRecord)
   Ret 0
 }

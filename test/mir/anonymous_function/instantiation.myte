@@ -69,12 +69,4 @@ fun testGenericInInheritedMethod(x: Type3<Long>) {
   x.generic(1, true);
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testNongenericInToplevel);
-  use(testGenericInToplevel);
-  use(testNongenericInMethod);
-  use(testGenericInMethod);
-  use(testGenericInInheritedMethod);
-}
+fun main() {}

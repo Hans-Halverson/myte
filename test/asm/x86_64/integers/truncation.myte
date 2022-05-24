@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T) {}
-
 // Include struct to force register to memory mov
 type Numbers { byte: Byte, int: Int }
 
@@ -20,8 +18,4 @@ fun truncLongToInt(n: Numbers, x: Long): Int {
   return x.toInt();
 }
 
-fun main() {
-  use(truncIntToByte);
-  use(truncLongToByte);
-  use(truncLongToInt);
-}
+fun main() {}

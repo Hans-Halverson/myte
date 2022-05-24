@@ -34,11 +34,4 @@ fun testZeroSizeOkAndResultUnwrap(x: Result<ZeroSize, ZeroSize>): Result<Int, Ze
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testUnwrapResult);
-  use(testUnwrapResultDifferentType);
-  use(testDoubleUnwrap);
-  use(testZeroSizeOkUnwrap);
-  use(testZeroSizeResultUnwrap);
-  use(testZeroSizeOkAndResultUnwrap);
-}
+fun main() {}

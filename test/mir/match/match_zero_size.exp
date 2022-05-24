@@ -24,10 +24,6 @@ func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -41,7 +37,5 @@ func void @test.use<test.ZeroSize>() {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testZeroSizeType)
-  Call void @test.use<Function>(@test.testTypeWithZeroSizeField)
   Ret 0
 }

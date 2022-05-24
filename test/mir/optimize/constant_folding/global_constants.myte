@@ -27,7 +27,4 @@ fun testNotFolded() {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testFolded);
-  use(testNotFolded);
-}
+fun main() {}

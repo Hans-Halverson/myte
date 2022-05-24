@@ -22,9 +22,4 @@ fun test2(x: Bool, y: Int): Int =
     | _ -> 5
   }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(test1);
-  use(test2);
-}
+fun main() {}

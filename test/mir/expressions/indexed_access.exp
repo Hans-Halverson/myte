@@ -47,11 +47,6 @@ func void @test.testIndexing(test.Tup1* %0, test.Tup2* %1, test.Tup3* %2, test.T
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testIndexing)
   Ret 0
 }

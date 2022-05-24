@@ -20,12 +20,6 @@ func void @test.testReassignLocals() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testReassignGlobals)
-  Call void @test.use<Function>(@test.testReassignLocals)
   Ret 0
 }

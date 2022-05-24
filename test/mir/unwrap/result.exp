@@ -203,10 +203,6 @@ func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -216,11 +212,5 @@ func void @test.use<test.ZeroSize>() {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testUnwrapResult)
-  Call void @test.use<Function>(@test.testUnwrapResultDifferentType)
-  Call void @test.use<Function>(@test.testDoubleUnwrap)
-  Call void @test.use<Function>(@test.testZeroSizeOkUnwrap)
-  Call void @test.use<Function>(@test.testZeroSizeResultUnwrap)
-  Call void @test.use<Function>(@test.testZeroSizeOkAndResultUnwrap)
   Ret 0
 }

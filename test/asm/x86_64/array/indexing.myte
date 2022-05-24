@@ -74,12 +74,4 @@ fun indexIntoGlobal(x: Int) {
   intArray[x] = 7;
 }
 
-fun use<T>(x: T): T = x
-
-fun main() {
-  use(constantIndexing);
-  use(longConstantIndexing);
-  use(variableIndexing);
-  use(nestedIndexing);
-  use(indexIntoGlobal);
-}
+fun main() {}

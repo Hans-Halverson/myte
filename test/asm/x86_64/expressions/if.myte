@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun bool(): Bool = true
 
 fun testSimpleIf(): Int = if (bool()) { 1 } else { 2 }
@@ -25,8 +23,4 @@ fun testNestedIfStatementInExpressionPosition(): Int {
   };
 }
 
-fun main() {
-  use(testSimpleIf);
-  use(testIfWithExpressions);
-  use(testNestedIfStatementInExpressionPosition);
-}
+fun main() {}

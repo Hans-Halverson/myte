@@ -44,11 +44,4 @@ fun testConstructNestedPointer(p: PointerType) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testConstructBool);
-  use(testConstructByte);
-  use(testConstructInt);
-  use(testConstructPointer);
-  use(testConstructNestedBool);
-  use(testConstructNestedPointer);
-}
+fun main() {}

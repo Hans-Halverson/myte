@@ -18,6 +18,4 @@ fun instantiateTestDestructure(o1: Option<Bool>, o2: Option<Byte>, o3: Option<In
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(instantiateTestDestructure);
-}
+fun main() {}

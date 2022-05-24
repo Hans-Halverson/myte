@@ -2,12 +2,6 @@
 
   .text
 _main:
-  leaq test.notByteReg(%rip), %rdi
-  call test.use$Function$
-  leaq test.notIntReg(%rip), %rdi
-  call test.use$Function$
-  leaq test.notLongReg(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.notByteReg:
@@ -20,8 +14,5 @@ test.notIntReg:
   ret
 test.notLongReg:
   notq %rdi
-  movq %rdi, %rax
-  ret
-test.use$Function$:
   movq %rdi, %rax
   ret

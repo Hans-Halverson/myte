@@ -108,13 +108,6 @@ func void @test.testRecordConstructors() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testEnumConstructors)
-  Call void @test.use<Function>(@test.testTupleConstructors)
-  Call void @test.use<Function>(@test.testRecordConstructors)
   Ret 0
 }

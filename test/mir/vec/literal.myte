@@ -24,11 +24,4 @@ fun zeroSizeElementsVec() {
 
 fun id<T>(x: T): T = x
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(emptyVec);
-  use(oneElementVec);
-  use(multiElementVec);
-  use(zeroSizeElementsVec);
-}
+fun main() {}

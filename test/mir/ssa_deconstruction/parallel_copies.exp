@@ -52,13 +52,6 @@ label @2:
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.swap)
-  Call void @test.use<Function>(@test.doubleSwap)
-  Call void @test.use<Function>(@test.longSwap)
   Ret 0
 }

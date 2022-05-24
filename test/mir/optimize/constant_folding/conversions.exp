@@ -60,10 +60,6 @@ func byte @test.use<Byte>(byte %0) {
   Ret %0
 }
 
-func fn @test.use<Function>(fn %0) {
-  Ret %0
-}
-
 func int @test.use<Int>(int %0) {
   Ret %0
 }
@@ -85,12 +81,5 @@ func long @test.use<Option<Int>>(long %0) {
 }
 
 func int @test.main() {
-  %0 := Call fn @test.use<Function>(@test.byteSignExtension)
-  %1 := Call fn @test.use<Function>(@test.intSignExtension)
-  %2 := Call fn @test.use<Function>(@test.boolZeroExtension)
-  %3 := Call fn @test.use<Function>(@test.byteZeroExtension)
-  %4 := Call fn @test.use<Function>(@test.intZeroExtension)
-  %5 := Call fn @test.use<Function>(@test.intTruncation)
-  %6 := Call fn @test.use<Function>(@test.longTruncation)
   Ret 0
 }

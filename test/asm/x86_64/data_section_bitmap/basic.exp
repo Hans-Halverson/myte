@@ -93,11 +93,7 @@ test.getLong:
   movq $1, %rax
   ret
 _main:
-  leaq test.useAll(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
-  ret
-test.use$Function$:
   ret
 test.use$Long$:
   ret

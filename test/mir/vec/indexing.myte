@@ -31,9 +31,4 @@ fun testIndexOperatorAssign(x: Rec1) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testIndexRec1);
-  use(testIndexVecRec2);
-  use(testIndexRec3);
-  use(testIndexOperatorAssign);
-}
+fun main() {}

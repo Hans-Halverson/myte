@@ -88,11 +88,4 @@ fun test4() {
   -y;
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(test1);
-  use(test2);
-  use(test3);
-  use(test4);
-}
+fun main() {}

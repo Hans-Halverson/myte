@@ -26,6 +26,4 @@ fun useAll(x: ZeroSize) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(useAll);
-}
+fun main() {}

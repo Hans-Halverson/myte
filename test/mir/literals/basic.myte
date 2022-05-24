@@ -31,8 +31,6 @@ fun main() {
   // Multiple Int literals
   use(2 + 4 + 6);
   use(2 + 2147483648 + 6);
-
-  use(useAll);
 }
 
 fun useAll() {

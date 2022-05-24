@@ -24,9 +24,4 @@ fun testReturnZeroSizeType(): ZeroSize {
 
 fun id<T>(x: T): T = x
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testReturnValue);
-  use(testReturnZeroSizeType);
-}
+fun main() {}

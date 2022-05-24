@@ -12,13 +12,7 @@ func void @a.useFromB(b.RecB<Byte>* %0) {
   Ret
 }
 
-func void @a.use<Function>(fn %0) {
-  Ret
-}
-
 func int @a.main() {
-  Call void @a.use<Function>(@a.useFromB)
-  Call void @a.use<Function>(@b.useFromA)
   Ret 0
 }
 

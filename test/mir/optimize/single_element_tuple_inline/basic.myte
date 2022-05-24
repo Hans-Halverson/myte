@@ -24,12 +24,4 @@ fun testGenerics(x: Tuple3<Int>, y: Tuple3<Byte>): Int {
   return x[0] + y[0].toInt();
 }
 
-fun use<T>(x: T): T = x
-
-fun main() {
-  use(testConstructor1);
-  use(testConstructor2);
-  use(testIndexing);
-  use(testNestedIndexing);
-  use(testGenerics);
-}
+fun main() {}

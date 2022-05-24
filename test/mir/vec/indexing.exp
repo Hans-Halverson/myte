@@ -57,14 +57,6 @@ func void @test.testIndexOperatorAssign(test.Rec1* %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testIndexRec1)
-  Call void @test.use<Function>(@test.testIndexVecRec2)
-  Call void @test.use<Function>(@test.testIndexRec3)
-  Call void @test.use<Function>(@test.testIndexOperatorAssign)
   Ret 0
 }

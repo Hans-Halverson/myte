@@ -47,10 +47,4 @@ fun longSwap() {
   }
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(swap);
-  use(doubleSwap);
-  use(longSwap);
-}
+fun main() {}

@@ -54,8 +54,4 @@ fun id<T>(x: T): T = x
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testZeroSizeADT);
-  use(testAggregateWithZeroSizeFields);
-  use(testVariantWithZeroSizeFields);
-}
+fun main() {}

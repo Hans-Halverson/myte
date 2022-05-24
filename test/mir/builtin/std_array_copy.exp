@@ -22,14 +22,6 @@ func void @test.testCopy(int* %0, int* %1, int %2) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testCopy1)
-  Call void @test.use<Function>(@test.testCopy2)
-  Call void @test.use<Function>(@test.testCopy3)
-  Call void @test.use<Function>(@test.testCopy)
   Ret 0
 }

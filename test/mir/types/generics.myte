@@ -27,14 +27,4 @@ type TestVec<T> { buffer: (T, T), size: Int, capacity: Int }
 
 fun useTestVec(x1: TestVec<Int>, x2: TestVec<Long>) {}
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(useTup1);
-  use(duplicateInstances);
-  use(useRec1);
-  use(adtTypeArgs);
-  use(tupleTypeArgs);
-  use(useAnonTup);
-  use(useTestVec);
-}
+fun main() {}

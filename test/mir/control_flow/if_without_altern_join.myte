@@ -52,9 +52,4 @@ fun testGlobal() {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testNotUpdated);
-  use(testUpdated);
-  use(testMultiple);
-  use(testGlobal);
-}
+fun main() {}

@@ -35,8 +35,4 @@ fun testZeroSizeVariableDeclaration() {
   use(x);
 }
 
-fun main() {
-  use(testVariableUse);
-  use(testVariableDeclaration);
-  use(testZeroSizeVariableDeclaration);
-}
+fun main() {}

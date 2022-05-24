@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun xorByteRegs(x: Byte, y: Byte): Byte = x ^ y
 fun xorByteImmReg(x: Byte): Byte = 60 ^ x
 fun xorByteRegImm(x: Byte): Byte = x ^ 60
@@ -15,14 +13,4 @@ fun xorLongRegs(x: Long, y: Long): Long = x ^ y
 fun xorLongRegImm(x: Long): Long = x ^ 2147483648
 fun xorLongImmReg(x: Long): Long = 2147483648 ^ x
 
-fun main() {
-  use(xorByteRegs);
-  use(xorByteImmReg);
-  use(xorByteRegImm);
-  use(xorIntRegs);
-  use(xorIntRegImm);
-  use(xorIntImmReg);
-  use(xorLongRegs);
-  use(xorLongRegImm);
-  use(xorLongImmReg);
-}
+fun main() {}

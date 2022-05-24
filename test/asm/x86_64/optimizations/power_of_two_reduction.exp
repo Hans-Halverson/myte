@@ -2,10 +2,6 @@
 
   .text
 _main:
-  leaq test.powerOfTwoMultiply(%rip), %rdi
-  call test.use$Function$
-  leaq test.powerOfTwoDivide(%rip), %rdi
-  call test.use$Function$
   xorl %eax, %eax
   ret
 test.powerOfTwoDivide:
@@ -109,8 +105,6 @@ test.powerOfTwoMultiply:
   pop %rbx
   ret
 test.use$Byte$:
-  ret
-test.use$Function$:
   ret
 test.use$Int$:
   ret

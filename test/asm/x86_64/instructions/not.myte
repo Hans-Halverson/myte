@@ -1,13 +1,7 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun notByteReg(x: Byte): Byte = !x
 fun notIntReg(x: Int): Int = !x
 fun notLongReg(x: Long): Long = !x
 
-fun main() {
-  use(notByteReg);
-  use(notIntReg);
-  use(notLongReg);
-}
+fun main() {}

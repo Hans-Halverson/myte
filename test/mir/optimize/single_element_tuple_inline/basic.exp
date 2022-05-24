@@ -30,15 +30,6 @@ func int @test.testGenerics(int %0, byte %1) {
   Ret %3
 }
 
-func fn @test.use<Function>(fn %0) {
-  Ret %0
-}
-
 func int @test.main() {
-  %0 := Call fn @test.use<Function>(@test.testConstructor1)
-  %1 := Call fn @test.use<Function>(@test.testConstructor2)
-  %2 := Call fn @test.use<Function>(@test.testIndexing)
-  %3 := Call fn @test.use<Function>(@test.testNestedIndexing)
-  %4 := Call fn @test.use<Function>(@test.testGenerics)
   Ret 0
 }

@@ -12,6 +12,7 @@ type t = {
   dump_debug: bool ref;
   dump_stdlib: bool ref;
   dump_stdlib_prefix: string option ref;
+  emit_all: bool ref;
   installation_path: string option ref;
   optimize: bool ref;
   output_file: string option ref;
@@ -33,6 +34,7 @@ let opts =
     dump_debug = ref false;
     dump_stdlib = ref false;
     dump_stdlib_prefix = ref None;
+    emit_all = ref false;
     installation_path = ref None;
     optimize = ref false;
     output_file = ref None;
@@ -69,6 +71,7 @@ let spec =
           opts.dump_stdlib_prefix := Some prefix;
           opts.dump_stdlib := true),
       " Include the standard library under the given prefix when printing other commands" );
+    ("--emit-all", Arg.Set opts.emit_all, " Emit all functions, not just those that are reachable");
     ( "--installation",
       Arg.String (fun path -> opts.installation_path := Some path),
       " Path to directory where Myte is installed" );
@@ -109,6 +112,8 @@ let dump_debug () = !(opts.dump_debug)
 let dump_stdlib () = !(opts.dump_stdlib)
 
 let dump_stdlib_prefix () = !(opts.dump_stdlib_prefix)
+
+let emit_all () = !(opts.emit_all)
 
 let installation_path () = !(opts.installation_path)
 

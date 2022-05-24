@@ -32,8 +32,4 @@ fun testIndexing(t1: Tup1, t2: Tup2, t3: Tup3, t4: Tup4, r1: Rec1) {
   r1.foo[2][1];
  }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testIndexing);
-}
+fun main() {}

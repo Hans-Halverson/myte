@@ -43,10 +43,4 @@ fun test3() {
   -x;
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(test1);
-  use(test2);
-  use(test3);
-}
+fun main() {}

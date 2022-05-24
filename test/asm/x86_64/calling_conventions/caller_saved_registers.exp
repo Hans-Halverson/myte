@@ -72,14 +72,6 @@ test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills:
   pop %rbx
   ret
 _main:
-  leaq test.testDefaultToCallerSaveRegisters(%rip), %rdi
-  call test.use$Function$
-  leaq test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(%rip), %rdi
-  call test.use$Function$
-  leaq test.callerSavedRegistersSavedAcrossFunctionCalls(%rip), %rdi
-  call test.use$Function$
-  leaq test.callerSavedRegistersSavedAcrossFunctionCallsWithSpills(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.testDefaultToCalleeSaveRegistersIfAcrossFunctionCall:
@@ -135,9 +127,6 @@ test.testDefaultToCallerSaveRegisters:
   addl %esi, %edx
   addl %edx, %ecx
   addl %ecx, %eax
-  ret
-test.use$Function$:
-  movq %rdi, %rax
   ret
 test.use$Int$:
   movl %edi, %eax

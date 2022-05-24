@@ -259,8 +259,4 @@ fun testPartialReuseStackSlots(): Int {
   return 77;
 }
 
-fun main() {
-  use(testMultipleInterferingSpillsInDifferentStackSlots);
-  use(testNonInterferingSpillsReuseStackSlots);
-  use(testPartialReuseStackSlots);
-}
+fun main() {}

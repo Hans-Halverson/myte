@@ -6,34 +6,6 @@ test.longArgs:
   movq %rdi, %rax
   ret
 _main:
-  leaq test.zeroArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testOneArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testTwoArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testThreeArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testFourArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testFiveArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testSixArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testSevenArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testEightArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.testNineArgFunction(%rip), %rdi
-  call test.use$Function$
-  leaq test.passedInRegistersAndStack(%rip), %rdi
-  call test.use$Function$
-  leaq test.testFunctionStackParamsOffsetByPushedCalleeSavedRegisters(%rip), %rdi
-  call test.use$Function$
-  leaq test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters(%rip), %rdi
-  call test.use$Function$
-  leaq test.testLongArgs(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.passedInRegistersAndStack:
@@ -172,9 +144,6 @@ test.testThreeArgFunction:
 test.testTwoArgFunction:
   addl %edi, %esi
   movl %esi, %eax
-  ret
-test.use$Function$:
-  movq %rdi, %rax
   ret
 test.use$Int$:
   movl %edi, %eax

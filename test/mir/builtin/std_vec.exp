@@ -5,6 +5,5 @@ func void @test.test() {
 }
 
 func int @test.main() {
-  Call void @test.test()
   Ret 0
 }

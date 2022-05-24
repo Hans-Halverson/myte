@@ -32,9 +32,4 @@ fun indirectCalls() {
   val t2 = 3 + x(1 + 2);
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(directCalls);
-  use(indirectCalls);
-}
+fun main() {}

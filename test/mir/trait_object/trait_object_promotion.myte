@@ -52,16 +52,4 @@ fun testVariableAssignmentPromotion(x: trait Trait, y: Type) {
 
 fun testNoPromotionOnTraitObject(x: trait Trait): trait Trait = x
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testCallArgumentPromotion);
-  use(testTupleTypeArgumentPromotion);
-  use(testRecordTypeArgumentPromotion);
-  use(testTypeCastPromotion);
-  use(testReturnArgumentPromotion);
-  use(testReturnExpressionPromotion);
-  use(testVariableDeclarationPromotion);
-  use(testVariableAssignmentPromotion);
-  use(testNoPromotionOnTraitObject);
-}
+fun main() {}

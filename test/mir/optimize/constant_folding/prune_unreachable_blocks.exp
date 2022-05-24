@@ -43,17 +43,6 @@ func void @t.whileTrueWithContinue() {
   continue @t.whileTrueWithContinue
 }
 
-func fn @t.use<Function>(fn %0) {
-  Ret %0
-}
-
 func int @t.main() {
-  %0 := Call fn @t.use<Function>(@t.ifStatement)
-  %1 := Call fn @t.use<Function>(@t.nestedIfStatements)
-  %2 := Call fn @t.use<Function>(@t.whileTrue)
-  %3 := Call fn @t.use<Function>(@t.whileFalse)
-  %4 := Call fn @t.use<Function>(@t.whileTrueWithReturn)
-  %5 := Call fn @t.use<Function>(@t.whileTrueWithBreak)
-  %6 := Call fn @t.use<Function>(@t.whileTrueWithContinue)
   Ret 0
 }

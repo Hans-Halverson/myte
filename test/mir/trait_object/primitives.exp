@@ -1,5 +1,3 @@
-type _ZeroSize {}
-
 type _object$std.bool.Bool$std.string.ToString {bool*, fn[1]*}
 
 global fn[1] @_vtable$std.bool.Bool$std.string.ToString = [@_trampoline$std.bool.Bool.toString]
@@ -42,7 +40,7 @@ func std.string.String* @_trampoline$std.long.Long.toString(long* %0) {
 
 type _object$std.string.ToString {byte*, fn[1]*}
 
-type _object$std.unit.Unit$std.string.ToString {_ZeroSize*, fn[1]*}
+type _object$std.unit.Unit$std.string.ToString {std._ZeroSize*, fn[1]*}
 
 global fn[1] @_vtable$std.unit.Unit$std.string.ToString = [@std.unit.Unit.toString]
 
@@ -159,11 +157,11 @@ func void @test.testLongPromotion(long %0) {
   Ret
 }
 
-type _object$test.ZeroSize$std.string.ToString {_ZeroSize*, fn[1]*}
+type _object$test.ZeroSize$std.string.ToString {std._ZeroSize*, fn[1]*}
 
 global fn[1] @_vtable$test.ZeroSize$std.string.ToString = [@test.ZeroSize.toString]
 
-func std.string.String* @test.ZeroSize.toString(_ZeroSize* %0) {
+func std.string.String* @test.ZeroSize.toString(std._ZeroSize* %0) {
   %1 := Call std.string.String* myte.builtin.alloc(1)
   %2 := GetPointer byte*, std.string.String* %1.2
   Store byte* %2, null
@@ -189,20 +187,10 @@ func void @test.testZeroSizePromotion() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Unit>() {
   Ret
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testUnitPromotion)
-  Call void @test.use<Function>(@test.testBoolPromotion)
-  Call void @test.use<Function>(@test.testBytePromotion)
-  Call void @test.use<Function>(@test.testIntPromotion)
-  Call void @test.use<Function>(@test.testLongPromotion)
-  Call void @test.use<Function>(@test.testZeroSizePromotion)
   Ret 0
 }

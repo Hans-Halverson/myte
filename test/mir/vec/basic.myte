@@ -33,9 +33,9 @@ fun testVecGetZeroSize(x: Vec<ZeroSize>) {
 fun use<T>(x: T) {}
 
 fun main() {
-  use(testVecGet);
-  use(testVecSet);
-  use(testVecPush);
-  use(testVecOperatorAssign);
-  use(testVecGetZeroSize);
+  testVecGet([], []);
+  testVecSet([], []);
+  testVecPush([], []);
+  testVecOperatorAssign([]);
+  testVecGetZeroSize([]);
 }

@@ -28,12 +28,6 @@ func void @test.testIndexing(test.Rec1<Int>* %0, test.Rec1<Bool>* %1) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testConstructor)
-  Call void @test.use<Function>(@test.testIndexing)
   Ret 0
 }

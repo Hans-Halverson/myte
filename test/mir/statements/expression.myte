@@ -85,13 +85,4 @@ fun testAssignmentUnitValue(test: Bool) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testSimpleExpressionStatements);
-  use(testExpressionStatementSingleValue);
-  use(testExpressionStatementsBeforeValue);
-  use(testExpressionStatementUnitValue);
-  use(testWhileUnitValue);
-  use(testForUnitValue);
-  use(testVariableDeclarationUnitValue);
-  use(testAssignmentUnitValue);
-}
+fun main() {}

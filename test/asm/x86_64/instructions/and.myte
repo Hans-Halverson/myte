@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun andByteRegs(x: Byte, y: Byte): Byte = x & y
 fun andByteImmReg(x: Byte): Byte = 60 & x
 fun andByteRegImm(x: Byte): Byte = x & 60
@@ -15,14 +13,4 @@ fun andLongRegs(x: Long, y: Long): Long = x & y
 fun andLongRegImm(x: Long): Long = x & 2147483648
 fun andLongImmReg(x: Long): Long = 2147483648 & x
 
-fun main() {
-  use(andByteRegs);
-  use(andByteImmReg);
-  use(andByteRegImm);
-  use(andIntRegs);
-  use(andIntRegImm);
-  use(andIntImmReg);
-  use(andLongRegs);
-  use(andLongRegImm);
-  use(andLongImmReg);
-}
+fun main() {}

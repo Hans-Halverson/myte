@@ -31,6 +31,4 @@ fun testLatest() {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testLatest);
-}
+fun main() {}

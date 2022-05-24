@@ -121,14 +121,4 @@ fun testLoopDivergence(test: Int) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testMatchExpressionBlockValues);
-  use(testMatchStatementInExpressionPosition);
-  use(testNestedMatchAndIf);
-  use(testZeroSizeMatch);
-  use(testUnitMatch);
-  use(testReturnBranch);
-  use(testReturnBlockBranch);
-  use(testDivergentExpressionBranch);
-  use(testLoopDivergence);
-}
+fun main() {}

@@ -10,7 +10,7 @@ let commands ~config bin files =
     ( "test",
       Printf.sprintf
         {|
-          %s %s --no-pretty-print%s %s && %s%s %s -o t.out;
+          %s %s --no-pretty-print --emit-all %s %s && %s --emit-all %s %s -o t.out;
           ./t.out;
           EXIT_CODE="$?";
           if [ "$EXIT_CODE" -ne 0 ]; then

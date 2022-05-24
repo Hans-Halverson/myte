@@ -556,10 +556,4 @@ fun testIntEnum() {
   useIntEnum(I257);
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testPureEnum1Values);
-  use(testFullByteEnum);
-  use(testIntEnum);
-}
+fun main() {}

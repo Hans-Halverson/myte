@@ -208,21 +208,6 @@ label @2:
   Ret %3
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.test1)
-  Call void @test.use<Function>(@test.test2)
-  Call void @test.use<Function>(@test.test3)
-  Call void @test.use<Function>(@test.test4)
-  Call void @test.use<Function>(@test.test5)
-  Call void @test.use<Function>(@test.test6)
-  Call void @test.use<Function>(@test.test7)
-  Call void @test.use<Function>(@test.test8)
-  Call void @test.use<Function>(@test.test9)
-  Call void @test.use<Function>(@test.test10)
-  Call void @test.use<Function>(@test.test11)
   Ret 0
 }

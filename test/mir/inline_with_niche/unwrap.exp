@@ -98,10 +98,6 @@ func void @test.use<Byte>(byte %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -111,11 +107,5 @@ func void @test.use<test.PointerType>(test.PointerType* %0) {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testBoolUnwrap)
-  Call void @test.use<Function>(@test.testByteUnwrap)
-  Call void @test.use<Function>(@test.testIntUnwrap)
-  Call void @test.use<Function>(@test.testPointerUnwrap)
-  Call void @test.use<Function>(@test.testMultipleUnwrapBool)
-  Call void @test.use<Function>(@test.testMultipleUnwrapPointer)
   Ret 0
 }

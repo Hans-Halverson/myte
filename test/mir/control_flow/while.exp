@@ -22,6 +22,5 @@ label @5:
 }
 
 func int @test.main() {
-  Call void @test.writeInBody()
   Ret 0
 }

@@ -34,8 +34,4 @@ fun id<T>(x: T): T = x
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testSimpleIndexing);
-  use(testIndexAfterAccess);
-  use(testZeroSizeKey);
-}
+fun main() {}

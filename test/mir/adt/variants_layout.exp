@@ -60,13 +60,6 @@ func void @test.useVs(test.V1* %0, test.V2* %1, test.V3* %2, test.V4* %3) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.useOpt1)
-  Call void @test.use<Function>(@test.useOpt2)
-  Call void @test.use<Function>(@test.useVs)
   Ret 0
 }

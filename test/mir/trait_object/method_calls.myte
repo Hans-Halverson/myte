@@ -27,8 +27,4 @@ fun test(t: Type) {
   callMethodWithArgs(x);
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(test);
-}
+fun main() {}

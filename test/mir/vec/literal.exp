@@ -1,5 +1,3 @@
-type _ZeroSize {}
-
 func void @test.emptyVec() {
   %0 := Call std.vec.Vec<Int>* myte.builtin.alloc(1)
   %1 := GetPointer int*, std.vec.Vec<Int>* %0.2
@@ -77,20 +75,20 @@ func void @test.multiElementVec() {
 }
 
 func void @test.zeroSizeElementsVec() {
-  %0 := Call _ZeroSize* myte.builtin.alloc(3)
+  %0 := Call std._ZeroSize* myte.builtin.alloc(3)
   Call void @test.id<Unit>()
   %1 := Call std.vec.Vec<Unit>* myte.builtin.alloc(1)
-  %2 := GetPointer _ZeroSize*, std.vec.Vec<Unit>* %1.2
-  Store _ZeroSize* %2, %0
+  %2 := GetPointer std._ZeroSize*, std.vec.Vec<Unit>* %1.2
+  Store std._ZeroSize* %2, %0
   %3 := GetPointer int, std.vec.Vec<Unit>* %1.0
   Store int %3, 3
   %4 := GetPointer int, std.vec.Vec<Unit>* %1.1
   Store int %4, 3
-  %5 := Call _ZeroSize* myte.builtin.alloc(3)
+  %5 := Call std._ZeroSize* myte.builtin.alloc(3)
   Call void @test.id<test.ZeroSize>()
   %6 := Call std.vec.Vec<test.ZeroSize>* myte.builtin.alloc(1)
-  %7 := GetPointer _ZeroSize*, std.vec.Vec<test.ZeroSize>* %6.2
-  Store _ZeroSize* %7, %5
+  %7 := GetPointer std._ZeroSize*, std.vec.Vec<test.ZeroSize>* %6.2
+  Store std._ZeroSize* %7, %5
   %8 := GetPointer int, std.vec.Vec<test.ZeroSize>* %6.0
   Store int %8, 3
   %9 := GetPointer int, std.vec.Vec<test.ZeroSize>* %6.1
@@ -106,14 +104,6 @@ func void @test.id<test.ZeroSize>() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.emptyVec)
-  Call void @test.use<Function>(@test.oneElementVec)
-  Call void @test.use<Function>(@test.multiElementVec)
-  Call void @test.use<Function>(@test.zeroSizeElementsVec)
   Ret 0
 }

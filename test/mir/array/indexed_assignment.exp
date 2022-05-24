@@ -60,13 +60,6 @@ func void @test.indexAndAccesses(test.Tup1* %0, test.Rec2** %1) {
 
 global byte[4] @.S0 = "test"
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.simpleAccesses)
-  Call void @test.use<Function>(@test.nestedAccesses)
-  Call void @test.use<Function>(@test.indexAndAccesses)
   Ret 0
 }

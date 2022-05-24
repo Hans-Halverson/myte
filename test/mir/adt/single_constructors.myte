@@ -30,10 +30,4 @@ fun recordConstructor() {
   Rec2 { baz: 6, foo: true, bar: 7 };
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(arguments);
-  use(tupleConstructor);
-  use(recordConstructor);
-}
+fun main() {}

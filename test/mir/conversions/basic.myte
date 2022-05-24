@@ -15,10 +15,4 @@ fun testConvertLong(x: Long) {
   x.toInt();
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testConvertByte);
-  use(testConvertInt);
-  use(testConvertLong);
-}
+fun main() {}

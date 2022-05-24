@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun orByteRegs(x: Byte, y: Byte): Byte = x | y
 fun orByteImmReg(x: Byte): Byte = 60 | x
 fun orByteRegImm(x: Byte): Byte = x | 60
@@ -15,14 +13,4 @@ fun orLongRegs(x: Long, y: Long): Long = x | y
 fun orLongRegImm(x: Long): Long = x | 2147483648
 fun orLongImmReg(x: Long): Long = 2147483648 | x
 
-fun main() {
-  use(orByteRegs);
-  use(orByteImmReg);
-  use(orByteRegImm);
-  use(orIntRegs);
-  use(orIntRegImm);
-  use(orIntImmReg);
-  use(orLongRegs);
-  use(orLongRegImm);
-  use(orLongImmReg);
-}
+fun main() {}

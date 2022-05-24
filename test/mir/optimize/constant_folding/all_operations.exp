@@ -1,12 +1,4 @@
-type _ZeroSize {}
-
-global _ZeroSize @_ZeroSize = uninitialized
-
 func bool @test.use<Bool>(bool %0) {
-  Ret %0
-}
-
-func fn @test.use<Function>(fn %0) {
   Ret %0
 }
 
@@ -79,18 +71,18 @@ func void @test.testBool() {
 }
 
 func void @test.testUnit() {
-  %0 := Call bool @std.unit.Unit.equals(@_ZeroSize)
+  %0 := Call bool @std.unit.Unit.equals(@std._ZeroSize)
   %1 := Call bool @test.use<Bool>(%0)
-  %2 := Call bool @std.unit.Unit.equals(@_ZeroSize)
+  %2 := Call bool @std.unit.Unit.equals(@std._ZeroSize)
   %3 := Not bool %2
   %4 := Call bool @test.use<Bool>(%3)
   Call void @test.unit()
   Call void @test.unit()
-  %5 := Call bool @std.unit.Unit.equals(@_ZeroSize)
+  %5 := Call bool @std.unit.Unit.equals(@std._ZeroSize)
   %6 := Call bool @test.use<Bool>(%5)
   Call void @test.unit()
   Call void @test.unit()
-  %7 := Call bool @std.unit.Unit.equals(@_ZeroSize)
+  %7 := Call bool @std.unit.Unit.equals(@std._ZeroSize)
   %8 := Not bool %7
   %9 := Call bool @test.use<Bool>(%8)
   Ret
@@ -103,11 +95,5 @@ func void @test.testShift() {
 }
 
 func int @test.main() {
-  %0 := Call fn @test.use<Function>(@test.testInt)
-  %1 := Call fn @test.use<Function>(@test.testByte)
-  %2 := Call fn @test.use<Function>(@test.testLong)
-  %3 := Call fn @test.use<Function>(@test.testBool)
-  %4 := Call fn @test.use<Function>(@test.testUnit)
-  %5 := Call fn @test.use<Function>(@test.testShift)
   Ret 0
 }

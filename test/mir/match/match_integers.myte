@@ -32,11 +32,4 @@ fun testCharLiterals(x: Byte): Int =
     | _ -> 4
   }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testBytes);
-  use(testInts);
-  use(testLongs);
-  use(testCharLiterals);
-}
+fun main() {}

@@ -5,8 +5,4 @@ fun test(): Int =
     | () -> 1
   }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(test);
-}
+fun main() {}

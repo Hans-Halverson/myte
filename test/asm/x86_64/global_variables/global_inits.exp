@@ -72,14 +72,6 @@ _main:
   call test.use$Long$
   movq test.f(%rip), %rdi
   call test.use$Function$
-  leaq test.getByte(%rip), %rdi
-  call test.use$Function$
-  leaq test.getInt(%rip), %rdi
-  call test.use$Function$
-  leaq test.getLong(%rip), %rdi
-  call test.use$Function$
-  leaq test.getFunction(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.use$Byte$:

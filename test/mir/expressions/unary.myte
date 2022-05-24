@@ -19,11 +19,4 @@ fun longs(x: Long) {
   !x;
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(bools);
-  use(ints);
-  use(bytes);
-  use(longs);
-}
+fun main() {}

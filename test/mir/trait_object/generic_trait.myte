@@ -38,9 +38,4 @@ fun testGenericType() {
   callMethod(GenericType ((1: Long)), (1: Long));
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testConcreteTypes);
-  use(testGenericType);
-}
+fun main() {}

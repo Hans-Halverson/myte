@@ -60,11 +60,4 @@ fun id<T>(x: T): T = x
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testAssignGlobal);
-  use(testAssignLocal);
-  use(testAssignDestructuring);
-  use(testAssignVecIndexing);
-  use(testAssignMapIndexing);
-  use(testAssignAccessChainIndexing);
-}
+fun main() {}

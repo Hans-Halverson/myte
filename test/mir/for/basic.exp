@@ -1,14 +1,8 @@
-type _ZeroSize {}
-
 func void @test.use<Bool>(bool %0) {
   Ret
 }
 
 func void @test.use<Byte>(byte %0) {
-  Ret
-}
-
-func void @test.use<Function>(fn %0) {
   Ret
 }
 
@@ -146,10 +140,5 @@ label @2:
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testIterators)
-  Call void @test.use<Function>(@test.testBreak)
-  Call void @test.use<Function>(@test.testContinue)
-  Call void @test.use<Function>(@test.testStringIterator)
-  Call void @test.use<Function>(@test.testDestructureZeroSizeType)
   Ret 0
 }

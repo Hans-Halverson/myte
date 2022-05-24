@@ -98,11 +98,4 @@ fun testGlobal() {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testNeitherUpdated);
-  use(testOnlyFirstUpdated);
-  use(testOnlySecondUpdated);
-  use(testBothUpdated);
-  use(testMultiple);
-  use(testGlobal);
-}
+fun main() {}

@@ -43,9 +43,4 @@ fun testGenericMethodRecursive(x1: GenericType<Int>, x2: GenericType<Bool>) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(concreteFunctionRecursive);
-  use(testGenericFunctionRecursive);
-  use(testConcreteMethodRecursive);
-  use(testGenericMethodRecursive);
-}
+fun main() {}

@@ -111,10 +111,6 @@ label @2:
   Ret %10
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Long>(long %0) {
   Ret
 }
@@ -128,9 +124,5 @@ func void @test.use<test.ZeroSize>() {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testUnwrapOption)
-  Call void @test.use<Function>(@test.testUnwrapOptionDifferentType)
-  Call void @test.use<Function>(@test.testDoubleUnwrap)
-  Call void @test.use<Function>(@test.testZeroSizeUnwrap)
   Ret 0
 }

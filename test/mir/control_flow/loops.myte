@@ -90,13 +90,4 @@ fun exhaustiveBreakAndContinue() {
   -x;
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(inexhaustiveContinue);
-  use(inexhaustiveBreak);
-  use(exhaustiveContinues);
-  use(exhaustiveBreaks);
-  use(inexhaustiveBreakAndContinue);
-  use(exhaustiveBreakAndContinue);
-}
+fun main() {}

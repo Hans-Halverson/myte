@@ -31,16 +31,6 @@ _trampoline$std.long.Long.toString:
   call std.long.Long.toString
   ret
 _main:
-  leaq test.testUnitPromotion(%rip), %rdi
-  call test.use$Function$
-  leaq test.testBoolPromotion(%rip), %rdi
-  call test.use$Function$
-  leaq test.testBytePromotion(%rip), %rdi
-  call test.use$Function$
-  leaq test.testIntPromotion(%rip), %rdi
-  call test.use$Function$
-  leaq test.testLongPromotion(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.testBoolPromotion:
@@ -127,8 +117,6 @@ test.testUnitPromotion:
   movq %rdx, (%rcx)
   movq %rax, %rdi
   call test.useToString
-  ret
-test.use$Function$:
   ret
 test.useToString:
   movq (%rdi), %rax

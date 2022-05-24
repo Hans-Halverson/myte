@@ -26,8 +26,4 @@ fun returnPreventsContinue() {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(test1);
-  use(test2);
-  use(returnPreventsContinue);
-}
+fun main() {}

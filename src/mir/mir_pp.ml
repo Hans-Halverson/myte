@@ -31,14 +31,14 @@ let rec pp_program program =
   let filter_stdlib =
     if not dump_stdlib then
       fun name ->
-    Std_lib.has_std_lib_prefix name || Mir.has_std_lib_string_prefix name
+    Mir.has_std_lib_prefix name
     else
       match dump_stdlib_prefix with
       | None -> (fun _ -> false)
       | Some prefix ->
         let prefix_length = String.length prefix in
         fun name ->
-          (Std_lib.has_std_lib_prefix name || Mir.has_std_lib_string_prefix name)
+          Mir.has_std_lib_prefix name
           && not (String.length name >= prefix_length && String.sub name 0 prefix_length = prefix)
   in
   (* Collect printed blocks along with their source locations *)

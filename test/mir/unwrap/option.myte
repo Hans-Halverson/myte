@@ -24,9 +24,4 @@ fun testZeroSizeUnwrap(x: Option<ZeroSize>): Option<Long> {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testUnwrapOption);
-  use(testUnwrapOptionDifferentType);
-  use(testDoubleUnwrap);
-  use(testZeroSizeUnwrap);
-}
+fun main() {}

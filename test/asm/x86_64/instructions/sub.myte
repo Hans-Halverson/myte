@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun subByteRegs(x: Byte, y: Byte): Byte = x - y
 fun subByteRegImm(x: Byte): Byte = x - 63
 fun subByteImmReg(x: Byte): Byte = 63 - x
@@ -15,14 +13,4 @@ fun subLongRegs(x: Long, y: Long): Long = x - y
 fun subLongRegImm(x: Long): Long = x - 2147483648
 fun subLongImmReg(x: Long): Long = 2147483648 - x
 
-fun main() {
-  use(subByteRegs);
-  use(subByteImmReg);
-  use(subByteRegImm);
-  use(subIntRegs);
-  use(subIntRegImm);
-  use(subIntImmReg);
-  use(subLongRegs);
-  use(subLongRegImm);
-  use(subLongImmReg);
-}
+fun main() {}

@@ -1,13 +1,7 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun negByteReg(x: Byte): Byte = -x
 fun negIntReg(x: Int): Int = -x
 fun negLongReg(x: Long): Long = -x
 
-fun main() {
-  use(negByteReg);
-  use(negIntReg);
-  use(negLongReg);
-}
+fun main() {}

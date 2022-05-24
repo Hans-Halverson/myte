@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun divByteRegs(x: Byte, y: Byte): Byte = x / y
 fun divByteImmReg(x: Byte): Byte = 60 / x
 fun divByteRegImm(x: Byte): Byte = x / 60
@@ -28,23 +26,4 @@ fun remLongRegs(x: Long, y: Long): Long = x % y
 fun remLongRegImm(x: Long): Long = x % 2147483648
 fun remLongImmReg(x: Long): Long = 2147483648 % x
 
-fun main() {
-  use(divByteRegs);
-  use(divByteImmReg);
-  use(divByteRegImm);
-  use(divIntRegs);
-  use(divIntRegImm);
-  use(divIntImmReg);
-  use(divLongRegs);
-  use(divLongRegImm);
-  use(divLongImmReg);
-  use(remByteRegs);
-  use(remByteImmReg);
-  use(remByteRegImm);
-  use(remIntRegs);
-  use(remIntRegImm);
-  use(remIntImmReg);
-  use(remLongRegs);
-  use(remLongRegImm);
-  use(remLongImmReg);
-}
+fun main() {}

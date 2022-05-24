@@ -82,11 +82,4 @@ fun testShift() {
   use(1 << 258);
 }
 
-fun main() {
-  use(testInt);
-  use(testByte);
-  use(testLong);
-  use(testBool);
-  use(testUnit);
-  use(testShift);
-}
+fun main() {}

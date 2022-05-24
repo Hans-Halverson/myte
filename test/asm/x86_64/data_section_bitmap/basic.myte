@@ -38,6 +38,4 @@ fun getLong(): Long = 1
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(useAll);
-}
+fun main() {}

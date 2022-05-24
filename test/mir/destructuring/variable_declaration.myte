@@ -55,10 +55,4 @@ fun testUseRec2(x: Rec2<Int>) {
   x.methodDestructuring();
 }
 
-fun main() {
-  use(destructureTuple);
-  use(destructureVariants);
-  use(destructureNamedTuple);
-  use(destructureNamedRecord);
-  use(testUseRec2);
-}
+fun main() {}

@@ -93,14 +93,4 @@ fun testBreakBranch(test: Bool) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testSimpleIf);
-  use(testIfWithExpressions);
-  use(testNestedIfStatementInExpressionPosition);
-  use(testZeroSizeIfExpression);
-  use(testReturnBranch);
-  use(testReturnBlockBranch);
-  use(testDivergentExpressionBranch);
-  use(testContinueBranch);
-  use(testBreakBranch);
-}
+fun main() {}

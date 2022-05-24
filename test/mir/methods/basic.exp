@@ -160,14 +160,6 @@ func void @test.testInheritedGenericTrait(test.GenericType2<Int>* %0, test.Gener
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testDirectNonGenericType)
-  Call void @test.use<Function>(@test.testDirectGenericType)
-  Call void @test.use<Function>(@test.testInheritedNonGenericTrait)
-  Call void @test.use<Function>(@test.testInheritedGenericTrait)
   Ret 0
 }

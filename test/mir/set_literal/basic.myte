@@ -15,10 +15,4 @@ fun multiEntrySet() {
   {| false, true, false, true |};
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(emptySet);
-  use(oneEntrySet);
-  use(multiEntrySet);
-}
+fun main() {}

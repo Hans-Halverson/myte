@@ -110,10 +110,6 @@ func void @test.use<Byte>(byte %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -135,8 +131,5 @@ func void @test.use<test.Variant1>(test.Variant1* %0) {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testZeroSizeADT)
-  Call void @test.use<Function>(@test.testAggregateWithZeroSizeFields)
-  Call void @test.use<Function>(@test.testVariantWithZeroSizeFields)
   Ret 0
 }

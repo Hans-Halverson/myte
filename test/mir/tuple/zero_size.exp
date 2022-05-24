@@ -48,10 +48,6 @@ func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -61,7 +57,5 @@ func void @test.use<Unit>() {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testZeroSizeTuple)
-  Call void @test.use<Function>(@test.testTupleWithZeroSizeFields)
   Ret 0
 }

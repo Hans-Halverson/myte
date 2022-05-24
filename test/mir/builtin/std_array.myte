@@ -8,6 +8,4 @@ fun testIsNull(x: Array<Bool>) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testIsNull);
-}
+fun main() {}

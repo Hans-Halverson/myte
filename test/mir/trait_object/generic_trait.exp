@@ -1,21 +1,19 @@
-type _ZeroSize {}
-
 type _object$test.Trait {byte*, fn[1]*}
 
-type _object$test.ConcreteType1$test.Trait<Int> {_ZeroSize*, fn[1]*}
+type _object$test.ConcreteType1$test.Trait<Int> {std._ZeroSize*, fn[1]*}
 
 global fn[1] @_vtable$test.ConcreteType1$test.Trait<Int> = [@test.ConcreteType1.method]
 
-func long @test.ConcreteType1.method(_ZeroSize* %0, int %1) {
+func long @test.ConcreteType1.method(std._ZeroSize* %0, int %1) {
   %2 := ZExt int %1 to long
   Ret %2
 }
 
-type _object$test.ConcreteType2$test.Trait<Bool> {_ZeroSize*, fn[1]*}
+type _object$test.ConcreteType2$test.Trait<Bool> {std._ZeroSize*, fn[1]*}
 
 global fn[1] @_vtable$test.ConcreteType2$test.Trait<Bool> = [@test.ConcreteType2.method]
 
-func byte @test.ConcreteType2.method(_ZeroSize* %0, bool %1) {
+func byte @test.ConcreteType2.method(std._ZeroSize* %0, bool %1) {
   %2 := ZExt bool %1 to byte
   Ret %2
 }
@@ -24,7 +22,7 @@ type _object$test.GenericType<Int>$test.Trait<Int> {test.GenericType<Int>*, fn[1
 
 type _object$test.GenericType<Long>$test.Trait<Long> {test.GenericType<Long>*, fn[1]*}
 
-type _object$test.GenericType<Unit>$test.Trait<Unit> {_ZeroSize*, fn[1]*}
+type _object$test.GenericType<Unit>$test.Trait<Unit> {std._ZeroSize*, fn[1]*}
 
 type test.GenericType<Int> {int}
 
@@ -51,7 +49,7 @@ func std.option.Option<Long>* @test.GenericType.method<Long>(test.GenericType<Lo
   Ret %2
 }
 
-func std.option.Option<Unit>* @test.GenericType.method<Unit>(_ZeroSize* %0) {
+func std.option.Option<Unit>* @test.GenericType.method<Unit>(std._ZeroSize* %0) {
   %1 := Call std.option.Option<Unit>* myte.builtin.alloc(1)
   %2 := Cast std.option.Option<Unit>* %1 to std.option.Option<Unit>::Some*
   %3 := Cast std.option.Option<Unit>::Some* %2 to byte*
@@ -146,12 +144,6 @@ func void @test.testGenericType() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testConcreteTypes)
-  Call void @test.use<Function>(@test.testGenericType)
   Ret 0
 }

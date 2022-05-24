@@ -87,16 +87,6 @@ label @2:
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.inexhaustiveContinue)
-  Call void @test.use<Function>(@test.inexhaustiveBreak)
-  Call void @test.use<Function>(@test.exhaustiveContinues)
-  Call void @test.use<Function>(@test.exhaustiveBreaks)
-  Call void @test.use<Function>(@test.inexhaustiveBreakAndContinue)
-  Call void @test.use<Function>(@test.exhaustiveBreakAndContinue)
   Ret 0
 }

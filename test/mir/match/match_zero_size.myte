@@ -37,7 +37,4 @@ fun testTypeWithZeroSizeField(x: ZeroSizeFieldType) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testZeroSizeType);
-  use(testTypeWithZeroSizeField);
-}
+fun main() {}

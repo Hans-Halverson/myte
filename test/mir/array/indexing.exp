@@ -70,15 +70,6 @@ func void @test.indexingWithRecordAndTuple(test.Rec1* %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.indexing)
-  Call void @test.use<Function>(@test.indexingAllIntegerTypes)
-  Call void @test.use<Function>(@test.indexingWithTuple)
-  Call void @test.use<Function>(@test.indexingWithRecord)
-  Call void @test.use<Function>(@test.indexingWithRecordAndTuple)
   Ret 0
 }

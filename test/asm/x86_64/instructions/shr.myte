@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun shrByteRegs(x: Byte, y: Byte): Byte = x >>> y
 fun shrByteImmReg(x: Byte): Byte = 6 >>> x
 fun shrByteRegImm(x: Byte): Byte = x >>> 6
@@ -15,14 +13,4 @@ fun shrLongRegImm(x: Long): Long = x >>> 6
 /// First have to load long to register
 fun shrLongImmReg(x: Long): Long = 2147483648 >>> x
 
-fun main() {
-  use(shrByteRegs);
-  use(shrByteImmReg);
-  use(shrByteRegImm);
-  use(shrIntRegs);
-  use(shrIntRegImm);
-  use(shrIntImmReg);
-  use(shrLongRegs);
-  use(shrLongRegImm);
-  use(shrLongImmReg);
-}
+fun main() {}

@@ -188,19 +188,10 @@ func void @test.test5(test.Test5Type* %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.test1)
-  Call void @test.use<Function>(@test.test2)
-  Call void @test.use<Function>(@test.test3)
-  Call void @test.use<Function>(@test.test4)
-  Call void @test.use<Function>(@test.test5)
   Ret 0
 }

@@ -60,17 +60,6 @@ func void @test.useTestVec(test.TestVec<Int>* %0, test.TestVec<Long>* %1) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.useTup1)
-  Call void @test.use<Function>(@test.duplicateInstances)
-  Call void @test.use<Function>(@test.useRec1)
-  Call void @test.use<Function>(@test.adtTypeArgs)
-  Call void @test.use<Function>(@test.tupleTypeArgs)
-  Call void @test.use<Function>(@test.useAnonTup)
-  Call void @test.use<Function>(@test.useTestVec)
   Ret 0
 }

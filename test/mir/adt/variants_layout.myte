@@ -43,10 +43,4 @@ type V4 =
 
 fun useVs(v1: V1, v2: V2, v3: V3, v4: V4) {}
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(useOpt1);
-  use(useOpt2);
-  use(useVs);
-}
+fun main() {}

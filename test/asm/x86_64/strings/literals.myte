@@ -10,5 +10,4 @@ fun use<T>(x: T): T = x
 
 fun main() {
   use(s);
-  use(test);
 }

@@ -36,11 +36,4 @@ fun testMultipleUnwrapPointer(x: Option<Option<PointerType>>, y: PointerType): O
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testBoolUnwrap);
-  use(testByteUnwrap);
-  use(testIntUnwrap);
-  use(testPointerUnwrap);
-  use(testMultipleUnwrapBool);
-  use(testMultipleUnwrapPointer);
-}
+fun main() {}

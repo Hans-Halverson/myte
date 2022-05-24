@@ -1,7 +1,7 @@
 let commands ~config bin files =
   let config =
     match config with
-    | None -> ""
+    | None -> "--emit-all "
     | Some config -> config ^ " "
   in
   [

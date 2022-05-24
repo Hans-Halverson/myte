@@ -68,7 +68,4 @@ fun testSingleSpillUsingAllRegistersFromLocals(): Int {
 
 fun main() {
   println(testSingleSpillUsingAllRegisters(1, 2, 3, 4, 5, 6, 16).toString()); // Returns 88
-  use(testSingleSpillUsingAllRegisters);
-  use(testCallerSavedRegistersSpilledAcrossFunctionCalls);
-  use(testSingleSpillUsingAllRegistersFromLocals);
 }

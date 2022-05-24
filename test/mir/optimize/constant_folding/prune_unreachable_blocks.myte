@@ -103,14 +103,4 @@ fun whileTrueWithContinue() {
   func(2);
 }
 
-fun use<T>(x: T): T = x
-
-fun main() {
-  use(ifStatement);
-  use(nestedIfStatements);
-  use(whileTrue);
-  use(whileFalse);
-  use(whileTrueWithReturn);
-  use(whileTrueWithBreak);
-  use(whileTrueWithContinue);
-}
+fun main() {}

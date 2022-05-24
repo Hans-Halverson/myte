@@ -90,7 +90,9 @@ type t = {
   (* The last init block that was completed *)
   mutable last_init_block: Block.t option;
   mutable max_mutable_string_literal_id: int;
+  mutable max_mutable_std_string_literal_id: int;
   mutable max_immutable_string_literal_id: int;
+  mutable max_immutable_std_string_literal_id: int;
   (* Map from string to the deduplicated immutable string *)
   mutable immutable_string_literals: ImmutableString.t SMap.t;
 }
@@ -145,7 +147,9 @@ let mk ~pcx =
     in_init = false;
     last_init_block = None;
     max_mutable_string_literal_id = 0;
+    max_mutable_std_string_literal_id = 0;
     max_immutable_string_literal_id = 0;
+    max_immutable_std_string_literal_id = 0;
     immutable_string_literals = SMap.empty;
   }
 
@@ -264,15 +268,14 @@ let emit_init_section ~ecx f =
 
 let add_mutable_string_literal ~ecx loc string : Value.t =
   let name =
-    let id = ecx.max_mutable_string_literal_id in
-    ecx.max_mutable_string_literal_id <- id + 1;
-    let prefix =
-      if ecx.current_in_std_lib then
-        Mir.std_lib_string_prefix
-      else
-        ".S"
-    in
-    prefix ^ string_of_int id
+    if ecx.current_in_std_lib then (
+      let id = ecx.max_mutable_std_string_literal_id in
+      ecx.max_mutable_std_string_literal_id <- id + 1;
+      Mir.std_lib_string_prefix ^ string_of_int id
+    ) else
+      let id = ecx.max_mutable_string_literal_id in
+      ecx.max_mutable_string_literal_id <- id + 1;
+      ".S" ^ string_of_int id
   in
   let length = String.length string in
   let global =
@@ -291,13 +294,18 @@ let add_immutable_string_literal ~ecx string =
   (* Immutable strings have a single canonical global value and size *)
   | Some imm_string -> imm_string
   | None ->
-    (* If not yet interned, generate new immutable string id *)
-    let id = ecx.max_immutable_string_literal_id in
-    ecx.max_immutable_string_literal_id <- id + 1;
-    let size = String.length string in
-
     (* Create global for string value *)
-    let value_name = ".IS" ^ string_of_int id in
+    let value_name =
+      if ecx.current_in_std_lib then (
+        let id = ecx.max_immutable_std_string_literal_id in
+        ecx.max_immutable_std_string_literal_id <- id + 1;
+        Mir.std_lib_immutable_string_prefix ^ string_of_int id
+      ) else
+        let id = ecx.max_immutable_string_literal_id in
+        ecx.max_immutable_string_literal_id <- id + 1;
+        ".IS" ^ string_of_int id
+    in
+    let size = String.length string in
     let value_ty = Type.Array (Byte, size) in
     let value_global =
       mk_global

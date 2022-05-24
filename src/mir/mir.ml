@@ -467,13 +467,18 @@ let std_lib_string_prefix = ".stdS"
 let has_std_lib_string_prefix name =
   String.length name >= 5 && String.sub name 0 5 = std_lib_string_prefix
 
+let std_lib_immutable_string_prefix = ".stdIS"
+
+let has_std_lib_immutable_string_prefix name =
+  String.length name >= 6 && String.sub name 0 6 = std_lib_immutable_string_prefix
+
+let has_std_lib_prefix name =
+  Std_lib.has_std_lib_prefix name
+  || has_std_lib_string_prefix name
+  || has_std_lib_immutable_string_prefix name
+
 let filter_stdlib (program : Program.t) =
-  let filter_stdlib_names smap =
-    SMap.filter
-      (fun name _ ->
-        (not (Std_lib.has_std_lib_prefix name)) && not (has_std_lib_string_prefix name))
-      smap
-  in
+  let filter_stdlib_names smap = SMap.filter (fun name _ -> not (has_std_lib_prefix name)) smap in
   program.globals <- filter_stdlib_names program.globals;
   program.funcs <- filter_stdlib_names program.funcs;
   program

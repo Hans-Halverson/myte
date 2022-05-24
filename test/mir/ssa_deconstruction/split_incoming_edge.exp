@@ -48,13 +48,6 @@ label @2:
   Ret
 }
 
-func void @split_incoming_edge.use<Function>(fn %0) {
-  Ret
-}
-
 func int @split_incoming_edge.main() {
-  Call void @split_incoming_edge.use<Function>(@split_incoming_edge.inexhaustiveIf)
-  Call void @split_incoming_edge.use<Function>(@split_incoming_edge.loop)
-  Call void @split_incoming_edge.use<Function>(@split_incoming_edge.multiple)
   Ret 0
 }

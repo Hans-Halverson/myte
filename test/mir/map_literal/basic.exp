@@ -27,13 +27,6 @@ func void @test.multiEntryMap() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.emptyMap)
-  Call void @test.use<Function>(@test.oneEntryMap)
-  Call void @test.use<Function>(@test.multiEntryMap)
   Ret 0
 }

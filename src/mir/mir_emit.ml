@@ -82,6 +82,7 @@ and emit_pending ~ecx =
   (* Add root set of functions to emit *)
   ignore (Ecx.get_nongeneric_function_value ~ecx ecx.main_label);
   ignore (Ecx.get_nongeneric_function_value ~ecx Std_lib.std_sys_init);
+  if Opts.emit_all () then emit_all_enqueue_pending ~ecx;
 
   (* Emit all pending global variables *)
   let rec emit_pending_globals () =
@@ -146,6 +147,35 @@ and emit_pending ~ecx =
     if not !complete then emit_all_pending ()
   in
   emit_all_pending ()
+
+and emit_all_enqueue_pending ~ecx =
+  let enqueue_nongeneric_function func_node =
+    let binding = Bindings.get_value_binding ecx.pcx.bindings func_node.Ast.Function.name.loc in
+    let func_decl = Bindings.get_func_decl binding in
+    if (not func_decl.is_builtin) && (not func_decl.is_signature) && func_decl.type_params = [] then
+      let func_name = mk_value_binding_name binding in
+      ignore (Ecx.get_nongeneric_function_value ~ecx func_name)
+  in
+
+  iter_toplevels ~ecx (fun toplevel ->
+      match toplevel with
+      (* All global variables are enqueued *)
+      | VariableDeclaration { pattern = Identifier { loc; _ }; _ } ->
+        let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
+        ignore (Ecx.get_global_pointer ~ecx binding)
+      | VariableDeclaration _ -> failwith "Pattern must be single identifier"
+      (* Nongeneric toplevel functions are enqueued *)
+      | FunctionDeclaration func_node -> enqueue_nongeneric_function func_node
+      (* Nongeneric methods are enqueued, including static methods on generic traits *)
+      | TraitDeclaration { kind; type_params; methods; _ } ->
+        let is_trait_generic = kind = Trait || type_params <> [] in
+        List.iter
+          (fun meth ->
+            if (not is_trait_generic) || meth.Ast.Function.static then
+              enqueue_nongeneric_function meth)
+          methods
+      (* Nongeneric types are enqueued *)
+      | TypeDeclaration _ -> ())
 
 and emit_global_variable_declaration ~ecx name decl =
   let { Statement.VariableDeclaration.init; _ } = decl in

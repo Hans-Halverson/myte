@@ -54,17 +54,10 @@ label @8:
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testWithoutAltern)
-  Call void @test.use<Function>(@test.testWithAltern)
-  Call void @test.use<Function>(@test.nested)
   Ret 0
 }

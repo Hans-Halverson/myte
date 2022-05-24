@@ -37,19 +37,4 @@ fun testLongArgs() {
   longArgs(2147483648, 2, 3, 4, 5, 6, 2147483648);
 }
 
-fun main() {
-  use(zeroArgFunction);
-  use(testOneArgFunction);
-  use(testTwoArgFunction);
-  use(testThreeArgFunction);
-  use(testFourArgFunction);
-  use(testFiveArgFunction);
-  use(testSixArgFunction);
-  use(testSevenArgFunction);
-  use(testEightArgFunction);
-  use(testNineArgFunction);
-  use(passedInRegistersAndStack);
-  use(testFunctionStackParamsOffsetByPushedCalleeSavedRegisters);
-  use(testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters);
-  use(testLongArgs);
-}
+fun main() {}

@@ -7,15 +7,15 @@ test.s:
 
   .data
 .S0:
-  .ascii "foobar"
-.S1:
   .ascii "foo"
+.S1:
+  .ascii "foobar"
 
   .text
 _myte_init:
   movl $16, %edi
   call __myte_alloc
-  leaq .S1(%rip), %rdx
+  leaq .S0(%rip), %rdx
   movq %rdx, 8(%rax)
   movl $3, (%rax)
   movl $3, 4(%rax)
@@ -24,20 +24,15 @@ _myte_init:
 _main:
   movq test.s(%rip), %rdi
   call test.use$String$
-  leaq test.test(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.test:
   movl $16, %edi
   call __myte_alloc
-  leaq .S0(%rip), %rdx
+  leaq .S1(%rip), %rdx
   movq %rdx, 8(%rax)
   movl $6, (%rax)
   movl $6, 4(%rax)
-  ret
-test.use$Function$:
-  movq %rdi, %rax
   ret
 test.use$String$:
   movq %rdi, %rax

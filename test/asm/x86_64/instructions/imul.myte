@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun mulByteRegs(x: Byte, y: Byte): Byte = x * y
 fun mulByteImmReg(x: Byte): Byte = 60 * x
 fun mulByteRegImm(x: Byte): Byte = x * 60
@@ -15,14 +13,4 @@ fun mulLongRegs(x: Long, y: Long): Long = x * y
 fun mulLongRegImm(x: Long): Long = x * 2147483648
 fun mulLongImmReg(x: Long): Long = 2147483648 * x
 
-fun main() {
-  use(mulByteRegs);
-  use(mulByteImmReg);
-  use(mulByteRegImm);
-  use(mulIntRegs);
-  use(mulIntRegImm);
-  use(mulIntImmReg);
-  use(mulLongRegs);
-  use(mulLongRegImm);
-  use(mulLongImmReg);
-}
+fun main() {}

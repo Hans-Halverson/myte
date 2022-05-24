@@ -111,19 +111,6 @@ func _object$test.Trait* @test.testNoPromotionOnTraitObject(_object$test.Trait* 
   Ret %0
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testCallArgumentPromotion)
-  Call void @test.use<Function>(@test.testTupleTypeArgumentPromotion)
-  Call void @test.use<Function>(@test.testRecordTypeArgumentPromotion)
-  Call void @test.use<Function>(@test.testTypeCastPromotion)
-  Call void @test.use<Function>(@test.testReturnArgumentPromotion)
-  Call void @test.use<Function>(@test.testReturnExpressionPromotion)
-  Call void @test.use<Function>(@test.testVariableDeclarationPromotion)
-  Call void @test.use<Function>(@test.testVariableAssignmentPromotion)
-  Call void @test.use<Function>(@test.testNoPromotionOnTraitObject)
   Ret 0
 }

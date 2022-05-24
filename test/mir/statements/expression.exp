@@ -94,10 +94,6 @@ func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -111,13 +107,5 @@ func void @test.use<Unit>() {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testSimpleExpressionStatements)
-  Call void @test.use<Function>(@test.testExpressionStatementSingleValue)
-  Call void @test.use<Function>(@test.testExpressionStatementsBeforeValue)
-  Call void @test.use<Function>(@test.testExpressionStatementUnitValue)
-  Call void @test.use<Function>(@test.testWhileUnitValue)
-  Call void @test.use<Function>(@test.testForUnitValue)
-  Call void @test.use<Function>(@test.testVariableDeclarationUnitValue)
-  Call void @test.use<Function>(@test.testAssignmentUnitValue)
   Ret 0
 }

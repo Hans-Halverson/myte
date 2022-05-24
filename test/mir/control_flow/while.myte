@@ -15,6 +15,4 @@ fun writeInBody() {
   -x;
 }
 
-fun main() {
-  writeInBody();
-}
+fun main() {}

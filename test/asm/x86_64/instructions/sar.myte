@@ -1,7 +1,5 @@
 module test
 
-fun use<T>(x: T): T = x
-
 fun sarByteRegs(x: Byte, y: Byte): Byte = x >> y
 fun sarByteImmReg(x: Byte): Byte = 6 >> x
 fun sarByteRegImm(x: Byte): Byte = x >> 6
@@ -15,14 +13,4 @@ fun sarLongRegs(x: Long, y: Long): Long = x >> y
 fun sarLongRegImm(x: Long): Long = x >> 6
 fun sarLongImmReg(x: Long): Long = 2147483648 >> x
 
-fun main() {
-  use(sarByteRegs);
-  use(sarByteImmReg);
-  use(sarByteRegImm);
-  use(sarIntRegs);
-  use(sarIntRegImm);
-  use(sarIntImmReg);
-  use(sarLongRegs);
-  use(sarLongRegImm);
-  use(sarLongImmReg);
-}
+fun main() {}

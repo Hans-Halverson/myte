@@ -42,13 +42,6 @@ func void @test.testIntEnum() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testPureEnum1Values)
-  Call void @test.use<Function>(@test.testFullByteEnum)
-  Call void @test.use<Function>(@test.testIntEnum)
   Ret 0
 }

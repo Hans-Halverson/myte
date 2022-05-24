@@ -8,7 +8,7 @@ global int @.IS1Size = 3
 
 func std.string.String* @test.testSingleStringPart() {
   %0 := Call std.string.String* myte.builtin.alloc(1)
-  %1 := Cast byte[3]* @.S3 to byte*
+  %1 := Cast byte[3]* @.S2 to byte*
   %2 := GetPointer byte*, std.string.String* %0.2
   Store byte* %2, %1
   %3 := GetPointer int, std.string.String* %0.0
@@ -18,7 +18,7 @@ func std.string.String* @test.testSingleStringPart() {
   Ret %0
 }
 
-global byte[3] @.S3 = "foo"
+global byte[3] @.S2 = "foo"
 
 func std.string.String* @test.testSingleExpressionPart() {
   %0 := Call std.string.String* myte.builtin.alloc(1)
@@ -52,7 +52,7 @@ func std.string.String* @test.testMultipleParts1() {
 
 func std.string.String* @test.testMultipleParts2() {
   %0 := Call std.string.String* myte.builtin.alloc(1)
-  %1 := Cast byte[3]* @.S1 to byte*
+  %1 := Cast byte[3]* @.S0 to byte*
   %2 := GetPointer byte*, std.string.String* %0.2
   Store byte* %2, %1
   %3 := GetPointer int, std.string.String* %0.0
@@ -68,11 +68,11 @@ func std.string.String* @test.testMultipleParts2() {
   Ret %0
 }
 
-global byte[3] @.S1 = "foo"
+global byte[3] @.S0 = "foo"
 
 func std.string.String* @test.testRepeatedParts() {
   %0 := Call std.string.String* myte.builtin.alloc(1)
-  %1 := Cast byte[3]* @.S2 to byte*
+  %1 := Cast byte[3]* @.S1 to byte*
   %2 := GetPointer byte*, std.string.String* %0.2
   Store byte* %2, %1
   %3 := GetPointer int, std.string.String* %0.0
@@ -94,17 +94,8 @@ func std.string.String* @test.testRepeatedParts() {
   Ret %0
 }
 
-global byte[3] @.S2 = "foo"
-
-func void @test.use<Function>(fn %0) {
-  Ret
-}
+global byte[3] @.S1 = "foo"
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testSingleStringPart)
-  Call void @test.use<Function>(@test.testSingleExpressionPart)
-  Call void @test.use<Function>(@test.testMultipleParts1)
-  Call void @test.use<Function>(@test.testMultipleParts2)
-  Call void @test.use<Function>(@test.testRepeatedParts)
   Ret 0
 }

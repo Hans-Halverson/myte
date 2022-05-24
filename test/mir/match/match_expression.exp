@@ -156,10 +156,6 @@ func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -173,14 +169,5 @@ func void @test.use<test.ZeroSize>() {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testMatchExpressionBlockValues)
-  Call void @test.use<Function>(@test.testMatchStatementInExpressionPosition)
-  Call void @test.use<Function>(@test.testNestedMatchAndIf)
-  Call void @test.use<Function>(@test.testZeroSizeMatch)
-  Call void @test.use<Function>(@test.testUnitMatch)
-  Call void @test.use<Function>(@test.testReturnBranch)
-  Call void @test.use<Function>(@test.testReturnBlockBranch)
-  Call void @test.use<Function>(@test.testDivergentExpressionBranch)
-  Call void @test.use<Function>(@test.testLoopDivergence)
   Ret 0
 }

@@ -2,24 +2,6 @@
 
   .text
 _main:
-  leaq test.orByteRegs(%rip), %rdi
-  call test.use$Function$
-  leaq test.orByteImmReg(%rip), %rdi
-  call test.use$Function$
-  leaq test.orByteRegImm(%rip), %rdi
-  call test.use$Function$
-  leaq test.orIntRegs(%rip), %rdi
-  call test.use$Function$
-  leaq test.orIntRegImm(%rip), %rdi
-  call test.use$Function$
-  leaq test.orIntImmReg(%rip), %rdi
-  call test.use$Function$
-  leaq test.orLongRegs(%rip), %rdi
-  call test.use$Function$
-  leaq test.orLongRegImm(%rip), %rdi
-  call test.use$Function$
-  leaq test.orLongImmReg(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.orByteImmReg:
@@ -58,7 +40,4 @@ test.orLongRegImm:
 test.orLongRegs:
   orq %rdi, %rsi
   movq %rsi, %rax
-  ret
-test.use$Function$:
-  movq %rdi, %rax
   ret

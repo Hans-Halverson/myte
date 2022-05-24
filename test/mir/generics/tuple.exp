@@ -64,14 +64,6 @@ func void @test.testAnonymousIndexing($tuple<Int,Int>* %0, $tuple<Int,Bool>* %1)
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testConstructor)
-  Call void @test.use<Function>(@test.testAnonymousConstructor)
-  Call void @test.use<Function>(@test.testIndexing)
-  Call void @test.use<Function>(@test.testAnonymousIndexing)
   Ret 0
 }

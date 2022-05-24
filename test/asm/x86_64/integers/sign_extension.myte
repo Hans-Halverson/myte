@@ -1,15 +1,9 @@
 module test
 
-fun use<T>(x: T) {}
-
 fun sextByteToInt(x: Byte): Int = x.toInt()
 
 fun sextByteToLong(x: Byte): Long = x.toLong()
 
 fun sextIntToLong(x: Int): Long = x.toLong()
 
-fun main() {
-  use(sextByteToInt);
-  use(sextByteToLong);
-  use(sextIntToLong);
-}
+fun main() {}

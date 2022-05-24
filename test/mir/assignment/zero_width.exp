@@ -1,7 +1,5 @@
 type $tuple<Int,test.RecWithZeroSizeField> {int, test.RecWithZeroSizeField*}
 
-type _ZeroSize {}
-
 func void @test.getUnit() {
   Ret
 }
@@ -72,10 +70,6 @@ func void @test.id<test.ZeroSize>() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Unit>() {
   Ret
 }
@@ -85,11 +79,5 @@ func void @test.use<test.ZeroSize>() {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.testAssignGlobal)
-  Call void @test.use<Function>(@test.testAssignLocal)
-  Call void @test.use<Function>(@test.testAssignDestructuring)
-  Call void @test.use<Function>(@test.testAssignVecIndexing)
-  Call void @test.use<Function>(@test.testAssignMapIndexing)
-  Call void @test.use<Function>(@test.testAssignAccessChainIndexing)
   Ret 0
 }

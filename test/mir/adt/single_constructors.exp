@@ -84,13 +84,6 @@ func void @test.recordConstructor() {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.arguments)
-  Call void @test.use<Function>(@test.tupleConstructor)
-  Call void @test.use<Function>(@test.recordConstructor)
   Ret 0
 }

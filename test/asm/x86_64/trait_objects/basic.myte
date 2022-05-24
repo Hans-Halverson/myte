@@ -30,11 +30,4 @@ fun testPromotion(x: Type) {
   testCall(x);
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(callSimpleMethod);
-  use(callMethodWithArgs);
-  use(testCall);
-  use(testPromotion);
-}
+fun main() {}

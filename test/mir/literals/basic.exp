@@ -19,10 +19,6 @@ func void @test.use<Byte>(byte %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -67,7 +63,6 @@ func int @test.main() {
   %2 := Add long 2, 2147483648
   %3 := Add long %2, 6
   Call void @test.use<Long>(%3)
-  Call void @test.use<Function>(@test.useAll)
   Ret 0
 }
 

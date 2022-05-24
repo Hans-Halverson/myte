@@ -40,14 +40,6 @@ func void @test.useMutuallyRecursiveVariants(test.VRec2* %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.useSelfRecursive)
-  Call void @test.use<Function>(@test.useMutuallyRecursive)
-  Call void @test.use<Function>(@test.useSelfRecursiveVariant)
-  Call void @test.use<Function>(@test.useMutuallyRecursiveVariants)
   Ret 0
 }

@@ -10,10 +10,6 @@ func void @test.use<Bool>(bool %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func void @test.use<Int>(int %0) {
   Ret
 }
@@ -134,10 +130,5 @@ func void @test.destructureAssignGlobals($tuple<Int,Bool>* %0) {
 }
 
 func int @test.main() {
-  Call void @test.use<Function>(@test.destructureTuple)
-  Call void @test.use<Function>(@test.destructureVariants)
-  Call void @test.use<Function>(@test.destructureNamedTuple)
-  Call void @test.use<Function>(@test.destructureNamedRecord)
-  Call void @test.use<Function>(@test.destructureAssignGlobals)
   Ret 0
 }

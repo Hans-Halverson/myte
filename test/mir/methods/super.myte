@@ -121,10 +121,4 @@ fun test5(x: Test5Type) {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(test1);
-  use(test2);
-  use(test3);
-  use(test4);
-  use(test5);
-}
+fun main() {}

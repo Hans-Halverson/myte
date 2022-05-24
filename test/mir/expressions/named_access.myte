@@ -32,8 +32,4 @@ fun testIndexing(r1: Rec1, r2: Rec2, r3: Rec3, r4: Rec4, t1: Tup1) {
   t1[0].baz.bar;
  }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testIndexing);
-}
+fun main() {}

@@ -13,9 +13,4 @@ fun useFromB(x: b.RecB<Byte>) {
   b.funcB();
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(useFromB);
-  use(b.useFromA);
-}
+fun main() {}

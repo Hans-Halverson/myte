@@ -41,8 +41,4 @@ fun main() {
   use(i);
   use(l);
   use(f);
-  use(getByte);
-  use(getInt);
-  use(getLong);
-  use(getFunction);
 }

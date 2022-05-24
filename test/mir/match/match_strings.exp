@@ -29,11 +29,6 @@ label @3:
   Ret %7
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.test1)
   Ret 0
 }

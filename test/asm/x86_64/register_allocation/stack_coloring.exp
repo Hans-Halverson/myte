@@ -5,12 +5,6 @@ test.cond:
   movb $1, %al
   ret
 _main:
-  leaq test.testMultipleInterferingSpillsInDifferentStackSlots(%rip), %rdi
-  call test.use$Function$
-  leaq test.testNonInterferingSpillsReuseStackSlots(%rip), %rdi
-  call test.use$Function$
-  leaq test.testPartialReuseStackSlots(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.testMultipleInterferingSpillsInDifferentStackSlots:
@@ -402,9 +396,6 @@ test.testPartialReuseStackSlots:
   pop %r13
   pop %r12
   pop %rbx
-  ret
-test.use$Function$:
-  movq %rdi, %rax
   ret
 test.use$Int$:
   movl %edi, %eax

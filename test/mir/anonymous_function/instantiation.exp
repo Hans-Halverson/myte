@@ -364,15 +364,6 @@ func void @test.testGenericInInheritedMethod(test.Type3<Long>* %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testNongenericInToplevel)
-  Call void @test.use<Function>(@test.testGenericInToplevel)
-  Call void @test.use<Function>(@test.testNongenericInMethod)
-  Call void @test.use<Function>(@test.testGenericInMethod)
-  Call void @test.use<Function>(@test.testGenericInInheritedMethod)
   Ret 0
 }

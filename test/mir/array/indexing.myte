@@ -38,12 +38,4 @@ fun indexingWithRecordAndTuple(x: Rec1) {
   x.bar[99][1];
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(indexing);
-  use(indexingAllIntegerTypes);
-  use(indexingWithTuple);
-  use(indexingWithRecord);
-  use(indexingWithRecordAndTuple);
-}
+fun main() {}

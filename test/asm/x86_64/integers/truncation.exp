@@ -2,12 +2,6 @@
 
   .text
 _main:
-  leaq test.truncIntToByte(%rip), %rdi
-  call test.use$Function$
-  leaq test.truncLongToByte(%rip), %rdi
-  call test.use$Function$
-  leaq test.truncLongToInt(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.truncIntToByte:
@@ -21,6 +15,4 @@ test.truncLongToByte:
 test.truncLongToInt:
   movl %esi, 4(%rdi)
   movl %esi, %eax
-  ret
-test.use$Function$:
   ret

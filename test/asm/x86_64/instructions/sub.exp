@@ -2,24 +2,6 @@
 
   .text
 _main:
-  leaq test.subByteRegs(%rip), %rdi
-  call test.use$Function$
-  leaq test.subByteImmReg(%rip), %rdi
-  call test.use$Function$
-  leaq test.subByteRegImm(%rip), %rdi
-  call test.use$Function$
-  leaq test.subIntRegs(%rip), %rdi
-  call test.use$Function$
-  leaq test.subIntRegImm(%rip), %rdi
-  call test.use$Function$
-  leaq test.subIntImmReg(%rip), %rdi
-  call test.use$Function$
-  leaq test.subLongRegs(%rip), %rdi
-  call test.use$Function$
-  leaq test.subLongRegImm(%rip), %rdi
-  call test.use$Function$
-  leaq test.subLongImmReg(%rip), %rdi
-  call test.use$Function$
   movl $0, %eax
   ret
 test.subByteImmReg:
@@ -57,8 +39,5 @@ test.subLongRegImm:
   ret
 test.subLongRegs:
   subq %rsi, %rdi
-  movq %rdi, %rax
-  ret
-test.use$Function$:
   movq %rdi, %rax
   ret

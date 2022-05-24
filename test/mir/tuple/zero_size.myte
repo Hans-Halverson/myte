@@ -25,7 +25,4 @@ fun id<T>(x: T): T = x
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testZeroSizeTuple);
-  use(testTupleWithZeroSizeFields);
-}
+fun main() {}

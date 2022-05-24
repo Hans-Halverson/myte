@@ -35,7 +35,7 @@ let mk_aggregate_id () =
   max_aggregate_id := agg_id + 1;
   agg_id
 
-let zero_size_name = "_ZeroSize"
+let zero_size_name = "std._ZeroSize"
 
 let lookup_element_opt agg name =
   let open Aggregate in

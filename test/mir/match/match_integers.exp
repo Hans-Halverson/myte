@@ -62,14 +62,6 @@ label @3:
   Ret %4
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testBytes)
-  Call void @test.use<Function>(@test.testInts)
-  Call void @test.use<Function>(@test.testLongs)
-  Call void @test.use<Function>(@test.testCharLiterals)
   Ret 0
 }

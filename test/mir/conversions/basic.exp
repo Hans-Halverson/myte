@@ -16,13 +16,6 @@ func void @test.testConvertLong(long %0) {
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.testConvertByte)
-  Call void @test.use<Function>(@test.testConvertInt)
-  Call void @test.use<Function>(@test.testConvertLong)
   Ret 0
 }

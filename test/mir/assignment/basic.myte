@@ -18,9 +18,4 @@ fun testReassignLocals() {
   y = y * y;
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testReassignGlobals);
-  use(testReassignLocals);
-}
+fun main() {}

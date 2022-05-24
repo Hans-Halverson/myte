@@ -111,14 +111,6 @@ func void @test.accessOperatorAssign(test.Rec1* %0, test.Rec3* %1, test.Tup1* %2
   Ret
 }
 
-func void @test.use<Function>(fn %0) {
-  Ret
-}
-
 func int @test.main() {
-  Call void @test.use<Function>(@test.simpleAccesses)
-  Call void @test.use<Function>(@test.nestedAccesses)
-  Call void @test.use<Function>(@test.namedAndIndexedAccess)
-  Call void @test.use<Function>(@test.accessOperatorAssign)
   Ret 0
 }

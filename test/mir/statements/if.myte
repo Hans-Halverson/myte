@@ -47,8 +47,4 @@ fun nested() {
 
 fun use<T>(x: T) {}
 
-fun main() {
-  use(testWithoutAltern);
-  use(testWithAltern);
-  use(nested);
-}
+fun main() {}

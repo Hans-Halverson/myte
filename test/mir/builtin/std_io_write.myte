@@ -11,9 +11,4 @@ fun testWithOffset(file: Int, buffer: Array<Byte>, size: Int): Int {
   return File.__builtin_write(file, buffer, 123, size);
 }
 
-fun use<T>(x: T) {}
-
-fun main() {
-  use(testWithoutOffset);
-  use(testWithOffset);
-}
+fun main() {}
