@@ -1,0 +1,8 @@
+module test
+
+val x: Int = match (2) {
+  | 1 -> 3
+  | y -> y + 4
+}
+
+fun main() {}

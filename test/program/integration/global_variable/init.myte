@@ -36,8 +36,37 @@ fun testRuntimeInitialization() {
   assertEqual(x9, 98823);
 }
 
+// Initialization that has bindings
+var intVar1: Int = 1
+val x10: Int = match (intVar1) {
+  | 1 -> 11
+  | 2 -> 22
+  | y -> y + 100
+}
+
+var intVar2: Int = 2
+val x11: Int = match (intVar2) {
+  | 1 -> 11
+  | 2 -> 22
+  | y -> y + 100
+}
+
+var intVar3: Int = 3
+val x12: Int = match (intVar3) {
+  | 1 -> 11
+  | 2 -> 22
+  | y -> y + 100
+}
+
+fun testInitializationWithBindings() {
+  assertEqual(x10, 11);
+  assertEqual(x11, 22);
+  assertEqual(x12, 103);
+}
+
 fun main() {
   testStaticInitialization();
   testFunctionInitialization();
   testRuntimeInitialization();
+  testInitializationWithBindings();
 }
