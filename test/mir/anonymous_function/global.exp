@@ -1,0 +1,35 @@
+type _closure {fn, byte*}
+
+func void @_init() {
+  %0 := Call _closure* myte.builtin.alloc(1)
+  %1 := Cast _closure* %0 to fn*
+  Store fn %1, @_init:0
+  %2 := GetPointer byte*, _closure* %0.1
+  Store byte* %2, null
+  Store _closure* @test.global1, %0
+  %3 := Call _closure* myte.builtin.alloc(1)
+  %4 := Cast _closure* %3 to fn*
+  Store fn %4, @_init:1
+  %5 := GetPointer byte*, _closure* %3.1
+  Store byte* %5, null
+  Store _closure* @test.global2, %3
+  Ret
+}
+
+global _closure* @test.global1 = uninitialized
+
+func int @_init:0(int %0, byte* %1) {
+  %2 := Mul int %0, 3
+  Ret %2
+}
+
+global _closure* @test.global2 = uninitialized
+
+func int @_init:1(int %0, byte* %1) {
+  %2 := Mul int %0, 5
+  Ret %2
+}
+
+func int @test.main() {
+  Ret 0
+}

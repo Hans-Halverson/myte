@@ -12,7 +12,17 @@ fun testHigherOrderFunction() {
   assertVecEqual(x, [true, false, true, false]);
 }
 
+val global1: (Int) -> Int = fn (x) -> x * 3
+
+val global2: (Int) -> Int = fn (x) -> x * 5
+
+fun testGlobalAnonymousFunction() {
+  assertEqual(global1(4), 12);
+  assertEqual(global2(4), 20);
+}
+
 fun main() {
   testDirectUsage();
   testHigherOrderFunction();
+  testGlobalAnonymousFunction();
 }

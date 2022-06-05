@@ -1,0 +1,7 @@
+module test
+
+val global1: (Int) -> Int = fn (x) -> x * 3
+
+val global2: (Int) -> Int = fn (x) -> x * 5
+
+fun main() {}
