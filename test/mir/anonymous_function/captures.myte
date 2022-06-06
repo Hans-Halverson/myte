@@ -1,0 +1,54 @@
+module test
+
+fun testCapturePropagates() {
+  val x: Byte = 1;
+  fn () {
+    fn () {
+      fn () {
+        use(x);
+      };
+    };
+  };
+}
+
+fun testNestedCaptures() {
+  val x: Byte = 1;
+  val y: Int = 2;
+  val z: Long = 3;
+
+  fn () {
+    use(x);
+    fn () {
+      use(y);
+      fn () {
+        use(z);
+      };
+    };
+  };
+}
+
+fun testNoInnerCaptures() {
+  val x: Int = 1;
+  fn () {
+    use(x);
+    fn () {};
+  };
+}
+
+fun testCaptureAllDeclTypes(x: Byte) {
+  fn (y: Int) {
+    match ((1: Long)) {
+      | z -> {
+        fn () {
+          use(x);
+          use(y);
+          use(z);
+        };
+      }
+    }
+  };
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

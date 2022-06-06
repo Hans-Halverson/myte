@@ -39,6 +39,7 @@ module FunctionDeclaration : sig
     mutable params: Types.Type.t list;
     mutable return: Types.Type.t;
     mutable this_binding_id: int option;
+    mutable captures: LocSet.t;
   }
 
   val mk :
@@ -114,6 +115,7 @@ module ValueBinding : sig
     loc: Loc.t;
     declaration: value_declaration;
     mutable uses: LocSet.t;
+    mutable is_captured: bool;
     context: context;
     module_: string list;
   }
@@ -123,7 +125,8 @@ module ValueBinding : sig
   and context =
     | Module
     | Trait of string
-    | Function
+    | Function of Loc.t * bool
+    | GlobalInit
 
   val mk :
     name:string ->
@@ -172,6 +175,8 @@ end
 module BVSet : Set.S with type elt = ValueBinding.t
 
 module BVMap : Map.S with type key = ValueBinding.t
+
+module LBVMMap : MultiMap.S with type key = Loc.t and type value = ValueBinding.t
 
 module BTSet : Set.S with type elt = TypeBinding.t
 

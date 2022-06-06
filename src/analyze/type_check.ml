@@ -888,7 +888,7 @@ and check_function_body ~cx decl =
     ()
   | _ -> Exhaustive_returns.analyze_function ~cx decl);
 
-  Type_context.push_current_function ~cx return_ty;
+  Type_context.push_current_function ~cx (Named func_decl) return_ty;
 
   (match body with
   | Signature -> ()
@@ -974,6 +974,7 @@ and check_expression ~cx expr =
       | MatchCaseVarDecl { tvar }
       | VarDecl { tvar; _ }
       | ThisDecl { tvar } ->
+        capture_binding_in_contexts ~cx binding (Type_context.get_function_context_stack ~cx);
         TVar tvar
     in
     ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
@@ -1719,7 +1720,7 @@ and check_expression ~cx expr =
     let func_ty = Type.Function { type_args = []; params; return } in
 
     (* Check anonymous function body *)
-    Type_context.push_current_function ~cx return;
+    Type_context.push_current_function ~cx (Anonymous loc) return;
 
     (match body with
     | Expression expr -> check_function_expression_body ~cx expr return
@@ -1736,7 +1737,10 @@ and check_expression ~cx expr =
    *)
   | Unwrap { loc; operand } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let return_ty () = Type_context.find_rep_type ~cx (Type_context.get_current_function ~cx) in
+    let return_ty () =
+      let func_context = Type_context.get_current_function ~cx in
+      Type_context.find_rep_type ~cx func_context.return_type
+    in
     let return_error kind return_ty =
       Type_context.add_error ~cx loc (InvalidUnwrappedReturnType (kind, return_ty))
     in
@@ -1777,6 +1781,28 @@ and check_expression ~cx expr =
     in
     ignore (Type_context.unify ~cx ty (TVar tvar_id));
     (loc, tvar_id)
+
+(* Traverse context stack, marking each function context as capturing the binding until
+   the context where the binding is declared is found. *)
+and capture_binding_in_contexts
+    ~cx (binding : Bindings.ValueBinding.t) (context_stack : Type_context.FunctionContext.t list) =
+  match (binding.context, context_stack) with
+  (* Current context is where the binding was declared so we can stop traversing contexts *)
+  | (Function (decl_loc, true), { func = Anonymous loc; _ } :: _)
+  | (Function (decl_loc, false), { func = Named { loc; _ }; _ } :: _)
+    when Loc.compare decl_loc loc = 0 ->
+    ()
+  (* Anonymous function captures binding *)
+  | (Function _, { func = Anonymous anon_loc; _ } :: rest_contexts) ->
+    Type_context.add_anonymous_function_capture ~cx anon_loc binding;
+    binding.is_captured <- true;
+    capture_binding_in_contexts ~cx binding rest_contexts
+  (* Named function captures binding *)
+  | (Function _, { func = Named func_decl; _ } :: rest_contexts) ->
+    binding.is_captured <- true;
+    func_decl.captures <- LocSet.add binding.loc func_decl.captures;
+    capture_binding_in_contexts ~cx binding rest_contexts
+  | _ -> ()
 
 and check_if ~cx ~is_expr if_ =
   let { Ast.If.loc; test; conseq; altern } = if_ in
@@ -2265,7 +2291,7 @@ and check_statement ~cx ~is_expr stmt =
         (arg_loc, TVar arg_tvar_id)
     in
     (* Return argument must be subtype of current function's return type *)
-    let return_ty = Type_context.get_current_function ~cx in
+    let return_ty = (Type_context.get_current_function ~cx).return_type in
     Type_context.assert_is_subtype ~cx arg_loc arg_ty return_ty;
     ignore (Type_context.unify ~cx Never (TVar tvar_id));
     (loc, tvar_id)

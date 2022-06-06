@@ -10,13 +10,24 @@ module MethodUse = struct
   }
 end
 
+module FunctionContext = struct
+  type t = {
+    func: func;
+    return_type: Type.t;
+  }
+
+  and func =
+    | Named of FunctionDeclaration.t
+    | Anonymous of Loc.t
+end
+
 type t = {
   mutable bindings: Bindings.t;
   mutable errors: (Loc.t * Analyze_error.t) list;
   mutable loc_to_tvar: TVar.t LocMap.t;
   mutable union_forest_nodes: union_forest_node IMap.t;
-  (* Stack of return types for functions that are currently being checked *)
-  mutable current_function_stack: Type.t list;
+  (* Stack of functions that are currently being checked *)
+  mutable function_context_stack: FunctionContext.t list;
   (* Set of all int literal locs that have not been resolved *)
   mutable unresolved_int_literals: LocSet.t;
   (* Map of all method uses indexed by their loc *)
@@ -31,6 +42,8 @@ type t = {
   mutable unchecked_trait_object_uses: LocSet.t TraitSigMap.t;
   (* Nesting level for number of loops the type checker is currently inside *)
   mutable num_loops: int;
+  (* Anonymous function node's loc to the bindings it captures *)
+  mutable anonymous_function_captures: LBVMMap.t;
 }
 
 and union_forest_node =
@@ -46,7 +59,7 @@ let mk ~bindings =
     errors = [];
     loc_to_tvar = LocMap.empty;
     union_forest_nodes = IMap.empty;
-    current_function_stack = [];
+    function_context_stack = [];
     unresolved_int_literals = LocSet.empty;
     method_uses = LocMap.empty;
     main_loc = Loc.none;
@@ -54,6 +67,7 @@ let mk ~bindings =
     trait_object_promotions = LocMap.empty;
     unchecked_trait_object_uses = TraitSigMap.empty;
     num_loops = 0;
+    anonymous_function_captures = LBVMMap.empty;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -62,14 +76,16 @@ let get_errors ~cx = cx.errors
 
 let set_errors ~cx errors = cx.errors <- errors
 
-let push_current_function ~cx return_ty =
-  cx.current_function_stack <- return_ty :: cx.current_function_stack
+let push_current_function ~cx func return_type =
+  cx.function_context_stack <- { FunctionContext.func; return_type } :: cx.function_context_stack
 
-let pop_current_function ~cx = cx.current_function_stack <- List.tl cx.current_function_stack
+let pop_current_function ~cx = cx.function_context_stack <- List.tl cx.function_context_stack
 
-let get_current_function ~cx = List.hd cx.current_function_stack
+let get_current_function ~cx = List.hd cx.function_context_stack
 
-let is_in_function ~cx = cx.current_function_stack <> []
+let get_function_context_stack ~cx = cx.function_context_stack
+
+let is_in_function ~cx = cx.function_context_stack <> []
 
 let get_unresolved_int_literals ~cx = cx.unresolved_int_literals
 
@@ -117,6 +133,13 @@ let enter_loop ~cx = cx.num_loops <- cx.num_loops + 1
 let exit_loop ~cx = cx.num_loops <- cx.num_loops - 1
 
 let in_loop ~cx = cx.num_loops > 0
+
+let add_anonymous_function_capture ~cx anon_loc captured_binding =
+  cx.anonymous_function_captures <-
+    LBVMMap.add anon_loc captured_binding cx.anonymous_function_captures
+
+let get_anonymous_function_captures ~cx anon_loc =
+  LBVMMap.find_all anon_loc cx.anonymous_function_captures
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 

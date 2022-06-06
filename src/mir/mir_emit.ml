@@ -1164,6 +1164,52 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let anon_func_num = ecx.current_func_context.num_anonymous_functions in
     ecx.current_func_context.num_anonymous_functions <- anon_func_num + 1;
     let anon_func_name = Printf.sprintf "%s:%d" ecx.current_func.name anon_func_num in
+
+    (* Find captured bindings and create type of environment, if one exists *)
+    let captures =
+      Type_context.get_anonymous_function_captures ~cx:ecx.pcx.type_ctx anon_func_node.loc
+    in
+    let env_agg_opt =
+      if Bindings.LBVMMap.VSet.is_empty captures then
+        None
+      else
+        let env_agg_label = anon_func_name ^ ":env" in
+        let (env_agg_elements, name_to_binding) =
+          Bindings.LBVMMap.VSet.fold
+            (fun binding (env_agg_elements, name_to_binding) ->
+              (* Find binding MIR type, adding element if not zero sized *)
+              let binding_mir_type =
+                match binding.declaration with
+                | VarDecl { tvar; _ }
+                | FunParamDecl { tvar }
+                | MatchCaseVarDecl { tvar }
+                | ThisDecl { tvar } ->
+                  type_to_mir_type ~ecx (TVar tvar)
+                | FunDecl _
+                | CtorDecl _ ->
+                  failwith "Cannot be captured"
+              in
+              let env_agg_elements =
+                match binding_mir_type with
+                | None -> env_agg_elements
+                | Some mir_type -> (binding.name, mir_type) :: env_agg_elements
+              in
+              let name_to_binding = SMap.add binding.name binding name_to_binding in
+              (env_agg_elements, name_to_binding))
+            captures
+            ([], SMap.empty)
+        in
+        (* Pack and align captured bindings *)
+        let env_agg_elements =
+          env_agg_elements
+          |> Mir_adt_layout.order_elements_by_alignment
+          |> Mir_adt_layout.align_and_pad_aggregate_elements
+          |> fst
+        in
+        let env_agg = Ecx.mk_aggregate ~ecx env_agg_label anon_func_node.loc env_agg_elements in
+        Some (env_agg, name_to_binding)
+    in
+
     let func_val = Ecx.get_anonymous_function_value ~ecx anon_func_name anon_func_node in
 
     (* Allocate closure *)
@@ -1181,7 +1227,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let func_ptr = emit_cast_ptr ~ecx ~element_type:Function ~ptr:closure_ptr in
     mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:func_ptr ~value:func_val;
 
-    (* Store environment *)
+    (* Get pointer to environment *)
     let (element_ty, element_idx) = lookup_element closure_agg "env" in
     let env_ptr =
       mk_get_pointer_instr
@@ -1191,7 +1237,23 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
         ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
         ()
     in
-    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:env_ptr ~value:(mk_null_ptr_lit Byte);
+
+    (* If there are no captures environment is null pointer *)
+    let env_ptr_value =
+      match env_agg_opt with
+      | None -> mk_null_ptr_lit Byte
+      | Some (env_agg, _name_to_binding) ->
+        let env_ptr =
+          mk_call_builtin
+            ~block:(Ecx.get_current_block ~ecx)
+            Mir_builtin.myte_alloc
+            [mk_int_lit_of_int32 Int32.one]
+            [Aggregate env_agg]
+        in
+
+        emit_cast_ptr ~ecx ~element_type:Byte ~ptr:env_ptr
+    in
+    mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:env_ptr ~value:env_ptr_value;
 
     Some closure_ptr
 

@@ -591,23 +591,8 @@ and instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
       |> List.map fst
   in
 
-  (* Pack elements by first grouping elements by their alignment *)
-  let elements_by_alignment = Array.make 4 [] in
-  List.iter
-    (fun ((_, mir_type) as element) ->
-      let align_index =
-        match alignment_of_type mir_type with
-        | 1 -> 0
-        | 2 -> 1
-        | 4 -> 2
-        | 8 -> 3
-        | _ -> failwith "Invalid alignment"
-      in
-      elements_by_alignment.(align_index) <- element :: elements_by_alignment.(align_index))
-    elements;
-
-  (* Packed order is in increasing order of alignment *)
-  Array.fold_right (fun elements acc -> List.rev elements @ acc) elements_by_alignment []
+  (* Pack elements by grouping elements in increasing order of alignment *)
+  order_elements_by_alignment elements
 
 (* Instantiate a tuple with a particular set of element types. If a tuple with these element types
    has already been instantiated, return its aggregate type. Otherwise create new aggregate type for

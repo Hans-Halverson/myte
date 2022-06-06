@@ -47,6 +47,8 @@ module FunctionDeclaration = struct
     mutable return: Type.t;
     (* Id of the implicit `this` binding for this function if it is a method *)
     mutable this_binding_id: int option;
+    (* Decl locs for all values this function captures *)
+    mutable captures: LocSet.t;
   }
 
   let mk ~name ~loc ~is_builtin ~is_static ~is_override ~is_signature =
@@ -61,6 +63,7 @@ module FunctionDeclaration = struct
       params = [];
       return = Types.any;
       this_binding_id = None;
+      captures = LocSet.empty;
     }
 end
 
@@ -137,6 +140,7 @@ module ValueBinding = struct
     loc: Loc.t;
     declaration: value_declaration;
     mutable uses: LocSet.t;
+    mutable is_captured: bool;
     context: context;
     module_: string list;
   }
@@ -146,7 +150,10 @@ module ValueBinding = struct
   and context =
     | Module
     | Trait of string
-    | Function
+    (* Loc of the named function id, or the anonymous function node. Boolean is whether context is
+       for anonymous function. *)
+    | Function of Loc.t * bool
+    | GlobalInit
 
   let max_id = ref 0
 
@@ -156,7 +163,16 @@ module ValueBinding = struct
     id
 
   let mk ~name ~loc ~declaration ~context ~module_ =
-    { id = mk_id (); name; loc; declaration; uses = LocSet.singleton loc; context; module_ }
+    {
+      id = mk_id ();
+      name;
+      loc;
+      declaration;
+      uses = LocSet.singleton loc;
+      is_captured = false;
+      context;
+      module_;
+    }
 
   let compare b1 b2 = Int.compare b1.id b2.id
 end
@@ -223,6 +239,7 @@ end
 
 module BVSet = Set.Make (ValueBinding)
 module BVMap = Map.Make (ValueBinding)
+module LBVMMap = MultiMap.Make (Loc) (ValueBinding)
 module BTSet = Set.Make (TypeBinding)
 module BTMap = Map.Make (TypeBinding)
 

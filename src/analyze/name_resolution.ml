@@ -117,6 +117,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Map from module loc to the toplevel scope for that module *)
     val mutable toplevel_scopes : scopes LocMap.t = LocMap.empty
 
+    (* Stack of current value binding contexts. If there are multiple items in stack then we are
+       in nested contexts, e.g. nested functions, and top of stack is current context. *)
+    val mutable context_stack : ValueBinding.context list = []
+
     val mutable module_name : string list = []
 
     (* Whether the resolver is currently in a method *)
@@ -180,7 +184,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         ValueBinding.mk
           ~name:"this"
           ~loc:Loc.none
-          ~context:ValueBinding.Function
+          ~context:(this#get_current_context ())
           ~declaration:(ThisDecl (ThisDeclaration.mk ()))
           ~module_:module_name
       in
@@ -188,6 +192,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let func_decl = get_func_decl func_binding in
       func_decl.this_binding_id <- Some binding.id;
       binding
+
+    method push_context context = context_stack <- context :: context_stack
+
+    method pop_context () = context_stack <- List.tl context_stack
+
+    method get_current_context () = List.hd context_stack
 
     method is_value_decl_loc decl_loc = Bindings.is_value_decl_loc bindings decl_loc
 
@@ -596,7 +606,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     method visit_variable_declaration ~is_toplevel decl =
       let { Ast.Statement.VariableDeclaration.kind; pattern; init; annot; loc = _ } = decl in
       let annot' = id_map_opt this#type_ annot in
-      let init' = this#expression init in
+
+      (* Set global init context if this is toplevel *)
+      let init' =
+        if is_toplevel then (
+          this#push_context GlobalInit;
+          let init' = this#expression init in
+          this#pop_context ();
+          init'
+        ) else
+          this#expression init
+      in
 
       (* Toplevel variable declarations cannot contain patterns, and are added to module scope *)
       if is_toplevel then
@@ -641,7 +661,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                this#add_value_declaration
                  loc
                  name
-                 ValueBinding.Function
+                 (this#get_current_context ())
                  (FunParamDecl (FunctionParamDeclaration.mk ()))
              in
              this#add_value_to_scope name (Decl binding);
@@ -669,7 +689,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             this#add_value_declaration
               loc
               func_name
-              ValueBinding.Function
+              (this#get_current_context ())
               (FunDecl
                  (FunctionDeclaration.mk
                     ~name:func_name
@@ -685,6 +705,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           this#get_value_binding loc
       in
       this#enter_scope ();
+      this#push_context (Function (loc, false));
       this#visit_type_parameters type_params (FunctionName func_name);
       (* Add implicit `this` type to scope within method *)
       if is_method && (not static) && body <> Signature then (
@@ -695,17 +716,20 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let param_ids = List.map (fun { Param.name; _ } -> name) params in
       this#visit_function_params (Some func_name) param_ids;
       let function_ = super#function_ decl in
+      this#pop_context ();
       this#exit_scope ();
       function_
 
     method! anonymous_function func =
       let open Expression.AnonymousFunction in
-      let { params; _ } = func in
+      let { loc; params; _ } = func in
       (* Anonymous function body is in new scope that includes function parameters *)
       this#enter_scope ();
+      this#push_context (Function (loc, true));
       let param_ids = List.map (fun { Param.name; _ } -> name) params in
       this#visit_function_params None param_ids;
       let func = super#anonymous_function func in
+      this#pop_context ();
       this#exit_scope ();
       func
 
@@ -1150,7 +1174,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           (match mk_decl with
           | None -> ()
           | Some mk_decl ->
-            let binding = this#add_value_declaration loc name Function (mk_decl ()) in
+            let binding =
+              this#add_value_declaration loc name (this#get_current_context ()) (mk_decl ())
+            in
             this#add_value_to_scope name (Decl binding));
           add_name_error_on_duplicate loc name names
         )

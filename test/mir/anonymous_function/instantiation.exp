@@ -85,22 +85,26 @@ func void @test.genericInToplevel<Bool>(bool %0) {
   %2 := Cast _closure* %1 to fn*
   Store fn %2, @test.genericInToplevel<Bool>:0
   %3 := GetPointer byte*, _closure* %1.1
-  Store byte* %3, null
-  %4 := Cast _closure* %1 to fn*
-  %5 := Load fn %4
-  %6 := GetPointer byte*, _closure* %1.1
-  %7 := Load byte* %6
-  %8 := Call $tuple<Int,Bool>* %5(1, %7)
-  %9 := Call _closure* myte.builtin.alloc(1)
-  %10 := Cast _closure* %9 to fn*
-  Store fn %10, @test.genericInToplevel<Bool>:1
-  %11 := GetPointer byte*, _closure* %9.1
-  Store byte* %11, null
-  %12 := Cast _closure* %9 to fn*
-  %13 := Load fn %12
-  %14 := GetPointer byte*, _closure* %9.1
-  %15 := Load byte* %14
-  %16 := Call $tuple<Bool,Bool>* %13(true, %15)
+  %4 := Call test.genericInToplevel<Bool>:0:env* myte.builtin.alloc(1)
+  %5 := Cast test.genericInToplevel<Bool>:0:env* %4 to byte*
+  Store byte* %3, %5
+  %6 := Cast _closure* %1 to fn*
+  %7 := Load fn %6
+  %8 := GetPointer byte*, _closure* %1.1
+  %9 := Load byte* %8
+  %10 := Call $tuple<Int,Bool>* %7(1, %9)
+  %11 := Call _closure* myte.builtin.alloc(1)
+  %12 := Cast _closure* %11 to fn*
+  Store fn %12, @test.genericInToplevel<Bool>:1
+  %13 := GetPointer byte*, _closure* %11.1
+  %14 := Call test.genericInToplevel<Bool>:1:env* myte.builtin.alloc(1)
+  %15 := Cast test.genericInToplevel<Bool>:1:env* %14 to byte*
+  Store byte* %13, %15
+  %16 := Cast _closure* %11 to fn*
+  %17 := Load fn %16
+  %18 := GetPointer byte*, _closure* %11.1
+  %19 := Load byte* %18
+  %20 := Call $tuple<Bool,Bool>* %17(true, %19)
   Ret
 }
 
@@ -109,24 +113,32 @@ func void @test.genericInToplevel<Int>(int %0) {
   %2 := Cast _closure* %1 to fn*
   Store fn %2, @test.genericInToplevel<Int>:0
   %3 := GetPointer byte*, _closure* %1.1
-  Store byte* %3, null
-  %4 := Cast _closure* %1 to fn*
-  %5 := Load fn %4
-  %6 := GetPointer byte*, _closure* %1.1
-  %7 := Load byte* %6
-  %8 := Call $tuple<Int,Int>* %5(1, %7)
-  %9 := Call _closure* myte.builtin.alloc(1)
-  %10 := Cast _closure* %9 to fn*
-  Store fn %10, @test.genericInToplevel<Int>:1
-  %11 := GetPointer byte*, _closure* %9.1
-  Store byte* %11, null
-  %12 := Cast _closure* %9 to fn*
-  %13 := Load fn %12
-  %14 := GetPointer byte*, _closure* %9.1
-  %15 := Load byte* %14
-  %16 := Call $tuple<Bool,Int>* %13(true, %15)
+  %4 := Call test.genericInToplevel<Int>:0:env* myte.builtin.alloc(1)
+  %5 := Cast test.genericInToplevel<Int>:0:env* %4 to byte*
+  Store byte* %3, %5
+  %6 := Cast _closure* %1 to fn*
+  %7 := Load fn %6
+  %8 := GetPointer byte*, _closure* %1.1
+  %9 := Load byte* %8
+  %10 := Call $tuple<Int,Int>* %7(1, %9)
+  %11 := Call _closure* myte.builtin.alloc(1)
+  %12 := Cast _closure* %11 to fn*
+  Store fn %12, @test.genericInToplevel<Int>:1
+  %13 := GetPointer byte*, _closure* %11.1
+  %14 := Call test.genericInToplevel<Int>:1:env* myte.builtin.alloc(1)
+  %15 := Cast test.genericInToplevel<Int>:1:env* %14 to byte*
+  Store byte* %13, %15
+  %16 := Cast _closure* %11 to fn*
+  %17 := Load fn %16
+  %18 := GetPointer byte*, _closure* %11.1
+  %19 := Load byte* %18
+  %20 := Call $tuple<Bool,Int>* %17(true, %19)
   Ret
 }
+
+type test.genericInToplevel<Bool>:0:env {bool}
+
+type test.genericInToplevel<Int>:0:env {int}
 
 func $tuple<Int,Bool>* @test.genericInToplevel<Bool>:0(int %0, byte* %1) {
   %2 := Call $tuple<Int,Bool>* myte.builtin.alloc(1)
@@ -145,6 +157,10 @@ func $tuple<Int,Int>* @test.genericInToplevel<Int>:0(int %0, byte* %1) {
   Store int %4, %0
   Ret %2
 }
+
+type test.genericInToplevel<Bool>:1:env {bool}
+
+type test.genericInToplevel<Int>:1:env {int}
 
 func $tuple<Bool,Bool>* @test.genericInToplevel<Bool>:1(bool %0, byte* %1) {
   %2 := Call $tuple<Bool,Bool>* myte.builtin.alloc(1)
@@ -218,22 +234,26 @@ func void @test.Type2.nongeneric<Byte>(test.Type2<Byte>* %0, byte %1) {
   %3 := Cast _closure* %2 to fn*
   Store fn %3, @test.Type2.nongeneric<Byte>:0
   %4 := GetPointer byte*, _closure* %2.1
-  Store byte* %4, null
-  %5 := Cast _closure* %2 to fn*
-  %6 := Load fn %5
-  %7 := GetPointer byte*, _closure* %2.1
-  %8 := Load byte* %7
-  %9 := Call $tuple<Int,Byte>* %6(1, %8)
-  %10 := Call _closure* myte.builtin.alloc(1)
-  %11 := Cast _closure* %10 to fn*
-  Store fn %11, @test.Type2.nongeneric<Byte>:1
-  %12 := GetPointer byte*, _closure* %10.1
-  Store byte* %12, null
-  %13 := Cast _closure* %10 to fn*
-  %14 := Load fn %13
-  %15 := GetPointer byte*, _closure* %10.1
-  %16 := Load byte* %15
-  %17 := Call $tuple<Bool,Byte>* %14(true, %16)
+  %5 := Call test.Type2.nongeneric<Byte>:0:env* myte.builtin.alloc(1)
+  %6 := Cast test.Type2.nongeneric<Byte>:0:env* %5 to byte*
+  Store byte* %4, %6
+  %7 := Cast _closure* %2 to fn*
+  %8 := Load fn %7
+  %9 := GetPointer byte*, _closure* %2.1
+  %10 := Load byte* %9
+  %11 := Call $tuple<Int,Byte>* %8(1, %10)
+  %12 := Call _closure* myte.builtin.alloc(1)
+  %13 := Cast _closure* %12 to fn*
+  Store fn %13, @test.Type2.nongeneric<Byte>:1
+  %14 := GetPointer byte*, _closure* %12.1
+  %15 := Call test.Type2.nongeneric<Byte>:1:env* myte.builtin.alloc(1)
+  %16 := Cast test.Type2.nongeneric<Byte>:1:env* %15 to byte*
+  Store byte* %14, %16
+  %17 := Cast _closure* %12 to fn*
+  %18 := Load fn %17
+  %19 := GetPointer byte*, _closure* %12.1
+  %20 := Load byte* %19
+  %21 := Call $tuple<Bool,Byte>* %18(true, %20)
   Ret
 }
 
@@ -242,24 +262,32 @@ func void @test.Type2.nongeneric<Long>(test.Type2<Long>* %0, long %1) {
   %3 := Cast _closure* %2 to fn*
   Store fn %3, @test.Type2.nongeneric<Long>:0
   %4 := GetPointer byte*, _closure* %2.1
-  Store byte* %4, null
-  %5 := Cast _closure* %2 to fn*
-  %6 := Load fn %5
-  %7 := GetPointer byte*, _closure* %2.1
-  %8 := Load byte* %7
-  %9 := Call $tuple<Int,Long>* %6(1, %8)
-  %10 := Call _closure* myte.builtin.alloc(1)
-  %11 := Cast _closure* %10 to fn*
-  Store fn %11, @test.Type2.nongeneric<Long>:1
-  %12 := GetPointer byte*, _closure* %10.1
-  Store byte* %12, null
-  %13 := Cast _closure* %10 to fn*
-  %14 := Load fn %13
-  %15 := GetPointer byte*, _closure* %10.1
-  %16 := Load byte* %15
-  %17 := Call $tuple<Bool,Long>* %14(true, %16)
+  %5 := Call test.Type2.nongeneric<Long>:0:env* myte.builtin.alloc(1)
+  %6 := Cast test.Type2.nongeneric<Long>:0:env* %5 to byte*
+  Store byte* %4, %6
+  %7 := Cast _closure* %2 to fn*
+  %8 := Load fn %7
+  %9 := GetPointer byte*, _closure* %2.1
+  %10 := Load byte* %9
+  %11 := Call $tuple<Int,Long>* %8(1, %10)
+  %12 := Call _closure* myte.builtin.alloc(1)
+  %13 := Cast _closure* %12 to fn*
+  Store fn %13, @test.Type2.nongeneric<Long>:1
+  %14 := GetPointer byte*, _closure* %12.1
+  %15 := Call test.Type2.nongeneric<Long>:1:env* myte.builtin.alloc(1)
+  %16 := Cast test.Type2.nongeneric<Long>:1:env* %15 to byte*
+  Store byte* %14, %16
+  %17 := Cast _closure* %12 to fn*
+  %18 := Load fn %17
+  %19 := GetPointer byte*, _closure* %12.1
+  %20 := Load byte* %19
+  %21 := Call $tuple<Bool,Long>* %18(true, %20)
   Ret
 }
+
+type test.Type2.nongeneric<Byte>:0:env {byte}
+
+type test.Type2.nongeneric<Long>:0:env {long}
 
 func $tuple<Int,Byte>* @test.Type2.nongeneric<Byte>:0(int %0, byte* %1) {
   %2 := Call $tuple<Int,Byte>* myte.builtin.alloc(1)
@@ -278,6 +306,10 @@ func $tuple<Int,Long>* @test.Type2.nongeneric<Long>:0(int %0, byte* %1) {
   Store long %4, %1
   Ret %2
 }
+
+type test.Type2.nongeneric<Byte>:1:env {byte}
+
+type test.Type2.nongeneric<Long>:1:env {long}
 
 func $tuple<Bool,Byte>* @test.Type2.nongeneric<Byte>:1(bool %0, byte* %1) {
   %2 := Call $tuple<Bool,Byte>* myte.builtin.alloc(1)
@@ -302,22 +334,26 @@ func void @test.Type2.generic<Byte,Bool>(test.Type2<Byte>* %0, byte %1, bool %2)
   %4 := Cast _closure* %3 to fn*
   Store fn %4, @test.Type2.generic<Byte,Bool>:0
   %5 := GetPointer byte*, _closure* %3.1
-  Store byte* %5, null
-  %6 := Cast _closure* %3 to fn*
-  %7 := Load fn %6
-  %8 := GetPointer byte*, _closure* %3.1
-  %9 := Load byte* %8
-  %10 := Call $tuple<Int,Byte,Bool>* %7(1, %9)
-  %11 := Call _closure* myte.builtin.alloc(1)
-  %12 := Cast _closure* %11 to fn*
-  Store fn %12, @test.Type2.generic<Byte,Bool>:1
-  %13 := GetPointer byte*, _closure* %11.1
-  Store byte* %13, null
-  %14 := Cast _closure* %11 to fn*
-  %15 := Load fn %14
-  %16 := GetPointer byte*, _closure* %11.1
-  %17 := Load byte* %16
-  %18 := Call $tuple<Bool,Byte,Bool>* %15(true, %17)
+  %6 := Call test.Type2.generic<Byte,Bool>:0:env* myte.builtin.alloc(1)
+  %7 := Cast test.Type2.generic<Byte,Bool>:0:env* %6 to byte*
+  Store byte* %5, %7
+  %8 := Cast _closure* %3 to fn*
+  %9 := Load fn %8
+  %10 := GetPointer byte*, _closure* %3.1
+  %11 := Load byte* %10
+  %12 := Call $tuple<Int,Byte,Bool>* %9(1, %11)
+  %13 := Call _closure* myte.builtin.alloc(1)
+  %14 := Cast _closure* %13 to fn*
+  Store fn %14, @test.Type2.generic<Byte,Bool>:1
+  %15 := GetPointer byte*, _closure* %13.1
+  %16 := Call test.Type2.generic<Byte,Bool>:1:env* myte.builtin.alloc(1)
+  %17 := Cast test.Type2.generic<Byte,Bool>:1:env* %16 to byte*
+  Store byte* %15, %17
+  %18 := Cast _closure* %13 to fn*
+  %19 := Load fn %18
+  %20 := GetPointer byte*, _closure* %13.1
+  %21 := Load byte* %20
+  %22 := Call $tuple<Bool,Byte,Bool>* %19(true, %21)
   Ret
 }
 
@@ -326,22 +362,26 @@ func void @test.Type2.generic<Byte,Int>(test.Type2<Byte>* %0, byte %1, int %2) {
   %4 := Cast _closure* %3 to fn*
   Store fn %4, @test.Type2.generic<Byte,Int>:0
   %5 := GetPointer byte*, _closure* %3.1
-  Store byte* %5, null
-  %6 := Cast _closure* %3 to fn*
-  %7 := Load fn %6
-  %8 := GetPointer byte*, _closure* %3.1
-  %9 := Load byte* %8
-  %10 := Call $tuple<Int,Byte,Int>* %7(1, %9)
-  %11 := Call _closure* myte.builtin.alloc(1)
-  %12 := Cast _closure* %11 to fn*
-  Store fn %12, @test.Type2.generic<Byte,Int>:1
-  %13 := GetPointer byte*, _closure* %11.1
-  Store byte* %13, null
-  %14 := Cast _closure* %11 to fn*
-  %15 := Load fn %14
-  %16 := GetPointer byte*, _closure* %11.1
-  %17 := Load byte* %16
-  %18 := Call $tuple<Bool,Byte,Int>* %15(true, %17)
+  %6 := Call test.Type2.generic<Byte,Int>:0:env* myte.builtin.alloc(1)
+  %7 := Cast test.Type2.generic<Byte,Int>:0:env* %6 to byte*
+  Store byte* %5, %7
+  %8 := Cast _closure* %3 to fn*
+  %9 := Load fn %8
+  %10 := GetPointer byte*, _closure* %3.1
+  %11 := Load byte* %10
+  %12 := Call $tuple<Int,Byte,Int>* %9(1, %11)
+  %13 := Call _closure* myte.builtin.alloc(1)
+  %14 := Cast _closure* %13 to fn*
+  Store fn %14, @test.Type2.generic<Byte,Int>:1
+  %15 := GetPointer byte*, _closure* %13.1
+  %16 := Call test.Type2.generic<Byte,Int>:1:env* myte.builtin.alloc(1)
+  %17 := Cast test.Type2.generic<Byte,Int>:1:env* %16 to byte*
+  Store byte* %15, %17
+  %18 := Cast _closure* %13 to fn*
+  %19 := Load fn %18
+  %20 := GetPointer byte*, _closure* %13.1
+  %21 := Load byte* %20
+  %22 := Call $tuple<Bool,Byte,Int>* %19(true, %21)
   Ret
 }
 
@@ -350,22 +390,26 @@ func void @test.Type2.generic<Long,Bool>(test.Type2<Long>* %0, long %1, bool %2)
   %4 := Cast _closure* %3 to fn*
   Store fn %4, @test.Type2.generic<Long,Bool>:0
   %5 := GetPointer byte*, _closure* %3.1
-  Store byte* %5, null
-  %6 := Cast _closure* %3 to fn*
-  %7 := Load fn %6
-  %8 := GetPointer byte*, _closure* %3.1
-  %9 := Load byte* %8
-  %10 := Call $tuple<Int,Long,Bool>* %7(1, %9)
-  %11 := Call _closure* myte.builtin.alloc(1)
-  %12 := Cast _closure* %11 to fn*
-  Store fn %12, @test.Type2.generic<Long,Bool>:1
-  %13 := GetPointer byte*, _closure* %11.1
-  Store byte* %13, null
-  %14 := Cast _closure* %11 to fn*
-  %15 := Load fn %14
-  %16 := GetPointer byte*, _closure* %11.1
-  %17 := Load byte* %16
-  %18 := Call $tuple<Bool,Long,Bool>* %15(true, %17)
+  %6 := Call test.Type2.generic<Long,Bool>:0:env* myte.builtin.alloc(1)
+  %7 := Cast test.Type2.generic<Long,Bool>:0:env* %6 to byte*
+  Store byte* %5, %7
+  %8 := Cast _closure* %3 to fn*
+  %9 := Load fn %8
+  %10 := GetPointer byte*, _closure* %3.1
+  %11 := Load byte* %10
+  %12 := Call $tuple<Int,Long,Bool>* %9(1, %11)
+  %13 := Call _closure* myte.builtin.alloc(1)
+  %14 := Cast _closure* %13 to fn*
+  Store fn %14, @test.Type2.generic<Long,Bool>:1
+  %15 := GetPointer byte*, _closure* %13.1
+  %16 := Call test.Type2.generic<Long,Bool>:1:env* myte.builtin.alloc(1)
+  %17 := Cast test.Type2.generic<Long,Bool>:1:env* %16 to byte*
+  Store byte* %15, %17
+  %18 := Cast _closure* %13 to fn*
+  %19 := Load fn %18
+  %20 := GetPointer byte*, _closure* %13.1
+  %21 := Load byte* %20
+  %22 := Call $tuple<Bool,Long,Bool>* %19(true, %21)
   Ret
 }
 
@@ -374,24 +418,36 @@ func void @test.Type2.generic<Long,Int>(test.Type2<Long>* %0, long %1, int %2) {
   %4 := Cast _closure* %3 to fn*
   Store fn %4, @test.Type2.generic<Long,Int>:0
   %5 := GetPointer byte*, _closure* %3.1
-  Store byte* %5, null
-  %6 := Cast _closure* %3 to fn*
-  %7 := Load fn %6
-  %8 := GetPointer byte*, _closure* %3.1
-  %9 := Load byte* %8
-  %10 := Call $tuple<Int,Long,Int>* %7(1, %9)
-  %11 := Call _closure* myte.builtin.alloc(1)
-  %12 := Cast _closure* %11 to fn*
-  Store fn %12, @test.Type2.generic<Long,Int>:1
-  %13 := GetPointer byte*, _closure* %11.1
-  Store byte* %13, null
-  %14 := Cast _closure* %11 to fn*
-  %15 := Load fn %14
-  %16 := GetPointer byte*, _closure* %11.1
-  %17 := Load byte* %16
-  %18 := Call $tuple<Bool,Long,Int>* %15(true, %17)
+  %6 := Call test.Type2.generic<Long,Int>:0:env* myte.builtin.alloc(1)
+  %7 := Cast test.Type2.generic<Long,Int>:0:env* %6 to byte*
+  Store byte* %5, %7
+  %8 := Cast _closure* %3 to fn*
+  %9 := Load fn %8
+  %10 := GetPointer byte*, _closure* %3.1
+  %11 := Load byte* %10
+  %12 := Call $tuple<Int,Long,Int>* %9(1, %11)
+  %13 := Call _closure* myte.builtin.alloc(1)
+  %14 := Cast _closure* %13 to fn*
+  Store fn %14, @test.Type2.generic<Long,Int>:1
+  %15 := GetPointer byte*, _closure* %13.1
+  %16 := Call test.Type2.generic<Long,Int>:1:env* myte.builtin.alloc(1)
+  %17 := Cast test.Type2.generic<Long,Int>:1:env* %16 to byte*
+  Store byte* %15, %17
+  %18 := Cast _closure* %13 to fn*
+  %19 := Load fn %18
+  %20 := GetPointer byte*, _closure* %13.1
+  %21 := Load byte* %20
+  %22 := Call $tuple<Bool,Long,Int>* %19(true, %21)
   Ret
 }
+
+type test.Type2.generic<Byte,Bool>:0:env {bool, byte}
+
+type test.Type2.generic<Byte,Int>:0:env {byte, byte[3], int}
+
+type test.Type2.generic<Long,Bool>:0:env {bool, byte[7], long}
+
+type test.Type2.generic<Long,Int>:0:env {int, byte[4], long}
 
 func $tuple<Int,Byte,Bool>* @test.Type2.generic<Byte,Bool>:0(int %0, byte* %1) {
   %2 := Call $tuple<Int,Byte,Bool>* myte.builtin.alloc(1)
@@ -436,6 +492,14 @@ func $tuple<Int,Long,Int>* @test.Type2.generic<Long,Int>:0(int %0, byte* %1) {
   Store int %5, %2
   Ret %2
 }
+
+type test.Type2.generic<Byte,Bool>:1:env {bool, byte}
+
+type test.Type2.generic<Byte,Int>:1:env {byte, byte[3], int}
+
+type test.Type2.generic<Long,Bool>:1:env {bool, byte[7], long}
+
+type test.Type2.generic<Long,Int>:1:env {int, byte[4], long}
 
 func $tuple<Bool,Byte,Bool>* @test.Type2.generic<Byte,Bool>:1(bool %0, byte* %1) {
   %2 := Call $tuple<Bool,Byte,Bool>* myte.builtin.alloc(1)
@@ -496,22 +560,26 @@ func void @test.Trait3.generic<test.Type3<Long>,Long,Bool>(test.Type3<Long>* %0,
   %4 := Cast _closure* %3 to fn*
   Store fn %4, @test.Trait3.generic<test.Type3<Long>,Long,Bool>:0
   %5 := GetPointer byte*, _closure* %3.1
-  Store byte* %5, null
-  %6 := Cast _closure* %3 to fn*
-  %7 := Load fn %6
-  %8 := GetPointer byte*, _closure* %3.1
-  %9 := Load byte* %8
-  %10 := Call $tuple<Int,Long,Bool>* %7(1, %9)
-  %11 := Call _closure* myte.builtin.alloc(1)
-  %12 := Cast _closure* %11 to fn*
-  Store fn %12, @test.Trait3.generic<test.Type3<Long>,Long,Bool>:1
-  %13 := GetPointer byte*, _closure* %11.1
-  Store byte* %13, null
-  %14 := Cast _closure* %11 to fn*
-  %15 := Load fn %14
-  %16 := GetPointer byte*, _closure* %11.1
-  %17 := Load byte* %16
-  %18 := Call $tuple<Bool,Long,Bool>* %15(true, %17)
+  %6 := Call test.Trait3.generic<test.Type3<Long>,Long,Bool>:0:env* myte.builtin.alloc(1)
+  %7 := Cast test.Trait3.generic<test.Type3<Long>,Long,Bool>:0:env* %6 to byte*
+  Store byte* %5, %7
+  %8 := Cast _closure* %3 to fn*
+  %9 := Load fn %8
+  %10 := GetPointer byte*, _closure* %3.1
+  %11 := Load byte* %10
+  %12 := Call $tuple<Int,Long,Bool>* %9(1, %11)
+  %13 := Call _closure* myte.builtin.alloc(1)
+  %14 := Cast _closure* %13 to fn*
+  Store fn %14, @test.Trait3.generic<test.Type3<Long>,Long,Bool>:1
+  %15 := GetPointer byte*, _closure* %13.1
+  %16 := Call test.Trait3.generic<test.Type3<Long>,Long,Bool>:1:env* myte.builtin.alloc(1)
+  %17 := Cast test.Trait3.generic<test.Type3<Long>,Long,Bool>:1:env* %16 to byte*
+  Store byte* %15, %17
+  %18 := Cast _closure* %13 to fn*
+  %19 := Load fn %18
+  %20 := GetPointer byte*, _closure* %13.1
+  %21 := Load byte* %20
+  %22 := Call $tuple<Bool,Long,Bool>* %19(true, %21)
   Ret
 }
 
@@ -520,24 +588,32 @@ func void @test.Trait3.generic<test.Type3<Long>,Long,Int>(test.Type3<Long>* %0, 
   %4 := Cast _closure* %3 to fn*
   Store fn %4, @test.Trait3.generic<test.Type3<Long>,Long,Int>:0
   %5 := GetPointer byte*, _closure* %3.1
-  Store byte* %5, null
-  %6 := Cast _closure* %3 to fn*
-  %7 := Load fn %6
-  %8 := GetPointer byte*, _closure* %3.1
-  %9 := Load byte* %8
-  %10 := Call $tuple<Int,Long,Int>* %7(1, %9)
-  %11 := Call _closure* myte.builtin.alloc(1)
-  %12 := Cast _closure* %11 to fn*
-  Store fn %12, @test.Trait3.generic<test.Type3<Long>,Long,Int>:1
-  %13 := GetPointer byte*, _closure* %11.1
-  Store byte* %13, null
-  %14 := Cast _closure* %11 to fn*
-  %15 := Load fn %14
-  %16 := GetPointer byte*, _closure* %11.1
-  %17 := Load byte* %16
-  %18 := Call $tuple<Bool,Long,Int>* %15(true, %17)
+  %6 := Call test.Trait3.generic<test.Type3<Long>,Long,Int>:0:env* myte.builtin.alloc(1)
+  %7 := Cast test.Trait3.generic<test.Type3<Long>,Long,Int>:0:env* %6 to byte*
+  Store byte* %5, %7
+  %8 := Cast _closure* %3 to fn*
+  %9 := Load fn %8
+  %10 := GetPointer byte*, _closure* %3.1
+  %11 := Load byte* %10
+  %12 := Call $tuple<Int,Long,Int>* %9(1, %11)
+  %13 := Call _closure* myte.builtin.alloc(1)
+  %14 := Cast _closure* %13 to fn*
+  Store fn %14, @test.Trait3.generic<test.Type3<Long>,Long,Int>:1
+  %15 := GetPointer byte*, _closure* %13.1
+  %16 := Call test.Trait3.generic<test.Type3<Long>,Long,Int>:1:env* myte.builtin.alloc(1)
+  %17 := Cast test.Trait3.generic<test.Type3<Long>,Long,Int>:1:env* %16 to byte*
+  Store byte* %15, %17
+  %18 := Cast _closure* %13 to fn*
+  %19 := Load fn %18
+  %20 := GetPointer byte*, _closure* %13.1
+  %21 := Load byte* %20
+  %22 := Call $tuple<Bool,Long,Int>* %19(true, %21)
   Ret
 }
+
+type test.Trait3.generic<test.Type3<Long>,Long,Bool>:0:env {bool, byte[7], long}
+
+type test.Trait3.generic<test.Type3<Long>,Long,Int>:0:env {int, byte[4], long}
 
 func $tuple<Int,Long,Bool>* @test.Trait3.generic<test.Type3<Long>,Long,Bool>:0(int %0, byte* %1) {
   %2 := Call $tuple<Int,Long,Bool>* myte.builtin.alloc(1)
@@ -560,6 +636,10 @@ func $tuple<Int,Long,Int>* @test.Trait3.generic<test.Type3<Long>,Long,Int>:0(int
   Store int %5, %2
   Ret %2
 }
+
+type test.Trait3.generic<test.Type3<Long>,Long,Bool>:1:env {bool, byte[7], long}
+
+type test.Trait3.generic<test.Type3<Long>,Long,Int>:1:env {int, byte[4], long}
 
 func $tuple<Bool,Long,Bool>* @test.Trait3.generic<test.Type3<Long>,Long,Bool>:1(bool %0, byte* %1) {
   %2 := Call $tuple<Bool,Long,Bool>* myte.builtin.alloc(1)

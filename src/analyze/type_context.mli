@@ -13,6 +13,17 @@ module MethodUse : sig
   }
 end
 
+module FunctionContext : sig
+  type t = {
+    func: func;
+    return_type: Type.t;
+  }
+
+  and func =
+    | Named of FunctionDeclaration.t
+    | Anonymous of Loc.t
+end
+
 (* Getters and Setters *)
 
 val add_error : cx:t -> Loc.t -> Analyze_error.t -> unit
@@ -21,11 +32,13 @@ val get_errors : cx:t -> Analyze_error.errors
 
 val set_errors : cx:t -> Analyze_error.errors -> unit
 
-val push_current_function : cx:t -> Type.t -> unit
+val push_current_function : cx:t -> FunctionContext.func -> Type.t -> unit
 
 val pop_current_function : cx:t -> unit
 
-val get_current_function : cx:t -> Type.t
+val get_current_function : cx:t -> FunctionContext.t
+
+val get_function_context_stack : cx:t -> FunctionContext.t list
 
 val is_in_function : cx:t -> bool
 
@@ -56,6 +69,10 @@ val enter_loop : cx:t -> unit
 val exit_loop : cx:t -> unit
 
 val in_loop : cx:t -> bool
+
+val add_anonymous_function_capture : cx:t -> Loc.t -> ValueBinding.t -> unit
+
+val get_anonymous_function_captures : cx:t -> Loc.t -> LBVMMap.VSet.t
 
 (* Binding getters *)
 

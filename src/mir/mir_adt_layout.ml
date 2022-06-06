@@ -208,6 +208,24 @@ let add_end_padding elements current_size target_size =
     in
     add_to_end elements
 
+(* Grouping elements in order of increasing alignment *)
+let order_elements_by_alignment elements =
+  let elements_by_alignment = Array.make 4 [] in
+  List.iter
+    (fun ((_, mir_type) as element) ->
+      let align_index =
+        match alignment_of_type mir_type with
+        | 1 -> 0
+        | 2 -> 1
+        | 4 -> 2
+        | 8 -> 3
+        | _ -> failwith "Invalid alignment"
+      in
+      elements_by_alignment.(align_index) <- element :: elements_by_alignment.(align_index))
+    elements;
+
+  Array.fold_right (fun elements acc -> List.rev elements @ acc) elements_by_alignment []
+
 (* A single element tuple can be inlined as long as it does not contain itself anywhere in the type
    of its single element. Must recurse through other inlined single element tuples as it may be cyclic. *)
 let rec can_inline_single_element_tuple (root_adt_sig : Types.AdtSig.t) (element_ty : Types.Type.t)
