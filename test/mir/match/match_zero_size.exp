@@ -7,10 +7,10 @@ func void @test.testZeroSizeType() {
   Ret
 }
 
-type test.ZeroSizeFieldType {bool, int}
+type test.ZeroSizeFieldType {bool, byte[3], int}
 
 func void @test.testTypeWithZeroSizeField(test.ZeroSizeFieldType* %0) {
-  %1 := GetPointer int, test.ZeroSizeFieldType* %0.1
+  %1 := GetPointer int, test.ZeroSizeFieldType* %0.2
   %2 := Load int %1
   %3 := GetPointer bool, test.ZeroSizeFieldType* %0.0
   %4 := Load bool %3

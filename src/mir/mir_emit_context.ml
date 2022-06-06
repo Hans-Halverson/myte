@@ -412,6 +412,7 @@ and instantiate_mir_adt_layout
     set_layout (Aggregate aggregate);
     let elements = instantiate_mir_adt_template_elements ~ecx template type_param_bindings in
     if elements <> [] then (
+      let (elements, _) = align_and_pad_aggregate_elements elements in
       aggregate.elements <- elements;
       Aggregate aggregate
     ) else (

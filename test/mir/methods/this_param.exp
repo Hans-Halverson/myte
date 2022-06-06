@@ -1,4 +1,4 @@
-type test.RecordType {bool, int}
+type test.RecordType {bool, byte[3], int}
 
 func bool @test.RecordType.getBar(test.RecordType* %0) {
   %1 := GetPointer bool, test.RecordType* %0.0

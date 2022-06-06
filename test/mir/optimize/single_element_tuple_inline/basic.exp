@@ -13,10 +13,10 @@ func int @test.testIndexing(int %0, int %1) {
   Ret %2
 }
 
-type test.Record {byte, $tuple<test.Tuple1,Byte>*}
+type test.Record {byte, byte[7], $tuple<test.Tuple1,Byte>*}
 
 func int @test.testNestedIndexing(test.Record* %0) {
-  %1 := GetPointer $tuple<test.Tuple1,Byte>*, test.Record* %0.1
+  %1 := GetPointer $tuple<test.Tuple1,Byte>*, test.Record* %0.2
   %2 := Load $tuple<test.Tuple1,Byte>* %1
   %3 := GetPointer int, $tuple<test.Tuple1,Byte>* %2.0
   %4 := Load int %3

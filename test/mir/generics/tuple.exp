@@ -4,7 +4,7 @@ type $tuple<Int,Byte,(Int,Bool)> {int, byte, $tuple<Int,Bool>*}
 
 type $tuple<Int,Int> {int, int}
 
-type test.Tup1<Bool> {bool, int}
+type test.Tup1<Bool> {bool, byte[3], int}
 
 type test.Tup1<Int> {int, int}
 
@@ -15,7 +15,7 @@ func void @test.testConstructor() {
   %2 := GetPointer int, test.Tup1<Int>* %0.1
   Store int %2, 2
   %3 := Call test.Tup1<Bool>* myte.builtin.alloc(1)
-  %4 := GetPointer int, test.Tup1<Bool>* %3.1
+  %4 := GetPointer int, test.Tup1<Bool>* %3.2
   Store int %4, 1
   %5 := GetPointer bool, test.Tup1<Bool>* %3.0
   Store bool %5, true

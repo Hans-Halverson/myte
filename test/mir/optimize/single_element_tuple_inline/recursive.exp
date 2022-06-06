@@ -20,7 +20,7 @@ type test.Rec5 {$tuple<Int,test.Rec5>*}
 
 type test.Rec6 {test.Generic<test.Rec6>*}
 
-type test.Generic<test.Rec6> {int, test.Rec6*}
+type test.Generic<test.Rec6> {int, byte[4], test.Rec6*}
 
 func void @test.useNested(test.Rec5* %0, test.Rec6* %1) {
   Ret

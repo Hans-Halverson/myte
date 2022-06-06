@@ -10,15 +10,15 @@ type $tuple<Long,Long> {long, long}
 
 type $tuple<Unit,Byte> {byte}
 
-type test.Tup1<(Unit,Byte)> {int, $tuple<Unit,Byte>*}
+type test.Tup1<(Unit,Byte)> {int, byte[4], $tuple<Unit,Byte>*}
 
-type test.Tup1<Bool> {bool, int}
+type test.Tup1<Bool> {bool, byte[3], int}
 
-type test.Tup1<Byte> {byte, int}
+type test.Tup1<Byte> {byte, byte[3], int}
 
 type test.Tup1<Int> {int, int}
 
-type test.Tup1<test.Rec1<Int,Long>> {int, test.Rec1<Int,Long>*}
+type test.Tup1<test.Rec1<Int,Long>> {int, byte[4], test.Rec1<Int,Long>*}
 
 func void @test.useTup1(test.Tup1<Int>* %0, test.Tup1<Bool>* %1) {
   Ret
@@ -28,9 +28,9 @@ func void @test.duplicateInstances(test.Tup1<Int>* %0, test.Tup1<Int>* %1) {
   Ret
 }
 
-type test.Rec1<Int,Bool> {bool, int}
+type test.Rec1<Int,Bool> {bool, byte[3], int}
 
-type test.Rec1<Int,Long> {int, long}
+type test.Rec1<Int,Long> {int, byte[4], long}
 
 type test.Rec1<Long,Long> {long, long}
 

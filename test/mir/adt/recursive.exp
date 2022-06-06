@@ -1,16 +1,16 @@
-type test.Rec1 {int, test.Rec1*}
+type test.Rec1 {int, byte[4], test.Rec1*}
 
-type test.Rec2<Int> {int, test.Rec2<Int>*}
+type test.Rec2<Int> {int, byte[4], test.Rec2<Int>*}
 
 func void @test.useSelfRecursive(test.Rec1* %0, test.Rec2<Int>* %1) {
   Ret
 }
 
-type test.Rec3 {int, test.Rec4*}
+type test.Rec3 {int, byte[4], test.Rec4*}
 
 type test.Rec4 {std.string.String*, test.Rec5*}
 
-type test.Rec5 {bool, test.Rec3*}
+type test.Rec5 {bool, byte[7], test.Rec3*}
 
 func void @test.useMutuallyRecursive(test.Rec4* %0) {
   Ret
