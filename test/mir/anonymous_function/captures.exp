@@ -156,6 +156,36 @@ func void @test.testCaptureAllDeclTypes:0:0(byte* %0) {
   Ret
 }
 
+func void @test.testZeroSize() {
+  %0 := Call _closure* myte.builtin.alloc(1)
+  %1 := Cast _closure* %0 to fn*
+  Store fn %1, @test.testZeroSize:0
+  %2 := GetPointer byte*, _closure* %0.1
+  %3 := Call test.testZeroSize:0:env* myte.builtin.alloc(1)
+  %4 := Cast test.testZeroSize:0:env* %3 to byte*
+  Store byte* %2, %4
+  Ret
+}
+
+type test.testZeroSize:0:env {int}
+
+func void @test.testZeroSize:0(byte* %0) {
+  Call void @test.use<Unit>()
+  %2 := Load int %1
+  Call void @test.use<Int>(%2)
+  %3 := Call _closure* myte.builtin.alloc(1)
+  %4 := Cast _closure* %3 to fn*
+  Store fn %4, @test.testZeroSize:0:0
+  %5 := GetPointer byte*, _closure* %3.1
+  Store byte* %5, null
+  Ret
+}
+
+func void @test.testZeroSize:0:0(byte* %0) {
+  Call void @test.use<Unit>()
+  Ret
+}
+
 func void @test.use<Byte>(byte %0) {
   Ret
 }
@@ -165,6 +195,10 @@ func void @test.use<Int>(int %0) {
 }
 
 func void @test.use<Long>(long %0) {
+  Ret
+}
+
+func void @test.use<Unit>() {
   Ret
 }
 

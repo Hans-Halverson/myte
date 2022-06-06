@@ -49,6 +49,19 @@ fun testCaptureAllDeclTypes(x: Byte) {
   };
 }
 
+fun testZeroSize() {
+  val x = ();
+  val y = 1;
+
+  fn () {
+    use(x);
+    use(y);
+    fn () {
+      use(x);
+    };
+  };
+}
+
 fun use<T>(x: T) {}
 
 fun main() {}
