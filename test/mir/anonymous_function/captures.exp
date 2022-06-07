@@ -4,42 +4,53 @@ func void @test.testCapturePropagates() {
   %0 := Call _closure* myte.builtin.alloc(1)
   %1 := Cast _closure* %0 to fn*
   Store fn %1, @test.testCapturePropagates:0
-  %2 := GetPointer byte*, _closure* %0.1
-  %3 := Call test.testCapturePropagates:0:env* myte.builtin.alloc(1)
-  %4 := Cast test.testCapturePropagates:0:env* %3 to byte*
-  Store byte* %2, %4
+  %2 := Call test.testCapturePropagates:0:env* myte.builtin.alloc(1)
+  %3 := GetPointer byte, test.testCapturePropagates:0:env* %2.0
+  Store byte %3, 1
+  %4 := Cast test.testCapturePropagates:0:env* %2 to byte*
+  %5 := GetPointer byte*, _closure* %0.1
+  Store byte* %5, %4
   Ret
 }
 
 type test.testCapturePropagates:0:env {byte}
 
-func void @test.testCapturePropagates:0(byte* %0) {
+func void @test.testCapturePropagates:0(test.testCapturePropagates:0:env* %0) {
   %1 := Call _closure* myte.builtin.alloc(1)
   %2 := Cast _closure* %1 to fn*
   Store fn %2, @test.testCapturePropagates:0:0
-  %3 := GetPointer byte*, _closure* %1.1
-  %4 := Call test.testCapturePropagates:0:0:env* myte.builtin.alloc(1)
-  %5 := Cast test.testCapturePropagates:0:0:env* %4 to byte*
-  Store byte* %3, %5
+  %3 := Call test.testCapturePropagates:0:0:env* myte.builtin.alloc(1)
+  %4 := GetPointer byte, test.testCapturePropagates:0:env* %0.0
+  %5 := Load byte %4
+  %6 := GetPointer byte, test.testCapturePropagates:0:0:env* %3.0
+  Store byte %6, %5
+  %7 := Cast test.testCapturePropagates:0:0:env* %3 to byte*
+  %8 := GetPointer byte*, _closure* %1.1
+  Store byte* %8, %7
   Ret
 }
 
 type test.testCapturePropagates:0:0:env {byte}
 
-func void @test.testCapturePropagates:0:0(byte* %0) {
+func void @test.testCapturePropagates:0:0(test.testCapturePropagates:0:0:env* %0) {
   %1 := Call _closure* myte.builtin.alloc(1)
   %2 := Cast _closure* %1 to fn*
   Store fn %2, @test.testCapturePropagates:0:0:0
-  %3 := GetPointer byte*, _closure* %1.1
-  %4 := Call test.testCapturePropagates:0:0:0:env* myte.builtin.alloc(1)
-  %5 := Cast test.testCapturePropagates:0:0:0:env* %4 to byte*
-  Store byte* %3, %5
+  %3 := Call test.testCapturePropagates:0:0:0:env* myte.builtin.alloc(1)
+  %4 := GetPointer byte, test.testCapturePropagates:0:0:env* %0.0
+  %5 := Load byte %4
+  %6 := GetPointer byte, test.testCapturePropagates:0:0:0:env* %3.0
+  Store byte %6, %5
+  %7 := Cast test.testCapturePropagates:0:0:0:env* %3 to byte*
+  %8 := GetPointer byte*, _closure* %1.1
+  Store byte* %8, %7
   Ret
 }
 
 type test.testCapturePropagates:0:0:0:env {byte}
 
-func void @test.testCapturePropagates:0:0:0(byte* %0) {
+func void @test.testCapturePropagates:0:0:0(test.testCapturePropagates:0:0:0:env* %0) {
+  %1 := GetPointer byte, test.testCapturePropagates:0:0:0:env* %0.0
   %2 := Load byte %1
   Call void @test.use<Byte>(%2)
   Ret
@@ -49,46 +60,67 @@ func void @test.testNestedCaptures() {
   %0 := Call _closure* myte.builtin.alloc(1)
   %1 := Cast _closure* %0 to fn*
   Store fn %1, @test.testNestedCaptures:0
-  %2 := GetPointer byte*, _closure* %0.1
-  %3 := Call test.testNestedCaptures:0:env* myte.builtin.alloc(1)
-  %4 := Cast test.testNestedCaptures:0:env* %3 to byte*
-  Store byte* %2, %4
+  %2 := Call test.testNestedCaptures:0:env* myte.builtin.alloc(1)
+  %3 := GetPointer byte, test.testNestedCaptures:0:env* %2.0
+  Store byte %3, 1
+  %4 := GetPointer int, test.testNestedCaptures:0:env* %2.2
+  Store int %4, 2
+  %5 := GetPointer long, test.testNestedCaptures:0:env* %2.3
+  Store long %5, 3
+  %6 := Cast test.testNestedCaptures:0:env* %2 to byte*
+  %7 := GetPointer byte*, _closure* %0.1
+  Store byte* %7, %6
   Ret
 }
 
 type test.testNestedCaptures:0:env {byte, byte[3], int, long}
 
-func void @test.testNestedCaptures:0(byte* %0) {
+func void @test.testNestedCaptures:0(test.testNestedCaptures:0:env* %0) {
+  %1 := GetPointer byte, test.testNestedCaptures:0:env* %0.0
   %2 := Load byte %1
   Call void @test.use<Byte>(%2)
   %3 := Call _closure* myte.builtin.alloc(1)
   %4 := Cast _closure* %3 to fn*
   Store fn %4, @test.testNestedCaptures:0:0
-  %5 := GetPointer byte*, _closure* %3.1
-  %6 := Call test.testNestedCaptures:0:0:env* myte.builtin.alloc(1)
-  %7 := Cast test.testNestedCaptures:0:0:env* %6 to byte*
-  Store byte* %5, %7
+  %5 := Call test.testNestedCaptures:0:0:env* myte.builtin.alloc(1)
+  %6 := GetPointer int, test.testNestedCaptures:0:env* %0.2
+  %7 := Load int %6
+  %8 := GetPointer int, test.testNestedCaptures:0:0:env* %5.0
+  Store int %8, %7
+  %9 := GetPointer long, test.testNestedCaptures:0:env* %0.3
+  %10 := Load long %9
+  %11 := GetPointer long, test.testNestedCaptures:0:0:env* %5.2
+  Store long %11, %10
+  %12 := Cast test.testNestedCaptures:0:0:env* %5 to byte*
+  %13 := GetPointer byte*, _closure* %3.1
+  Store byte* %13, %12
   Ret
 }
 
 type test.testNestedCaptures:0:0:env {int, byte[4], long}
 
-func void @test.testNestedCaptures:0:0(byte* %0) {
+func void @test.testNestedCaptures:0:0(test.testNestedCaptures:0:0:env* %0) {
+  %1 := GetPointer int, test.testNestedCaptures:0:0:env* %0.0
   %2 := Load int %1
   Call void @test.use<Int>(%2)
   %3 := Call _closure* myte.builtin.alloc(1)
   %4 := Cast _closure* %3 to fn*
   Store fn %4, @test.testNestedCaptures:0:0:0
-  %5 := GetPointer byte*, _closure* %3.1
-  %6 := Call test.testNestedCaptures:0:0:0:env* myte.builtin.alloc(1)
-  %7 := Cast test.testNestedCaptures:0:0:0:env* %6 to byte*
-  Store byte* %5, %7
+  %5 := Call test.testNestedCaptures:0:0:0:env* myte.builtin.alloc(1)
+  %6 := GetPointer long, test.testNestedCaptures:0:0:env* %0.2
+  %7 := Load long %6
+  %8 := GetPointer long, test.testNestedCaptures:0:0:0:env* %5.0
+  Store long %8, %7
+  %9 := Cast test.testNestedCaptures:0:0:0:env* %5 to byte*
+  %10 := GetPointer byte*, _closure* %3.1
+  Store byte* %10, %9
   Ret
 }
 
 type test.testNestedCaptures:0:0:0:env {long}
 
-func void @test.testNestedCaptures:0:0:0(byte* %0) {
+func void @test.testNestedCaptures:0:0:0(test.testNestedCaptures:0:0:0:env* %0) {
+  %1 := GetPointer long, test.testNestedCaptures:0:0:0:env* %0.0
   %2 := Load long %1
   Call void @test.use<Long>(%2)
   Ret
@@ -98,16 +130,19 @@ func void @test.testNoInnerCaptures() {
   %0 := Call _closure* myte.builtin.alloc(1)
   %1 := Cast _closure* %0 to fn*
   Store fn %1, @test.testNoInnerCaptures:0
-  %2 := GetPointer byte*, _closure* %0.1
-  %3 := Call test.testNoInnerCaptures:0:env* myte.builtin.alloc(1)
-  %4 := Cast test.testNoInnerCaptures:0:env* %3 to byte*
-  Store byte* %2, %4
+  %2 := Call test.testNoInnerCaptures:0:env* myte.builtin.alloc(1)
+  %3 := GetPointer int, test.testNoInnerCaptures:0:env* %2.0
+  Store int %3, 1
+  %4 := Cast test.testNoInnerCaptures:0:env* %2 to byte*
+  %5 := GetPointer byte*, _closure* %0.1
+  Store byte* %5, %4
   Ret
 }
 
 type test.testNoInnerCaptures:0:env {int}
 
-func void @test.testNoInnerCaptures:0(byte* %0) {
+func void @test.testNoInnerCaptures:0(test.testNoInnerCaptures:0:env* %0) {
+  %1 := GetPointer int, test.testNoInnerCaptures:0:env* %0.0
   %2 := Load int %1
   Call void @test.use<Int>(%2)
   %3 := Call _closure* myte.builtin.alloc(1)
@@ -126,33 +161,48 @@ func void @test.testCaptureAllDeclTypes(byte %0) {
   %1 := Call _closure* myte.builtin.alloc(1)
   %2 := Cast _closure* %1 to fn*
   Store fn %2, @test.testCaptureAllDeclTypes:0
-  %3 := GetPointer byte*, _closure* %1.1
-  %4 := Call test.testCaptureAllDeclTypes:0:env* myte.builtin.alloc(1)
-  %5 := Cast test.testCaptureAllDeclTypes:0:env* %4 to byte*
-  Store byte* %3, %5
+  %3 := Call test.testCaptureAllDeclTypes:0:env* myte.builtin.alloc(1)
+  %4 := GetPointer byte, test.testCaptureAllDeclTypes:0:env* %3.0
+  Store byte %4, %0
+  %5 := Cast test.testCaptureAllDeclTypes:0:env* %3 to byte*
+  %6 := GetPointer byte*, _closure* %1.1
+  Store byte* %6, %5
   Ret
 }
 
 type test.testCaptureAllDeclTypes:0:env {byte}
 
-func void @test.testCaptureAllDeclTypes:0(int %0, byte* %1) {
+func void @test.testCaptureAllDeclTypes:0(int %0, test.testCaptureAllDeclTypes:0:env* %1) {
   %2 := Call _closure* myte.builtin.alloc(1)
   %3 := Cast _closure* %2 to fn*
   Store fn %3, @test.testCaptureAllDeclTypes:0:0
-  %4 := GetPointer byte*, _closure* %2.1
-  %5 := Call test.testCaptureAllDeclTypes:0:0:env* myte.builtin.alloc(1)
-  %6 := Cast test.testCaptureAllDeclTypes:0:0:env* %5 to byte*
-  Store byte* %4, %6
+  %4 := Call test.testCaptureAllDeclTypes:0:0:env* myte.builtin.alloc(1)
+  %5 := GetPointer byte, test.testCaptureAllDeclTypes:0:env* %1.0
+  %6 := Load byte %5
+  %7 := GetPointer byte, test.testCaptureAllDeclTypes:0:0:env* %4.0
+  Store byte %7, %6
+  %8 := GetPointer int, test.testCaptureAllDeclTypes:0:0:env* %4.2
+  Store int %8, %0
+  %9 := GetPointer long, test.testCaptureAllDeclTypes:0:0:env* %4.3
+  Store long %9, 1
+  %10 := Cast test.testCaptureAllDeclTypes:0:0:env* %4 to byte*
+  %11 := GetPointer byte*, _closure* %2.1
+  Store byte* %11, %10
   Ret
 }
 
 type test.testCaptureAllDeclTypes:0:0:env {byte, byte[3], int, long}
 
-func void @test.testCaptureAllDeclTypes:0:0(byte* %0) {
-  Call void @test.use<Byte>(%0)
-  Call void @test.use<Int>(%0)
-  %2 := Load long %1
-  Call void @test.use<Long>(%2)
+func void @test.testCaptureAllDeclTypes:0:0(test.testCaptureAllDeclTypes:0:0:env* %0) {
+  %1 := GetPointer byte, test.testCaptureAllDeclTypes:0:0:env* %0.0
+  %2 := Load byte %1
+  Call void @test.use<Byte>(%2)
+  %3 := GetPointer int, test.testCaptureAllDeclTypes:0:0:env* %0.2
+  %4 := Load int %3
+  Call void @test.use<Int>(%4)
+  %5 := GetPointer long, test.testCaptureAllDeclTypes:0:0:env* %0.3
+  %6 := Load long %5
+  Call void @test.use<Long>(%6)
   Ret
 }
 
@@ -160,17 +210,20 @@ func void @test.testZeroSize() {
   %0 := Call _closure* myte.builtin.alloc(1)
   %1 := Cast _closure* %0 to fn*
   Store fn %1, @test.testZeroSize:0
-  %2 := GetPointer byte*, _closure* %0.1
-  %3 := Call test.testZeroSize:0:env* myte.builtin.alloc(1)
-  %4 := Cast test.testZeroSize:0:env* %3 to byte*
-  Store byte* %2, %4
+  %2 := Call test.testZeroSize:0:env* myte.builtin.alloc(1)
+  %3 := GetPointer int, test.testZeroSize:0:env* %2.0
+  Store int %3, 1
+  %4 := Cast test.testZeroSize:0:env* %2 to byte*
+  %5 := GetPointer byte*, _closure* %0.1
+  Store byte* %5, %4
   Ret
 }
 
 type test.testZeroSize:0:env {int}
 
-func void @test.testZeroSize:0(byte* %0) {
+func void @test.testZeroSize:0(test.testZeroSize:0:env* %0) {
   Call void @test.use<Unit>()
+  %1 := GetPointer int, test.testZeroSize:0:env* %0.0
   %2 := Load int %1
   Call void @test.use<Int>(%2)
   %3 := Call _closure* myte.builtin.alloc(1)

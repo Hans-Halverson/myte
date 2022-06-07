@@ -1,0 +1,98 @@
+module test
+
+import std.test.{assertEqual, assertVecEqual}
+
+var globalByte: Byte = 1
+
+fun apply(f: () -> Unit) = f()
+
+fun propagateCapture(x: Byte) {
+  apply(fn () {
+    apply(fn () {
+      apply(fn () {
+        globalByte = x;
+      });
+    });
+  });
+}
+
+fun testCapturePropagates() {
+  globalByte = 0;
+  propagateCapture(7);
+  assertEqual(globalByte, 7);
+}
+
+var globalLong: Long = 0
+
+fun nestedCaptures(x: Byte, y: Int, z: Long) {
+  apply(fn () {
+    globalLong += x.toLong();
+    apply(fn () {
+      globalLong *= 10;
+      globalLong += y.toLong();
+      apply(fn () {
+        globalLong *= 10;
+        globalLong += z;
+      });
+    });
+  });
+}
+
+fun testNestedCaptures() {
+  globalLong = 0;
+  nestedCaptures(3, 5, 9);
+  assertEqual(globalLong, 359);
+}
+
+fun getInt(): Int = 8
+
+fun testCaptureVariable() {
+  val x = getInt();
+  val f = fn () -> x + 7;
+  assertEqual(f(), 15);
+}
+
+fun testCaptureMatchBinding() {
+  val f = fn (x) -> match (x) {
+    | (1, _) -> 1
+    | (y, 2) -> y + 3
+    | _ -> 2
+  };
+  assertEqual(f((11, 2)), 14);
+}
+
+type Type1 (Int, Int)
+methods Type1 {
+  fun method(): () -> Int {
+    return fn () -> this[0] * 10 + this[1];
+  }
+}
+
+fun testCaptureThis() {
+  val x = Type1 (3, 8);
+  val f = x.method();
+  assertEqual(f(), 38);
+}
+
+fun testCaptureVec() {
+  val x: Vec<Int> = [];
+  val f = fn () -> x.push(7);
+
+  f();
+  assertVecEqual(x, [7]);
+
+  f();
+  assertVecEqual(x, [7, 7]);
+
+  f();
+  assertVecEqual(x, [7, 7, 7]);
+}
+
+fun main() {
+  testCapturePropagates();
+  testNestedCaptures();
+  testCaptureVariable();
+  testCaptureMatchBinding();
+  testCaptureThis();
+  testCaptureVec();
+}

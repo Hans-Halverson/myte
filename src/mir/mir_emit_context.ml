@@ -7,6 +7,7 @@ open Mir_trait_object_layout
 open Mir_type
 open Mir_type_args_hashtbl
 module BVMap = Bindings.BVMap
+module BVSet = Bindings.BVSet
 
 (* Break block and continue block for a loop *)
 type loop_context = Block.t * Block.t
@@ -25,6 +26,9 @@ module FunctionContext = struct
     return_ty: Types.Type.t;
     return_block: Block.t;
     return_pointer: Value.t option;
+    captures: Bindings.LBVMMap.VSet.t;
+    env_agg: Aggregate.t option;
+    env_ptr: Value.t option;
     mutable num_anonymous_functions: int;
   }
 
@@ -33,8 +37,25 @@ module FunctionContext = struct
       return_ty = Unit;
       return_block = null_block;
       return_pointer = None;
+      captures = Bindings.LBVMMap.VSet.empty;
+      env_agg = None;
+      env_ptr = None;
       num_anonymous_functions = 0;
     }
+end
+
+module PendingAnonymousFunction = struct
+  type t = {
+    node: Ast.Expression.AnonymousFunction.t;
+    (* Type param bindings to evaluate this function in *)
+    type_param_bindings: Types.Type.t IMap.t;
+    (* Function argument bindings to their MIR value *)
+    arguments: Value.t BVMap.t;
+    (* Bindings captured by this function *)
+    captures: Bindings.LBVMMap.VSet.t;
+    (* Environment type, or None if no bindings were captured *)
+    env_agg: Aggregate.t option;
+  }
 end
 
 type t = {
@@ -61,8 +82,7 @@ type t = {
   mutable pending_nongeneric_funcs: FunctionSet.t;
   (* Map from pending anonymous functions to their AST node, the type param binding context, and
      the params to argument context. *)
-  mutable pending_anonymous_funcs:
-    (Ast.Expression.AnonymousFunction.t * Types.Type.t IMap.t * Value.t BVMap.t) FunctionMap.t;
+  mutable pending_anonymous_funcs: PendingAnonymousFunction.t FunctionMap.t;
   (* Names for all trampoline functions that are pending generation *)
   mutable pending_trampoline_funcs: FunctionSet.t;
   (* All AST nodes for all globals that should be generated, indexed by their full name *)
@@ -355,9 +375,18 @@ let start_function ~(ecx : t) ~(func : Function.t) ~loc ~params ~return_type =
   let start_block = start_new_block ~ecx in
   func.start_block <- start_block
 
-let start_function_context ~ecx ~return_ty ~return_block ~return_pointer =
+let start_function_context ~ecx ~return_ty ~return_block ~return_pointer ~env_agg ~env_ptr ~captures
+    =
   ecx.current_func_context <-
-    { return_ty; return_block; return_pointer; num_anonymous_functions = 0 }
+    {
+      return_ty;
+      return_block;
+      return_pointer;
+      env_agg;
+      env_ptr;
+      captures;
+      num_anonymous_functions = 0;
+    }
 
 (*
  * Generic Types
@@ -910,13 +939,18 @@ and mark_pending_nongeneric_function_completed ~ecx func =
 (*
  * Anonymous Functions
  *)
-and get_anonymous_function_value ~ecx name anon_func_node : Value.t =
+and get_anonymous_function_value ~ecx name anon_func_node env_agg captures : Value.t =
   let func = mk_empty_function ~ecx ~name in
-  ecx.pending_anonymous_funcs <-
-    FunctionMap.add
-      func
-      (anon_func_node, ecx.current_type_param_bindings, ecx.param_to_argument)
-      ecx.pending_anonymous_funcs;
+  let pending_anon_func =
+    {
+      PendingAnonymousFunction.node = anon_func_node;
+      type_param_bindings = ecx.current_type_param_bindings;
+      arguments = ecx.param_to_argument;
+      captures;
+      env_agg;
+    }
+  in
+  ecx.pending_anonymous_funcs <- FunctionMap.add func pending_anon_func ecx.pending_anonymous_funcs;
   func.value
 
 and pop_pending_anonymous_function ~ecx =

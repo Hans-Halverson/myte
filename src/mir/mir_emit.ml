@@ -212,13 +212,9 @@ and emit_generic_function_instantiation ~ecx (name, (func, type_param_bindings))
       if not func_decl_node.builtin then emit_function_body ~ecx func func_decl_node)
 
 and emit_anonymous_function_instantiation
-    ~ecx func (anon_func_node, type_param_bindings, param_to_argument) =
-  Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
-      (* Reset emit context function context to that of parent function *)
-      ecx.local_variable_to_alloc_instr <- Bindings.BVMap.empty;
-      ecx.param_to_argument <- param_to_argument;
-
-      emit_anonymous_function ~ecx func anon_func_node)
+    ~ecx func (pending_anon_func : Ecx.PendingAnonymousFunction.t) =
+  Ecx.in_type_binding_context ~ecx pending_anon_func.type_param_bindings (fun _ ->
+      emit_anonymous_function ~ecx func pending_anon_func)
 
 and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
   let open Ast.Function in
@@ -275,7 +271,15 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
   if is_main_func then ecx.program.main_func <- ecx.current_func;
 
   (* Set up return pointer and block, and create function context *)
-  emit_function_return_block ~ecx return_ty return_type;
+  let (return_block, return_pointer) = emit_function_return_block ~ecx return_type in
+  Ecx.start_function_context
+    ~ecx
+    ~return_ty
+    ~return_block
+    ~return_pointer
+    ~env_agg:None
+    ~env_ptr:None
+    ~captures:Bindings.LBVMMap.VSet.empty;
 
   (* Build IR for function body *)
   Ecx.set_current_block ~ecx ecx.current_func.start_block;
@@ -285,7 +289,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
   | Signature -> failwith "Cannot emit function signature");
   Ecx.finish_block_unreachable ~ecx
 
-and emit_function_return_block ~ecx return_ty return_type =
+and emit_function_return_block ~ecx return_type =
   (* Set up return value and return block *)
   let return_block = Ecx.mk_block ~ecx in
   let return_pointer =
@@ -304,7 +308,7 @@ and emit_function_return_block ~ecx return_ty return_type =
       Ecx.finish_block_ret ~ecx ~arg:(Some return_val);
       Some return_pointer
   in
-  Ecx.start_function_context ~ecx ~return_ty ~return_block ~return_pointer
+  (return_block, return_pointer)
 
 and emit_function_block_body ~ecx ~is_main_func block =
   ignore (emit_block ~ecx ~is_expr:false block);
@@ -333,13 +337,22 @@ and emit_function_expression_body ~ecx expr =
     mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:return_pointer ~value:return_val);
   Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
 
-and emit_anonymous_function ~ecx func anon_func_node =
+and emit_anonymous_function ~ecx func pending_anon_func =
   let open Ast.Expression.AnonymousFunction in
-  let { loc; params; body; _ } = anon_func_node in
+  let { loc; params; body; _ } = pending_anon_func.node in
   ecx.current_in_std_lib <- String.sub func.name 0 4 = "std.";
 
+  (* Reset emit context function context to that of parent function *)
+  ecx.local_variable_to_alloc_instr <- Bindings.BVMap.empty;
+  ecx.param_to_argument <- pending_anon_func.arguments;
+
   (* Create environment param where environment is the closure *)
-  let env_param = mk_argument ~func ~decl_loc:loc ~type_:(Pointer Byte) in
+  let env_ptr_type =
+    match pending_anon_func.env_agg with
+    | None -> Type.Pointer Byte
+    | Some env_agg -> Pointer (Aggregate env_agg)
+  in
+  let env_param = mk_argument ~func ~decl_loc:loc ~type_:env_ptr_type in
 
   (* Create MIR values for anonymous function params *)
   let params =
@@ -365,7 +378,15 @@ and emit_anonymous_function ~ecx func anon_func_node =
   Ecx.start_function ~ecx ~func ~loc ~params ~return_type;
 
   (* Set up return pointer and block, and create function context *)
-  emit_function_return_block ~ecx return_ty return_type;
+  let (return_block, return_pointer) = emit_function_return_block ~ecx return_type in
+  Ecx.start_function_context
+    ~ecx
+    ~return_ty
+    ~return_block
+    ~return_pointer
+    ~env_agg:pending_anon_func.env_agg
+    ~env_ptr:(Some env_param)
+    ~captures:pending_anon_func.captures;
 
   (* Build IR for function body *)
   Ecx.set_current_block ~ecx ecx.current_func.start_block;
@@ -642,31 +663,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           Ecx.get_closure_global_value ~ecx ~loc ~func
       in
       Some func_val
-    (* Variables may be either globals or locals *)
-    | VarDecl { tvar; _ } ->
-      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
-      | None -> None
-      | Some mir_type ->
-        let ptr =
-          if Bindings.is_module_decl binding then
-            Ecx.get_global_pointer ~ecx binding |> Option.get
-          else
-            Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type
-        in
-        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr))
-    (* Function parameters can have their corresponding MIR value referenced directly *)
-    | FunParamDecl { tvar }
-    | ThisDecl { tvar } ->
-      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
-      | None -> None
-      | Some _ -> Some (Ecx.get_function_argument_value ~ecx binding))
-    (* Match cases variables are locals, and must be loaded from their StackAlloc *)
-    | MatchCaseVarDecl { tvar } ->
-      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
-      | None -> None
-      | Some mir_type ->
-        let local_ptr = Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type in
-        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:local_ptr)))
+    | VarDecl _
+    | FunParamDecl _
+    | ThisDecl _
+    | MatchCaseVarDecl _ ->
+      emit_variable_binding_value ~ecx binding)
   (*
    * ============================
    *     Type Casts (ignored)
@@ -1169,7 +1170,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let captures =
       Type_context.get_anonymous_function_captures ~cx:ecx.pcx.type_ctx anon_func_node.loc
     in
-    let (env_agg_elements, _name_to_binding) =
+    let (env_agg_elements, name_to_binding) =
       Bindings.LBVMMap.VSet.fold
         (fun binding (env_agg_elements, name_to_binding) ->
           (* Find binding MIR type, adding element if not zero sized *)
@@ -1210,7 +1211,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
         Some env_agg
     in
 
-    let func_val = Ecx.get_anonymous_function_value ~ecx anon_func_name anon_func_node in
+    let func_val =
+      Ecx.get_anonymous_function_value ~ecx anon_func_name anon_func_node env_agg_opt captures
+    in
 
     (* Allocate closure *)
     let closure_type = Ecx.get_closure_type ~ecx in
@@ -1227,21 +1230,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let func_ptr = emit_cast_ptr ~ecx ~element_type:Function ~ptr:closure_ptr in
     mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:func_ptr ~value:func_val;
 
-    (* Get pointer to environment *)
-    let (element_ty, element_idx) = lookup_element closure_agg "env" in
-    let env_ptr =
-      mk_get_pointer_instr
-        ~block:(Ecx.get_current_block ~ecx)
-        ~type_:element_ty
-        ~ptr:closure_ptr
-        ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
-        ()
-    in
-
-    (* If there are no captures environment is null pointer *)
     let env_ptr_value =
       match env_agg_opt with
+      (* If there are no captures environment is null pointer *)
       | None -> mk_null_ptr_lit Byte
+      (* If there are captures allocate environment and fill captures *)
       | Some env_agg ->
         let env_ptr =
           mk_call_builtin
@@ -1251,11 +1244,91 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
             [Aggregate env_agg]
         in
 
+        List.iteri
+          (fun element_idx (element_name, element_ty) ->
+            match SMap.find_opt element_name name_to_binding with
+            | None -> ()
+            | Some binding ->
+              let element_value = emit_variable_binding_value ~ecx binding |> Option.get in
+              let element_ptr =
+                mk_get_pointer_instr
+                  ~block:(Ecx.get_current_block ~ecx)
+                  ~type_:element_ty
+                  ~ptr:env_ptr
+                  ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
+                  ()
+              in
+              mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr ~value:element_value)
+          env_agg.elements;
+
+        (* Cast to env type defined in closure agg before storing *)
         emit_cast_ptr ~ecx ~element_type:Byte ~ptr:env_ptr
+    in
+
+    (* Store environment in closure *)
+    let (element_ty, element_idx) = lookup_element closure_agg "env" in
+    let env_ptr =
+      mk_get_pointer_instr
+        ~block:(Ecx.get_current_block ~ecx)
+        ~type_:element_ty
+        ~ptr:closure_ptr
+        ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
+        ()
     in
     mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:env_ptr ~value:env_ptr_value;
 
     Some closure_ptr
+
+and emit_variable_binding_value ~ecx binding =
+  (* First check if this is a captured value *)
+  if Bindings.LBVMMap.VSet.mem binding ecx.current_func_context.captures then
+    match ecx.current_func_context.env_agg with
+    (* Environment may not exist or may not contain captured binding if it is zero size *)
+    | None -> None
+    | Some env_agg ->
+      (match lookup_element_opt env_agg binding.name with
+      | None -> None
+      (* Load captured binding from environment *)
+      | Some (element_ty, element_idx) ->
+        let element_ptr =
+          mk_get_pointer_instr
+            ~block:(Ecx.get_current_block ~ecx)
+            ~type_:element_ty
+            ~ptr:(Option.get ecx.current_func_context.env_ptr)
+            ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
+            ()
+        in
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr))
+  else
+    match binding.declaration with
+    (* Variables may be either globals or locals *)
+    | VarDecl { tvar; _ } ->
+      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
+      | None -> None
+      | Some mir_type ->
+        let ptr =
+          if Bindings.is_module_decl binding then
+            Ecx.get_global_pointer ~ecx binding |> Option.get
+          else
+            Ecx.get_local_ptr_def_instr ~ecx binding.loc mir_type
+        in
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr))
+    (* Function parameters can have their corresponding MIR value referenced directly *)
+    | FunParamDecl { tvar }
+    | ThisDecl { tvar } ->
+      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
+      | None -> None
+      | Some _ -> Some (Ecx.get_function_argument_value ~ecx binding))
+    (* Match cases variables are locals, and must be loaded from their StackAlloc *)
+    | MatchCaseVarDecl { tvar } ->
+      (match type_to_mir_type ~ecx (Types.Type.TVar tvar) with
+      | None -> None
+      | Some mir_type ->
+        let local_ptr = Ecx.get_local_ptr_def_instr ~ecx binding.loc mir_type in
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:local_ptr))
+    | FunDecl _
+    | CtorDecl _ ->
+      failwith "Expected variable binding"
 
 and emit_string_literal ~ecx loc value =
   (* Add string global string literal unless this is the empty string, in which case use null pointer *)
