@@ -1,0 +1,62 @@
+module test
+
+fun testCapturePropagates() {
+  var x: Int = 1;
+  fn () {
+    fn () {
+      fn () {
+        use(x);
+      };
+    };
+  };
+}
+
+fun testAssignCaptures() {
+  var x: Int = 1;
+  fn () {
+    x = 2;
+  };
+
+  use(x);
+}
+
+fun testReassign() {
+  var x: Int = 1;
+  fn () {
+    // Reassign within closure
+    x = 2;
+    use(x);
+  };
+
+  // And outside closure
+  x = 3;
+  use(x);
+}
+
+fun testOperatorAssign() {
+  var x: Int = 1;
+  fn () {
+    // Reassign within closure
+    x += 2;
+    use(x);
+  };
+
+  // And outside closure
+  x += 3;
+  use(x);
+}
+
+fun testZeroSize() {
+  var x: Unit = ();
+  fn () {
+    x = ();
+    use(x);
+  };
+
+  x = ();
+  use(x);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

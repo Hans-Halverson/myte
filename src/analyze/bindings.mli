@@ -194,6 +194,8 @@ val is_module_decl : ValueBinding.t -> bool
 
 val is_std_lib_value : ValueBinding.t -> bool
 
+val is_mutable_variable : ValueBinding.t -> bool
+
 val get_var_decl : ValueBinding.t -> VariableDeclaration.t
 
 val get_func_decl : ValueBinding.t -> FunctionDeclaration.t

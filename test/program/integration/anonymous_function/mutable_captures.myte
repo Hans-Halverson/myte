@@ -1,0 +1,85 @@
+module test
+
+import std.test.{assertEqual, assertVecEqual}
+
+var globalByte: Byte = 1
+
+fun apply(f: () -> Unit) = f()
+
+fun propagateCapture(results: Vec<Int>) {
+  var x = 1;
+
+  apply(fn () {
+    apply(fn () {
+      apply(fn () {
+        results.push(x);
+        x = 2;
+        results.push(x);
+      });
+    });
+  });
+
+  results.push(x);
+  x = 3;
+  results.push(x);
+}
+
+fun testCapturePropagates() {
+  val x: Vec<Int> = [];
+  propagateCapture(x);
+  assertVecEqual(x, [1, 2, 2, 3]);
+}
+
+fun testReassign() {
+  var x: Int = 1;
+  apply(fn () {
+    // Reassign within closure
+    assertEqual(x, 1);
+    x = 2;
+    assertEqual(x, 2);
+  });
+
+  // And outside closure
+  assertEqual(x, 2);
+  x = 3;
+  assertEqual(x, 3);
+}
+
+fun testOperatorAssign() {
+  var x: Int = 1;
+  apply(fn () {
+    // Reassign within closure
+    assertEqual(x, 1);
+    x *= 10;
+    x += 2;
+    assertEqual(x, 12);
+  });
+
+  // And outside closure
+  assertEqual(x, 12);
+  x *= 10;
+  x += 3;
+  assertEqual(x, 123);
+}
+
+fun testRepeated() {
+  var x = 1;
+  val f: () -> Unit = fn () {
+    x += 3;
+  };
+
+  assertEqual(x, 1);
+  f();
+  assertEqual(x, 4);
+  f();
+  assertEqual(x, 7);
+  f();
+  assertEqual(x, 10);
+}
+
+fun main() {
+  testCapturePropagates();
+  testReassign();
+  testOperatorAssign();
+  testRepeated();
+}

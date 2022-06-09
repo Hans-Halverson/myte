@@ -1188,7 +1188,15 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           let env_agg_elements =
             match binding_mir_type with
             | None -> env_agg_elements
-            | Some mir_type -> (binding.name, mir_type) :: env_agg_elements
+            | Some mir_type ->
+              (* Captured mutable variables are behind a pointer *)
+              let mir_type =
+                if Bindings.is_mutable_variable binding then
+                  Type.Pointer mir_type
+                else
+                  mir_type
+              in
+              (binding.name, mir_type) :: env_agg_elements
           in
           let name_to_binding = SMap.add binding.name binding name_to_binding in
           (env_agg_elements, name_to_binding))
@@ -1249,7 +1257,18 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
             match SMap.find_opt element_name name_to_binding with
             | None -> ()
             | Some binding ->
-              let element_value = emit_variable_binding_value ~ecx binding |> Option.get in
+              let element_value =
+                (* Mutable variables are pointers to a value. If already captured then copy pointer
+                   from current environment. Otherwise use local pointer without loading value from it. *)
+                if Bindings.is_mutable_variable binding then
+                  if Ecx.is_captured_binding ~ecx binding then
+                    emit_environment_element ~ecx binding |> Option.get
+                  else
+                    let mir_type = mir_type_of_loc ~ecx binding.loc |> Option.get in
+                    Ecx.get_local_ptr_def_instr ~ecx binding.loc mir_type
+                else
+                  emit_variable_binding_value ~ecx binding |> Option.get
+              in
               let element_ptr =
                 mk_get_pointer_instr
                   ~block:(Ecx.get_current_block ~ecx)
@@ -1281,24 +1300,16 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
 
 and emit_variable_binding_value ~ecx binding =
   (* First check if this is a captured value *)
-  if Bindings.LBVMMap.VSet.mem binding ecx.current_func_context.captures then
-    match ecx.current_func_context.env_agg with
-    (* Environment may not exist or may not contain captured binding if it is zero size *)
+  if Ecx.is_captured_binding ~ecx binding then
+    (* Load captured binding from environment *)
+    match emit_environment_element ~ecx binding with
     | None -> None
-    | Some env_agg ->
-      (match lookup_element_opt env_agg binding.name with
-      | None -> None
-      (* Load captured binding from environment *)
-      | Some (element_ty, element_idx) ->
-        let element_ptr =
-          mk_get_pointer_instr
-            ~block:(Ecx.get_current_block ~ecx)
-            ~type_:element_ty
-            ~ptr:(Option.get ecx.current_func_context.env_ptr)
-            ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
-            ()
-        in
-        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr))
+    | Some element_value ->
+      (* Mutable variables are behind a pointer in the environment *)
+      if Bindings.is_mutable_variable binding then
+        Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:element_value)
+      else
+        Some element_value
   else
     match binding.declaration with
     (* Variables may be either globals or locals *)
@@ -1329,6 +1340,27 @@ and emit_variable_binding_value ~ecx binding =
     | FunDecl _
     | CtorDecl _ ->
       failwith "Expected variable binding"
+
+(* Emit a captured value in the current environment. For captured mutable variables this is a
+   pointer to the value. *)
+and emit_environment_element ~ecx binding =
+  match ecx.current_func_context.env_agg with
+  (* Environment may not exist or may not contain captured binding if it is zero size *)
+  | None -> None
+  | Some env_agg ->
+    (match lookup_element_opt env_agg binding.name with
+    | None -> None
+    (* Get pointer to captured binding in environment *)
+    | Some (element_ty, element_idx) ->
+      let element_ptr =
+        mk_get_pointer_instr
+          ~block:(Ecx.get_current_block ~ecx)
+          ~type_:element_ty
+          ~ptr:(Option.get ecx.current_func_context.env_ptr)
+          ~offsets:[Instruction.GetPointer.FieldIndex element_idx]
+          ()
+      in
+      Some (mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:element_ptr))
 
 and emit_string_literal ~ecx loc value =
   (* Add string global string literal unless this is the empty string, in which case use null pointer *)
@@ -2581,6 +2613,9 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         let pointer_val =
           if Bindings.is_module_decl binding then
             Ecx.get_global_pointer ~ecx binding |> Option.get
+          else if Ecx.is_captured_binding ~ecx binding && Bindings.is_mutable_variable binding then
+            (* Captured mutable variables must be loaded from environment *)
+            emit_environment_element ~ecx binding |> Option.get
           else
             Ecx.get_local_ptr_def_instr ~ecx loc mir_type
         in
@@ -2816,9 +2851,9 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
       let global_ptr = Ecx.get_global_pointer ~ecx binding |> Option.get in
       mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:global_ptr ~value
     else
-      let stack_alloc_instr = Ecx.get_local_ptr_def_instr ~ecx loc mir_type in
-      append_instruction (Ecx.get_current_block ~ecx) stack_alloc_instr;
-      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:stack_alloc_instr ~value
+      let alloc_instr = Ecx.get_local_ptr_def_instr ~ecx loc mir_type in
+      append_instruction (Ecx.get_current_block ~ecx) alloc_instr;
+      mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:alloc_instr ~value
   | _ ->
     let decision_tree =
       Mir_match_decision_tree.build_destructure_decision_tree ~ecx value pattern

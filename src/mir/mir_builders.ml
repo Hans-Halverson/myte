@@ -151,17 +151,22 @@ and mk_call ~(block : Block.t) ~(func : Value.t) ~(args : Value.t list) ~(return
 
 and mk_call_ ~block ~func ~args ~return : unit = ignore (mk_call ~block ~func ~args ~return)
 
-and mk_call_builtin
-    ~(block : Block.t) (builtin : Builtin.t) (args : Value.t list) (mk_return_ty_args : Type.t list)
-    : Value.t =
+and mk_blockless_call_builtin
+    (builtin : Builtin.t) (args : Value.t list) (mk_return_ty_args : Type.t list) : Value.t =
   let value = mk_uninit_value () in
   let arg_uses = List.map (fun arg -> user_add_use ~user:value ~use:arg) args in
   let return_type = builtin.mk_return_ty mk_return_ty_args |> Option.get in
-  mk_instr
+  mk_blockless_instr
     ~value
-    ~block
     ~type_:return_type
     ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return = true })
+
+and mk_call_builtin
+    ~(block : Block.t) (builtin : Builtin.t) (args : Value.t list) (mk_return_ty_args : Type.t list)
+    : Value.t =
+  let instr_value = mk_blockless_call_builtin builtin args mk_return_ty_args in
+  append_instruction block instr_value;
+  instr_value
 
 and mk_call_builtin_no_return_ ~(block : Block.t) (builtin : Builtin.t) (args : Value.t list) =
   let value = mk_uninit_value () in

@@ -2386,8 +2386,14 @@ and check_statement ~cx ~is_expr stmt =
               | VarDecl { kind; _ } ->
                 if kind = Ast.Statement.VariableDeclaration.Immutable then
                   add_invalid_assign_error InvalidAssignmentImmutableVariable
-                else
+                else (
+                  (* Reassigned variables are captured *)
+                  capture_binding_in_contexts
+                    ~cx
+                    binding
+                    (Type_context.get_function_context_stack ~cx);
                   has_error
+                )
               | FunDecl _ -> add_invalid_assign_error InvalidAssignmentFunction
               | FunParamDecl _ -> add_invalid_assign_error InvalidAssignmentFunctionParam
               | ThisDecl _ -> add_invalid_assign_error InvalidAssignmentThis

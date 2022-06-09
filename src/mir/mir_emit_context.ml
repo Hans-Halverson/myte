@@ -70,7 +70,7 @@ type t = {
   mutable current_loop_contexts: loop_context list;
   (* Whether to filter out the standard library when dumping IR or asm *)
   filter_std_lib: bool;
-  (* Local variable binding to the StackAlloc instruction that defines that variable *)
+  (* Local variable binding to the StackAlloc or myte_alloc instruction that defines that variable *)
   mutable local_variable_to_alloc_instr: Value.t BVMap.t;
   (* Function parameter binding to the argument value for that parameter *)
   mutable param_to_argument: Value.t BVMap.t;
@@ -241,12 +241,21 @@ let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loo
 
 let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
 
+let is_captured_binding ~ecx binding =
+  Bindings.LBVMMap.VSet.mem binding ecx.current_func_context.captures
+
 let get_local_ptr_def_instr ~ecx use_loc type_ =
   let binding = Bindings.get_value_binding ecx.pcx.bindings use_loc in
   match BVMap.find_opt binding ecx.local_variable_to_alloc_instr with
   | Some instr -> instr
   | None ->
-    let instr = mk_blockless_stack_alloc ~type_ in
+    (* Captured bindings must be stored on heap, all other bindings are stored on stack *)
+    let instr =
+      if binding.is_captured && Bindings.is_mutable_variable binding then
+        mk_blockless_call_builtin Mir_builtin.myte_alloc [mk_int_lit_of_int32 Int32.one] [type_]
+      else
+        mk_blockless_stack_alloc ~type_
+    in
     ecx.local_variable_to_alloc_instr <- BVMap.add binding instr ecx.local_variable_to_alloc_instr;
     instr
 
