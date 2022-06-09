@@ -49,6 +49,14 @@ fun testCaptureAllDeclTypes(x: Byte) {
   };
 }
 
+fun testCaptureForBindingType() {
+  for (i in 0.to(5)) {
+    fn () {
+      use(i);
+    };
+  }
+}
+
 fun testZeroSize() {
   val x = ();
   val y = 1;

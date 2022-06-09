@@ -83,6 +83,19 @@ fun testCaptureThis() {
   assertEqual(f(), 38);
 }
 
+fun testCaptureForBinding() {
+  val funcs: Vec<() -> Int> = [];
+  for (i in 0.to(5)) {
+    funcs.push(fn () -> i * 2);
+  }
+
+  assertEqual(funcs[0](), 0);
+  assertEqual(funcs[1](), 2);
+  assertEqual(funcs[2](), 4);
+  assertEqual(funcs[3](), 6);
+  assertEqual(funcs[4](), 8);
+}
+
 fun testCaptureVec() {
   val x: Vec<Int> = [];
   val f = fn () -> x.push(7);
@@ -103,5 +116,6 @@ fun main() {
   testCaptureVariable();
   testCaptureMatchBinding();
   testCaptureThis();
+  testCaptureForBinding();
   testCaptureVec();
 }
