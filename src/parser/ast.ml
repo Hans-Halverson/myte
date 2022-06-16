@@ -371,7 +371,6 @@ and Expression : sig
     | StringLiteral of StringLiteral.t
     | BoolLiteral of BoolLiteral.t
     | Identifier of Identifier.t
-    | ScopedIdentifier of ScopedIdentifier.t
     | InterpolatedString of InterpolatedString.t
     | Tuple of Tuple.t
     | Record of Record.t

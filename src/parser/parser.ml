@@ -1686,7 +1686,6 @@ and reparse_expression_as_assignment_op_lvalue expr =
   match expr with
   | Identifier { name = "_"; _ } -> error ()
   | Identifier _
-  | ScopedIdentifier _
   | IndexedAccess _
   | NamedAccess _ ->
     reparse_expression_as_lvalue expr
@@ -1725,7 +1724,6 @@ and reparse_expression_as_lvalue_pattern expr =
   match expr with
   | Identifier { loc; name = "_" } -> Pattern.Wildcard loc
   | Identifier { loc; name } -> Pattern.Identifier { loc; name = { loc; name }; scopes = [] }
-  | ScopedIdentifier { loc; name; scopes } -> Pattern.Identifier { loc; name; scopes }
   | BinaryOperation { loc; op = BitwiseOr; left; right } ->
     let left = reparse_expression_as_lvalue_pattern left in
     let right = reparse_expression_as_lvalue_pattern right in

@@ -72,11 +72,7 @@ and parse_and_check ~pcx ~is_stdlib files =
   | Error errors ->
     print_errors (List.map (fun (loc, err) -> (loc, Analyze_error.to_string err)) errors);
     exit 1
-  | Ok resolved_modules ->
-    if (not is_stdlib) && Opts.dump_resolved_ast () then (
-      dump_ast resolved_modules;
-      exit 0
-    )
+  | Ok () -> ()
 
 let lower_to_ir pcx =
   let ir = Mir_emit.emit pcx in

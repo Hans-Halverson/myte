@@ -147,6 +147,8 @@ let get_type_binding ~cx use_loc = get_type_binding cx.bindings use_loc
 
 let get_this_binding ~cx this_binding_id = get_this_binding cx.bindings this_binding_id
 
+let is_scope_named_access ~cx loc = is_scope_named_access cx.bindings loc
+
 let get_tvar_from_loc ~cx loc = LocMap.find loc cx.loc_to_tvar
 
 let get_tvar_from_loc_opt ~cx loc = LocMap.find_opt loc cx.loc_to_tvar

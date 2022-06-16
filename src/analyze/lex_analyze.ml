@@ -1,6 +1,7 @@
 open Program_context
 
 let analyze_modules ~is_stdlib ~pcx mods_and_files =
+  Program_context.add_modules ~pcx mods_and_files;
   let mods = List.map snd mods_and_files in
 
   (* Check for main function for non-library compilation units *)
@@ -19,10 +20,9 @@ let analyze_modules ~is_stdlib ~pcx mods_and_files =
 
   (* Resolve symbols in this compilation unit. Updates the set of all bindings and store
      the newly resolved ASTs *)
-  let (new_resolved_mods, ordered_traits, resolution_errors) =
+  let (ordered_traits, resolution_errors) =
     Name_resolution.analyze ~is_stdlib pcx.bindings pcx.module_tree mods_and_files
   in
-  Program_context.add_resolved_modules ~pcx new_resolved_mods;
   Type_context.set_ordered_traits ~cx:pcx.type_ctx ordered_traits;
 
   (* Only proceed to type checking if there are no pre-typechecking errors *)
@@ -30,15 +30,15 @@ let analyze_modules ~is_stdlib ~pcx mods_and_files =
   if List.length pre_typecheck_errors <> 0 then
     Error pre_typecheck_errors
   else (
-    Type_check.analyze ~cx:pcx.type_ctx new_resolved_mods;
+    Type_check.analyze ~cx:pcx.type_ctx mods_and_files;
     let type_check_errors = Type_context.get_errors ~cx:pcx.type_ctx in
     if type_check_errors <> [] then
       Error type_check_errors
     else
       (* Only proceed to match exhaustiveness checking if there are no typechecking errors *)
-      let match_errors = Match.analyze ~cx:pcx.type_ctx new_resolved_mods in
+      let match_errors = Match.analyze ~cx:pcx.type_ctx mods_and_files in
       if match_errors <> [] then
         Error match_errors
       else
-        Ok new_resolved_mods
+        Ok ()
   )

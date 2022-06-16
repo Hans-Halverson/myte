@@ -158,7 +158,6 @@ and node_of_expression expr =
   match expr with
   | Unit unit -> node_of_unit unit
   | Identifier id -> node_of_identifier id
-  | ScopedIdentifier id -> node_of_scoped_identifier id
   | IntLiteral lit -> node_of_int_literal lit
   | CharLiteral lit -> node_of_char_literal lit
   | StringLiteral lit -> node_of_string_literal lit

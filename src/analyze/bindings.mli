@@ -157,6 +157,7 @@ module Bindings : sig
     mutable value_use_to_binding: ValueBinding.t LocMap.t;
     mutable type_use_to_binding: TypeBinding.t LocMap.t;
     mutable this_bindings: ValueBinding.t IMap.t;
+    mutable scope_named_access_locs: LocSet.t;
   }
 
   val mk : unit -> t
@@ -166,6 +167,8 @@ module Bindings : sig
   val add_type_use : t -> Loc.t -> TypeBinding.t -> unit
 
   val add_this_binding : t -> ValueBinding.t -> unit
+
+  val add_scope_named_access : t -> Loc.t -> unit
 
   val is_value_decl_loc : t -> Loc.t -> bool
 
@@ -187,6 +190,8 @@ val get_value_binding : Bindings.t -> Loc.t -> ValueBinding.t
 val get_type_binding : Bindings.t -> Loc.t -> TypeBinding.t
 
 val get_this_binding : Bindings.t -> ValueBinding.id -> ValueBinding.t
+
+val is_scope_named_access : Bindings.t -> Loc.t -> bool
 
 val get_decl_loc_from_value_use : Bindings.t -> Loc.t -> Loc.t
 

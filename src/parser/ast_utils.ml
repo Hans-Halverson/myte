@@ -26,7 +26,6 @@ let expression_loc expr =
   | StringLiteral { loc; _ }
   | BoolLiteral { loc; _ }
   | Identifier { loc; _ }
-  | ScopedIdentifier { loc; _ }
   | InterpolatedString { loc; _ }
   | Record { loc; _ }
   | Tuple { loc; _ }

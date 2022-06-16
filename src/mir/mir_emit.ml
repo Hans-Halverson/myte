@@ -463,10 +463,50 @@ and emit_expression ~ecx expr : Value.t option =
     let trait_object_instance = Ecx.instantiate_trait_object_vtable ~ecx trait_instance ty in
     emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_instance
 
+and emit_identifier_expression ~(ecx : Ecx.t) (loc : Loc.t) (id : Ast.Identifier.t) : Value.t option
+    =
+  let binding = Bindings.get_value_binding ecx.pcx.bindings id.loc in
+  match binding.declaration with
+  | CtorDecl _ ->
+    let ty = type_of_loc ~ecx loc in
+    Some (emit_construct_enum_variant ~ecx ~name:id.name ~ty)
+  (* This is a function that is not statically called, so create its closure object *)
+  | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
+    let func_name = mk_value_binding_name binding in
+    let func_val =
+      if is_builtin then
+        failwith "TODO: Cannot use myte builtin as closure object. Generate MIR for myte builtins."
+      else
+        let func_val =
+          if type_params = [] then
+            Ecx.get_nongeneric_function_value ~ecx func_name
+          else
+            let ty = type_of_loc ~ecx loc in
+            let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
+            Ecx.get_generic_function_value ~ecx func_name type_params type_args
+        in
+        let func = cast_to_function_literal func_val in
+        Ecx.get_closure_global_value ~ecx ~loc ~func
+    in
+    Some func_val
+  | VarDecl _
+  | FunParamDecl _
+  | ThisDecl _
+  | MatchCaseVarDecl _ ->
+    emit_variable_binding_value ~ecx binding
+
 and emit_expression_without_promotion ~ecx expr : Value.t option =
   let open Expression in
   let open Instruction in
   match expr with
+  (*
+   * ============================
+   *         Identifiers
+   * ============================
+   *)
+  | Identifier id -> emit_identifier_expression ~ecx id.loc id
+  | NamedAccess { loc; name; _ } when Type_context.is_scope_named_access ~cx:ecx.pcx.type_ctx loc ->
+    emit_identifier_expression ~ecx loc name
   (*
    * ============================
    *         Literals
@@ -633,43 +673,6 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     Some instr
   (*
    * ============================
-   *         Identifiers
-   * ============================
-   *)
-  | Identifier { loc = id_loc as loc; name }
-  | ScopedIdentifier { loc; name = { Identifier.loc = id_loc; name }; _ } ->
-    let binding = Bindings.get_value_binding ecx.pcx.bindings id_loc in
-    (match binding.declaration with
-    | CtorDecl _ ->
-      let ty = type_of_loc ~ecx loc in
-      Some (emit_construct_enum_variant ~ecx ~name ~ty)
-    (* This is a function that is not statically called, so create its closure object *)
-    | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
-      let func_name = mk_value_binding_name binding in
-      let func_val =
-        if is_builtin then
-          failwith
-            "TODO: Cannot use myte builtin as closure object. Generate MIR for myte builtins."
-        else
-          let func_val =
-            if type_params = [] then
-              Ecx.get_nongeneric_function_value ~ecx func_name
-            else
-              let ty = type_of_loc ~ecx loc in
-              let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
-              Ecx.get_generic_function_value ~ecx func_name type_params type_args
-          in
-          let func = cast_to_function_literal func_val in
-          Ecx.get_closure_global_value ~ecx ~loc ~func
-      in
-      Some func_val
-    | VarDecl _
-    | FunParamDecl _
-    | ThisDecl _
-    | MatchCaseVarDecl _ ->
-      emit_variable_binding_value ~ecx binding)
-  (*
-   * ============================
    *     Type Casts (ignored)
    * ============================
    *)
@@ -732,10 +735,17 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
    *)
   | Call { loc; func; args } ->
     (* Emit tuple constructor *)
-    let ctor_result_opt =
+    let func_id_opt =
       match func with
-      | Identifier { Identifier.loc = ctor_id_loc; name }
-      | ScopedIdentifier { ScopedIdentifier.name = { Identifier.loc = ctor_id_loc; name }; _ } ->
+      | Identifier id -> Some (id.loc, id)
+      | NamedAccess { loc; name; _ }
+        when Type_context.is_scope_named_access ~cx:ecx.pcx.type_ctx loc ->
+        Some (loc, name)
+      | _ -> None
+    in
+    let ctor_result_opt =
+      match func_id_opt with
+      | Some (_, { Identifier.loc = ctor_id_loc; name }) ->
         let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx ctor_id_loc in
         (match binding.declaration with
         | CtorDecl _ ->
@@ -743,7 +753,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
           let mk_elements = List.map (fun arg _ -> emit_expression ~ecx arg) args in
           Some (emit_construct_tuple_variant ~ecx ~name ~ty ~mk_elements)
         | _ -> None)
-      | _ -> None
+      | None -> None
     in
     (* If not a tuple constructor, must be a call *)
     (match ctor_result_opt with
@@ -751,9 +761,8 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     | None ->
       (* First check if this is a statically known function call *)
       let static_func_val_opt =
-        match func with
-        | Identifier { Identifier.loc = loc as id_loc; _ }
-        | ScopedIdentifier { ScopedIdentifier.loc; name = { loc = id_loc; _ }; _ } ->
+        match func_id_opt with
+        | Some (loc, { Identifier.loc = id_loc; _ }) ->
           let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx id_loc in
           (match binding.declaration with
           | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
@@ -770,7 +779,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
             in
             Some func_val
           | _ -> None)
-        | _ -> None
+        | None -> None
       in
       (* Otherwise this is a dynamic call on a closure object *)
       let (func_val, env_opt) =
@@ -814,8 +823,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
   | Record { Record.loc; name; fields; _ } ->
     let name =
       match name with
-      | Identifier { name; _ }
-      | ScopedIdentifier { name = { name; _ }; _ } ->
+      | Identifier { name; _ } -> name
+      | NamedAccess { loc; name = { name; _ }; _ }
+        when Type_context.is_scope_named_access ~cx:ecx.pcx.type_ctx loc ->
         name
       | _ -> failwith "Record name must be identifier"
     in
@@ -1574,7 +1584,8 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
       | ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
         emit_tuple_indexed_access access
       | _ -> failwith "Target must be a tuple to pass type checking")
-    | NamedAccess ({ target; _ } as access) ->
+    | NamedAccess ({ loc; target; _ } as access)
+      when not (Type_context.is_scope_named_access ~cx:ecx.pcx.type_ctx loc) ->
       let target_ty = type_of_loc ~ecx (Ast_utils.expression_loc target) in
       (match target_ty with
       | Types.Type.ADT { adt_sig = { variants; _ }; _ } when SMap.cardinal variants = 1 ->
@@ -2602,14 +2613,13 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
       emit_pointer_assign mk_pointer_val expr
     in
 
-    (match lvalue with
     (* Simple variable assignments are stored at the variable's pointer, whether global or local *)
-    | Pattern (Identifier { loc; _ }) ->
-      (match mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) with
+    let emit_variable_assign id_loc =
+      match mir_type_of_loc ~ecx (Ast_utils.expression_loc expr) with
       (* If zero width type no assignment occurs, but still emit expression as it may have side effects *)
       | None -> ignore (emit_expression ~ecx expr)
       | Some mir_type ->
-        let binding = Bindings.get_value_binding ecx.pcx.bindings loc in
+        let binding = Bindings.get_value_binding ecx.pcx.bindings id_loc in
         let pointer_val =
           if Bindings.is_module_decl binding then
             Ecx.get_global_pointer ~ecx binding |> Option.get
@@ -2617,9 +2627,16 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
             (* Captured mutable variables must be loaded from environment *)
             emit_environment_element ~ecx binding |> Option.get
           else
-            Ecx.get_local_ptr_def_instr ~ecx loc mir_type
+            Ecx.get_local_ptr_def_instr ~ecx id_loc mir_type
         in
-        emit_pointer_assign (fun _ -> Some pointer_val) expr)
+        emit_pointer_assign (fun _ -> Some pointer_val) expr
+    in
+
+    (match lvalue with
+    | Pattern (Identifier { loc; _ }) -> emit_variable_assign loc
+    | Expression (NamedAccess { loc; name; _ })
+      when Type_context.is_scope_named_access ~cx:ecx.pcx.type_ctx loc ->
+      emit_variable_assign name.loc
     (* Pattern assignments are destructured with a decision tree *)
     | Pattern pattern ->
       if op <> None then failwith "Destructuring cannot be used in operator assignment";

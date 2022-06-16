@@ -1,0 +1,22 @@
+module test
+
+import a
+
+fun reassignGlobal() {
+  a.global = 2;
+}
+
+fun accessScopedField() {
+  use(a.rec1.foo);
+  use(a.rec2.bar.foo);
+}
+
+fun reassignScopedField() {
+  a.rec1.foo = 2;
+  use(1);
+  a.rec2.bar.foo = 3;
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

@@ -3,7 +3,6 @@ open Ast
 open Basic_collections
 open Bindings
 open Graph
-open Immutable_utils
 
 (* 
  * Name Resolution
@@ -13,7 +12,7 @@ open Immutable_utils
  *
  * - All identifiers (and the final name of scoped identifiers) are resolved to a value, and will
  *   be marked as a value or type use of a declaration.
- * - Named access chains will be converted to scoped identifiers if they are a qualified module
+ * - Named access chains will be marked as scoped identifiers if they are a qualified module
  *   or static method. All remaining named accesses are for field or method accesses which must be
  *   resolved during type checking.
  * - There is at most one non-signature method with any given name in a trait/type and all its
@@ -108,7 +107,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     build_implicit_imports ~is_stdlib ~bindings
   in
   object (this)
-    inherit Ast_mapper.mapper as super
+    inherit Ast_visitor.visitor as super
 
     val mutable errors : (Loc.t * Analyze_error.t) list = []
 
@@ -192,6 +191,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       let func_decl = get_func_decl func_binding in
       func_decl.this_binding_id <- Some binding.id;
       binding
+
+    method add_scope_named_access loc = Bindings.add_scope_named_access bindings loc
 
     method push_context context = context_stack <- context :: context_stack
 
@@ -551,50 +552,29 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       this#set_current_module name;
       this#restore_toplevel_scope loc;
       (* Then visit child nodes once toplevel scope is complete *)
-      let toplevels' =
-        id_map_list
-          (fun toplevel ->
-            match toplevel with
-            | VariableDeclaration decl ->
-              id_map (this#visit_variable_declaration ~is_toplevel:true) decl toplevel (fun decl' ->
-                  VariableDeclaration decl')
-            | FunctionDeclaration decl ->
-              id_map
-                (this#visit_function_declaration ~is_method:false ~is_nested:false)
-                decl
-                toplevel
-                (fun decl' -> FunctionDeclaration decl')
-            | TypeDeclaration
-                ( { Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
-                type_decl ) ->
-              if type_params <> [] then this#enter_scope ();
-              this#visit_type_parameters type_params (TypeName name);
-              ignore (this#type_declaration type_decl);
-              if type_params <> [] then this#exit_scope ();
-              toplevel
-            | TraitDeclaration decl ->
-              id_map this#visit_trait_declaration decl toplevel (fun decl' ->
-                  TraitDeclaration decl'))
-          toplevels
-      in
-      this#exit_scope ();
-      if toplevels == toplevels' then
-        mod_
-      else
-        { mod_ with toplevels = toplevels' }
+      List.iter
+        (fun toplevel ->
+          match toplevel with
+          | VariableDeclaration decl -> this#visit_variable_declaration ~is_toplevel:true decl
+          | FunctionDeclaration decl ->
+            this#visit_function_declaration ~is_method:false ~is_nested:false decl
+          | TypeDeclaration
+              ( { Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
+              type_decl ) ->
+            if type_params <> [] then this#enter_scope ();
+            this#visit_type_parameters type_params (TypeName name);
+            this#type_declaration type_decl;
+            if type_params <> [] then this#exit_scope ()
+          | TraitDeclaration decl -> this#visit_trait_declaration decl)
+        toplevels;
+      this#exit_scope ()
 
     method! statement stmt =
       let open Ast.Statement in
       match stmt with
-      | VariableDeclaration decl ->
-        id_map (this#visit_variable_declaration ~is_toplevel:false) decl stmt (fun decl' ->
-            VariableDeclaration decl')
+      | VariableDeclaration decl -> this#visit_variable_declaration ~is_toplevel:false decl
       | FunctionDeclaration decl ->
-        id_map
-          (this#visit_function_declaration ~is_method:false ~is_nested:true)
-          decl
-          stmt
-          (fun decl' -> FunctionDeclaration decl')
+        this#visit_function_declaration ~is_method:false ~is_nested:true decl
       | _ -> super#statement stmt
 
     method! block block =
@@ -605,18 +585,15 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method visit_variable_declaration ~is_toplevel decl =
       let { Ast.Statement.VariableDeclaration.kind; pattern; init; annot; loc = _ } = decl in
-      let annot' = id_map_opt this#type_ annot in
+      Option.iter this#type_ annot;
 
       (* Set global init context if this is toplevel *)
-      let init' =
-        if is_toplevel then (
-          this#push_context GlobalInit;
-          let init' = this#expression init in
-          this#pop_context ();
-          init'
-        ) else
-          this#expression init
-      in
+      if is_toplevel then (
+        this#push_context GlobalInit;
+        this#expression init;
+        this#pop_context ()
+      ) else
+        this#expression init;
 
       (* Toplevel variable declarations cannot contain patterns, and are added to module scope *)
       if is_toplevel then
@@ -629,12 +606,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         this#visit_pattern
           ~is_match:false
           ~mk_decl:(Some (fun _ -> VarDecl (VariableDeclaration.mk kind)))
-          pattern;
-
-      if init == init' && annot == annot' then
-        decl
-      else
-        { decl with annot = annot'; init = init' }
+          pattern
 
     method visit_type_parameters params source =
       ignore
@@ -750,27 +722,20 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         (fun { Type.Identifier.type_args; _ } ->
           List.iter (fun ty -> ignore (this#type_ ty)) type_args)
         implemented;
-      let methods' =
-        id_map_list
-          (fun ({ Function.static; _ } as method_) ->
-            (* Static methods cannot reference trait's type parameters, so resolve in parent scope *)
-            if static then
-              this#in_parent_scope (fun _ ->
-                  this#visit_function_declaration ~is_nested:false ~is_method:false method_)
-            else (
-              in_method <- true;
-              let func = this#visit_function_declaration ~is_nested:false ~is_method:true method_ in
-              in_method <- false;
-              func
-            ))
-          methods
-      in
+      List.iter
+        (fun ({ Function.static; _ } as method_) ->
+          (* Static methods cannot reference trait's type parameters, so resolve in parent scope *)
+          if static then
+            this#in_parent_scope (fun _ ->
+                this#visit_function_declaration ~is_nested:false ~is_method:false method_)
+          else (
+            in_method <- true;
+            this#visit_function_declaration ~is_nested:false ~is_method:true method_;
+            in_method <- false
+          ))
+        methods;
 
-      this#exit_scope ();
-      if methods == methods' then
-        decl
-      else
-        { decl with methods = methods' }
+      this#exit_scope ()
 
     method! assignment assign =
       let open Statement.Assignment in
@@ -787,22 +752,18 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* For loops open a new scope for pattern bindings *)
     method! for_ for_ =
       let open Statement.For in
-      let { loc; pattern; annot; iterator; body } = for_ in
+      let { loc = _; pattern; annot; iterator; body } = for_ in
       (* Type and iterator must be resolved before bindings are added. Bindings are only added for
          body of for loop. *)
-      let annot' = id_map_opt this#type_ annot in
-      let iterator' = this#expression iterator in
+      Option.iter this#type_ annot;
+      this#expression iterator;
       this#enter_scope ();
       this#visit_pattern
         ~is_match:false
         ~mk_decl:(Some (fun _ -> VarDecl (VariableDeclaration.mk Immutable)))
         pattern;
-      let body' = this#block body in
-      this#exit_scope ();
-      if annot == annot' && iterator == iterator' && body == body' then
-        for_
-      else
-        { loc; pattern; annot = annot'; iterator = iterator'; body = body' }
+      this#block body;
+      this#exit_scope ()
 
     method! match_case case =
       let { Match.Case.pattern; _ } = case in
@@ -815,8 +776,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       this#exit_scope ();
       result
 
-    (* Match a sequence of module parts against the module tree, returning the same AST with the
-       matched access chain replaced with a scoped id if a match exists. Otherwise error. *)
+    (* Match a sequence of module parts against the module tree, marked a scoped acccess chain
+       if a match exists. Otherwise error. *)
     method match_module_parts
         ~is_value ~resolve_full module_tree prev_parts rest_parts prev_is_module on_export =
       let open Ast.Identifier in
@@ -834,30 +795,26 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | result -> result
         in
         (* If resolving a value we must check for static methods, which are under a type namespace *)
-        let resolved_static_method_opt =
+        let is_static_method =
           if is_value then
             match (find_name ~is_value:false name module_tree, rest_parts) with
             | (Some (Export { loc = decl_loc; _ }), meth :: rest) ->
               (match this#get_type_binding decl_loc with
               | { TypeBinding.declaration = TraitDecl trait; _ } ->
                 if this#maybe_resolve_static_method part meth rest [trait] TraitTrait then
-                  Some (on_export (prev_parts @ [part]) meth rest)
-                else
-                  Some None
+                  on_export rest;
+                true
               | { TypeBinding.declaration = TypeDecl type_decl; _ } ->
                 if this#maybe_resolve_static_method part meth rest type_decl.traits TraitType then
-                  Some (on_export (prev_parts @ [part]) meth rest)
-                else
-                  Some None
-              | _ -> None)
-            | _ -> None
+                  on_export rest;
+                true
+              | _ -> false)
+            | _ -> false
           else
-            None
+            false
         in
-        (match resolved_static_method_opt with
-        | Some resolved_static_method -> resolved_static_method
-        | None ->
-          (match (find_name ~is_value name module_tree, rest_parts) with
+        if not is_static_method then (
+          match (find_name ~is_value name module_tree, rest_parts) with
           | (None, _)
           | (Some (Empty _), []) ->
             (* Error on no match - but check if parent module exists for better error message *)
@@ -866,8 +823,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             if prev_is_module then
               this#add_error full_loc (NoExportInModule (name, prev_parts_names, is_value))
             else
-              this#add_error full_loc (NoModuleWithName (prev_parts_names @ [name], is_value));
-            None
+              this#add_error full_loc (NoModuleWithName (prev_parts_names @ [name], is_value))
           | (Some (Module _), []) ->
             (* Error if resolved to module as modules are not types or values *)
             let full_loc = Loc.between (List.hd prev_parts).loc loc in
@@ -878,8 +834,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               else
                 NamePositionType
             in
-            this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], position));
-            None
+            this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], position))
           | (Some (Export { loc = decl_loc; _ }), rest_parts)
             when is_value
                  && this#is_value_decl_loc decl_loc
@@ -887,22 +842,20 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             (* Values may have additional name parts, as these will be field accesses *)
             let binding = this#get_value_binding decl_loc in
             this#add_value_use binding loc;
-            on_export prev_parts part rest_parts
+            on_export rest_parts
           | (Some (Export _), _) when is_value ->
             let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-            this#add_error loc (ReferenceChildOfExport (name, prev_parts_names));
-            None
+            this#add_error loc (ReferenceChildOfExport (name, prev_parts_names))
           | (Some (Export { loc = decl_loc; _ }), []) ->
             (* Types are only fully resolved if all name parts have been matched *)
             let binding = this#get_type_binding decl_loc in
             this#add_type_use binding loc;
-            on_export prev_parts part rest_parts
+            on_export rest_parts
           | (Some (Export ty_name), next_part :: _) ->
             (* Type was fully resolved, but there are still name parts to resolve *)
             let full_loc = Loc.between (List.hd prev_parts).loc next_part.loc in
             let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-            this#add_error full_loc (TypeWithAccess (prev_parts_names @ [ty_name.name]));
-            None
+            this#add_error full_loc (TypeWithAccess (prev_parts_names @ [ty_name.name]))
           | (Some (Empty (_, module_tree)), rest_parts) ->
             this#match_module_parts
               ~is_value
@@ -920,7 +873,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               (prev_parts @ [part])
               rest_parts
               true
-              on_export))
+              on_export
+        )
 
     method match_module_parts_value module_tree prev_parts rest_parts expr =
       this#match_module_parts
@@ -930,26 +884,20 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         prev_parts
         rest_parts
         false
-        (fun prev_parts ({ Ast.Identifier.loc; _ } as part) rest_parts ->
-          (* Resolved to export - convert nested accesses to scoped identifier *)
-          let full_loc = Loc.between (List.hd prev_parts).loc loc in
-          let scoped_id =
-            Ast.Expression.ScopedIdentifier
-              { Ast.ScopedIdentifier.loc = full_loc; name = part; scopes = prev_parts }
-          in
+        (fun rest_parts ->
+          (* Resolved to export - mark nested accesses as scoped identifier *)
           (* Make sure new scoped id only replaces accesses that were matched, using number of
              unmatched accesses to know how how many to preserve. *)
-          let rec insert_scoped_id expr depth scoped_id =
+          let rec mark_scoped_id expr depth =
             match expr with
-            | Ast.Expression.NamedAccess ({ target; _ } as access) ->
+            | Ast.Expression.NamedAccess { loc; target; _ } ->
               if depth = 0 then
-                scoped_id
+                this#add_scope_named_access loc
               else
-                Ast.Expression.NamedAccess
-                  { access with target = insert_scoped_id target (depth - 1) scoped_id }
+                mark_scoped_id target (depth - 1)
             | _ -> failwith "Must be nested access expression"
           in
-          Some (insert_scoped_id expr (List.length rest_parts) scoped_id))
+          ignore (mark_scoped_id expr (List.length rest_parts)))
 
     method match_module_parts_pattern module_tree first_part rest_parts =
       ignore
@@ -960,7 +908,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
            [first_part]
            rest_parts
            false
-           (fun _ _ _ -> None))
+           (fun _ -> ()))
 
     method match_module_parts_type module_tree first_part rest_parts =
       ignore
@@ -971,7 +919,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
            [first_part]
            rest_parts
            false
-           (fun _ _ _ -> None))
+           (fun _ -> ()))
 
     method resolve_value_id_use id =
       let { Identifier.loc; name; _ } = id in
@@ -984,13 +932,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     method! expression expr =
       let open Ast.Expression in
       match expr with
-      | Identifier { loc; name = "_" } ->
-        this#add_error loc InvalidWildcardIdentifier;
-        expr
-      | Identifier id ->
-        this#resolve_value_id_use id;
-        expr
-      | NamedAccess { target; name; _ } ->
+      | Identifier { loc; name = "_" } -> this#add_error loc InvalidWildcardIdentifier
+      | Identifier id -> this#resolve_value_id_use id
+      | NamedAccess { loc; target; name } ->
         (* Gather all potential module parts in order if there is an unbroken chain of accesses
            ending in an id *)
         let rec gather_potential_module_parts expr parts =
@@ -1009,31 +953,20 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           (match (this#lookup_type_in_scope first_part.name scopes, rest_parts) with
           | (Some (Decl { TypeBinding.declaration = TraitDecl trait; _ }), meth :: rest) ->
             if this#maybe_resolve_static_method first_part meth rest [trait] TraitTrait then
-              ScopedIdentifier
-                { loc = Loc.between first_part.loc meth.loc; name = meth; scopes = [first_part] }
-            else
-              expr
+              this#add_scope_named_access loc
           | (Some (Decl { TypeBinding.declaration = TypeDecl type_decl; _ }), meth :: rest) ->
             if this#maybe_resolve_static_method first_part meth rest type_decl.traits TraitType then
-              ScopedIdentifier
-                { loc = Loc.between first_part.loc meth.loc; name = meth; scopes = [first_part] }
-            else
-              expr
+              this#add_scope_named_access loc
           | _ ->
             (match this#lookup_value_in_scope first_part.name scopes with
             (* Name may be a direct declaration *)
-            | Some (Decl binding) ->
-              this#add_value_use binding first_part.loc;
-              expr
+            | Some (Decl binding) -> this#add_value_use binding first_part.loc
             (* Name may be a value qualified by a module *)
             | Some (ModuleDecl module_tree) ->
-              (match this#match_module_parts_value module_tree [first_part] rest_parts expr with
-              | None -> expr
-              | Some resolved_ast -> resolved_ast)
+              this#match_module_parts_value module_tree [first_part] rest_parts expr
             (* Otherwise name is unresolved *)
             | None ->
-              this#add_error first_part.loc (UnresolvedName (first_part.name, NamePositionValue));
-              expr)))
+              this#add_error first_part.loc (UnresolvedName (first_part.name, NamePositionValue)))))
       | _ -> super#expression expr
 
     (* Try to resolve the current `type_part.method_part.rest_parts` chain to a static method given
@@ -1478,7 +1411,7 @@ let assert_stdlib_builtins_found mods =
     all_stdlib_names
     []
 
-(* Analyze all bindings in modules, building bindings and rewriting scoped identifiers in AST.
+(* Analyze all bindings in modules, building bindings and marking scoped identifiers in AST.
    Return a tuple of the newly resolved ASTs, the complete bindings, and any resolution errors. *)
 let analyze ~is_stdlib bindings module_tree modules =
   (* First create bindings for all toplevel declarations in all modules *)
@@ -1489,21 +1422,15 @@ let analyze ~is_stdlib bindings module_tree modules =
   (* Then add methods to all traits and types *)
   List.iter (fun (_, mod_) -> bindings_builder#add_methods_and_implemented mod_) modules;
   (* Then check for trait cycles, only proceeding if there are no trait cycles *)
-  let (resolved_modules, ordered_traits, errors) =
+  let (ordered_traits, errors) =
     match bindings_builder#order_traits () with
     | Some ordered_traits ->
       (* Then get errors for method declarations in traits and types *)
       let method_field_errors = bindings_builder#check_method_names () in
       (* Then resolve names in each module *)
-      let resolved_modules =
-        List.map
-          (fun (file, mod_) ->
-            let resolved_module = bindings_builder#resolve mod_ in
-            (file, resolved_module))
-          modules
-      in
-      (resolved_modules, ordered_traits, method_field_errors)
-    | None -> (modules, [], [])
+      List.iter (fun (_, mod_) -> bindings_builder#resolve mod_) modules;
+      (ordered_traits, method_field_errors)
+    | None -> ([], [])
   in
   let errors = errors @ bindings_builder#errors () in
   let builtin_errors =
@@ -1512,4 +1439,4 @@ let analyze ~is_stdlib bindings module_tree modules =
     else
       []
   in
-  (resolved_modules, ordered_traits, builtin_errors @ errors)
+  (ordered_traits, builtin_errors @ errors)

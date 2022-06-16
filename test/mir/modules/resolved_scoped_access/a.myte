@@ -1,0 +1,11 @@
+module a
+
+var global: Int = 1
+
+type Record1 { other: Int, foo: Long }
+
+type Record2 { other: Bool, bar: Record1 }
+
+var rec1: Record1 = Record1 { other: 1, foo: 2 }
+
+var rec2: Record2 = Record2 { other: false, bar: Record1 { other: 3, foo: 4 }}

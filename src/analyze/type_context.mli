@@ -82,6 +82,8 @@ val get_type_binding : cx:t -> Loc.t -> TypeBinding.t
 
 val get_this_binding : cx:t -> ValueBinding.id -> ValueBinding.t
 
+val is_scope_named_access : cx:t -> Loc.t -> bool
+
 (* Type constraints *)
 
 val unify : cx:t -> Type.t -> Type.t -> bool

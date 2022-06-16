@@ -18,16 +18,16 @@ methods Type2 {
 }
 
 fun test1() {
-  Trait1.foo;
-  Type1.foo;
-  Type2.foo;
+  Trait1.foo.errors;
+  Type1.foo.errors;
+  Type2.foo.errors;
 }
 
 // Static methods can be resolved when qualified by modules
 fun test2() {
-  a.b.c.Trait.foo;
-  a.b.c.Type1.foo;
-  a.b.c.Type2.foo;
+  a.b.c.Trait.foo.errors;
+  a.b.c.Type1.foo.errors;
+  a.b.c.Type2.foo.errors;
 }
 
 // Static methods can have same name as in super trait
@@ -41,8 +41,8 @@ trait Trait3 {
 }
 
 fun test3() {
-  Trait2.foo;
-  Trait3.foo;
+  Trait2.foo.errors;
+  Trait3.foo.errors;
 }
 
 // Static methods from stdlib type traits

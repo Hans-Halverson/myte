@@ -96,7 +96,7 @@ The compiler is built and all tests are run on both MacOS and Linux via Github A
 
 The following is an overview of the tests contained within the `test` directory:
 
-- [`test/analyze`](test/analyze) Tests for various static analysis and type checking passes. Snapshot tests for the transformed AST after name resolution are generated with the `--dump-resolved-ast` option, all other analysis tests check generated errors (or a lack of errors).
+- [`test/analyze`](test/analyze) Tests for various static analysis and type checking passes. Analysis tests check generated errors (or a lack of errors).
 - [`test/asm/x86`](test/asm/x86) Tests for x86_64 assembly generation. Snapshot tests contain a textual representation of x86_64 assembly generated with the `--dump-asm` option.
 - [`test/mir`](test/mir) Tests for MIR (Myte Intermediate Representation) generation and optimization. Snapshot tests contain a textual representation of MIR and are generated with the `--dump-ir` and `--dump-ir-transforms` options.
 - [`test/parser`](test/parser) Tests for the parser and lexer. Snapshot tests contain a textual representation of the AST generated from the `--dump-ast` option.

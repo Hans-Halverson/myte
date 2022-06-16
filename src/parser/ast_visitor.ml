@@ -51,7 +51,6 @@ class visitor =
         | StringLiteral e -> this#string_literal e
         | BoolLiteral e -> this#bool_literal e
         | Identifier e -> this#identifier e
-        | ScopedIdentifier e -> this#scoped_identifier e
         | InterpolatedString e -> this#interpolated_string e
         | Record e -> this#record_expression e
         | Tuple e -> this#tuple_expression e

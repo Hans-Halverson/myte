@@ -1,0 +1,74 @@
+func void @_init() {
+  %0 := Call a.Record1* myte.builtin.alloc(1)
+  %1 := GetPointer int, a.Record1* %0.0
+  Store int %1, 1
+  %2 := GetPointer long, a.Record1* %0.2
+  Store long %2, 2
+  Store a.Record1* @a.rec1, %0
+  %3 := Call a.Record2* myte.builtin.alloc(1)
+  %4 := GetPointer bool, a.Record2* %3.0
+  Store bool %4, false
+  %5 := Call a.Record1* myte.builtin.alloc(1)
+  %6 := GetPointer int, a.Record1* %5.0
+  Store int %6, 3
+  %7 := GetPointer long, a.Record1* %5.2
+  Store long %7, 4
+  %8 := GetPointer a.Record1*, a.Record2* %3.2
+  Store a.Record1* %8, %5
+  Store a.Record2* @a.rec2, %3
+  Ret
+}
+
+global int @a.global = 1
+
+type a.Record1 {int, byte[4], long}
+
+type a.Record2 {bool, byte[7], a.Record1*}
+
+global a.Record1* @a.rec1 = uninitialized
+
+global a.Record2* @a.rec2 = uninitialized
+
+func void @test.reassignGlobal() {
+  Store int @a.global, 2
+  Ret
+}
+
+func void @test.accessScopedField() {
+  %0 := Load a.Record1* @a.rec1
+  %1 := GetPointer long, a.Record1* %0.2
+  %2 := Load long %1
+  Call void @test.use<Long>(%2)
+  %3 := Load a.Record2* @a.rec2
+  %4 := GetPointer a.Record1*, a.Record2* %3.2
+  %5 := Load a.Record1* %4
+  %6 := GetPointer long, a.Record1* %5.2
+  %7 := Load long %6
+  Call void @test.use<Long>(%7)
+  Ret
+}
+
+func void @test.reassignScopedField() {
+  %0 := Load a.Record1* @a.rec1
+  %1 := GetPointer long, a.Record1* %0.2
+  Store long %1, 2
+  Call void @test.use<Int>(1)
+  %2 := Load a.Record2* @a.rec2
+  %3 := GetPointer a.Record1*, a.Record2* %2.2
+  %4 := Load a.Record1* %3
+  %5 := GetPointer long, a.Record1* %4.2
+  Store long %5, 3
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func void @test.use<Long>(long %0) {
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

@@ -2,7 +2,6 @@ type t = {
   check: bool ref;
   custom_gc: bool ref;
   dump_ast: bool ref;
-  dump_resolved_ast: bool ref;
   dump_ir: bool ref;
   dump_pre_ssa_ir: bool ref;
   dump_ir_transforms: string list ref;
@@ -24,7 +23,6 @@ let opts =
     check = ref false;
     custom_gc = ref false;
     dump_ast = ref false;
-    dump_resolved_ast = ref false;
     dump_ir = ref false;
     dump_pre_ssa_ir = ref false;
     dump_ir_transforms = ref [];
@@ -48,7 +46,6 @@ let spec =
     ("--check", Arg.Set opts.check, " Check program for errors but do not compile");
     ("--custom-gc", Arg.Set opts.custom_gc, " Use the custom garbage collector");
     ("--dump-ast", Arg.Set opts.dump_ast, " Print the AST to stdout");
-    ("--dump-resolved-ast", Arg.Set opts.dump_resolved_ast, " Print the resolved AST to stdout");
     ("--dump-ir", Arg.Set opts.dump_ir, " Print the IR to stdout");
     ( "--dump-pre-ssa-ir",
       Arg.Set opts.dump_pre_ssa_ir,
@@ -92,8 +89,6 @@ let check () = !(opts.check)
 let custom_gc () = !(opts.custom_gc)
 
 let dump_ast () = !(opts.dump_ast)
-
-let dump_resolved_ast () = !(opts.dump_resolved_ast)
 
 let dump_ir () = !(opts.dump_ir)
 

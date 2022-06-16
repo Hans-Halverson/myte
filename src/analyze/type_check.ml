@@ -908,11 +908,52 @@ and check_function_block_body ~cx block return_ty =
   if return_ty = Type.Never then
     Type_context.assert_is_subtype ~cx block_loc (TVar block_tvar_id) return_ty
 
+(* Check an expression determined by a single identifier, where loc is the full loc of the
+   expression. This resolves both single identifiers and identifiers with named access scopes. *)
+and check_identifier_expression ~cx (loc : Loc.t) (id : Ast.Identifier.t) =
+  let open Types in
+  let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+  let binding = Type_context.get_value_binding ~cx id.loc in
+  let decl_ty =
+    match binding.declaration with
+    (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
+       constructors as they are handled elsewhere. *)
+    | CtorDecl ctor_decl -> check_enum_variant ~cx id.name loc ctor_decl
+    (* Id is for a function declaration. If function has type parameters then generate a fresh
+       type variable for each type parameter and substitute into function type. *)
+    | FunDecl func_decl ->
+      if func_decl.type_params = [] then
+        Type.Function { type_args = []; params = func_decl.params; return = func_decl.return }
+      else
+        Types.fresh_function_instance func_decl.type_params func_decl.params func_decl.return
+    (* If we reach a super this cannot be part of an access *)
+    | ThisDecl _ when id.name = "super" ->
+      Type_context.add_error ~cx loc SuperWithoutAccess;
+      any
+    (* Otherwise identifier has same type as its declaration *)
+    | FunParamDecl { tvar; _ }
+    | MatchCaseVarDecl { tvar }
+    | VarDecl { tvar; _ }
+    | ThisDecl { tvar } ->
+      capture_binding_in_contexts ~cx binding (Type_context.get_function_context_stack ~cx);
+      TVar tvar
+  in
+  ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
+  (loc, tvar_id)
+
 and check_expression ~cx expr =
   let open Ast.Expression in
   match expr with
   | If if_ -> check_if ~cx ~is_expr:true if_
   | Match match_ -> check_match ~cx ~is_expr:true match_
+  (* 
+   * ============================
+   *         Identifiers
+   * ============================
+   *)
+  | Identifier id -> check_identifier_expression ~cx id.loc id
+  | NamedAccess { NamedAccess.loc; name; _ } when Type_context.is_scope_named_access ~cx loc ->
+    check_identifier_expression ~cx loc name
   (* 
    * ============================
    *         Literals
@@ -941,43 +982,6 @@ and check_expression ~cx expr =
   | BoolLiteral { BoolLiteral.loc; _ } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     ignore (Type_context.unify ~cx Type.Bool (TVar tvar_id));
-    (loc, tvar_id)
-  (* 
-   * ============================
-   *         Identifiers
-   * ============================
-   *)
-  | Identifier { Ast.Identifier.loc = id_loc as loc; name }
-  | ScopedIdentifier { Ast.ScopedIdentifier.loc; name = { Ast.Identifier.loc = id_loc; name }; _ }
-    ->
-    let open Types in
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let binding = Type_context.get_value_binding ~cx id_loc in
-    let decl_ty =
-      match binding.declaration with
-      (* If id is a constructor look up corresponding ADT to use as type. Error on tuple and record
-         constructors as they are handled elsewhere. *)
-      | CtorDecl ctor_decl -> check_enum_variant ~cx name loc ctor_decl
-      (* Id is for a function declaration. If function has type parameters then generate a fresh
-         type variable for each type parameter and substitute into function type. *)
-      | FunDecl func_decl ->
-        if func_decl.type_params = [] then
-          Type.Function { type_args = []; params = func_decl.params; return = func_decl.return }
-        else
-          Types.fresh_function_instance func_decl.type_params func_decl.params func_decl.return
-      (* If we reach a super this cannot be part of an access *)
-      | ThisDecl _ when name = "super" ->
-        Type_context.add_error ~cx loc SuperWithoutAccess;
-        any
-      (* Otherwise identifier has same type as its declaration *)
-      | FunParamDecl { tvar; _ }
-      | MatchCaseVarDecl { tvar }
-      | VarDecl { tvar; _ }
-      | ThisDecl { tvar } ->
-        capture_binding_in_contexts ~cx binding (Type_context.get_function_context_stack ~cx);
-        TVar tvar
-    in
-    ignore (Type_context.unify ~cx decl_ty (TVar tvar_id));
     (loc, tvar_id)
   (* 
    * ============================
@@ -1191,10 +1195,15 @@ and check_expression ~cx expr =
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     (* Determine if this call expression is a tuple constructor. If so handle tuple constructor
        directly by looking up ADT sig instead of recursing into function node. *)
-    let is_ctor =
+    let func_id_opt =
       match func with
-      | Identifier { Ast.Identifier.loc; name }
-      | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc; name }; _ } ->
+      | Identifier id -> Some id
+      | NamedAccess { loc; name; _ } when Type_context.is_scope_named_access ~cx loc -> Some name
+      | _ -> None
+    in
+    let is_ctor =
+      match func_id_opt with
+      | Some { Ast.Identifier.loc; name } ->
         let binding = Type_context.get_value_binding ~cx loc in
         (match binding.declaration with
         | CtorDecl ctor_decl ->
@@ -1236,7 +1245,7 @@ and check_expression ~cx expr =
             true
           | Enum -> false)
         | _ -> false)
-      | _ -> false
+      | None -> false
     in
     (* Otherwise this is a regular function call *)
     ( if not is_ctor then
@@ -1277,11 +1286,15 @@ and check_expression ~cx expr =
   | Record { Record.loc; name; fields; rest } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     (* Determine whether scoped id is a record constructor *)
-    let is_record_ty =
+    let name_id_opt =
       match name with
-      | Identifier { Ast.Identifier.loc = name_loc; name }
-      | ScopedIdentifier { Ast.ScopedIdentifier.name = { Ast.Identifier.loc = name_loc; name }; _ }
-        ->
+      | Identifier id -> Some id
+      | NamedAccess { loc; name; _ } when Type_context.is_scope_named_access ~cx loc -> Some name
+      | _ -> None
+    in
+    let is_record_ty =
+      match name_id_opt with
+      | Some { Ast.Identifier.loc = name_loc; name } ->
         let binding = Type_context.get_value_binding ~cx name_loc in
         (match binding.declaration with
         | CtorDecl ctor_decl ->
@@ -1363,7 +1376,7 @@ and check_expression ~cx expr =
             true
           | _ -> false)
         | _ -> false)
-      | _ -> false
+      | None -> false
     in
     (* Error if scoped id is not a record constructor *)
     if not is_record_ty then (

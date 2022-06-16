@@ -208,6 +208,9 @@ module Bindings = struct
     mutable type_use_to_binding: TypeBinding.t LocMap.t;
     (* Collection of all "this" bindings indexed by their binding id *)
     mutable this_bindings: ValueBinding.t IMap.t;
+    (* Locs of all named access nodes where the entire target is a scope chain, and the target is
+       the actual value that is qualified by the scope chain. *)
+    mutable scope_named_access_locs: LocSet.t;
   }
 
   let mk () =
@@ -215,6 +218,7 @@ module Bindings = struct
       value_use_to_binding = LocMap.empty;
       type_use_to_binding = LocMap.empty;
       this_bindings = IMap.empty;
+      scope_named_access_locs = LocSet.empty;
     }
 
   let add_value_use bindings use_loc binding =
@@ -225,6 +229,9 @@ module Bindings = struct
 
   let add_this_binding bindings binding =
     bindings.this_bindings <- IMap.add binding.ValueBinding.id binding bindings.this_bindings
+
+  let add_scope_named_access bindings loc =
+    bindings.scope_named_access_locs <- LocSet.add loc bindings.scope_named_access_locs
 
   let is_value_decl_loc bindings decl_loc =
     match LocMap.find_opt decl_loc bindings.value_use_to_binding with
@@ -254,6 +261,10 @@ let get_type_binding bindings use_loc =
 let get_this_binding bindings this_binding_id =
   let open Bindings in
   IMap.find this_binding_id bindings.this_bindings
+
+let is_scope_named_access bindings loc =
+  let open Bindings in
+  LocSet.mem loc bindings.scope_named_access_locs
 
 let get_decl_loc_from_value_use bindings use_loc =
   let binding = get_value_binding bindings use_loc in
