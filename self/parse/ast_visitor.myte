@@ -1,0 +1,583 @@
+module myte.parse.ast.visitor
+
+import myte.parse.ast
+
+trait AstVisitor {
+  fun visitModule(module_: ast.Module) {
+    this.visitModuleName(module_.name);
+
+    for (import_ in module_.imports) {
+      this.visitImport(import_);
+    }
+
+    for (toplevel in module_.toplevels) {
+      this.visitToplevel(toplevel);
+    }
+  }
+
+  fun visitIdentifier(ident: ast.Identifier) {}
+
+  fun visitScopedIdentifier(ident: ast.ScopedIdentifier) {
+    for (scope in ident.scopes) {
+      this.visitIdentifier(scope);
+    }
+
+    this.visitIdentifier(ident.name);
+  }
+
+  fun visitModuleName(moduleName: ast.ModuleName) {
+    this.visitScopedIdentifier(moduleName.name);
+  }
+
+  fun visitImport(import_: ast.Import) {
+    match (import_) {
+      | ast.ISimpleImport (ident) -> this.visitScopedIdentifier(ident)
+      | ast.IComplexImport (complex) -> this.visitComplexImport(complex)
+    }
+  }
+
+  fun visitComplexImport(complex: ast.ComplexImport) {
+    for (scope in complex.scopes) {
+      this.visitIdentifier(scope);
+    }
+
+    for (alias_ in complex.aliases) {
+      this.visitImportAlias(alias_);
+    }
+  }
+
+  fun visitImportAlias(alias_: ast.ImportAlias) {
+    this.visitIdentifier(alias_.name);
+
+    match (alias_.alias_) {
+      | Some (alias_) -> this.visitIdentifier(alias_)
+      | None -> ()
+    }
+  }
+
+  fun visitToplevel(toplevel: ast.Toplevel) {
+    match (toplevel) {
+      | ast.TLFunction (funDecl) -> this.visitFunctionDeclaration(funDecl)
+      | ast.TLVariable (varDecl) -> this.visitVariableDeclaration(varDecl)
+      | ast.TLType (typeDecl) -> this.visitTypeDeclaration(typeDecl)
+      | ast.TLTrait (traitDecl) -> this.visitTraitDeclaration(traitDecl)
+    }
+  }
+
+  /* 
+   * ============================
+   *        Declarations
+   * ============================
+   */
+
+  fun visitFunctionDeclaration(decl: ast.FunctionDeclaration) {
+    this.visitIdentifier(decl.name);
+    
+    for (param in decl.params) {
+      this.visitFunctionParam(param);
+    }
+
+    match (decl.return_) {
+      | Some (return_) -> this.visitType(return_)
+      | None -> ()
+    }
+
+    for (typeParam in decl.typeParams) {
+      this.visitTypeParameter(typeParam);
+    }
+
+    this.visitFunctionBody(decl.body);
+  }
+
+  fun visitFunctionParam(param: ast.FunctionParam) {
+    this.visitIdentifier(param.name);
+    this.visitType(param.annot);
+  }
+
+  fun visitTypeParameter(typeParam: ast.TypeParameter) {
+    this.visitIdentifier(typeParam.name);
+    
+    for (bound in typeParam.bounds) {
+      this.visitIdentifierType(bound);
+    }
+  }
+
+  fun visitFunctionBody(body: ast.FunctionBody) {
+    match (body) {
+      | ast.FBBlock (block) -> this.visitBlock(block)
+      | ast.FBExpression (expr) -> this.visitExpression(expr)
+      | ast.FBSignature -> ()
+    }
+  }
+
+  fun visitVariableDeclaration(decl: ast.VariableDeclaration) {
+    this.visitPattern(decl.pattern);
+    this.visitExpression(decl.init);
+
+    match (decl.annot) {
+      | Some (annot) -> this.visitType(annot)
+      | None -> ()
+    }
+  }
+
+  fun visitTypeDeclaration(decl: ast.TypeDeclaration) {
+    this.visitIdentifier(decl.name);
+
+    for (typeParam in decl.typeParams) {
+      this.visitTypeParameter(typeParam);
+    }
+
+    this.visitTypeDeclarationDecl(decl.decl);
+  }
+
+  fun visitTypeDeclarationDecl(decl: ast.TypeDecl) {
+    match (decl) {
+      | ast.TDAlias (alias_) -> this.visitType(alias_)
+      | ast.TDTuple (tuple) -> this.visitTupleDeclaration(tuple)
+      | ast.TDRecord (record) -> this.visitRecordDeclaration(record)
+      | ast.TDVariant (variants) -> {
+        for (variant in variants) {
+          this.visitVariantDeclaration(variant);
+        }
+      }
+      | ast.TDBuiltin -> ()
+    }
+  }
+
+  fun visitVariantDeclaration(variant: ast.VariantDeclaration) {
+    match (variant) {
+      | ast.TupleVariant (tuple) -> this.visitTupleDeclaration(tuple)
+      | ast.RecordVariant (record) -> this.visitRecordDeclaration(record)
+      | ast.EnumVariant (ident) -> this.visitIdentifier(ident)
+    }
+  }
+
+  fun visitTupleDeclaration(tuple: ast.TupleDeclaration) {
+    this.visitIdentifier(tuple.name);
+
+    for (element in tuple.elements) {
+      this.visitType(element);
+    }
+  }
+
+  fun visitRecordDeclaration(record: ast.RecordDeclaration) {
+    this.visitIdentifier(record.name);
+
+    for (field in record.fields) {
+      this.visitRecordDeclarationField(field);
+    }
+  }
+
+  fun visitRecordDeclarationField(field: ast.RecordDeclarationField) {
+    this.visitIdentifier(field.name);
+    this.visitType(field.type_);
+  }
+
+  fun visitTraitDeclaration(decl: ast.TraitDeclaration) {
+    this.visitIdentifier(decl.name);
+    
+    for (typeParam in decl.typeParams) {
+      this.visitTypeParameter(typeParam);
+    }
+
+    for (implemented in decl.implemented) {
+      this.visitIdentifierType(implemented);
+    }
+
+    for (method in decl.methods_) {
+      this.visitFunctionDeclaration(method);
+    }
+  }
+
+  /* 
+   * ============================
+   *         Statements
+   * ============================
+   */
+
+  fun visitStatement(stmt: ast.Statement) {
+    match (stmt) {
+      | ast.SBlock (block) -> this.visitBlock(block)
+      | ast.SExpression (expr) -> this.visitExpressionStatement(expr)
+      | ast.SVariableDeclaration (decl) -> this.visitVariableDeclaration(decl)
+      | ast.SIf (if_) -> this.visitIf(if_)
+      | ast.SMatch (match_) -> this.visitMatch(match_)
+      | ast.SWhile (while_) -> this.visitWhile(while_)
+      | ast.SFor (for_) -> this.visitFor(for_)
+      | ast.SReturn (return_) -> this.visitReturn(return_)
+      | ast.SBreak (break_) -> this.visitBreak(break_)
+      | ast.SContinue (continue_) -> this.visitContinue(continue_)
+      | ast.SAssignment (assign) -> this.visitAssignment(assign)
+    }
+  }
+
+  fun visitBlock(block: ast.Block) {
+    for (stmt in block.statements) {
+      this.visitStatement(stmt);
+    }
+  }
+
+  fun visitExpressionStatement(expr: ast.ExpressionStatement) {
+    this.visitExpression(expr.expr);
+  }
+
+  fun visitIf(if_: ast.If) {
+    this.visitExpression(if_.test);
+    this.visitBlock(if_.conseq);
+
+    match (if_.altern) {
+      | ast.Else (block) -> this.visitBlock(block)
+      | ast.ElseIf (if_) -> this.visitIf(if_)
+      | ast.NoAltern -> ()
+    }
+  }
+
+  fun visitMatch(match_: ast.Match) {
+    for (arg in match_.args) {
+      this.visitExpression(arg);
+    }
+
+    for (case in match_.cases) {
+      this.visitMatchCase(case);
+    }
+  }
+
+  fun visitMatchCase(case: ast.MatchCase) {
+    this.visitPattern(case.pattern);
+
+    match (case.guard) {
+      | Some (guard) -> this.visitExpression(guard)
+      | None -> ()
+    }
+
+    match (case.body) {
+      | ast.MCExpression (expr) -> this.visitExpression(expr)
+      | ast.MCStatement (stmt) -> this.visitStatement(stmt)
+    }
+  }
+
+  fun visitWhile(while_: ast.While) {
+    this.visitExpression(while_.test);
+    this.visitBlock(while_.body);
+  }
+
+  fun visitFor(for_: ast.For) {
+    this.visitPattern(for_.pattern);
+
+    match (for_.annot) {
+      | Some (annot) -> this.visitType(annot)
+      | None -> ()
+    }
+
+    this.visitExpression(for_.iterator);
+    this.visitBlock(for_.body);
+  }
+
+  fun visitReturn(return_: ast.Return) {
+    match (return_.arg) {
+      | Some (arg) -> this.visitExpression(arg)
+      | None -> ()
+    }
+  }
+
+  fun visitBreak(break_: ast.Break) {}
+
+  fun visitContinue(continue_: ast.Continue) {}
+
+  fun visitAssignment(assign: ast.Assignment) {
+    match (assign.lvalue) {
+      | ast.ALPattern (patt) -> this.visitPattern(patt)
+      | ast.ALExpression (expr) -> this.visitExpression(expr)
+    }
+
+    this.visitExpression(assign.expr);
+  }
+
+  /* 
+   * ============================
+   *        Expressions
+   * ============================
+   */
+
+  fun visitExpression(expr: ast.Expression) {
+    match (expr) {
+      | ast.EUnitLiteral (unit) -> this.visitUnitLiteral(unit)
+      | ast.EIntLiteral (int) -> this.visitIntLiteral(int)
+      | ast.EBoolLiteral (bool) -> this.visitBoolLiteral(bool)
+      | ast.EStringLiteral (string) -> this.visitStringLiteral(string)
+      | ast.ECharLiteral (char) -> this.visitCharLiteral(char)
+      | ast.EInterpolatedString (string) -> this.visitInterpolatedString(string)
+      | ast.EIdentifier (ident) -> this.visitIdentifier(ident)
+      | ast.EScopedIdentifier (ident) -> this.visitScopedIdentifier(ident)
+      | ast.ETuple (tuple) -> this.visitTupleExpression(tuple)
+      | ast.ERecord (record) -> this.visitRecordExpression(record)
+      | ast.ETypeCast (cast) -> this.visitTypeCast(cast)
+      | ast.ECall (call) -> this.visitCall(call)
+      | ast.EUnaryOperation (unary) -> this.visitUnaryOperation(unary)
+      | ast.EBinaryOperation (binary) -> this.visitBinaryOperation(binary)
+      | ast.ELogicalAnd (and) -> this.visitLogicalAnd(and)
+      | ast.ELogicalOr (or) -> this.visitLogicalOr(or)
+      | ast.ENamedAccess (named) -> this.visitNamedAccess(named)
+      | ast.EIndexedAccess (indexed) -> this.visitIndexedAccess(indexed)
+      | ast.EUnwrap (unwrap) -> this.visitUnwrap(unwrap)
+      | ast.EIf (if_) -> this.visitIf(if_)
+      | ast.EMatch (match_) -> this.visitMatch(match_)
+      | ast.EVecLiteral (vec) -> this.visitVecLiteral(vec)
+      | ast.EMapLiteral (map) -> this.visitMapLiteral(map)
+      | ast.ESetLiteral (set) -> this.visitSetLiteral(set)
+      | ast.EAnonymousFunction (func) -> this.visitAnonymousFunction(func)
+    }
+  }
+
+  fun visitUnitLiteral(unit: ast.UnitLiteral) {}
+
+  fun visitBoolLiteral(bool: ast.BoolLiteral) {}
+
+  fun visitIntLiteral(int: ast.IntLiteral) {}
+
+  fun visitCharLiteral(char: ast.CharLiteral) {}
+
+  fun visitStringLiteral(string: ast.StringLiteral) {}
+
+  fun visitInterpolatedString(string: ast.InterpolatedString) {
+    for (part in string.parts) {
+      match (part) {
+        | ast.IPString (string) -> this.visitStringLiteral(string)
+        | ast.IPExpression (expr) -> this.visitExpression(expr)
+      }
+    }
+  }
+
+  fun visitTupleExpression(tuple: ast.TupleExpression) {
+    for (element in tuple.elements) {
+      this.visitExpression(element);
+    }
+  }
+
+  fun visitRecordExpression(record: ast.RecordExpression) {
+    this.visitExpression(record.name);
+
+    for (field in record.fields) {
+      this.visitRecordExpressionField(field);
+    }
+  }
+
+  fun visitRecordExpressionField(field: ast.RecordExpressionField) {
+    this.visitIdentifier(field.name);
+
+    match (field.value) {
+      | Some (value) -> this.visitExpression(value)
+      | None -> ()
+    }
+  }
+
+  fun visitTypeCast(cast: ast.TypeCast) {
+    this.visitExpression(cast.expr);
+    this.visitType(cast.type_);
+  }
+
+  fun visitCall(call: ast.Call) {
+    this.visitExpression(call.func);
+
+    for (arg in call.args) {
+      this.visitExpression(arg);
+    }
+  }
+
+  fun visitUnaryOperation(unary: ast.UnaryOperation) {
+    this.visitExpression(unary.operand);
+  }
+
+  fun visitBinaryOperation(binary: ast.BinaryOperation) {
+    this.visitExpression(binary.left);
+    this.visitExpression(binary.right);
+  }
+
+  fun visitLogicalAnd(and: ast.LogicalAnd) {
+    this.visitExpression(and.left);
+    this.visitExpression(and.right);
+  }
+
+  fun visitLogicalOr(or: ast.LogicalOr) {
+    this.visitExpression(or.left);
+    this.visitExpression(or.right);
+  }
+
+  fun visitNamedAccess(named: ast.NamedAccess) {
+    this.visitExpression(named.target);
+    this.visitIdentifier(named.name);
+  }
+
+  fun visitIndexedAccess(indexed: ast.IndexedAccess) {
+    this.visitExpression(indexed.target);
+    this.visitExpression(indexed.index);
+  }
+
+  fun visitUnwrap(unwrap: ast.Unwrap) {
+    this.visitExpression(unwrap.operand);
+  }
+
+  fun visitVecLiteral(vec: ast.VecLiteral) {
+    for (element in vec.elements) {
+      this.visitExpression(element);
+    }
+  }
+
+  fun visitMapLiteral(map: ast.MapLiteral) {
+    for (entry in map.entries) {
+      this.visitMapLiteralEntry(entry);
+    }
+  }
+
+  fun visitMapLiteralEntry(entry: ast.MapLiteralEntry) {
+    this.visitExpression(entry.key);
+    this.visitExpression(entry.value);
+  }
+
+  fun visitSetLiteral(set: ast.SetLiteral) {
+    for (element in set.elements) {
+      this.visitExpression(element);
+    }
+  }
+
+  fun visitAnonymousFunction(func: ast.AnonymousFunction) {
+    for (param in func.params) {
+      this.visitAnonymousFunctionParam(param);
+    }
+
+    match (func.return_) {
+      | Some (return_) -> this.visitType(return_)
+      | None -> ()
+    }
+
+    this.visitAnonymousFunctionBody(func.body);
+  }
+
+  fun visitAnonymousFunctionParam(param: ast.AnonymousFunctionParam) {
+    this.visitIdentifier(param.name);
+
+    match (param.annot) {
+      | Some (annot) -> this.visitType(annot)
+      | None -> ()
+    }
+  }
+
+  fun visitAnonymousFunctionBody(body: ast.AnonymousFunctionBody) {
+    match (body) {
+      | ast.ABBlock (block) -> this.visitBlock(block)
+      | ast.ABExpression (expr) -> this.visitExpression(expr)
+    }
+  }
+
+  /* 
+   * ============================
+   *           Types
+   * ============================
+   */
+
+  fun visitType(type_: ast.Type) {
+    match (type_) {
+      | ast.TIdentifier (ident) -> this.visitIdentifierType(ident)
+      | ast.TTuple (tuple) -> this.visitTupleType(tuple)
+      | ast.TFunction (func) -> this.visitFunctionType(func)
+      | ast.TTrait (trait_) -> this.visitTraitType(trait_)
+    }
+  }
+
+  fun visitIdentifierType(ident: ast.IdentifierType) {
+    this.visitScopedIdentifier(ident.name);
+
+    for (typeArg in ident.typeArgs) {
+      this.visitType(typeArg);
+    }
+  }
+
+  fun visitTupleType(tuple: ast.TupleType) {
+    for (element in tuple.elements) {
+      this.visitType(element);
+    }
+  }
+
+  fun visitFunctionType(func: ast.FunctionType) {
+    for (param in func.params) {
+      this.visitType(param);
+    }
+
+    this.visitType(func.return_);
+  }
+
+  fun visitTraitType(trait_: ast.TraitType) {
+    this.visitIdentifierType(trait_.trait_);
+  }
+
+  /* 
+   * ============================
+   *          Patterns
+   * ============================
+   */
+  
+  fun visitPattern(patt: ast.Pattern) {
+    match (patt) {
+      | ast.PIdentifier (ident) -> this.visitScopedIdentifier(ident)
+      | ast.PWildcard _ -> ()
+      | ast.PNamedWildcard (named) -> this.visitNamedWildcard(named)
+      | ast.PBinding (binding) -> this.visitBindingPattern(binding)
+      | ast.POr (or) -> this.visitOrPattern(or)
+      | ast.PTuple (tuple) -> this.visitTuplePattern(tuple)
+      | ast.PRecord (record) -> this.visitRecordPattern(record)
+      | ast.PLiteral (literal) -> this.visitLiteralPattern(literal)
+    }
+  }
+
+  fun visitNamedWildcard(named: ast.NamedWildcard) {
+    this.visitScopedIdentifier(named.name);
+  }
+
+  fun visitBindingPattern(binding: ast.BindingPattern) {
+    this.visitPattern(binding.pattern);
+    this.visitIdentifier(binding.name);
+  }
+
+  fun visitOrPattern(or: ast.OrPattern) {
+    this.visitPattern(or.left);
+    this.visitPattern(or.right);
+  }
+
+  fun visitTuplePattern(tuple: ast.TuplePattern) {
+    match (tuple.name) {
+      | Some (name) -> this.visitScopedIdentifier(name)
+      | None -> ()
+    }
+
+    for (element in tuple.elements) {
+      this.visitPattern(element);
+    }
+  }
+
+  fun visitRecordPattern(record: ast.RecordPattern) {
+    this.visitScopedIdentifier(record.name);
+
+    for (field in record.fields) {
+      this.visitRecordPatternField(field);
+    }
+  }
+
+  fun visitRecordPatternField(field: ast.RecordPatternField) {
+    match (field.name) {
+      | Some (name) -> this.visitIdentifier(name)
+      | None -> ()
+    }
+
+    this.visitPattern(field.value);
+  }
+
+  fun visitLiteralPattern(literal: ast.LiteralPattern) {
+    match (literal) {
+      | ast.PUnit (unit) -> this.visitUnitLiteral(unit)
+      | ast.PBool (bool) -> this.visitBoolLiteral(bool)
+      | ast.PInt (int) -> this.visitIntLiteral(int)
+      | ast.PChar (char) -> this.visitCharLiteral(char)
+      | ast.PString (string) -> this.visitStringLiteral(string)
+    }
+  }
+}
