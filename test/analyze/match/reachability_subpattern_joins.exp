@@ -1,0 +1,19 @@
+Error: Unreachable pattern
+test/analyze/match/reachability_subpattern_joins.myte:14:6-18
+ 14 |     | (_, V1 | V2) -> ()
+    |       ^^^^^^^^^^^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpattern_joins.myte:25:10-12
+ 25 |     | (_, V1 | V2 | V3) -> ()
+    |           ^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpattern_joins.myte:25:15-17
+ 25 |     | (_, V1 | V2 | V3) -> ()
+    |                ^^
+
+Error: Unreachable pattern
+test/analyze/match/reachability_subpattern_joins.myte:35:10-12
+ 35 |     | (_, V1 | V2 | V3) -> ()
+    |           ^^

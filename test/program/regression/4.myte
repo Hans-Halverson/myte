@@ -1,0 +1,28 @@
+module test
+
+// Regression test for unreachable pattern false positives
+
+type Variant =
+  | Variant1 { foo: Bool, bar: Bool }
+  | Variant2
+
+fun test1(x: Variant) {
+  match (x) {
+    | Variant2 -> {}
+    | Variant1 { foo: true, ... } -> {}
+    // No unreachable false positive
+    | _ -> ()
+  }
+}
+
+type Tup (Bool, Int)
+
+fun test2(x: Tup): Int =
+  match (x) {
+    | Tup (true, 1) -> 1
+    | Tup (false, x) -> 2
+    // No unreachable false positive
+    | Tup (_, x) -> 3
+  }
+
+fun main() {}

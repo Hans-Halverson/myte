@@ -89,7 +89,7 @@ module type UsefulResultType = sig
 
   val create_witness : bool
 
-  val combine : t list -> t
+  val combine_complete_signature : t list -> t
 
   val combine_or : (t * pattern) list -> t
 
@@ -107,7 +107,7 @@ module ExhaustiveResult = struct
 
   let create_witness = true
 
-  let combine results = List.concat results
+  let combine_complete_signature results = List.concat results
 
   let combine_or results_and_patterns = List.concat (List.map fst results_and_patterns)
 
@@ -190,19 +190,45 @@ module ReachableResult = struct
     in
     result
 
-  (* Combination is set union *)
-  let combine results =
+  (* Combination of all possible ctor branches from complete signature is set intersection,
+     since a pattern is only unreachable if it is unreachable in all specialized branches. *)
+  let combine_complete_signature results =
     let (first, rest) = List_utils.split_first results in
     List.fold_left
       (fun r1 r2 ->
         match (r1, r2) with
-        | (Empty, other)
-        | (other, Empty) ->
+        | (Empty, _)
+        | (_, Empty) ->
+          Empty
+        | (Full, other)
+        | (other, Full) ->
           other
-        | (Full, _)
-        | (_, Full) ->
-          Full
-        | (Set s1, Set s2) -> Set (s1 @ s2))
+        | (Set s1, Set s2) ->
+          (* Collect locs for all top level patterns in s1 *)
+          let rec add_pattern_locs locs pattern =
+            match pattern with
+            | Wildcard loc
+            | Constructor ({ loc; _ }, _) ->
+              LocSet.add loc locs
+            | Or patterns -> List.fold_left add_pattern_locs locs patterns
+          in
+          let to_keep_locs = List.fold_left add_pattern_locs LocSet.empty s1 in
+
+          (* Filter top level patterns in s2 to only the locs collected from s1 *)
+          let rec filter_pattern kept_patterns pattern =
+            match pattern with
+            | Wildcard loc
+            | Constructor ({ loc; _ }, _)
+              when LocSet.mem loc to_keep_locs ->
+              pattern :: kept_patterns
+            | Wildcard _
+            | Constructor _ ->
+              kept_patterns
+            | Or patterns -> List.fold_left filter_pattern kept_patterns patterns
+          in
+          let intersection = List.fold_left filter_pattern [] s2 in
+
+          Set intersection)
       first
       rest
 
@@ -427,7 +453,7 @@ module UsefulAnalyzer (UsefulResult : UsefulResultType) = struct
               UsefulResult.reconstruct_head useful_result (ReconstructCtor ctor))
             all_ctors
         in
-        UsefulResult.combine useful_results
+        UsefulResult.combine_complete_signature useful_results
       (* Inductive case 2b - head is wildcard and matrix's head constructors do not form a complete
          signature. Create the default matrix and recurse. *)
       | Incomplete missing ->

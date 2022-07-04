@@ -1,0 +1,49 @@
+module test
+
+type Triple =
+ | V1
+ | V2
+ | V3
+
+fun test1(x: Triple) {
+  match ((x, x)) {
+    | (V1, V1 | V2) -> ()
+    | (V2, V1 | V2) -> ()
+    | (V3, V1 | V2) -> ()
+    // Entire top level pattern is unreachable
+    | (_, V1 | V2) -> ()
+    | _ -> ()
+  }
+}
+
+fun test2(x: Triple) {
+  match ((x, x)) {
+    | (V1, V1 | V2) -> ()
+    | (V2, V1 | V2) -> ()
+    | (V3, V1 | V2) -> ()
+    // V1 and V2 subpatterns are unreachable and only shown once
+    | (_, V1 | V2 | V3) -> ()
+  }
+}
+
+fun test3(x: Triple) {
+  match ((x, x)) {
+    | (V1, V1 | V2) -> ()
+    | (V2, V1) -> ()
+    | (V3, V1 | V2) -> ()
+    // V2 is reachable but V1 is unreachable
+    | (_, V1 | V2 | V3) -> ()
+  }
+}
+
+fun test4(x: Triple) {
+  match ((x, x)) {
+    | (V1, V1 | V2) -> ()
+    | (V2, V1) -> ()
+    | (V3, V2) -> ()
+    // All subpatterns are reachable
+    | (_, V1 | V2 | V3) -> ()
+  }
+}
+
+fun main() {}
