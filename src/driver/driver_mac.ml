@@ -4,8 +4,10 @@ let mk_assembler_command asm_file obj_file =
   Printf.sprintf "%s -o %s %s" assembler_path (Filename.quote asm_file) (Filename.quote obj_file)
 
 let mk_linker_command output_file program_obj_file lib_myte_file lib_gc_file =
+  (* On macOS Big Sur (11.0) and later system library is at /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib/
+     For earlier versions this directory does not exist, so always specify it. *)
   Printf.sprintf
-    "%s -lSystem -e _start -o %s %s %s %s"
+    "%s -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib/ -lSystem -e _start -o %s %s %s %s"
     linker_path
     (Filename.quote output_file)
     (Filename.quote program_obj_file)
