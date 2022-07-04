@@ -1,5 +1,6 @@
 module test
 
+import std.ops.Equatable
 import std.test.{assertEqual, fail}
 
 type V1 =
@@ -11,6 +12,30 @@ type V2 =
   | Tuple2 (Bool, V1)
   | Enum2
   | Record2 { foo: V2, bar: Bool }
+
+methods V1 {
+  implements Equatable
+
+  override fun equals(other: V1): Bool =
+    match (this, other) {
+      | (Enum1, Enum1) -> true
+      | (Tuple1 (b1, i1), Tuple1 (b2, i2)) -> b1 == b2 && i1 == i2
+      | (Record1 { foo: foo1, bar: bar1 }, Record1 { foo: foo2, bar: bar2 }) -> foo1 == foo2 && bar1 == bar2
+      | _ -> false
+    }
+}
+
+methods V2 {
+  implements Equatable
+
+  override fun equals(other: V2): Bool =
+    match (this, other) {
+      | (Enum2, Enum2) -> true
+      | (Tuple2 (b1, v1), Tuple2 (b2, v2)) -> b1 == b2 && v1 == v2
+      | (Record2 { foo: foo1, bar: bar1 }, Record2 { foo: foo2, bar: bar2 }) -> foo1 == foo2 && bar1 == bar2
+      | _ -> false
+    }
+}
 
 // Exhaustive, only check tags
 fun match1(x: V1): Int =
@@ -99,10 +124,33 @@ fun testMatch5() {
   assertEqual(match5(Enum1), 3);
 }
 
+// Binding nested inner values
+fun match6(x: V2): V2 =
+  match (x) {
+    // Extract inner value
+    | Record2 { foo: Record2 { foo: Record2 { foo: Record2 { foo: x, bar: true }, ...}, ... }, ... } -> x
+    // Bind pattern, use already loaded value
+    | Record2 { foo: Record2 { foo: (Enum2 as x), ... }, ... } -> x
+    | Record2 { foo: (Record2 { foo: Record2 { foo: Record2 { bar: false, ... }, ... }, ... } as x), ... } -> x
+    | other -> other
+  }
+
+fun testMatch6() {
+  val x1 = match6(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { foo: Tuple2 (true, Enum1), bar: true }}}});
+  assertEqual(x1, Tuple2 (true, Enum1));
+  val x2 = match6(Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { foo: Enum2, bar: false }}}});
+  assertEqual(x2, Record2 { bar: true, foo: Record2 { bar: true, foo: Record2 { foo: Enum2, bar: false }}});
+  val x3 = match6(Record2 { bar: true, foo: Record2 { bar: true, foo: Enum2 }});
+  assertEqual(x3, Enum2);
+  val x4 = match6(Tuple2 (false, Enum1));
+  assertEqual(x4, Tuple2 (false, Enum1));
+}
+
 fun main() {
   testMatch1();
   testMatch2();
   testMatch3();
   testMatch4();
   testMatch5();
+  testMatch6();
 }
