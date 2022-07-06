@@ -1,5 +1,7 @@
-const RUNNER_SERVICE_URL =
-  "https://km73q57egb.execute-api.us-east-1.amazonaws.com/default/MytePlaygroundRunner";
+const IS_DEV_SERVER = window.location.hostname === "localhost";
+const RUNNER_SERVICE_URL = IS_DEV_SERVER
+  ? "http://localhost:8080/run"
+  : "https://km73q57egb.execute-api.us-east-1.amazonaws.com/default/MytePlaygroundRunnerImage";
 
 export default class RunRequests {
   // Every run request gets a unique id

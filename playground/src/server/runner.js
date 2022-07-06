@@ -7,10 +7,8 @@ const Commands = require("./commands");
 const TIMEOUT = 10000;
 const PROGRAM_FILE = "main.myte";
 
-const MYTE_STDLIB = process.env.MYTE_STDLIB;
-const MYTE_BIN = process.env.MYTE_BIN;
-
-process.env.LD_LIBRARY_PATH = `${process.env.LD_LIBRARY_PATH}:${process.env.SYSTEM_DEPS}`;
+const ROOT = path.join("/var", "task");
+const MYTE_BIN = path.join(ROOT, "myte");
 
 class RunEnvironment {
   static setup(program) {
@@ -46,7 +44,7 @@ async function run(program, command) {
       if (error?.killed) {
         resolve({
           error: true,
-          results: buildStatusLine(stdout, "Timed out", exitCode),
+          results: buildResults(stdout, "Timed out", 1),
         });
       }
 
@@ -58,7 +56,7 @@ async function run(program, command) {
 }
 
 function buildExecCommand(env, command) {
-  const prefix = `cd ${env.dir} && MYTEPATH=${MYTE_STDLIB}`;
+  const prefix = `cd ${env.dir} && MYTEPATH=${ROOT}`;
 
   switch (command) {
     case Commands.Execute.id:

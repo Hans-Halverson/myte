@@ -6,7 +6,7 @@ const HEADERS = {
 
 exports.handler = async (event, context) => {
   // Handle CORS request, API gateway will add correct CORS headers
-  if (event.requestContext.http.method === "OPTIONS") {
+  if (event.requestContext && event.requestContext.http.method === "OPTIONS") {
     return { statusCode: "200" };
   }
 
