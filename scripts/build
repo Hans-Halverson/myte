@@ -5,13 +5,19 @@ set -e
 CURRENT_DIR=$(cd "$(dirname "$0")" && pwd)
 ROOT_DIR=$(dirname "$CURRENT_DIR")
 
+BUILD_DIR="$ROOT_DIR/build"
+DUNE_BUILD_DIR="$BUILD_DIR/dune"
+
+# Set up build directory
+mkdir -p "$BUILD_DIR"
+
 # Build myte executable
 cd "$ROOT_DIR/src"
-opam exec -- dune build myte.exe --no-print-directory "$@"
+opam exec -- dune build myte.exe --build-dir "$DUNE_BUILD_DIR" --no-print-directory
 
 # Build test suite
 cd "$ROOT_DIR/test"
-opam exec -- dune build run_tests.exe --no-print-directory
+opam exec -- dune build run_tests.exe --build-dir "$DUNE_BUILD_DIR" --no-print-directory
 
 # Build runtime
 "$CURRENT_DIR/build_runtime"

@@ -1,3 +1,0 @@
-(env
- (static
-  (flags (-ccopt -static))))

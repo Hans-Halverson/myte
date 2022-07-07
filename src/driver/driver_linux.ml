@@ -6,7 +6,7 @@ let mk_assembler_command asm_file obj_file =
 let mk_linker_command output_file program_obj_file lib_myte_file lib_gc_file =
   Printf.sprintf
     "%s -o %s %s %s %s"
-    clang_path
+    cc_path
     (Filename.quote output_file)
     (Filename.quote program_obj_file)
     (Filename.quote lib_myte_file)

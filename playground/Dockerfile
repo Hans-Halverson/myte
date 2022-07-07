@@ -24,7 +24,7 @@ RUN opam init --disable-sandboxing &&\
 
 # Build myte
 COPY . /myte
-RUN rm -rf /myte/_build /myte/build && /myte/scripts/build
+RUN /myte/scripts/build
 
 
 # Image used in the lambda
@@ -36,12 +36,8 @@ RUN npm install
 COPY --from=builds myte/playground/src/server/*.js ${LAMBDA_TASK_ROOT}
 
 # Include built myte binary and lib
-COPY --from=builds myte/_build/default/src/myte.exe ${LAMBDA_TASK_ROOT}/myte
+COPY --from=builds myte/build/dune/default/src/myte.exe ${LAMBDA_TASK_ROOT}/myte
 COPY --from=builds myte/build/lib ${LAMBDA_TASK_ROOT}/lib
-
-# Include server dependencies (system assembler and linker along with their shared libraries,
-# as they are not included in base amazonlinux image)
-COPY --from=builds myte/playground/system-deps ${LAMBDA_TASK_ROOT}/system-deps
 
 ENV MYTEPATH=${LAMBDA_TASK_ROOT}
 

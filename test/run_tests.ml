@@ -7,7 +7,7 @@ type opts = {
   tree_full: bool ref;
 }
 
-let default_bin = Filename.concat (Sys.getcwd ()) "_build/default/src/myte.exe"
+let default_bin = Filename.concat (Sys.getcwd ()) "build/dune/default/src/myte.exe"
 
 let opts =
   {

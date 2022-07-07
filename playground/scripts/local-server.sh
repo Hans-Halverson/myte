@@ -18,5 +18,3 @@ trap cleanup EXIT
 
 echo "Starting local server"
 node "$PLAYGROUND_DIR/src/local-server.js"
-
-trap cleanup

@@ -8,4 +8,4 @@ ROOT_DIR=$(dirname "$CURRENT_DIR")
 . "$CURRENT_DIR/setup_myte_env"
 
 cd "$ROOT_DIR"
-OCAMLRUNPARAM=b ./_build/default/test/run_tests.exe "$@"
+OCAMLRUNPARAM=b ./build/dune/default/test/run_tests.exe "$@"

@@ -2,7 +2,7 @@ let assembler_env_variable = "ASSEMBLER"
 
 let linker_env_variable = "LINKER"
 
-let clang_env_variable = "CLANG"
+let cc_env_variable = "CC"
 
 let assembler_path =
   match Sys.getenv_opt assembler_env_variable with
@@ -14,8 +14,8 @@ let linker_path =
   | Some path -> path
   | None -> "ld"
 
-let clang_path =
-  match Sys.getenv_opt clang_env_variable with
+let cc_path =
+  match Sys.getenv_opt cc_env_variable with
   | Some path -> path
   | None -> "clang"
 
