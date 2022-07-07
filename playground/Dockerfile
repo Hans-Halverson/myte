@@ -8,19 +8,13 @@ RUN yum -y install clang
 # Image that builds myte from source
 FROM base AS builds
 
-# Install bubblewrap (dependency of opam)
-RUN curl -o bubblewrap.rpm https://download-ib01.fedoraproject.org/pub/epel/7/x86_64/Packages/b/bubblewrap-0.3.0-1.el7.x86_64.rpm &&\
-    rpm -Uvh bubblewrap.rpm &&\
-    yum -y install bubblewrap
-
 # Install opam
 RUN bash -c "echo -ne '\n' | sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
 
 # Install opam dependencies
 COPY ./myte.opam /myte/myte.opam
-RUN opam init --disable-sandboxing &&\
-    opam switch create 4.09.1 &&\
-    opam install /myte --deps-only --yes
+COPY ./scripts/install /myte/scripts/install
+RUN /myte/scripts/install --disable-sandboxing
 
 # Build myte
 COPY . /myte

@@ -8,19 +8,17 @@ You can play around with the Myte language on the Myte Playground at https://myt
 
 ## Building and testing the compiler
 
-The Myte compiler is written in OCaml (version 4.09.1) with some runtime components in C. To build the compiler from source and run its test suite, check out this repository and run the following commands from the `myte` repository's root directory.
+The Myte compiler is written in OCaml (version 4.14.0) with some runtime components in C. To build the compiler from source and run its test suite, check out this repository and run the following commands from the `myte` repository's root directory.
 
 ### Initial install
 
-First install the OCaml package manager [opam](https://opam.ocaml.org/doc/Install.html) and the C compiler [clang](https://releases.llvm.org/download.html). Then navigate to the checked out `myte` directory and run the following commands, which will set up opam and install the correct version of the compiler and dependencies for Myte.
+First install the OCaml package manager [opam](https://opam.ocaml.org/doc/Install.html) and the C compiler [clang](https://releases.llvm.org/download.html). Then navigate to the checked out `myte` directory and run the following command, which will set up opam and install the correct version of the compiler and dependencies for Myte.
 
 ```
-opam init
-opam switch create 4.09.1
-opam install . --deps-only --yes
+./scripts/install
 ```
 
-The initial install only needs to be completed once (unless dependencies are updated, in which case run the `opam install` command again).
+The initial install only needs to be completed once (unless dependencies are updated, in which case run the `./scripts/install` command again).
 
 ### Building and testing
 

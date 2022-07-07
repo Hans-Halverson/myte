@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+
+CURRENT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT_DIR=$(dirname "$CURRENT_DIR")
+
+opam init "$@"
+opam switch create 4.14.0 || true
+opam install "$ROOT_DIR" --deps-only --yes

@@ -8,9 +8,9 @@ license: "MIT"
 homepage: "https://github.com/Hans-Halverson/myte"
 bug-reports: "https://github.com/Hans-Halverson/myte/issues"
 depends: [
-  "ocaml" {= "4.09.1"}
-  "ocamlformat" {= "0.14.0"}
-  "dune" {= "2.4.0"}
+  "ocaml" {= "4.14.0"}
+  "ocamlformat" {= "0.22.4"}
+  "dune" {= "3.3.1"}
 ]
 build: [
   ["dune" "subst"] {pinned}
