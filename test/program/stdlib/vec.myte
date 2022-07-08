@@ -68,10 +68,51 @@ fun testSlice() {
   assertVecEqual(x.slice(2, 2), []);
 }
 
+fun testReserve() {
+  val x = [6, 8];
+  assertEqual(x.capacity, 2);
+
+  x.reserve(5);
+  assertEqual(x.capacity, 5);
+  assertVecEqual(x, [6, 8]);
+
+  x.reserve(5);
+  assertEqual(x.capacity, 5);
+  assertVecEqual(x, [6, 8]);
+
+  x.reserve(4);
+  assertEqual(x.capacity, 5);
+  assertVecEqual(x, [6, 8]);
+
+  x.reserve(6);
+  assertEqual(x.capacity, 6);
+  assertVecEqual(x, [6, 8]);
+
+  x.reserve(1);
+  assertEqual(x.capacity, 6);
+  assertVecEqual(x, [6, 8]);
+}
+
+fun testResize() {
+  val x = [6, 8];
+  assertEqual(x.size, 2);
+
+  x.resize(5, 3);
+  assertVecEqual(x, [6, 8, 3, 3, 3]);
+
+  x.resize(5, 4);
+  assertVecEqual(x, [6, 8, 3, 3, 3]);
+
+  x.resize(3, 5);
+  assertVecEqual(x, [6, 8, 3]);
+}
+
 fun main() {
   testPop();
   testMap();
   testIsEmpty();
   testClone();
   testSlice();
+  testReserve();
+  testResize();
 }

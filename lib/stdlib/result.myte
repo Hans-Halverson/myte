@@ -1,6 +1,7 @@
 module std.result
 
 import std.bool.Bool
+import std.sys.abort
 
 type Result<T, U> =
   | Ok (T)
@@ -12,10 +13,16 @@ methods Result<T, U> {
       | Ok _ -> true
       | Error _ -> false
     }
-  
+
   fun isError(): Bool =
     match (this) {
       | Ok _ -> false
       | Error _ -> true
+    }
+  
+  fun unwrap(): T =
+    match (this) {
+      | Ok (ok) -> ok
+      | Error _ -> abort()
     }
 }

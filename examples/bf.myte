@@ -1,0 +1,153 @@
+module brainf
+
+import std.io.error.IOError
+import std.io.file.File
+import std.io.read.BufferedReader
+import std.io.{print, println}
+import std.iterator.Iterator
+import std.sys.{args, exit, getEnv}
+
+type Op =
+  | Inc
+  | Dec
+  | Left
+  | Right
+  | Print
+  | Loop (Vec<Op>)
+
+type Tape { tape: Vec<Int>, pos: Int }
+
+methods Tape {
+  static fun new(): Tape = Tape { tape: [0], pos: 0 }
+
+  fun inc() {
+    this.tape[this.pos] += 1;
+  }
+
+  fun dec() {
+    this.tape[this.pos] -= 1;
+  }
+
+  fun left() {
+    this.pos -= 1;
+  }
+
+  fun right() {
+    this.pos += 1;
+
+    if (this.pos >= this.tape.size) {
+      this.tape.resize(this.tape.size * 2, 0);
+    }
+  }
+
+  fun current(): Int = this.tape[this.pos]
+}
+
+type Printer { sum1: Int, sum2: Int, quiet: Bool }
+
+methods Printer {
+  static fun new(quiet: Bool): Printer = Printer { sum1: 0, sum2: 0, quiet }
+
+  fun print(n: Int) {
+    if (this.quiet) {
+      this.sum1 = (this.sum1 + n) % 255;
+      this.sum2 = (this.sum2 + this.sum1) % 255;
+    } else {
+      print(String.ofChar(n.toByte()));
+    }
+  }
+
+  fun checksum(): Int = (this.sum2 << 8) | this.sum1
+}
+
+type Program { ops: Vec<Op>, tape: Tape, printer: Printer }
+
+methods Program {
+  static fun new(input: String, quiet: Bool): Program {
+    val ops = Program.parse(input.bytes());
+    val tape = Tape.new();
+    val printer = Printer.new(quiet);
+
+    return Program { ops, tape, printer };
+  }
+
+  static fun parse(bytes: Iterator<Byte>): Vec<Op> {
+    val ops: Vec<Op> = [];
+    while (true) {
+      match (bytes.next()) {
+        | None -> return ops
+        | Some (byte) -> match (byte) {
+          | '+' -> ops.push(Inc)
+          | '-' -> ops.push(Dec)
+          | '<' -> ops.push(Left)
+          | '>' -> ops.push(Right)
+          | '.' -> ops.push(Print)
+          | '[' -> ops.push(Loop (Program.parse(bytes)))
+          | ']' -> return ops
+          | _ -> ()
+        }
+      }
+    }
+
+    return ops;
+  }
+
+  fun run() {
+    this.runOps(this.ops);
+  }
+
+  fun runOps(ops: Vec<Op>) {
+    for (op in ops) {
+      match (op) {
+        | Inc -> this.tape.inc()
+        | Dec -> this.tape.dec()
+        | Left -> this.tape.left()
+        | Right -> this.tape.right()
+        | Print -> this.printer.print(this.tape.current())
+        | Loop (ops) -> {
+          while (this.tape.current() > 0) {
+            this.runOps(ops);
+          }
+        }
+      }
+    }
+  }
+}
+
+fun readFile(fileName: String): Result<String, IOError> {
+  val file = File.open(fileName)?;
+  val reader = BufferedReader.new(file);
+
+  return reader.readToString();
+}
+
+// Simple test of the interpreter
+fun test() {
+  val input = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.";
+  val program = Program.new(input, true);
+  program.run();
+
+  val printer = Printer.new(true);
+  for (byte in "Hello World!\n".bytes()) {
+    printer.print(byte.toInt());
+  }
+
+  print(`Actual: ${program.printer.checksum()}, Expected ${printer.checksum()}\n`);
+}
+
+fun main() {
+  // test();
+  if (args.size < 2) {
+    exit(1);
+  }
+
+  val quiet = getEnv("QUIET").isSome();
+
+  val input = readFile(args[1]).unwrap();
+  val program = Program.new(input, quiet);
+  program.run();
+
+  if (quiet) {
+    println(`Output checksum: ${program.printer.checksum()}`);
+  }
+}

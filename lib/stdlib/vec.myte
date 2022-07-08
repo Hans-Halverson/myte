@@ -50,8 +50,15 @@ methods Vec<T> {
   }
 
   fun push(x: T) {
-    if (this.size == this.capacity) {
-      this.resize();
+    val capacity = this.capacity;
+    if (this.size == capacity) {
+      val newCapacity = if (capacity == 0) {
+        1
+      } else {
+        capacity * 2
+      };
+
+      this.reserve(newCapacity);
     }
 
     this.data[this.size] = x;
@@ -78,18 +85,29 @@ methods Vec<T> {
     return vec;
   }
 
-  fun resize() {
-    val oldCapacity = this.capacity;
-    val newCapacity = if (oldCapacity == 0) {
-      1
-    } else {
-      oldCapacity * 2
-    };
-    this.capacity = newCapacity;
+  fun reserve(capacity: Int) {
+    if (capacity <= this.capacity) {
+      return;
+    }
 
-    val newData: Array<T> = Array.new(newCapacity);
-    Array.copy(newData, 0, this.data, 0, oldCapacity);
+    val newData: Array<T> = Array.new(capacity);
+    Array.copy(newData, 0, this.data, 0, this.size);
     this.data = newData;
+    this.capacity = capacity;
+  }
+
+  fun resize(size: Int, value: T) {
+    if (size > this.capacity) {
+      this.reserve(size);
+    }
+
+    if (size > this.size) {
+      for (i in this.size.to(size)) {
+        this.data[i] = value;
+      }
+    }
+
+    this.size = size;
   }
 
   fun isEmpty(): Bool = this.size == 0

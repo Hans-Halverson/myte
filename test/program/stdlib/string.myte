@@ -148,6 +148,11 @@ fun testBytesIterator() {
   nextIsNone(iter);
 }
 
+fun testOfChar() {
+  assertEqual(String.ofChar('a'), "a");
+  assertEqual(String.ofChar('\n'), "\n");
+}
+
 fun main() {
   testToString();
   testGet();
@@ -161,4 +166,5 @@ fun main() {
   testClone();
   testHash();
   testBytesIterator();
+  testOfChar();
 }

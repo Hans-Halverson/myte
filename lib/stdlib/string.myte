@@ -37,6 +37,13 @@ methods String {
     };
   }
 
+  static fun ofChar(char: Char): String {
+    val data: Array<Char> = Array.new(1);
+    data[0] = char;
+
+    return String { data, size: 1, capacity: 1 };
+  }
+
   fun get(index: Int): Char {
     if (index >= this.size) {
       abort();
