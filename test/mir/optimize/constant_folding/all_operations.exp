@@ -2,6 +2,10 @@ func bool @test.use<Bool>(bool %0) {
   Ret %0
 }
 
+func double @test.use<Double>(double %0) {
+  Ret %0
+}
+
 func int @test.use<Int>(int %0) {
   Ret %0
 }
@@ -61,6 +65,16 @@ func void @test.testLong() {
   Ret
 }
 
+func void @test.testDouble() {
+  %0 := Call double @test.use<Double>(-56.)
+  %1 := Call double @test.use<Double>(3.2)
+  %2 := Call double @test.use<Double>(-1.1)
+  %3 := Call double @test.use<Double>(14.91)
+  %4 := Call double @test.use<Double>(7.77419354839)
+  %5 := Call bool @test.use<Bool>(false)
+  Ret
+}
+
 func void @test.testBool() {
   %0 := Call bool @test.use<Bool>(false)
   %1 := Call bool @test.use<Bool>(false)
@@ -95,5 +109,6 @@ func void @test.testShift() {
 }
 
 func int @test.main() {
+  Call void @test.testDouble()
   Ret 0
 }

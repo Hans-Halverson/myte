@@ -149,6 +149,7 @@ module Gcx = struct
     | Short -> 2
     | Int -> 4
     | Long
+    | Double
     | Function
     | Pointer _ ->
       8

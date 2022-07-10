@@ -58,6 +58,17 @@ fun testLong() {
   use((5: Long) > 7);
 }
 
+fun testDouble() {
+  use(-(56.0));
+
+  use(1.1 + 2.1);
+  use(1.1 - 2.2);
+  use(2.1 * 7.1);
+  use(24.1 / 3.1);
+
+  use(5.0 > 7.0);
+}
+
 fun testBool() {
   use(!true);
 
@@ -82,4 +93,6 @@ fun testShift() {
   use(1 << 258);
 }
 
-fun main() {}
+fun main() {
+  testDouble();
+}

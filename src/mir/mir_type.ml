@@ -9,6 +9,7 @@ module rec Type : sig
     | Short
     | Int
     | Long
+    | Double
     | Function
     | Pointer of t
     | Aggregate of Aggregate.t
@@ -89,6 +90,7 @@ let rec types_equal (ty1 : Type.t) (ty2 : Type.t) : bool =
   | (Byte, Byte)
   | (Int, Int)
   | (Long, Long)
+  | (Double, Double)
   | (Function, Function) ->
     true
   | (Pointer ty1, Pointer ty2) -> types_equal ty1 ty2
@@ -102,6 +104,7 @@ let rec type_to_string (ty : Type.t) =
   | Short -> "short"
   | Int -> "int"
   | Long -> "long"
+  | Double -> "double"
   | Bool -> "bool"
   | Function -> "fn"
   | Pointer ty -> type_to_string ty ^ "*"
@@ -124,6 +127,7 @@ let rec size_of_type (mir_type : Type.t) =
   | Short -> short_size
   | Int -> int_size
   | Long
+  | Double
   | Function
   | Pointer _ ->
     ptr_size
@@ -150,8 +154,8 @@ let is_pointer_type (ty : Type.t) =
   | Pointer _ -> true
   | _ -> false
 
-let is_numeric_type (v : Type.t) : bool =
-  match v with
+let is_integer_type (t : Type.t) : bool =
+  match t with
   | Bool
   | Byte
   | Short
@@ -159,3 +163,8 @@ let is_numeric_type (v : Type.t) : bool =
   | Long ->
     true
   | _ -> false
+
+let is_numeric_type (t : Type.t) : bool =
+  match t with
+  | Double -> true
+  | _ -> is_integer_type t

@@ -14,6 +14,7 @@ let apply_unary_operation op (x : Literal.t) : Literal.t =
   | (Neg, Byte x) -> Byte (-x)
   | (Neg, Int x) -> Int (Int32.neg x)
   | (Neg, Long x) -> Long (Int64.neg x)
+  | (Neg, Double x) -> Double (Float.neg x)
   | (Not, Bool x) -> Bool (not x)
   | (Not, Byte x) -> Byte (lnot x)
   | (Not, Int x) -> Int (Int32.lognot x)
@@ -33,14 +34,17 @@ let apply_binary_operation op (x : Literal.t) (y : Literal.t) : Literal.t =
   | (Add, Byte x, Byte y) -> Byte (x + y)
   | (Add, Int x, Int y) -> Int (Int32.add x y)
   | (Add, Long x, Long y) -> Long (Int64.add x y)
+  | (Add, Double x, Double y) -> Double (Float.add x y)
   | (Sub, Bool x, Bool y) -> Bool (x <> y)
   | (Sub, Byte x, Byte y) -> Byte (x - y)
   | (Sub, Int x, Int y) -> Int (Int32.sub x y)
   | (Sub, Long x, Long y) -> Long (Int64.sub x y)
+  | (Sub, Double x, Double y) -> Double (Float.sub x y)
   | (Mul, Bool x, Bool y) -> Bool (x && y)
   | (Mul, Byte x, Byte y) -> Byte (x * y)
   | (Mul, Int x, Int y) -> Int (Int32.mul x y)
   | (Mul, Long x, Long y) -> Long (Int64.mul x y)
+  | (Mul, Double x, Double y) -> Double (Float.mul x y)
   | (Div, Bool x, Bool y) ->
     if not y then
       failwith "Division by zero"
@@ -49,6 +53,7 @@ let apply_binary_operation op (x : Literal.t) (y : Literal.t) : Literal.t =
   | (Div, Byte x, Byte y) -> Byte (x / y)
   | (Div, Int x, Int y) -> Int (Int32.div x y)
   | (Div, Long x, Long y) -> Long (Int64.div x y)
+  | (Div, Double x, Double y) -> Double (Float.div x y)
   | (Rem, Bool _, Bool y) ->
     if not y then
       failwith "Division by zero"
@@ -108,6 +113,7 @@ let fold_constants_compare (x : Literal.t) (y : Literal.t) : int =
   | (Byte x, Byte y) -> Int.compare x y
   | (Int x, Int y) -> Int32.compare x y
   | (Long x, Long y) -> Int64.compare x y
+  | (Double x, Double y) -> Float.compare x y
   | _ -> failwith "Invalid operation"
 
 class constant_folding_transform ~(program : Program.t) =
@@ -148,7 +154,7 @@ class constant_folding_transform ~(program : Program.t) =
 
     method get_constant_opt (use : Use.t) : Literal.t option =
       match use.value.value with
-      | Value.Lit ((Bool _ | Byte _ | Int _ | Long _ | Function _) as lit) -> Some lit
+      | Value.Lit ((Bool _ | Byte _ | Int _ | Long _ | Double _ | Function _) as lit) -> Some lit
       | _ -> None
 
     method visit_global global =

@@ -65,6 +65,7 @@ and Literal : sig
     | Byte of int
     | Int of Int32.t
     | Long of Int64.t
+    | Double of Float.t
     | Global of Global.t
     | NullPointer of Type.t
     | Function of Function.t
@@ -101,7 +102,7 @@ and Instruction : sig
 
   module GetPointer : sig
     type 'a offset =
-      | PointerIndex of (* Numeric *) 'a
+      | PointerIndex of (* Integer *) 'a
       | FieldIndex of int
 
     type value_offset = Value.t offset
@@ -111,7 +112,7 @@ and Instruction : sig
     (* Instruction type is result of GetPointer instruction, a pointer to indexed element type *)
     type t = {
       pointer: (* Pointer *) Use.t;
-      pointer_offset: (* Numeric *) Use.t option;
+      pointer_offset: (* Integer *) Use.t option;
       offsets: use_offset list;
     }
   end
@@ -150,6 +151,7 @@ and Instruction : sig
     | Sub
     | Mul
     | Div
+    (* Integer operation *)
     | Rem
     (* Bitwise operations *)
     | And
@@ -179,9 +181,9 @@ and Instruction : sig
     | Cmp of comparison * (* Comparable *) Use.t * (* Comparable *) Use.t
     (* Conversions *)
     | Cast of Use.t (* Instruction type is type value is cast to *)
-    | Trunc of (* Numeric *) Use.t (* Instruction type is type value is truncated to *)
-    | SExt of (* Numeric *) Use.t (* Instruction type is type value is sign extended to *)
-    | ZExt of (* Numeric *) Use.t (* Instruction type is type value is zero extended to *)
+    | Trunc of (* Integer *) Use.t (* Instruction type is type value is truncated to *)
+    | SExt of (* Integer *) Use.t (* Instruction type is type value is sign extended to *)
+    | ZExt of (* Integer *) Use.t (* Instruction type is type value is zero extended to *)
     (* Block terminators *)
     | Ret of Use.t option
     | Continue of Block.t
@@ -368,6 +370,7 @@ and type_of_literal (lit : Literal.t) : Type.t =
   | Byte _ -> Byte
   | Int _ -> Int
   | Long _ -> Long
+  | Double _ -> Double
   | Function _
   | MyteBuiltin _ ->
     Function
@@ -396,6 +399,8 @@ let is_bool_value (v : Value.t) : bool = type_of_value v = Bool
 
 let is_function_value (v : Value.t) : bool = type_of_value v = Function
 
+let is_integer_value (v : Value.t) : bool = is_integer_type (type_of_value v)
+
 let is_numeric_value (v : Value.t) : bool = is_numeric_type (type_of_value v)
 
 let is_pointer_value (v : Value.t) : bool =
@@ -409,6 +414,7 @@ let is_comparable_value (v : Value.t) : bool =
   | Byte
   | Int
   | Long
+  | Double
   | Pointer _ ->
     true
   | _ -> false
@@ -426,6 +432,7 @@ and literals_equal (lit1 : Literal.t) (lit2 : Literal.t) : bool =
   | (Byte b1, Byte b2) -> b1 = b2
   | (Int i1, Int i2) -> Int32.equal i1 i2
   | (Long l1, Long l2) -> Int64.equal l1 l2
+  | (Double f1, Double f2) -> Float.equal f1 f2
   | (Function func1, Function func2) -> func1 == func2
   | (Global global1, Global global2) -> global1 == global2
   | (ArrayString str1, ArrayString str2) -> String.equal str1 str2

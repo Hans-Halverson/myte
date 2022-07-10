@@ -65,4 +65,16 @@ fun longs(x: Long, y: Long) {
   x >= y;
 }
 
+fun doubles(x: Double, y: Double) {
+  x + y;
+  x - y;
+  x * y;
+  x / y;
+
+  x < y;
+  x <= y;
+  x > y;
+  x >= y;
+}
+
 fun main() {}

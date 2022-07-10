@@ -20,6 +20,14 @@ val z: String = "test"
 
 val a1: Bool = true
 
+val d1: Double = 1.
+
+val d2: Double = 1.23
+
+val d3: Double = 23e7
+
+val d4: Double = 23.872E-8
+
 fun main() {
   // Within Int range, inferred as ints
   use(0);

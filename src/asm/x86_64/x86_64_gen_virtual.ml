@@ -467,6 +467,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       | Function
       | Pointer _ ->
         register_size_of_mir_value_type type_
+      | Double -> failwith "TODO: Cannot compile double literals"
       | Aggregate _ -> failwith "TODO: Cannot compile aggregate literals"
       | Array _ -> failwith "TODO: Cannot compile array literals"
     in
@@ -503,6 +504,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       | Function
       | Pointer _ ->
         register_size_of_mir_value_type type_
+      | Double -> failwith "TODO: Cannot compile double literals"
       | Aggregate _ -> failwith "TODO: Cannot compile aggregate literals"
       | Array _ -> failwith "TODO: Cannot compile array literals"
     in
@@ -1279,6 +1281,7 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
       let vreg = mk_virtual_register ~type_:Long in
       Gcx.emit ~gcx Instruction.(MovIM (Size64, Imm64 l, vreg));
       SReg (vreg, Size64)
+  | Lit (Double _) -> failwith "TODO: Cannot compile double literals"
   | Lit (Function { name; _ }) -> SAddr (mk_label_memory_address name, type_of_use use)
   | Lit (Global { name; _ }) -> SAddr (mk_label_memory_address name, type_of_use use)
   | Lit (MyteBuiltin _) -> failwith "TODO: Cannot compile Myte builtin"
@@ -1304,6 +1307,7 @@ and register_size_of_mir_value_type value_type =
   | Short -> Size16
   | Int -> Size32
   | Long
+  | Double
   | Function
   | Pointer _ ->
     Size64

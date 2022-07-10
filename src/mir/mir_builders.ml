@@ -30,6 +30,8 @@ let mk_int_lit_of_int32 (n : Int32.t) : Value.t = mk_value (Lit (Int n))
 
 let mk_long_lit (n : Int64.t) : Value.t = mk_value (Lit (Long n))
 
+let mk_double_lit (n : Float.t) : Value.t = mk_value (Lit (Double n))
+
 let mk_null_ptr_lit (type_ : Type.t) : Value.t = mk_value (Lit (NullPointer type_))
 
 let mk_myte_builtin_lit (func : string) : Value.t = mk_value (Lit (MyteBuiltin func))
@@ -193,8 +195,8 @@ and mk_binary
     ~(block : Block.t) ~(op : Instruction.binary_operation) ~(left : Value.t) ~(right : Value.t) :
     Value.t =
   let is_shift_op = is_shift_op op in
-  if is_shift_op && not (is_numeric_value left && is_numeric_value right) then
-    failwith "Shift arguments must be numeric"
+  if is_shift_op && not (is_integer_value left && is_integer_value right) then
+    failwith "Shift arguments must be integers"
   else if
     (not is_shift_op)
     && not (is_numeric_value left && is_numeric_value right && values_have_same_type left right)
@@ -226,12 +228,12 @@ and mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
   if
     not
-      (is_numeric_type arg_type
-      && is_numeric_type type_
+      (is_integer_type arg_type
+      && is_integer_type type_
       && size_of_type arg_type >= size_of_type type_)
   then
     failwith
-      "Trunc arguments must be numeric with type argument having smaller size than value argument";
+      "Trunc arguments must be inters with type argument having smaller size than value argument";
   let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
   mk_instr ~value ~block ~type_ ~instr:(Trunc arg_use)
@@ -240,12 +242,12 @@ and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
   if
     not
-      (is_numeric_type arg_type
-      && is_numeric_type type_
+      (is_integer_type arg_type
+      && is_integer_type type_
       && size_of_type arg_type <= size_of_type type_)
   then
     failwith
-      "SExt arguments must be numeric with type argument having larger size than value argument";
+      "SExt arguments must be integers with type argument having larger size than value argument";
   let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
   mk_instr ~value ~block ~type_ ~instr:(SExt arg_use)
@@ -254,12 +256,12 @@ and mk_zext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
   if
     not
-      (is_numeric_type arg_type
-      && is_numeric_type type_
+      (is_integer_type arg_type
+      && is_integer_type type_
       && size_of_type arg_type <= size_of_type type_)
   then
     failwith
-      "ZExt arguments must be numeric with type argument having larger size than value argument";
+      "ZExt arguments must be integers with type argument having larger size than value argument";
   let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
   mk_instr ~value ~block ~type_ ~instr:(ZExt arg_use)

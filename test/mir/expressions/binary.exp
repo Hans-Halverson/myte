@@ -55,6 +55,18 @@ func void @test.longs(long %0, long %1) {
   Ret
 }
 
+func void @test.doubles(double %0, double %1) {
+  %2 := Add double %0, %1
+  %3 := Sub double %0, %1
+  %4 := Mul double %0, %1
+  %5 := Div double %0, %1
+  %6 := Lt double %0, %1
+  %7 := LtEq double %0, %1
+  %8 := Gt double %0, %1
+  %9 := GtEq double %0, %1
+  Ret
+}
+
 func int @test.main() {
   Ret 0
 }

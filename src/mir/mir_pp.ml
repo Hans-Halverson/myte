@@ -204,6 +204,7 @@ and pp_literal lit =
   | Byte i -> string_of_int i
   | Int i -> Int32.to_string i
   | Long i -> Int64.to_string i
+  | Double f -> Float.to_string f
   | Function { name; _ }
   | Global { name; _ } ->
     "@" ^ name
@@ -216,8 +217,6 @@ and pp_literal lit =
   | AggregateClosure (_, { name; _ }) -> Printf.sprintf "{@%s, null}" name
 
 and pp_type ty = type_to_string ty
-
-and pp_numeric_type ty = type_to_string (ty :> Type.t)
 
 and pp_type_of_use use = pp_type (type_of_use use)
 
@@ -350,21 +349,21 @@ and pp_instruction ~cx instr =
            "Trunc %s %s to %s"
            (pp_type_of_use arg)
            (pp_use ~cx arg)
-           (pp_numeric_type instr.type_))
+           (pp_type instr.type_))
     | SExt arg ->
       pp_instr
         (Printf.sprintf
            "SExt %s %s to %s"
            (pp_type_of_use arg)
            (pp_use ~cx arg)
-           (pp_numeric_type instr.type_))
+           (pp_type instr.type_))
     | ZExt arg ->
       pp_instr
         (Printf.sprintf
            "ZExt %s %s to %s"
            (pp_type_of_use arg)
            (pp_use ~cx arg)
-           (pp_numeric_type instr.type_))
+           (pp_type instr.type_))
     | Continue continue ->
       let debug_id =
         if Opts.dump_debug () then

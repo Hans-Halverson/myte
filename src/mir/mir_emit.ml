@@ -525,7 +525,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       | _ -> failwith "Int literal must have integer type"
     in
     Some value
-  | FloatLiteral _ -> failwith "TODO: Emit float literals"
+  | FloatLiteral { loc = _; raw } ->
+    let value = Float.of_string raw in
+    Some (mk_double_lit value)
   | CharLiteral { loc; value } ->
     let value = int_of_char value in
     let ty = mir_type_of_loc ~ecx loc |> Option.get in
@@ -1633,7 +1635,7 @@ and emit_expression_access_chain ~ecx expr : access_chain_result option =
     let root_val =
       maybe_emit_get_pointer_and_load_instrs target_root_val target_ty target_offsets
     in
-    let index_val = emit_numeric_expression ~ecx index in
+    let index_val = emit_integer_expression ~ecx index in
     (root_val, [GetPointer.PointerIndex index_val])
   (* An indexed access on a Vec calls the Vec's `get` method *)
   and emit_vec_indexed_access { IndexedAccess.loc; target; index; _ } =
@@ -2322,12 +2324,22 @@ and emit_bool_expression ~ecx expr =
   if type_of_value value <> Bool then failwith "Expected bool value";
   value
 
-and emit_numeric_expression ~ecx expr =
+and emit_integer_expression ~ecx expr =
   let value = emit_expression ~ecx expr |> Option.get in
   match type_of_value value with
   | Byte
   | Int
   | Long ->
+    value
+  | _ -> failwith "Expected integer value"
+
+and emit_numeric_expression ~ecx expr =
+  let value = emit_expression ~ecx expr |> Option.get in
+  match type_of_value value with
+  | Byte
+  | Int
+  | Long
+  | Double ->
     value
   | _ -> failwith "Expected numeric value"
 
@@ -3099,7 +3111,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
               | Byte -> mk_byte_lit (Int64.to_int value)
               | Int -> mk_int_lit_of_int32 (Int64.to_int32 value)
               | Long -> mk_long_lit value
-              | _ -> failwith "Expected numeric value"
+              | _ -> failwith "Expected integer value"
             in
             mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left:scrutinee_val ~right:case_lit)
       (* Variants are tested by loading their tag and checking against scrutinee in if-else chain *)

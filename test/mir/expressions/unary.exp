@@ -21,6 +21,11 @@ func void @test.longs(long %0) {
   Ret
 }
 
+func void @test.doubles(double %0) {
+  %1 := Neg double %0
+  Ret
+}
+
 func int @test.main() {
   Ret 0
 }
