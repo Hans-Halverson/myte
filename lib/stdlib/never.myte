@@ -1,7 +1,7 @@
 module std.never
 
 /**
- * The never type represents a value that can never exist, such a the return value of a function
+ * The never type represents a value that can never exist, such as the return value of a function
  * that exits the program or infinitely loops.
  */
 builtin type Never

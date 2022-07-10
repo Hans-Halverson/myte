@@ -3,10 +3,13 @@ module Test
 fun main() {
   (+(1): Int);
   (-(1): Int);
+  (+(1.0): Double);
+  (-(1.0): Double);
   (!1: Int);
   (!true: Bool);
 
   (+true: Int);
   (-true: Int);
   (!"": Bool);
+  (!1.0: Bool);
 }

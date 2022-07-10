@@ -1,29 +1,34 @@
 Error: Expected type `Int` but found `String`
-test/analyze/type_check/binary_operation/compare.myte:12:7-10
- 12 |   (1 < "a": Bool);
+test/analyze/type_check/binary_operation/compare.myte:13:7-10
+ 13 |   (1 < "a": Bool);
     |        ^^^
 
 Error: Expected type `String` but found `Int`
-test/analyze/type_check/binary_operation/compare.myte:13:9
- 13 |   ("a" < 1: Bool);
+test/analyze/type_check/binary_operation/compare.myte:14:9
+ 14 |   ("a" < 1: Bool);
     |          ^
 
 Error: Expected type `Int` but found `Bool`
-test/analyze/type_check/binary_operation/compare.myte:16:7-11
- 16 |   (1 < true: Bool);
+test/analyze/type_check/binary_operation/compare.myte:17:7-11
+ 17 |   (1 < true: Bool);
     |        ^^^^
 
+Error: Expected type `Double` but found `Bool`
+test/analyze/type_check/binary_operation/compare.myte:18:9-13
+ 18 |   (1.0 < true: Bool);
+    |          ^^^^
+
 Error: Expected type `String` but found `Bool`
-test/analyze/type_check/binary_operation/compare.myte:17:3-7
- 17 |   (true < "a": Bool);
+test/analyze/type_check/binary_operation/compare.myte:19:3-7
+ 19 |   (true < "a": Bool);
     |    ^^^^
 
-Error: Expected types `Int` or `String` but found `Bool`
-test/analyze/type_check/binary_operation/compare.myte:18:3-7
- 18 |   (true < (): Bool);
+Error: Expected types `Int`, `Double`, or `String` but found `Bool`
+test/analyze/type_check/binary_operation/compare.myte:20:3-7
+ 20 |   (true < (): Bool);
     |    ^^^^
 
-Error: Expected types `Int` or `String` but found `Unit`
-test/analyze/type_check/binary_operation/compare.myte:18:10-12
- 18 |   (true < (): Bool);
+Error: Expected types `Int`, `Double`, or `String` but found `Unit`
+test/analyze/type_check/binary_operation/compare.myte:20:10-12
+ 20 |   (true < (): Bool);
     |           ^^

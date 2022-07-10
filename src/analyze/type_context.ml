@@ -282,6 +282,7 @@ let rec find_rep_type ~cx (ty : Type.t) =
   | Byte
   | Int
   | Long
+  | Double
   | IntLiteral { resolved = None; _ } ->
     ty
   | IntLiteral { resolved = Some ty; _ }
@@ -348,6 +349,7 @@ let rec tvar_occurs_in ~cx tvar ty =
   | Byte
   | Int
   | Long
+  | Double
   | IntLiteral _
   | TypeParam _ ->
     false
@@ -455,7 +457,8 @@ let rec type_satisfies_trait_bounds ~cx ty trait_bounds =
   | Bool
   | Byte
   | Int
-  | Long ->
+  | Long
+  | Double ->
     adt_satisfies_bounds (Std_lib.get_primitive_adt_sig ty) [] trait_bounds
   | ADT { adt_sig; type_args } -> adt_satisfies_bounds adt_sig type_args trait_bounds
   (* Bounded type params and trait bounds have an upper trait bound which may satisfy the target
@@ -491,7 +494,8 @@ and unify ~cx ty1 ty2 =
   | (Bool, Bool)
   | (Byte, Byte)
   | (Int, Int)
-  | (Long, Long) ->
+  | (Long, Long)
+  | (Double, Double) ->
     true
   (* Type parameters check that they are identical *)
   | (TypeParam { id = id1; name = _; bounds = _ }, TypeParam { id = id2; name = _; bounds = _ }) ->
@@ -562,7 +566,8 @@ and is_subtype ~cx ~trait_object_promotion_loc sub sup =
   | (Bool, Bool)
   | (Byte, Byte)
   | (Int, Int)
-  | (Long, Long) ->
+  | (Long, Long)
+  | (Double, Double) ->
     true
   (* The never type is a subtype of all other types (since it can never actually be created) *)
   | (Never, _) -> true
@@ -700,7 +705,8 @@ let get_implemented_trait ty trait_sig =
   | Bool
   | Byte
   | Int
-  | Long ->
+  | Long
+  | Double ->
     let adt_sig = Std_lib.get_primitive_adt_sig ty in
     adt_sig_implements_trait adt_sig [] trait_sig
   | ADT { adt_sig; type_args } -> adt_sig_implements_trait adt_sig type_args trait_sig

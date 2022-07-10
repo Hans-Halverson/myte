@@ -6,6 +6,9 @@ fun bitwise() {
   (1 & 2 & 3 & 4: Int);
   (1 | 2: Int);
   (1 ^ 2: Int);
+  
+  // Bitwise operations cannot be performed on doubles
+  (1.0 & 1: Int);
 
   // If only one type is int error and type expression with that type
   (1 & true: Int);

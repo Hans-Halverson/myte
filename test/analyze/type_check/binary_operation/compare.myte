@@ -6,6 +6,7 @@ fun main() {
   (1 > 2: Bool);
   (1 <= 2: Bool);
   (1 >= 2: Bool);
+  (1.0 < 2.0: Bool);
   ("a" < "b": Bool);
 
   // Error when both types are comparable but incompatible
@@ -14,6 +15,7 @@ fun main() {
 
   // Error on non-comparable arguments
   (1 < true: Bool);
+  (1.0 < true: Bool);
   (true < "a": Bool);
   (true < (): Bool);
 }

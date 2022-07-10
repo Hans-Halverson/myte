@@ -820,6 +820,7 @@ and to_mir_type ~ecx (ty : Types.Type.t) : Type.t option =
   | Byte -> Some Byte
   | Int -> Some Int
   | Long -> Some Long
+  | Double -> failwith "TODO: Emit MIR for doubles"
   | IntLiteral { resolved; _ }
   | BoundedExistential { resolved; _ } ->
     to_mir_type ~ecx (Option.get resolved)

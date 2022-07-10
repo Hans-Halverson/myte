@@ -1,14 +1,19 @@
 Error: Expected type `Int` but found `Bool`
-test/analyze/type_check/unary_operation.myte:9:4-8
- 9 |   (+true: Int);
-   |     ^^^^
+test/analyze/type_check/unary_operation.myte:11:4-8
+ 11 |   (+true: Int);
+    |     ^^^^
 
 Error: Expected type `Int` but found `Bool`
-test/analyze/type_check/unary_operation.myte:10:4-8
- 10 |   (-true: Int);
+test/analyze/type_check/unary_operation.myte:12:4-8
+ 12 |   (-true: Int);
     |     ^^^^
 
 Error: Expected types `Bool` or `Int` but found `String`
-test/analyze/type_check/unary_operation.myte:11:4-6
- 11 |   (!"": Bool);
+test/analyze/type_check/unary_operation.myte:13:4-6
+ 13 |   (!"": Bool);
     |     ^^
+
+Error: Expected types `Bool` or `Int` but found `Double`
+test/analyze/type_check/unary_operation.myte:14:4-7
+ 14 |   (!1.0: Bool);
+    |     ^^^

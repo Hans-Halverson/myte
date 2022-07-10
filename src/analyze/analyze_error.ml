@@ -352,7 +352,7 @@ let to_string error =
     let expected_string =
       match expected_strings with
       | [expected_string] -> "type " ^ expected_string
-      | _ -> "types " ^ String.concat " or " expected_strings
+      | _ -> "types " ^ Error_utils.concat_with_conjunction "or" expected_strings
     in
     Printf.sprintf "Expected %s but found %s" expected_string actual_string
   | CannotInferType (kind, partial) ->

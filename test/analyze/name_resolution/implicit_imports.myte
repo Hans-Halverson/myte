@@ -6,13 +6,14 @@ fun implicitTypeImports(
   x3: Byte,
   x4: Int,
   x5: Long,
-  x6: String,
-  x7: Option<Int>,
-  x8: Result<Int, Int>,
-  x9: Vec<Int>,
-  x10: Map<Int, Int>,
-  x11: Set<Int>,
-  x12: Never,
+  x6: Double,
+  x7: String,
+  x8: Option<Int>,
+  x9: Result<Int, Int>,
+  x10: Vec<Int>,
+  x11: Map<Int, Int>,
+  x12: Set<Int>,
+  x13: Never,
 ) {}
 
 fun implicitValueImports() {

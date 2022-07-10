@@ -20,11 +20,13 @@ fun testAllShifts() {
   true << 2;
   true >> 2;
   true >>> 2;
+  1.0 >>> 2;
 
   // Right side must be int error
   3 << true;
   3 >> true;
   3 >>> true;
+  3 >>> 1.0;
 }
 
 fun main() {}

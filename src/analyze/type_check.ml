@@ -59,6 +59,8 @@ let rec build_type ~cx ?(check_type_param_bounds = true) ?(trait_ctx = TraitDisa
     | Some name when name = Std_lib.std_byte_byte -> mk_if_correct_arity 0 (fun _ -> Type.Byte)
     | Some name when name = Std_lib.std_int_int -> mk_if_correct_arity 0 (fun _ -> Type.Int)
     | Some name when name = Std_lib.std_long_long -> mk_if_correct_arity 0 (fun _ -> Type.Long)
+    | Some name when name = Std_lib.std_double_double ->
+      mk_if_correct_arity 0 (fun _ -> Type.Double)
     | Some name when name = Std_lib.std_never_never -> mk_if_correct_arity 0 (fun _ -> Type.Never)
     | Some name when name = Std_lib.std_unit_unit -> mk_if_correct_arity 0 (fun _ -> Type.Unit)
     | Some name when name = Std_lib.std_string_string ->
@@ -969,7 +971,10 @@ and check_expression ~cx expr =
     let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc value in
     ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
     (loc, tvar_id)
-  | FloatLiteral _ -> failwith "TODO: Type check float literals"
+  | FloatLiteral { FloatLiteral.loc; _ } ->
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+    ignore (Type_context.unify ~cx Type.Double (TVar tvar_id));
+    (loc, tvar_id)
   | CharLiteral { CharLiteral.loc; value } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let value = Some (Integers.int64_of_char value) in
@@ -1052,6 +1057,7 @@ and check_expression ~cx expr =
     let result_ty =
       match (operand_rep_ty, op) with
       | ((Byte | Int | Long | IntLiteral _), (Plus | Minus | Not))
+      | (Double, (Plus | Minus))
       | (Bool, Not)
       | (Any _, _) ->
         operand_rep_ty
@@ -1079,13 +1085,19 @@ and check_expression ~cx expr =
     let (left_loc, left_tvar_id) = check_expression ~cx left in
     let (right_loc, right_tvar_id) = check_expression ~cx right in
     let is_integer tvar_id = is_integer ~cx (Type.TVar tvar_id) in
-    let is_integer_or_string tvar_id =
+    let is_number tvar_id =
+      match Type_context.find_rep_type ~cx (TVar tvar_id) with
+      | Double -> true
+      | _ -> is_integer tvar_id
+    in
+    let is_inequality_comparable tvar_id =
       let rep_ty = Type_context.find_rep_type ~cx (TVar tvar_id) in
       match rep_ty with
       | Any _
       | Byte
       | Int
       | Long
+      | Double
       | IntLiteral _ ->
         true
       | ADT { adt_sig; _ } when adt_sig == !Std_lib.string_adt_sig -> true
@@ -1100,18 +1112,38 @@ and check_expression ~cx expr =
       | _ -> Type_context.get_implemented_trait rep_ty !Std_lib.equatable_trait_sig <> None
     in
     let error_not_int loc tvar_id = error_not_int ~cx loc (Type.TVar tvar_id) in
-    let error_not_int_or_string loc tvar_id =
+    let error_not_number loc tvar_id =
+      Type_context.add_error
+        ~cx
+        loc
+        (IncompatibleTypes (Type_context.find_rep_type ~cx (TVar tvar_id), [Type.Int; Type.Double]))
+    in
+    let error_not_inequality_comparable loc tvar_id =
       Type_context.add_error
         ~cx
         loc
         (IncompatibleTypes
-           (Type_context.find_rep_type ~cx (TVar tvar_id), [Type.Int; Std_lib.mk_string_type ()]))
+           ( Type_context.find_rep_type ~cx (TVar tvar_id),
+             [Type.Int; Type.Double; Std_lib.mk_string_type ()] ))
     in
     (match op with
     | Add
     | Subtract
     | Multiply
-    | Divide
+    | Divide ->
+      (* If a child expression is an int propagate type to other child expression *)
+      if is_number left_tvar_id then (
+        Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id);
+        ignore (Type_context.unify ~cx (TVar left_tvar_id) (TVar tvar_id))
+      ) else if is_number right_tvar_id then (
+        Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id);
+        ignore (Type_context.unify ~cx (TVar right_tvar_id) (TVar tvar_id))
+      ) else (
+        (* Otherwise force expression's type to be any to avoid erroring at uses *)
+        error_not_number left_loc left_tvar_id;
+        error_not_number right_loc right_tvar_id;
+        ignore (Type_context.unify ~cx any (TVar tvar_id))
+      )
     | Remainder
     | BitwiseAnd
     | BitwiseOr
@@ -1168,13 +1200,13 @@ and check_expression ~cx expr =
     | LessThanOrEqual
     | GreaterThanOrEqual ->
       (* If a child expression is an int or string propagate type to other child *)
-      if is_integer_or_string left_tvar_id then
+      if is_inequality_comparable left_tvar_id then
         Type_context.assert_unify ~cx right_loc (TVar left_tvar_id) (TVar right_tvar_id)
-      else if is_integer_or_string right_tvar_id then
+      else if is_inequality_comparable right_tvar_id then
         Type_context.assert_unify ~cx left_loc (TVar right_tvar_id) (TVar left_tvar_id)
       else (
-        error_not_int_or_string left_loc left_tvar_id;
-        error_not_int_or_string right_loc right_tvar_id
+        error_not_inequality_comparable left_loc left_tvar_id;
+        error_not_inequality_comparable right_loc right_tvar_id
       );
       ignore (Type_context.unify ~cx Type.Bool (TVar tvar_id)));
     (loc, tvar_id)
@@ -1568,7 +1600,8 @@ and check_expression ~cx expr =
       | Bool
       | Byte
       | Int
-      | Long ->
+      | Long
+      | Double ->
         let adt_sig = Std_lib.get_primitive_adt_sig target_rep_ty in
         try_resolve_adt_method adt_sig []
       | IntLiteral lit_ty ->

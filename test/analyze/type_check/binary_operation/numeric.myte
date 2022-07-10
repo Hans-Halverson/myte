@@ -6,7 +6,13 @@ fun main() {
   (1 / 2: Int);
   (1 % 2: Int);
 
+  (1.0 - 2.0: Double);
+  (1.0 * 2.0: Double);
+  (1.0 / 2.0: Double);
+
   (1 - true: Int);
   (true - 1: Int);
   (true - (): Int);
+  (1.0 - true: Double);
+  (1.0 % 2.0: Double);
 }

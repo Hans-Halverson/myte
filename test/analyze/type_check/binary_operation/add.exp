@@ -3,12 +3,12 @@ test/analyze/type_check/binary_operation/add.myte:9:7-11
  9 |   (1 + true: Int);
    |        ^^^^
 
-Error: Expected type `Int` but found `Bool`
+Error: Expected types `Int` or `Double` but found `Bool`
 test/analyze/type_check/binary_operation/add.myte:12:3-7
  12 |   (true + (): (Int) -> Int);
     |    ^^^^
 
-Error: Expected type `Int` but found `Unit`
+Error: Expected types `Int` or `Double` but found `Unit`
 test/analyze/type_check/binary_operation/add.myte:12:10-12
  12 |   (true + (): (Int) -> Int);
     |           ^^

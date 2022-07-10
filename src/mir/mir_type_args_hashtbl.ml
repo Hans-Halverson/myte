@@ -24,6 +24,7 @@ module TypeArgs = struct
       | (Byte, Byte)
       | (Int, Int)
       | (Long, Long)
+      | (Double, Double)
       | (Function _, Function _) ->
         true
       | (Tuple elements1, Tuple elements2) -> List.for_all2 types_equal elements1 elements2
@@ -50,11 +51,12 @@ module TypeArgs = struct
       | Byte -> 3
       | Int -> 4
       | Long -> 5
-      | Function _ -> 6
-      | Tuple elements -> hash_nums (7 :: List.map hash elements)
-      | ADT { adt_sig = { id; _ }; type_args } -> hash_nums (8 :: id :: List.map hash type_args)
+      | Double -> 6
+      | Function _ -> 7
+      | Tuple elements -> hash_nums (8 :: List.map hash elements)
+      | ADT { adt_sig = { id; _ }; type_args } -> hash_nums (9 :: id :: List.map hash type_args)
       | TraitObject { trait_sig = { id; _ }; type_args } ->
-        hash_nums (9 :: id :: List.map hash type_args)
+        hash_nums (10 :: id :: List.map hash type_args)
       | Any _
       | TVar _
       | TypeParam _
@@ -87,6 +89,7 @@ module TypeArgs = struct
       | Byte -> "Byte"
       | Int -> "Int"
       | Long -> "Long"
+      | Double -> "Double"
       | Function _ -> "Function"
       | Tuple elements -> "(" ^ types_to_string elements ^ ")"
       | ADT { adt_sig = { loc; id; _ }; type_args } ->

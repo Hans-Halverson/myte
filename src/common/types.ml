@@ -333,6 +333,7 @@ and Type : sig
     | Byte
     | Int
     | Long
+    | Double
     | Tuple of t list
     | Function of Function.t
     | ADT of AdtSig.instance
@@ -445,6 +446,7 @@ let rec has_type_param type_param ty =
   | Byte
   | Int
   | Long
+  | Double
   | TVar _
   | IntLiteral { resolved = None; _ } ->
     false
@@ -475,6 +477,7 @@ let rec substitute_type_params type_params ty =
   | Byte
   | Int
   | Long
+  | Double
   | TVar _
   | IntLiteral { resolved = None; _ } ->
     ty
@@ -571,6 +574,7 @@ let rec pp_with_names ~tvar_to_name ty =
   | Byte -> "Byte"
   | Int -> "Int"
   | Long -> "Long"
+  | Double -> "Double"
   | Tuple elements ->
     let element_names = List.map (pp_with_names ~tvar_to_name) elements in
     concat_and_wrap ("(", ")") element_names

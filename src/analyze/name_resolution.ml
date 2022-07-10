@@ -68,6 +68,7 @@ let implicit_type_imports =
     ("Byte", std_byte_byte);
     ("Int", std_int_int);
     ("Long", std_long_long);
+    ("Double", std_double_double);
     ("Unit", std_unit_unit);
     ("Never", std_never_never);
     ("String", std_string_string);

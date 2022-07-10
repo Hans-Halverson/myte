@@ -34,6 +34,8 @@ let std_byte_byte_toInt = "std.byte.Byte.toInt"
 
 let std_byte_byte_toLong = "std.byte.Byte.toLong"
 
+let std_double_double = "std.double.Double"
+
 let std_gc_collect = "std.gc.collect"
 
 let std_gc_getHeapSize = "std.gc.getHeapSize"
@@ -127,6 +129,7 @@ let all_stdlib_names =
       std_byte_byte_equals;
       std_byte_byte_toInt;
       std_byte_byte_toLong;
+      std_double_double;
       std_gc_getHeapSize;
       std_io_file_builtin_close;
       std_io_file_builtin_open;
@@ -181,6 +184,8 @@ let byte_adt_sig = ref Types.AdtSig.empty
 let int_adt_sig = ref Types.AdtSig.empty
 
 let long_adt_sig = ref Types.AdtSig.empty
+
+let double_adt_sig = ref Types.AdtSig.empty
 
 let map_adt_sig = ref Types.AdtSig.empty
 
@@ -259,6 +264,7 @@ let register_stdlib_type loc adt_sig =
   | Some name when name = std_byte_byte -> byte_adt_sig := adt_sig
   | Some name when name = std_int_int -> int_adt_sig := adt_sig
   | Some name when name = std_long_long -> long_adt_sig := adt_sig
+  | Some name when name = std_double_double -> double_adt_sig := adt_sig
   | Some name when name = std_map_map -> map_adt_sig := adt_sig
   | Some name when name = std_memory_array -> array_adt_sig := adt_sig
   | Some name when name = std_never_never -> never_adt_sig := adt_sig
