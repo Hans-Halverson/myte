@@ -347,7 +347,7 @@
           "match": "\\b(true|false)\\b"
         },
         {
-          "match": "(-)?(\\d+)\\b",
+          "match": "(-)?(\\d+)(?!e|E|\\.[^a-zA-Z_])\\b",
           "captures": {
             "1": { "name": "keyword.operator.numeric.myte" },
             "2": { "name": "constant.numeric.decimal.myte" }
@@ -377,6 +377,15 @@
               "match": "\\\\(n|r|t|\\\\|')"
             }
           ]
+        },
+        {
+          "match": "\\d+((\\.)\\d*)?((e|E)(-|\\+)?\\d+)?",
+          "captures": {
+            "0": { "name": "constant.numeric.float.myte" },
+            "2": { "name": "constant.numeric.float.point.myte" },
+            "4": { "name": "punctuation.exponent.myte" },
+            "5": { "name": "keyword.operator.numeric.myte" }
+          }
         }
       ]
     },
