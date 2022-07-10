@@ -1,0 +1,4 @@
+Error: Malformed float literal, exponent must contain at least one digit
+test/parser/literals/malformed_float_no_digits_in_exponent.myte:4:2-6
+ 4 |   1.2e;
+   |   ^^^^

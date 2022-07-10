@@ -197,22 +197,80 @@ let parse_identifier_or_keyword lex =
       token_result T_WILDCARD)
   | _ -> iter ()
 
+let rec iter_dec_digits lex =
+  match lex.current with
+  | '0' .. '9' ->
+    advance lex;
+    iter_dec_digits lex
+  | _ -> ()
+
+(* Called after decimal sequence when current byte is '.', 'e', or 'E' *)
+let parse_number_float lex start_pos start_offset =
+  let mk_float_token () =
+    let raw = Bytes.sub_string lex.bytes start_offset (lex.current_offset - start_offset) in
+    Token (lex, { loc = current_loc lex start_pos; token = T_FLOAT_LITERAL raw })
+  in
+
+  (* Period is optional, and optionally followed by any number of digits *)
+  (match lex.current with
+  | '.' ->
+    advance lex;
+    iter_dec_digits lex
+  | _ -> ());
+
+  (* Exponent is optional *)
+  match lex.current with
+  | 'e'
+  | 'E' ->
+    advance lex;
+
+    (* Exponent optionally starts with sign *)
+    (match lex.current with
+    | '+'
+    | '-' ->
+      advance lex
+    | _ -> ());
+
+    (* Exponent must contain at least one digit *)
+    (match lex.current with
+    | '0' .. '9' ->
+      advance lex;
+
+      (* Exponent may contain any number of remaining digits *)
+      iter_dec_digits lex;
+
+      mk_float_token ()
+    | _ -> LexError (lex, (current_loc lex start_pos, Parse_error.MalformedFloatLiteral)))
+  | _ -> mk_float_token ()
+
 let parse_number_dec lex =
   let start_pos = current_pos lex in
   let start_offset = lex.current_offset in
 
-  (* Find all digits in number *)
-  let rec iter () =
-    match lex.current with
-    | '0' .. '9' ->
-      advance lex;
-      iter ()
-    | _ -> ()
+  let mk_int_token () =
+    let raw = Bytes.sub_string lex.bytes start_offset (lex.current_offset - start_offset) in
+    Token (lex, { loc = current_loc lex start_pos; token = T_INT_LITERAL (raw, Integers.Dec) })
   in
-  iter ();
 
-  let raw = Bytes.sub_string lex.bytes start_offset (lex.current_offset - start_offset) in
-  Token (lex, { loc = current_loc lex start_pos; token = T_INT_LITERAL (raw, Integers.Dec) })
+  (* Find all digits in number *)
+  iter_dec_digits lex;
+
+  match lex.current with
+  | '.' ->
+    (* Period indicates this is a float literal or named access  *)
+    (match peek lex with
+    (* Start of identifier means this is be a named access. This includes when name starts with an
+       'e', since floats must have at least one digit between the period and exponent *)
+    | 'a' .. 'z'
+    | 'A' .. 'Z'
+    | '_' ->
+      mk_int_token ()
+    | _ -> parse_number_float lex start_pos start_offset)
+  (* Exponent indicates this is a float literal *)
+  | 'e'
+  | 'E' ->
+    parse_number_float lex start_pos start_offset
+  | _ -> mk_int_token ()
 
 let parse_number_hex lex =
   let start_pos = current_pos lex in

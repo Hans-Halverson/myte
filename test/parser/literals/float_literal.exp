@@ -1,0 +1,264 @@
+test/parser/literals/float_literal.myte
+{
+  node: Module,
+  loc: 1:0-30:0,
+  name: {
+    node: ModuleName,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-26:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "main",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-26:1,
+        statements: [
+          {
+            node: ExpressionStatement,
+            loc: 5:2-5:4,
+            expression: {
+              node: IntLiteral,
+              loc: 5:2-5:3,
+              raw: "1",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 8:2-8:6,
+            expression: {
+              node: NamedAccess,
+              loc: 8:2-8:5,
+              target: {
+                node: IntLiteral,
+                loc: 8:2-8:3,
+                raw: "1",
+              },
+              name: {
+                node: Identifier,
+                loc: 8:4-8:5,
+                name: "e",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 9:2-9:7,
+            expression: {
+              node: NamedAccess,
+              loc: 9:2-9:6,
+              target: {
+                node: IntLiteral,
+                loc: 9:2-9:3,
+                raw: "1",
+              },
+              name: {
+                node: Identifier,
+                loc: 9:4-9:6,
+                name: "e1",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 10:2-10:8,
+            expression: {
+              node: BinaryOperation,
+              loc: 10:2-10:7,
+              op: Add,
+              left: {
+                node: NamedAccess,
+                loc: 10:2-10:5,
+                target: {
+                  node: IntLiteral,
+                  loc: 10:2-10:3,
+                  raw: "1",
+                },
+                name: {
+                  node: Identifier,
+                  loc: 10:4-10:5,
+                  name: "e",
+                },
+              },
+              right: {
+                node: IntLiteral,
+                loc: 10:6-10:7,
+                raw: "1",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 11:2-11:8,
+            expression: {
+              node: NamedAccess,
+              loc: 11:2-11:7,
+              target: {
+                node: IntLiteral,
+                loc: 11:2-11:3,
+                raw: "1",
+              },
+              name: {
+                node: Identifier,
+                loc: 11:4-11:7,
+                name: "foo",
+              },
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 14:2-14:5,
+            expression: {
+              node: FloatLiteral,
+              loc: 14:2-14:4,
+              raw: "1.",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 15:2-15:6,
+            expression: {
+              node: FloatLiteral,
+              loc: 15:2-15:5,
+              raw: "1.2",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 16:2-16:10,
+            expression: {
+              node: FloatLiteral,
+              loc: 16:2-16:9,
+              raw: "123.456",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 17:2-17:10,
+            expression: {
+              node: FloatLiteral,
+              loc: 17:2-17:9,
+              raw: "123e456",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 18:2-18:10,
+            expression: {
+              node: FloatLiteral,
+              loc: 18:2-18:9,
+              raw: "123E456",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 19:2-19:11,
+            expression: {
+              node: FloatLiteral,
+              loc: 19:2-19:10,
+              raw: "123e+456",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 20:2-20:11,
+            expression: {
+              node: FloatLiteral,
+              loc: 20:2-20:10,
+              raw: "123e-456",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 21:2-21:14,
+            expression: {
+              node: FloatLiteral,
+              loc: 21:2-21:13,
+              raw: "123.456e789",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 22:2-22:15,
+            expression: {
+              node: FloatLiteral,
+              loc: 22:2-22:14,
+              raw: "123.456e-789",
+            },
+          },
+          {
+            node: ExpressionStatement,
+            loc: 25:2-25:7,
+            expression: {
+              node: UnaryOperation,
+              loc: 25:2-25:6,
+              op: Minus,
+              operand: {
+                node: FloatLiteral,
+                loc: 25:3-25:6,
+                raw: "1.0",
+              },
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+    {
+      node: VariableDeclaration,
+      loc: 29:0-29:17,
+      kind: Immutable,
+      pattern: {
+        node: ScopedIdentifier,
+        loc: 29:4-29:5,
+        scopes: [],
+        name: {
+          node: Identifier,
+          loc: 29:4-29:5,
+          name: "x",
+        },
+      },
+      init: {
+        node: FloatLiteral,
+        loc: 29:15-29:17,
+        raw: "1.",
+      },
+      annot: {
+        node: IdentifierType,
+        loc: 29:7-29:12,
+        name: {
+          node: ScopedIdentifier,
+          loc: 29:7-29:12,
+          scopes: [],
+          name: {
+            node: Identifier,
+            loc: 29:7-29:12,
+            name: "Float",
+          },
+        },
+        type_args: [],
+      },
+    },
+  ],
+}

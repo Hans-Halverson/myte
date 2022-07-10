@@ -1248,6 +1248,11 @@ methods Parser {
         this.advance();
         ast.EIntLiteral (ast.IntLiteral { loc, raw, base })
       }
+      | token.FloatLiteral { raw } -> {
+        val loc = this.loc;
+        this.advance();
+        ast.EFloatLiteral (ast.FloatLiteral { loc, raw })
+      }
       | token.BoolLiteral (value) -> {
         val loc = this.loc;
         this.advance();

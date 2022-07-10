@@ -159,6 +159,7 @@ and node_of_expression expr =
   | Unit unit -> node_of_unit unit
   | Identifier id -> node_of_identifier id
   | IntLiteral lit -> node_of_int_literal lit
+  | FloatLiteral lit -> node_of_float_literal lit
   | CharLiteral lit -> node_of_char_literal lit
   | StringLiteral lit -> node_of_string_literal lit
   | BoolLiteral lit -> node_of_bool_literal lit
@@ -259,6 +260,10 @@ and node_of_int_literal lit =
     | Hex -> [("base", String "Hex")]
   in
   node "IntLiteral" loc ([("raw", String raw)] @ base_node)
+
+and node_of_float_literal lit =
+  let { Expression.FloatLiteral.loc; raw } = lit in
+  node "FloatLiteral" loc [("raw", String raw)]
 
 and node_of_char_literal lit =
   let { Expression.CharLiteral.loc; value } = lit in

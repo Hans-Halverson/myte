@@ -525,6 +525,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       | _ -> failwith "Int literal must have integer type"
     in
     Some value
+  | FloatLiteral _ -> failwith "TODO: Emit float literals"
   | CharLiteral { loc; value } ->
     let value = int_of_char value in
     let ty = mir_type_of_loc ~ecx loc |> Option.get in

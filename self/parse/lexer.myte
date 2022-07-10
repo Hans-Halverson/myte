@@ -182,6 +182,16 @@ methods Lexer {
     return Ok (TokenResult { loc, token });
   }
 
+  fun errorResult(error: ParseError): Result<TokenResult, ErrorResult> {
+    val loc = Loc {
+      source: this.source,
+      start: this.currentTokenStartPos,
+      end: this.getCurrentPos(),
+    };
+
+    return Error (ErrorResult { error, loc });
+  }
+
   fun errorResultAtCurrentPos(error: ParseError): Result<TokenResult, ErrorResult> {
     val loc = this.locOfPosition(this.getCurrentPos());
 
@@ -230,9 +240,9 @@ methods Lexer {
       return this.tokenResult(this.parseNumberBin());
     }
 
-    // Otherwise is a decimal integer literal
+    // Otherwise is a decimal integer or float literal
     if ('0' <= current && current <= '9') {
-      return this.tokenResult(this.parseNumberDec());
+      return this.parseNumberDec();
     }
 
     return match (current) {
@@ -588,18 +598,40 @@ methods Lexer {
     ('0' <= this.current && this.current <= '9') ||
     ('a' <= this.current && this.current <= 'f') ||
     ('A' <= this.current && this.current <= 'F')
-  
+
   fun isBinDigit(byte: LexByte): Bool = byte == '0' || byte == '1'
 
-  fun parseNumberDec(): Token {
-    val startOffset = this.currentOffset;
+  fun skipDecDigits() {
     while ('0' <= this.current && this.current <= '9') {
       this.advance();
     }
+  }
 
-    val raw = this.bytes.substring(startOffset, this.currentOffset);
+  fun parseNumberDec(): Result<TokenResult, ErrorResult> {
+    val startOffset = this.currentOffset;
 
-    return token.IntLiteral { raw, base: ast.Dec };
+    this.skipDecDigits();
+
+    return match (this.current) {
+      // Period indicates this is a float literal or named access
+      | '.'  -> {
+        // Start of identifier means this is be a named access. This includes when name starts with
+        // an 'e', since floats must have at least one digit between the period and exponent.
+        val next = this.peek();
+        if (('a' <= next && next <= 'z') || ('A' <= next && next <= 'Z') || next == '_') {
+          val raw = this.bytes.substring(startOffset, this.currentOffset);
+          this.tokenResult(token.IntLiteral { raw, base: ast.Dec })
+        } else {
+          this.parseNumberFloat(startOffset)
+        }
+      }
+      // Exponent indicates this is a float literal
+      | 'e' | 'E' -> this.parseNumberFloat(startOffset)
+      | _ -> {
+        val raw = this.bytes.substring(startOffset, this.currentOffset);
+        this.tokenResult(token.IntLiteral { raw, base: ast.Dec })
+      }
+    };
   }
 
   fun parseNumberHex(): Token {
@@ -632,6 +664,45 @@ methods Lexer {
     val raw = this.bytes.substring(startOffset, this.currentOffset);
 
     return token.IntLiteral { raw, base: ast.Bin };
+  }
+
+  fun parseNumberFloat(startOffset: Int): Result<TokenResult, ErrorResult> {
+    // Period is optional, and optionally followed by any number of digits
+    match (this.current) {
+      | '.' -> {
+        this.advance();
+        this.skipDecDigits();
+      }
+      | _ -> ()
+    }
+
+    // Exponent is optional
+    return match (this.current) {
+      | 'e' | 'E' -> {
+        this.advance();
+
+        // Exponent optionally starts with sign
+        match (this.current) {
+          | '-' | '+' -> this.advance()
+          | _ -> ()
+        }
+
+        // Exponent must contain at least one digit
+        if ('0' <= this.current && this.current <= '9') {
+          this.advance();
+          this.skipDecDigits();
+
+          val raw = this.bytes.substring(startOffset, this.currentOffset);
+          this.tokenResult(token.FloatLiteral { raw })
+        } else {
+          this.errorResult(error.MalformedFloatLiteral)
+        }
+      }
+      | _ -> {
+        val raw = this.bytes.substring(startOffset, this.currentOffset);
+        this.tokenResult(token.FloatLiteral { raw })
+      }
+    };
   }
 
   fun parseStringLiteral(inInterpolated: Bool, startPos: Pos): Result<TokenResult, ErrorResult> {

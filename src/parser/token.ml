@@ -1,6 +1,7 @@
 type t =
   | T_IDENTIFIER of string
   | T_INT_LITERAL of string * Integers.base
+  | T_FLOAT_LITERAL of string
   | T_CHAR_LITERAL of char
   | T_STRING_LITERAL of string
   | T_BOOL_LITERAL of bool
@@ -81,6 +82,7 @@ let to_string token =
   match token with
   | T_IDENTIFIER name -> name
   | T_INT_LITERAL (raw, _) -> raw
+  | T_FLOAT_LITERAL raw -> raw
   | T_CHAR_LITERAL value -> Integers.char_to_string value
   | T_STRING_LITERAL value -> "\"" ^ value ^ "\""
   | T_BOOL_LITERAL value ->

@@ -303,6 +303,7 @@ trait AstVisitor {
     match (expr) {
       | ast.EUnitLiteral (unit) -> this.visitUnitLiteral(unit)
       | ast.EIntLiteral (int) -> this.visitIntLiteral(int)
+      | ast.EFloatLiteral (int) -> this.visitFloatLiteral(int)
       | ast.EBoolLiteral (bool) -> this.visitBoolLiteral(bool)
       | ast.EStringLiteral (string) -> this.visitStringLiteral(string)
       | ast.ECharLiteral (char) -> this.visitCharLiteral(char)
@@ -334,6 +335,8 @@ trait AstVisitor {
   fun visitBoolLiteral(bool: ast.BoolLiteral) {}
 
   fun visitIntLiteral(int: ast.IntLiteral) {}
+
+  fun visitFloatLiteral(int: ast.FloatLiteral) {}
 
   fun visitCharLiteral(char: ast.CharLiteral) {}
 

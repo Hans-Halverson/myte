@@ -22,6 +22,7 @@ let expression_loc expr =
   match expr with
   | Unit { loc }
   | IntLiteral { loc; _ }
+  | FloatLiteral { loc; _ }
   | CharLiteral { loc; _ }
   | StringLiteral { loc; _ }
   | BoolLiteral { loc; _ }

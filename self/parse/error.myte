@@ -18,6 +18,7 @@ type ParseError =
   | InvalidStringEscape { inInterpolated: Bool }
   | InvalidHexEscape
   | InvalidCharEscape
+  | MalformedFloatLiteral
   | MalformedCharLiteral
   | MalformedToplevel { token: Token }
   | MalformedFunctionBody { token: Token }
@@ -72,6 +73,7 @@ methods ParseError {
         "Invalid hex escape sequence, expected exactly two hex digits following `\\x`"
       | InvalidCharEscape ->
         "Invalid character escape sequence, expected `'`, `\\`, `n`, `t`, or `r`"
+      | MalformedFloatLiteral -> "Malformed float literal, exponent must contain at least one digit"
       | MalformedCharLiteral -> "Malformed character literal"
       | MalformedToplevel { token } ->
         `Unexpected token \`${token}\`, expected start of top level declaration`

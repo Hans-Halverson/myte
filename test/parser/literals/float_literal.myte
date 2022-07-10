@@ -1,0 +1,29 @@
+module test
+
+fun main() {
+  // Int literal
+  1;
+
+  // Member expressions
+  1.e;
+  1.e1;
+  1.e+1;
+  1.foo;
+
+  // Float literal
+  1.;
+  1.2;
+  123.456;
+  123e456;
+  123E456;
+  123e+456;
+  123e-456;
+  123.456e789;
+  123.456e-789;
+
+  // Separate unary operation and float literal
+  -1.0;
+}
+
+// Decimal can be followed by EOF - testing that lookahead doesn't fail
+val x: Float = 1.

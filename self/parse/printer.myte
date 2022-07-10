@@ -499,6 +499,7 @@ fun nodeOfExpression(expr: ast.Expression): PrintNode =
   match (expr) {
     | ast.EUnitLiteral (e) -> nodeOfUnitLiteral(e)
     | ast.EIntLiteral (e) -> nodeOfIntLiteral(e)
+    | ast.EFloatLiteral (e) -> nodeOfFloatLiteral(e)
     | ast.EBoolLiteral (e) -> nodeOfBoolLiteral(e)
     | ast.EStringLiteral (e) -> nodeOfStringLiteral(e)
     | ast.ECharLiteral (e) -> nodeOfCharLiteral(e)
@@ -539,6 +540,10 @@ fun nodeOfIntLiteral(lit: ast.IntLiteral): PrintNode {
   }
 
   return Node { name: "IntLiteral", loc, fields };
+}
+fun nodeOfFloatLiteral(lit: ast.FloatLiteral): PrintNode {
+  val ast.FloatLiteral { loc, raw } = lit;
+  return Node { name: "FloatLiteral", loc, fields: [("raw", String (raw))] };
 }
 
 fun nodeOfBoolLiteral(lit: ast.BoolLiteral): PrintNode {

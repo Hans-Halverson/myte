@@ -260,6 +260,7 @@ type AssignmentLvalue =
 type Expression =
   | EUnitLiteral (UnitLiteral)
   | EIntLiteral (IntLiteral)
+  | EFloatLiteral (FloatLiteral)
   | EBoolLiteral (BoolLiteral)
   | EStringLiteral (StringLiteral)
   | ECharLiteral (CharLiteral)
@@ -290,6 +291,11 @@ type IntLiteral {
   loc: Loc,
   raw: String,
   base: IntLiteralBase,
+}
+
+type FloatLiteral {
+  loc: Loc,
+  raw: String,
 }
 
 type IntLiteralBase =

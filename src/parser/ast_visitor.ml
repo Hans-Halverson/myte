@@ -47,6 +47,7 @@ class visitor =
         match expr with
         | Unit e -> this#unit e
         | IntLiteral e -> this#int_literal e
+        | FloatLiteral e -> this#float_literal e
         | CharLiteral e -> this#char_literal e
         | StringLiteral e -> this#string_literal e
         | BoolLiteral e -> this#bool_literal e
@@ -121,6 +122,8 @@ class visitor =
     method unit _unit = ()
 
     method int_literal _lit = ()
+
+    method float_literal _lit = ()
 
     method char_literal _lit = ()
 

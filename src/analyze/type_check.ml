@@ -969,6 +969,7 @@ and check_expression ~cx expr =
     let int_literal_ty = Type_context.mk_int_literal_ty ~cx loc value in
     ignore (Type_context.unify ~cx int_literal_ty (TVar tvar_id));
     (loc, tvar_id)
+  | FloatLiteral _ -> failwith "TODO: Type check float literals"
   | CharLiteral { CharLiteral.loc; value } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     let value = Some (Integers.int64_of_char value) in

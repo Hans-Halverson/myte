@@ -9,6 +9,7 @@ import myte.parse.ast.utils.escapeCharLiteralValue
 type Token =
   | Identifier (String)
   | IntLiteral { raw: String, base: ast.IntLiteralBase }
+  | FloatLiteral { raw: String }
   | BoolLiteral (Bool)
   | StringLiteral (String)
   | CharLiteral (Byte)
@@ -93,6 +94,7 @@ methods Token {
       | Identifier (name) -> name
       | BoolLiteral (bool) -> bool.toString()
       | IntLiteral { raw, ... } -> raw
+      | FloatLiteral { raw } -> raw
       | StringLiteral (string) -> `"${string}"`
       | CharLiteral (char) -> escapeCharLiteralValue(char)
       | InterpolatedString _ -> "<interpolated string>"

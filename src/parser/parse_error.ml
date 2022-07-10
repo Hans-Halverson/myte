@@ -9,6 +9,7 @@ type t =
   | InvalidEscape of bool
   | InvalidHexEscape
   | InvalidCharEscape
+  | MalformedFloatLiteral
   | MalformedCharLiteral
   | MalformedTopLevel of Token.t
   | MalformedMethodsItem of Token.t
@@ -61,6 +62,7 @@ let to_string error =
   | InvalidHexEscape ->
     "Invalid hex escape sequence, expected exactly two hex digits following `\\x`"
   | InvalidCharEscape -> "Invalid character escape sequence, expected `'`, `\\`, `n`, `t`, or `r`"
+  | MalformedFloatLiteral -> "Malformed float literal, exponent must contain at least one digit"
   | MalformedCharLiteral -> "Malformed character literal"
   | MalformedTopLevel actual ->
     Printf.sprintf

@@ -61,6 +61,7 @@ fun expressionLoc(expr: ast.Expression): Loc =
   match (expr) {
     | ast.EUnitLiteral (ast.UnitLiteral { loc })
     | ast.EIntLiteral (ast.IntLiteral { loc, ... })
+    | ast.EFloatLiteral (ast.FloatLiteral { loc, ... })
     | ast.EBoolLiteral (ast.BoolLiteral { loc, ... })
     | ast.EStringLiteral (ast.StringLiteral { loc, ... })
     | ast.ECharLiteral (ast.CharLiteral { loc, ... })

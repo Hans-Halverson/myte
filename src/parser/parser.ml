@@ -301,6 +301,10 @@ and parse_expression_prefix env =
     let loc = Env.loc env in
     Env.advance env;
     IntLiteral { IntLiteral.loc; raw; base }
+  | T_FLOAT_LITERAL raw ->
+    let loc = Env.loc env in
+    Env.advance env;
+    FloatLiteral { FloatLiteral.loc; raw }
   | T_CHAR_LITERAL value ->
     let loc = Env.loc env in
     Env.advance env;
