@@ -132,140 +132,161 @@ label @3:
 }
 
 func void @std.vec.Vec.push<Bool>(std.vec.Vec<Bool>* %0, bool %1) {
-  %2 := GetPointer int, std.vec.Vec<Bool>* %0.0
+  %2 := GetPointer int, std.vec.Vec<Bool>* %0.1
   %3 := Load int %2
-  %4 := GetPointer int, std.vec.Vec<Bool>* %0.1
+  %4 := GetPointer int, std.vec.Vec<Bool>* %0.0
   %5 := Load int %4
-  %6 := Eq int %3, %5
-  branch %6, @0, @1
+  %6 := Eq int %5, %3
+  branch %6, @0, @3
 label @0:
-  Call void @std.vec.Vec.resize<Bool>(%0)
-  continue @1
+  %7 := Eq int %3, 0
+  branch %7, @2, @1
 label @1:
-  %7 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
-  %8 := Load bool* %7
-  %9 := GetPointer int, std.vec.Vec<Bool>* %0.0
-  %10 := Load int %9
-  %11 := GetPointer bool, bool* %8[int %10]
-  Store bool %11, %1
+  %8 := Mul int %3, 2
+  continue @2
+label @2:
+  %9 := Phi int @0:1, @1:%8
+  Call void @std.vec.Vec.reserve<Bool>(%0, %9)
+  continue @3
+label @3:
+  %10 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
+  %11 := Load bool* %10
   %12 := GetPointer int, std.vec.Vec<Bool>* %0.0
   %13 := Load int %12
-  %14 := Add int %13, 1
+  %14 := GetPointer bool, bool* %11[int %13]
+  Store bool %14, %1
   %15 := GetPointer int, std.vec.Vec<Bool>* %0.0
-  Store int %15, %14
+  %16 := Load int %15
+  %17 := Add int %16, 1
+  %18 := GetPointer int, std.vec.Vec<Bool>* %0.0
+  Store int %18, %17
   Ret
 }
 
 func void @std.vec.Vec.push<Int>(std.vec.Vec<Int>* %0, int %1) {
-  %2 := GetPointer int, std.vec.Vec<Int>* %0.0
+  %2 := GetPointer int, std.vec.Vec<Int>* %0.1
   %3 := Load int %2
-  %4 := GetPointer int, std.vec.Vec<Int>* %0.1
+  %4 := GetPointer int, std.vec.Vec<Int>* %0.0
   %5 := Load int %4
-  %6 := Eq int %3, %5
-  branch %6, @0, @1
+  %6 := Eq int %5, %3
+  branch %6, @0, @3
 label @0:
-  Call void @std.vec.Vec.resize<Int>(%0)
-  continue @1
+  %7 := Eq int %3, 0
+  branch %7, @2, @1
 label @1:
-  %7 := GetPointer int*, std.vec.Vec<Int>* %0.2
-  %8 := Load int* %7
-  %9 := GetPointer int, std.vec.Vec<Int>* %0.0
-  %10 := Load int %9
-  %11 := GetPointer int, int* %8[int %10]
-  Store int %11, %1
+  %8 := Mul int %3, 2
+  continue @2
+label @2:
+  %9 := Phi int @0:1, @1:%8
+  Call void @std.vec.Vec.reserve<Int>(%0, %9)
+  continue @3
+label @3:
+  %10 := GetPointer int*, std.vec.Vec<Int>* %0.2
+  %11 := Load int* %10
   %12 := GetPointer int, std.vec.Vec<Int>* %0.0
   %13 := Load int %12
-  %14 := Add int %13, 1
+  %14 := GetPointer int, int* %11[int %13]
+  Store int %14, %1
   %15 := GetPointer int, std.vec.Vec<Int>* %0.0
-  Store int %15, %14
+  %16 := Load int %15
+  %17 := Add int %16, 1
+  %18 := GetPointer int, std.vec.Vec<Int>* %0.0
+  Store int %18, %17
   Ret
 }
 
 func void @std.vec.Vec.push<String>(std.vec.Vec<String>* %0, std.string.String* %1) {
-  %2 := GetPointer int, std.vec.Vec<String>* %0.0
+  %2 := GetPointer int, std.vec.Vec<String>* %0.1
   %3 := Load int %2
-  %4 := GetPointer int, std.vec.Vec<String>* %0.1
+  %4 := GetPointer int, std.vec.Vec<String>* %0.0
   %5 := Load int %4
-  %6 := Eq int %3, %5
-  branch %6, @0, @1
+  %6 := Eq int %5, %3
+  branch %6, @0, @3
 label @0:
-  Call void @std.vec.Vec.resize<String>(%0)
-  continue @1
+  %7 := Eq int %3, 0
+  branch %7, @2, @1
 label @1:
-  %7 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
-  %8 := Load std.string.String** %7
-  %9 := GetPointer int, std.vec.Vec<String>* %0.0
-  %10 := Load int %9
-  %11 := GetPointer std.string.String*, std.string.String** %8[int %10]
-  Store std.string.String* %11, %1
+  %8 := Mul int %3, 2
+  continue @2
+label @2:
+  %9 := Phi int @0:1, @1:%8
+  Call void @std.vec.Vec.reserve<String>(%0, %9)
+  continue @3
+label @3:
+  %10 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
+  %11 := Load std.string.String** %10
   %12 := GetPointer int, std.vec.Vec<String>* %0.0
   %13 := Load int %12
-  %14 := Add int %13, 1
+  %14 := GetPointer std.string.String*, std.string.String** %11[int %13]
+  Store std.string.String* %14, %1
   %15 := GetPointer int, std.vec.Vec<String>* %0.0
-  Store int %15, %14
+  %16 := Load int %15
+  %17 := Add int %16, 1
+  %18 := GetPointer int, std.vec.Vec<String>* %0.0
+  Store int %18, %17
   Ret
 }
 
-func void @std.vec.Vec.resize<Bool>(std.vec.Vec<Bool>* %0) {
-  %1 := GetPointer int, std.vec.Vec<Bool>* %0.1
-  %2 := Load int %1
-  %3 := Eq int %2, 0
-  branch %3, @1, @0
+func void @std.vec.Vec.reserve<Bool>(std.vec.Vec<Bool>* %0, int %1) {
+  %2 := GetPointer int, std.vec.Vec<Bool>* %0.1
+  %3 := Load int %2
+  %4 := LtEq int %1, %3
+  branch %4, @1, @0
 label @0:
-  %4 := Mul int %2, 2
-  continue @1
-label @1:
-  %5 := Phi int @std.vec.Vec.resize<Bool>:1, @0:%4
-  %6 := GetPointer int, std.vec.Vec<Bool>* %0.1
-  Store int %6, %5
-  %7 := Call bool* myte.builtin.alloc(%5)
-  %8 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
-  %9 := Load bool* %8
-  Call void myte.builtin.copy(%7, %9, %2)
+  %5 := Call bool* myte.builtin.alloc(%1)
+  %6 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
+  %7 := Load bool* %6
+  %8 := GetPointer int, std.vec.Vec<Bool>* %0.0
+  %9 := Load int %8
+  Call void myte.builtin.copy(%5, %7, %9)
   %10 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
-  Store bool* %10, %7
+  Store bool* %10, %5
+  %11 := GetPointer int, std.vec.Vec<Bool>* %0.1
+  Store int %11, %1
+  continue @1
+label @1:
   Ret
 }
 
-func void @std.vec.Vec.resize<Int>(std.vec.Vec<Int>* %0) {
-  %1 := GetPointer int, std.vec.Vec<Int>* %0.1
-  %2 := Load int %1
-  %3 := Eq int %2, 0
-  branch %3, @1, @0
+func void @std.vec.Vec.reserve<Int>(std.vec.Vec<Int>* %0, int %1) {
+  %2 := GetPointer int, std.vec.Vec<Int>* %0.1
+  %3 := Load int %2
+  %4 := LtEq int %1, %3
+  branch %4, @1, @0
 label @0:
-  %4 := Mul int %2, 2
-  continue @1
-label @1:
-  %5 := Phi int @std.vec.Vec.resize<Int>:1, @0:%4
-  %6 := GetPointer int, std.vec.Vec<Int>* %0.1
-  Store int %6, %5
-  %7 := Call int* myte.builtin.alloc(%5)
-  %8 := GetPointer int*, std.vec.Vec<Int>* %0.2
-  %9 := Load int* %8
-  Call void myte.builtin.copy(%7, %9, %2)
+  %5 := Call int* myte.builtin.alloc(%1)
+  %6 := GetPointer int*, std.vec.Vec<Int>* %0.2
+  %7 := Load int* %6
+  %8 := GetPointer int, std.vec.Vec<Int>* %0.0
+  %9 := Load int %8
+  Call void myte.builtin.copy(%5, %7, %9)
   %10 := GetPointer int*, std.vec.Vec<Int>* %0.2
-  Store int* %10, %7
+  Store int* %10, %5
+  %11 := GetPointer int, std.vec.Vec<Int>* %0.1
+  Store int %11, %1
+  continue @1
+label @1:
   Ret
 }
 
-func void @std.vec.Vec.resize<String>(std.vec.Vec<String>* %0) {
-  %1 := GetPointer int, std.vec.Vec<String>* %0.1
-  %2 := Load int %1
-  %3 := Eq int %2, 0
-  branch %3, @1, @0
+func void @std.vec.Vec.reserve<String>(std.vec.Vec<String>* %0, int %1) {
+  %2 := GetPointer int, std.vec.Vec<String>* %0.1
+  %3 := Load int %2
+  %4 := LtEq int %1, %3
+  branch %4, @1, @0
 label @0:
-  %4 := Mul int %2, 2
+  %5 := Call std.string.String** myte.builtin.alloc(%1)
+  %6 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
+  %7 := Load std.string.String** %6
+  %8 := GetPointer int, std.vec.Vec<String>* %0.0
+  %9 := Load int %8
+  Call void myte.builtin.copy(%5, %7, %9)
+  %10 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
+  Store std.string.String** %10, %5
+  %11 := GetPointer int, std.vec.Vec<String>* %0.1
+  Store int %11, %1
   continue @1
 label @1:
-  %5 := Phi int @std.vec.Vec.resize<String>:1, @0:%4
-  %6 := GetPointer int, std.vec.Vec<String>* %0.1
-  Store int %6, %5
-  %7 := Call std.string.String** myte.builtin.alloc(%5)
-  %8 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
-  %9 := Load std.string.String** %8
-  Call void myte.builtin.copy(%7, %9, %2)
-  %10 := GetPointer std.string.String**, std.vec.Vec<String>* %0.2
-  Store std.string.String** %10, %7
   Ret
 }
 
