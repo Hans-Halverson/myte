@@ -12,17 +12,16 @@ class use_def_finder color_to_representative_operand =
 
     method get_representative_register reg = RegMap.find reg color_to_representative_operand
 
-    method! visit_instruction ~block instr_with_id =
+    method! visit_instruction ~block instr =
       let open Instruction in
-      let (_, instr) = instr_with_id in
-      match instr with
+      match instr.instr with
       (* Calls define all caller save registers *)
       | CallM _
       | CallL _ ->
         RegSet.iter
           (fun reg -> this#add_register_def ~block (this#get_representative_register reg))
           caller_saved_registers;
-        super#visit_instruction ~block instr_with_id
+        super#visit_instruction ~block instr
       (* IDiv uses the value in register A and writes to registers A and D *)
       | IDiv _ ->
         let reg_a = this#get_representative_register A in
@@ -30,23 +29,23 @@ class use_def_finder color_to_representative_operand =
         this#add_register_use ~block reg_a;
         this#add_register_def ~block reg_a;
         this#add_register_def ~block reg_d;
-        super#visit_instruction ~block instr_with_id
+        super#visit_instruction ~block instr
       (* ConvertDouble (e.g. cdq) uses the value in register A and writes to register D *)
       | ConvertDouble _ ->
         this#add_register_use ~block (this#get_representative_register A);
         this#add_register_def ~block (this#get_representative_register D);
-        super#visit_instruction ~block instr_with_id
+        super#visit_instruction ~block instr
       (* Shifts with register shift argument implicitly use value in register C *)
       | ShlR _
       | ShrR _
       | SarR _ ->
         this#add_register_use ~block (this#get_representative_register C);
-        super#visit_instruction ~block instr_with_id
+        super#visit_instruction ~block instr
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
       | XorMM (_, reg1, reg2) when Operand.is_reg_value reg1 && reg1.id = reg2.id ->
         this#visit_write_operand ~block reg1
-      | _ -> super#visit_instruction ~block instr_with_id
+      | _ -> super#visit_instruction ~block instr
 
     method resolve_register op =
       match op.Operand.value with

@@ -29,3 +29,14 @@ let mk_function_argument_stack_slot ~(i : int) ~(type_ : Type.t) : Operand.t =
 
 let mk_function_stack_argument ~(arg_id : int) ~(type_ : Type.t) : Operand.t =
   Operand.of_value_id ~value:FunctionStackArgument arg_id ~type_
+
+(*
+ * ============================
+ *         Instructions
+ * ============================
+ *)
+
+let mk_instr instr =
+  let id = Instruction.mk_id () in
+  let instruction = { Instruction.id; instr } in
+  instruction

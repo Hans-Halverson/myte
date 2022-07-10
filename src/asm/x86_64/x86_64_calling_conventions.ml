@@ -20,13 +20,13 @@ let write_function_prologues ~(gcx : Gcx.t) =
   IMap.iter
     (fun _ func ->
       let prologue = IMap.find func.Function.prologue gcx.blocks_by_id in
+
       (* Only need to save the base pointer if there is data on stack *)
       let save_base_pointer_instrs =
         if func_should_save_base_pointer func then
           [
-            (Gcx.mk_instr_id_for_block ~gcx prologue, PushM (mk_precolored_bp ()));
-            ( Gcx.mk_instr_id_for_block ~gcx prologue,
-              MovMM (Size64, mk_precolored_sp (), mk_precolored_bp ()) );
+            mk_instr (PushM (mk_precolored_bp ()));
+            mk_instr (MovMM (Size64, mk_precolored_sp (), mk_precolored_bp ()));
           ]
         else
           []
@@ -36,7 +36,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
         RegSet.fold
           (fun reg acc ->
             if RegSet.mem reg func.spilled_callee_saved_regs then
-              Instruction.(mk_id (), PushM (mk_precolored ~type_:Long reg)) :: acc
+              mk_instr (PushM (mk_precolored ~type_:Long reg)) :: acc
             else
               acc)
           callee_saved_registers
@@ -46,10 +46,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
       let allocate_stack_frame_instrs =
         if func_has_stack_frame func then
           let stack_frame_size = func_stack_frame_size func in
-          [
-            ( Gcx.mk_instr_id_for_block ~gcx prologue,
-              SubIM (Size64, Imm32 (Int32.of_int stack_frame_size), mk_precolored_sp ()) );
-          ]
+          [mk_instr (SubIM (Size64, Imm32 (Int32.of_int stack_frame_size), mk_precolored_sp ()))]
         else
           []
       in
@@ -70,17 +67,17 @@ let write_function_epilogues ~(gcx : Gcx.t) =
       let offset = ref 0 in
       block.instructions <-
         List.map
-          (fun ((_, instr) as instr_with_id) ->
+          (fun instr ->
             let open Instruction in
-            match instr with
+            match instr.instr with
             | Ret ->
               (* Destroy the stack frame *)
               let destroy_stack_frame_instrs =
                 if func_has_stack_frame func then
                   let stack_frame_size = func_stack_frame_size func in
                   [
-                    ( Gcx.mk_instr_id_for_block ~gcx block,
-                      AddIM (Size64, Imm32 (Int32.of_int stack_frame_size), mk_precolored_sp ()) );
+                    mk_instr
+                      (AddIM (Size64, Imm32 (Int32.of_int stack_frame_size), mk_precolored_sp ()));
                   ]
                 else
                   []
@@ -91,9 +88,7 @@ let write_function_epilogues ~(gcx : Gcx.t) =
                   (fun reg acc ->
                     if RegSet.mem reg func.spilled_callee_saved_regs then (
                       offset := !offset + 1;
-                      Instruction.
-                        (Gcx.mk_instr_id_for_block ~gcx block, PopM (mk_precolored ~type_:Long reg))
-                      :: acc
+                      mk_instr (PopM (mk_precolored ~type_:Long reg)) :: acc
                     ) else
                       acc)
                   callee_saved_registers
@@ -103,18 +98,14 @@ let write_function_epilogues ~(gcx : Gcx.t) =
               let restore_base_pointer_instrs =
                 if func_should_save_base_pointer func then
                   [
-                    ( Gcx.mk_instr_id_for_block ~gcx block,
-                      MovMM (Size64, mk_precolored_bp (), mk_precolored_sp ()) );
-                    (Gcx.mk_instr_id_for_block ~gcx block, PopM (mk_precolored_bp ()));
+                    mk_instr (MovMM (Size64, mk_precolored_bp (), mk_precolored_sp ()));
+                    mk_instr (PopM (mk_precolored_bp ()));
                   ]
                 else
                   []
               in
-              destroy_stack_frame_instrs
-              @ pop_instrs
-              @ restore_base_pointer_instrs
-              @ [instr_with_id]
-            | _ -> [instr_with_id])
+              destroy_stack_frame_instrs @ pop_instrs @ restore_base_pointer_instrs @ [instr]
+            | _ -> [instr])
           block.instructions
         |> List.flatten)
     gcx.blocks_by_id

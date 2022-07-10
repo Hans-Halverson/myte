@@ -195,7 +195,7 @@ let string_of_oset oset =
 module Instruction = struct
   type id = int
 
-  type t' =
+  type instr =
     (* Instruction Suffixes:
           R - virtual register
           I - immediate
@@ -270,7 +270,10 @@ module Instruction = struct
     | Ret
     | Syscall
 
-  type t = id * t'
+  type t = {
+    id: id;
+    mutable instr: instr;
+  }
 
   let max_id = ref 0
 
@@ -278,6 +281,8 @@ module Instruction = struct
     let id = !max_id in
     max_id := id + 1;
     id
+
+  let compare i1 i2 = Int.compare i1.id i2.id
 end
 
 module Block = struct
@@ -322,6 +327,9 @@ module Function = struct
     max_id := id + 1;
     id
 end
+
+module InstrSet = Set.Make (Instruction)
+module OInstrMMap = MultiMap.Make (Operand) (Instruction)
 
 type data_value =
   | ImmediateData of immediate

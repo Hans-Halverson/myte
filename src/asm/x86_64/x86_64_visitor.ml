@@ -6,8 +6,7 @@ class instruction_visitor =
       let open Instruction in
       let visit_read_operand op = this#visit_read_operand ~block op in
       let visit_write_operand op = this#visit_write_operand ~block op in
-      let (_, instr) = instr in
-      match instr with
+      match instr.instr with
       | PushM read_op
       | CmpMI (_, read_op, _)
       | CallM (_, read_op)

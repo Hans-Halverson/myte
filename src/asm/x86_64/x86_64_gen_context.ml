@@ -16,8 +16,6 @@ module Gcx = struct
     mutable prev_blocks: IIMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
     mutable mir_block_id_to_block_id: Block.id Mir.BlockMap.t;
-    (* Map from instruction id to the block that contains it *)
-    mutable instruction_to_block: Block.id IMap.t;
     mutable funcs_by_id: Function.t IMap.t;
     (* Map from physical register to a representative precolored register operand *)
     mutable color_to_op: Operand.t RegMap.t;
@@ -40,7 +38,6 @@ module Gcx = struct
       blocks_by_id = IMap.empty;
       prev_blocks = IIMMap.empty;
       mir_block_id_to_block_id = Mir.BlockMap.empty;
-      instruction_to_block = IMap.empty;
       funcs_by_id = IMap.empty;
       color_to_op;
       agg_to_layout = IMap.empty;
@@ -85,19 +82,13 @@ module Gcx = struct
 
   let emit ~gcx instr =
     let current_block = Option.get gcx.current_block_builder in
-    let instr_id = Instruction.mk_id () in
-    current_block.instructions <- (instr_id, instr) :: current_block.instructions;
-    gcx.instruction_to_block <- IMap.add instr_id current_block.id gcx.instruction_to_block;
+    let instruction = mk_instr instr in
+    current_block.instructions <- instruction :: current_block.instructions;
     match instr with
     | Jmp next_block_id
     | JmpCC (_, next_block_id) ->
       gcx.prev_blocks <- IIMMap.add next_block_id current_block.id gcx.prev_blocks
     | _ -> ()
-
-  let mk_instr_id_for_block ~gcx block =
-    let instr_id = Instruction.mk_id () in
-    gcx.instruction_to_block <- IMap.add instr_id block.Block.id gcx.instruction_to_block;
-    instr_id
 
   let start_function ~gcx params prologue =
     let id = Function.mk_id () in
@@ -132,12 +123,6 @@ module Gcx = struct
     let op = mk_function_argument_stack_slot ~i ~type_ in
     current_func.argument_stack_slots <- op :: current_func.argument_stack_slots;
     op
-
-  let get_instruction ~gcx instr_id =
-    let block_id = IMap.find instr_id gcx.instruction_to_block in
-    let block = IMap.find block_id gcx.blocks_by_id in
-    let (_, instr) = List.find (fun (id, _) -> id = instr_id) block.instructions in
-    instr
 
   let get_agg_layout ~gcx agg = IMap.find agg.Aggregate.id gcx.agg_to_layout
 
@@ -212,7 +197,8 @@ module Gcx = struct
       match blocks with
       | block1 :: block2 :: tl ->
         (match List.rev block1.instructions with
-        | (_, Instruction.Jmp next_block_id) :: rev_instrs when next_block_id = block2.id ->
+        | { instr = Instruction.Jmp next_block_id; _ } :: rev_instrs when next_block_id = block2.id
+          ->
           block1.instructions <- List.rev rev_instrs
         | _ -> ());
         merge (block2 :: tl)
@@ -225,7 +211,7 @@ module Gcx = struct
         let open Instruction in
         block.instructions <-
           List.filter
-            (fun (_, instr) ->
+            (fun { Instruction.instr; _ } ->
               match instr with
               | MovMM (_, op1, op2) ->
                 (match (op1.value, op2.value) with
@@ -244,7 +230,7 @@ module Gcx = struct
     IMap.iter
       (fun _ block ->
         match block.instructions with
-        | [(_, Jmp next_jump_block)] when block.id <> next_jump_block ->
+        | [{ instr = Jmp next_jump_block; _ }] when block.id <> next_jump_block ->
           jump_aliases := IMap.add block.id next_jump_block !jump_aliases
         | _ -> ())
       gcx.blocks_by_id;
@@ -273,17 +259,16 @@ module Gcx = struct
     IMap.iter
       (fun _ block ->
         let open Instruction in
-        block.instructions <-
-          List.map
-            (fun ((instr_id, instr) as instr_with_id) ->
-              match instr with
-              | Jmp next_block_id when IMap.mem next_block_id !jump_aliases ->
-                let resolved_alias = resolve_jump_alias next_block_id in
-                (instr_id, Jmp resolved_alias)
-              | JmpCC (cond, next_block_id) when IMap.mem next_block_id !jump_aliases ->
-                let resolved_alias = resolve_jump_alias next_block_id in
-                (instr_id, JmpCC (cond, resolved_alias))
-              | _ -> instr_with_id)
-            block.instructions)
+        List.iter
+          (fun instr ->
+            match instr.instr with
+            | Jmp next_block_id when IMap.mem next_block_id !jump_aliases ->
+              let resolved_alias = resolve_jump_alias next_block_id in
+              instr.instr <- Jmp resolved_alias
+            | JmpCC (cond, next_block_id) when IMap.mem next_block_id !jump_aliases ->
+              let resolved_alias = resolve_jump_alias next_block_id in
+              instr.instr <- JmpCC (cond, resolved_alias)
+            | _ -> ())
+          block.instructions)
       gcx.blocks_by_id
 end

@@ -12,7 +12,8 @@ let mk_blocks blocks =
         Block.id;
         label = Some label;
         func = 0;
-        instructions = List.map (fun instr -> (Instruction.mk_id (), instr)) instructions;
+        instructions =
+          List.map (fun instr -> Instruction.{ Instruction.id = mk_id (); instr }) instructions;
       }
       :: blocks)
     []

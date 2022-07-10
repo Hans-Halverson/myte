@@ -40,19 +40,19 @@ module RegisterAllocator = struct
     (* Stack of vregs that are ready for an attempt to have colors assigned to them *)
     mutable select_stack: Operand.t list;
     (* Every move is in exactly one of these sets *)
-    mutable coalesced_moves: ISet.t;
-    mutable constrained_moves: ISet.t;
-    mutable frozen_moves: ISet.t;
+    mutable coalesced_moves: InstrSet.t;
+    mutable constrained_moves: InstrSet.t;
+    mutable frozen_moves: InstrSet.t;
     (* Candidates for coalescing *)
-    mutable worklist_moves: ISet.t;
-    mutable active_moves: ISet.t;
+    mutable worklist_moves: InstrSet.t;
+    mutable active_moves: InstrSet.t;
     (* Adjacency list representation of interference graph. Maps from register to a set of all
        registers that interfere with it. *)
     mutable interference_graph: OOMMap.t;
     (* Degree of each register in interference graph *)
     mutable interference_degree: int OperandMap.t;
     (* Map from virtual register to instruction ids of all moves it is a part of *)
-    mutable move_list: OIMMap.t;
+    mutable move_list: OInstrMMap.t;
     (* Map from virtual register to register it is aliased to *)
     mutable aliases: Operand.t OperandMap.t;
     (* Total number of uses and defs for each register *)
@@ -72,14 +72,14 @@ module RegisterAllocator = struct
       coalesced_vregs = OperandSet.empty;
       colored_vregs = OperandSet.empty;
       select_stack = [];
-      coalesced_moves = ISet.empty;
-      constrained_moves = ISet.empty;
-      frozen_moves = ISet.empty;
-      worklist_moves = ISet.empty;
-      active_moves = ISet.empty;
+      coalesced_moves = InstrSet.empty;
+      constrained_moves = InstrSet.empty;
+      frozen_moves = InstrSet.empty;
+      worklist_moves = InstrSet.empty;
+      active_moves = InstrSet.empty;
       interference_graph = OOMMap.empty;
       interference_degree = OperandMap.empty;
-      move_list = OIMMap.empty;
+      move_list = OInstrMMap.empty;
       aliases = OperandMap.empty;
       reg_num_use_defs = OperandMap.empty;
     }
@@ -153,20 +153,20 @@ module RegisterAllocator = struct
         let open Block in
         let live = ref (IMap.find block.id ra.live_out |> OperandSet.of_list) in
         List.iter
-          (fun ((instr_id, instr) as instr_with_id) ->
+          (fun instr ->
             begin
-              match instr with
-              | Instruction.MovMM (_, src_op, dest_op)
+              match instr.Instruction.instr with
+              | MovMM (_, src_op, dest_op)
                 when Operand.is_reg_value src_op && Operand.is_reg_value dest_op ->
                 let src_op = resolve_register ~ra src_op in
                 let dest_op = resolve_register ~ra dest_op in
                 live := OperandSet.remove src_op !live;
-                ra.move_list <- OIMMap.add src_op instr_id ra.move_list;
-                ra.move_list <- OIMMap.add dest_op instr_id ra.move_list;
-                ra.worklist_moves <- ISet.add instr_id ra.worklist_moves
+                ra.move_list <- OInstrMMap.add src_op instr ra.move_list;
+                ra.move_list <- OInstrMMap.add dest_op instr ra.move_list;
+                ra.worklist_moves <- InstrSet.add instr ra.worklist_moves
               | _ -> ()
             end;
-            let (reg_uses, reg_defs) = find_use_defs block instr_with_id in
+            let (reg_uses, reg_defs) = find_use_defs block instr in
             live := OperandSet.union reg_defs !live;
             OperandSet.iter
               (fun reg_def ->
@@ -182,9 +182,11 @@ module RegisterAllocator = struct
     OperandSet.diff adjacent_regs to_ignore
 
   let node_moves ~(ra : t) reg =
-    ISet.inter (OIMMap.find_all reg ra.move_list) (ISet.union ra.active_moves ra.worklist_moves)
+    InstrSet.inter
+      (OInstrMMap.find_all reg ra.move_list)
+      (InstrSet.union ra.active_moves ra.worklist_moves)
 
-  let move_related ~ra reg = not (ISet.is_empty (node_moves ~ra reg))
+  let move_related ~ra reg = not (InstrSet.is_empty (node_moves ~ra reg))
 
   let degree ~(ra : t) reg =
     OperandMap.find_opt reg ra.interference_degree |> Option.value ~default:0
@@ -205,11 +207,11 @@ module RegisterAllocator = struct
     OperandSet.iter
       (fun reg ->
         let node_moves = node_moves ~ra reg in
-        ISet.iter
-          (fun move_instr_id ->
-            if ISet.mem move_instr_id ra.active_moves then (
-              ra.active_moves <- ISet.remove move_instr_id ra.active_moves;
-              ra.worklist_moves <- ISet.add move_instr_id ra.worklist_moves
+        InstrSet.iter
+          (fun move_instr ->
+            if InstrSet.mem move_instr ra.active_moves then (
+              ra.active_moves <- InstrSet.remove move_instr ra.active_moves;
+              ra.worklist_moves <- InstrSet.add move_instr ra.worklist_moves
             ))
           node_moves)
       regs
@@ -288,9 +290,9 @@ module RegisterAllocator = struct
     ra.move_list <-
       OperandMap.add
         rep_reg
-        (ISet.union
-           (OIMMap.find_all rep_reg ra.move_list)
-           (OIMMap.find_all aliased_vreg ra.move_list))
+        (InstrSet.union
+           (OInstrMMap.find_all rep_reg ra.move_list)
+           (OInstrMMap.find_all aliased_vreg ra.move_list))
         ra.move_list;
     OperandSet.iter
       (fun adjacent_reg ->
@@ -304,11 +306,9 @@ module RegisterAllocator = struct
     )
 
   (* Return the source and destination registers for a particular instruction (MovRR (source, dest)) *)
-  let source_dest_regs_of_move ~(ra : t) move_instr_id =
-    let move_instruction = Gcx.get_instruction ~gcx:ra.gcx move_instr_id in
-    match move_instruction with
-    | Instruction.MovMM (_, source_op, dest_op)
-      when is_reg_value ~ra source_op && is_reg_value ~ra dest_op ->
+  let source_dest_regs_of_move ~(ra : t) move_instr =
+    match move_instr.Instruction.instr with
+    | MovMM (_, source_op, dest_op) when is_reg_value ~ra source_op && is_reg_value ~ra dest_op ->
       let source_op = resolve_register ~ra source_op in
       let dest_op = resolve_register ~ra dest_op in
       (source_op, dest_op)
@@ -318,9 +318,9 @@ module RegisterAllocator = struct
      not make the graph uncolorable *)
   let coalesce ~(ra : t) =
     (* Choose an abitrary move instruction *)
-    let move_instr_id = ISet.choose ra.worklist_moves in
-    ra.worklist_moves <- ISet.remove move_instr_id ra.worklist_moves;
-    let (source_reg, dest_reg) = source_dest_regs_of_move ~ra move_instr_id in
+    let move_instr = InstrSet.choose ra.worklist_moves in
+    ra.worklist_moves <- InstrSet.remove move_instr ra.worklist_moves;
+    let (source_reg, dest_reg) = source_dest_regs_of_move ~ra move_instr in
     let source_reg = get_operand_alias ~ra source_reg in
     let dest_reg = get_operand_alias ~ra dest_reg in
     let (reg1, reg2) =
@@ -330,38 +330,39 @@ module RegisterAllocator = struct
         (source_reg, dest_reg)
     in
     if reg1 == reg2 then (
-      ra.coalesced_moves <- ISet.add move_instr_id ra.coalesced_moves;
+      ra.coalesced_moves <- InstrSet.add move_instr ra.coalesced_moves;
       add_to_simplify_work_list ~ra reg1
     ) else if is_precolored reg2 || OOMMap.contains reg2 reg1 ra.interference_graph then (
-      ra.constrained_moves <- ISet.add move_instr_id ra.constrained_moves;
+      ra.constrained_moves <- InstrSet.add move_instr ra.constrained_moves;
       add_to_simplify_work_list ~ra reg1;
       add_to_simplify_work_list ~ra reg2
     ) else if
         (is_precolored reg1 && can_coalesce_with_precolored ~ra reg1 reg2)
         || ((not (is_precolored reg1)) && can_conservative_coalesce ~ra reg1 reg2)
       then (
-      ra.coalesced_moves <- ISet.add move_instr_id ra.coalesced_moves;
+      ra.coalesced_moves <- InstrSet.add move_instr ra.coalesced_moves;
       combine_regs ~ra reg1 reg2;
       add_to_simplify_work_list ~ra reg1
     ) else
-      ra.active_moves <- ISet.add move_instr_id ra.active_moves
+      ra.active_moves <- InstrSet.add move_instr ra.active_moves
 
   (* Freeze all the moves associated with a vreg. This makes them no longer eligible for coalescing. *)
   let freeze_moves ~(ra : t) vreg =
     let vreg_moves = node_moves ~ra vreg in
-    ISet.iter
-      (fun move_instr_id ->
-        if ISet.mem move_instr_id ra.active_moves then
-          ra.active_moves <- ISet.remove move_instr_id ra.active_moves
+    InstrSet.iter
+      (fun move_instr ->
+        if InstrSet.mem move_instr ra.active_moves then
+          ra.active_moves <- InstrSet.remove move_instr ra.active_moves
         else
-          ra.worklist_moves <- ISet.remove move_instr_id ra.worklist_moves;
-        ra.frozen_moves <- ISet.add move_instr_id ra.frozen_moves;
-        let (source_reg, dest_reg) = source_dest_regs_of_move ~ra move_instr_id in
+          ra.worklist_moves <- InstrSet.remove move_instr ra.worklist_moves;
+        ra.frozen_moves <- InstrSet.add move_instr ra.frozen_moves;
+        let (source_reg, dest_reg) = source_dest_regs_of_move ~ra move_instr in
         let (source_reg, dest_reg) =
           (get_operand_alias ~ra source_reg, get_operand_alias ~ra dest_reg)
         in
         let maybe_unfreeze vreg =
-          if ISet.is_empty (node_moves ~ra vreg) && degree ~ra vreg < num_allocatable_registers then (
+          if InstrSet.is_empty (node_moves ~ra vreg) && degree ~ra vreg < num_allocatable_registers
+          then (
             ra.freeze_worklist <- OperandSet.remove vreg ra.freeze_worklist;
             ra.simplify_worklist <- OperandSet.add vreg ra.simplify_worklist
           )
@@ -471,10 +472,10 @@ module RegisterAllocator = struct
       (* Calculate priorities for each color. Simple heuristic is choose most common color among
          colored registers that are move related to this vreg.*)
       let register_priorities = ref RegMap.empty in
-      let vreg_moves = OIMMap.find_all vreg ra.move_list in
-      ISet.iter
-        (fun move_id ->
-          let (reg1, reg2) = source_dest_regs_of_move ~ra move_id in
+      let vreg_moves = OInstrMMap.find_all vreg ra.move_list in
+      InstrSet.iter
+        (fun move_instr ->
+          let (reg1, reg2) = source_dest_regs_of_move ~ra move_instr in
           let reg1 = get_operand_alias ~ra reg1 in
           let reg2 = get_operand_alias ~ra reg2 in
           let move_related_reg =
@@ -515,9 +516,7 @@ module RegisterAllocator = struct
         vreg.value <- VirtualStackSlot)
       ra.spilled_vregs;
     (* Then rewrite program to include newly resolved memory locations *)
-    let spill_writer =
-      new X86_64_spill_writer.spill_writer ~gcx:ra.gcx ~get_alias:(get_operand_alias ~ra)
-    in
+    let spill_writer = new X86_64_spill_writer.spill_writer ~get_alias:(get_operand_alias ~ra) in
     List.iter (fun block -> spill_writer#write_block_spills block) ra.func.blocks;
     (* Reset state of register allocator *)
     ra.spilled_vregs <- OperandSet.empty;
@@ -535,9 +534,9 @@ module RegisterAllocator = struct
       (fun block ->
         block.instructions <-
           List.filter
-            (fun (_, instr) ->
-              match instr with
-              | Instruction.MovMM (_, source_op, dest_op)
+            (fun instr ->
+              match instr.Instruction.instr with
+              | MovMM (_, source_op, dest_op)
                 when Operand.is_reg_value source_op && Operand.is_reg_value dest_op ->
                 get_operand_alias ~ra source_op != get_operand_alias ~ra dest_op
               | _ -> true)
@@ -603,9 +602,7 @@ module RegisterAllocator = struct
      Simply the graph afterwards to remove unnecessary instructions. *)
   let allocate_registers ~(ra : t) =
     (* Perform initial rewrite to force registers in some locations *)
-    let spill_writer =
-      new X86_64_spill_writer.spill_writer ~gcx:ra.gcx ~get_alias:(get_operand_alias ~ra)
-    in
+    let spill_writer = new X86_64_spill_writer.spill_writer ~get_alias:(get_operand_alias ~ra) in
     List.iter (fun block -> spill_writer#write_block_spills block) ra.func.blocks;
 
     let rec iter () =
@@ -616,13 +613,13 @@ module RegisterAllocator = struct
       while
         not
           (OperandSet.is_empty ra.simplify_worklist
-          && ISet.is_empty ra.worklist_moves
+          && InstrSet.is_empty ra.worklist_moves
           && OperandSet.is_empty ra.freeze_worklist
           && OperandSet.is_empty ra.spill_worklist)
       do
         if not (OperandSet.is_empty ra.simplify_worklist) then
           simplify ~ra
-        else if not (ISet.is_empty ra.worklist_moves) then
+        else if not (InstrSet.is_empty ra.worklist_moves) then
           coalesce ~ra
         else if not (OperandSet.is_empty ra.freeze_worklist) then
           freeze ~ra

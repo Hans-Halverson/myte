@@ -197,10 +197,10 @@ and pp_memory_address ~gcx ~buf mem =
   end;
   add_char ~buf ')'
 
-let pp_instruction ~gcx ~pcx ~buf instruction =
+let pp_instruction ~gcx ~pcx ~buf instr =
   let open Instruction in
   if Opts.dump_debug () then (
-    let instr_id = string_of_int (fst instruction) in
+    let instr_id = string_of_int instr.id in
     let padding_size = max 0 (4 - String.length instr_id) in
     add_char ~buf '#';
     add_string ~buf instr_id;
@@ -221,7 +221,7 @@ let pp_instruction ~gcx ~pcx ~buf instruction =
       let pp_immediate = pp_immediate ~buf in
       let pp_memory_address = pp_memory_address ~gcx ~buf in
       let pp_args_separator () = add_string ", " in
-      match snd instruction with
+      match instr.instr with
       | PushI imm ->
         pp_op "push";
         pp_immediate imm
