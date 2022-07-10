@@ -318,12 +318,12 @@ and emit_function_block_body ~ecx ~is_main_func block =
     (match get_terminator current_block with
     | None ->
       (* Handle implicit return from main *)
-      ( if is_main_func then
+      (if is_main_func then
         let return_pointer = Option.get ecx.current_func_context.return_pointer in
         mk_store_
           ~block:(Ecx.get_current_block ~ecx)
           ~ptr:return_pointer
-          ~value:(mk_int_lit_of_int32 Int32.zero) );
+          ~value:(mk_int_lit_of_int32 Int32.zero));
       Ecx.finish_block_continue ~ecx ecx.current_func_context.return_block
     | Some _ -> ())
   | None -> ()
@@ -1061,9 +1061,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let map_ptr_val = emit_call_map_new ~ecx map_mir_type map_type_args in
 
     (* Reserve capacity for all entries in map literal by calling map's `reserve` method *)
-    ( if List.length entries > 1 then
+    (if List.length entries > 1 then
       let capacity_val = mk_int_lit (List.length entries) in
-      emit_call_map_reserve ~ecx map_type_args map_ptr_val capacity_val );
+      emit_call_map_reserve ~ecx map_type_args map_ptr_val capacity_val);
 
     (* Add all entries to map by calling map's `add` method *)
     List.iter
@@ -1086,9 +1086,9 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let set_ptr_val = emit_call_set_new ~ecx set_mir_type set_type_args in
 
     (* Reserve capacity for all entries in set literal by calling set's `reserve` method *)
-    ( if List.length elements > 1 then
+    (if List.length elements > 1 then
       let capacity_val = mk_int_lit (List.length elements) in
-      emit_call_set_reserve ~ecx set_type_args set_ptr_val capacity_val );
+      emit_call_set_reserve ~ecx set_type_args set_ptr_val capacity_val);
 
     (* Add all entries to set by calling set's `add` method *)
     List.iter
@@ -1801,31 +1801,31 @@ and emit_call
 
 and builtin_functions =
   lazy
-    ( [
-        (Std_lib.std_bool_bool_equals, emit_eq);
-        (Std_lib.std_byte_byte_equals, emit_eq);
-        (Std_lib.std_byte_byte_toInt, emit_std_byte_byte_toInt);
-        (Std_lib.std_byte_byte_toLong, emit_std_byte_byte_toLong);
-        (Std_lib.std_gc_collect, emit_std_gc_collect);
-        (Std_lib.std_gc_getHeapSize, emit_std_gc_getHeapSize);
-        (Std_lib.std_int_int_equals, emit_eq);
-        (Std_lib.std_int_int_toByte, emit_std_int_int_toByte);
-        (Std_lib.std_int_int_toLong, emit_std_int_int_toLong);
-        (Std_lib.std_long_long_equals, emit_eq);
-        (Std_lib.std_long_long_toByte, emit_std_long_long_toByte);
-        (Std_lib.std_long_long_toInt, emit_std_long_long_toInt);
-        (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
-        (Std_lib.std_memory_array_isNull, emit_std_memory_array_isNull);
-        (Std_lib.std_memory_array_new, emit_std_memory_array_new);
-        (Std_lib.std_io_file_builtin_close, emit_std_io_close);
-        (Std_lib.std_io_file_builtin_open, emit_std_io_open);
-        (Std_lib.std_io_file_builtin_read, emit_std_io_read);
-        (Std_lib.std_io_file_builtin_unlink, emit_std_io_unlink);
-        (Std_lib.std_io_file_builtin_write, emit_std_io_write);
-        (Std_lib.std_sys_exit, emit_std_sys_exit);
-      ]
+    ([
+       (Std_lib.std_bool_bool_equals, emit_eq);
+       (Std_lib.std_byte_byte_equals, emit_eq);
+       (Std_lib.std_byte_byte_toInt, emit_std_byte_byte_toInt);
+       (Std_lib.std_byte_byte_toLong, emit_std_byte_byte_toLong);
+       (Std_lib.std_gc_collect, emit_std_gc_collect);
+       (Std_lib.std_gc_getHeapSize, emit_std_gc_getHeapSize);
+       (Std_lib.std_int_int_equals, emit_eq);
+       (Std_lib.std_int_int_toByte, emit_std_int_int_toByte);
+       (Std_lib.std_int_int_toLong, emit_std_int_int_toLong);
+       (Std_lib.std_long_long_equals, emit_eq);
+       (Std_lib.std_long_long_toByte, emit_std_long_long_toByte);
+       (Std_lib.std_long_long_toInt, emit_std_long_long_toInt);
+       (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
+       (Std_lib.std_memory_array_isNull, emit_std_memory_array_isNull);
+       (Std_lib.std_memory_array_new, emit_std_memory_array_new);
+       (Std_lib.std_io_file_builtin_close, emit_std_io_close);
+       (Std_lib.std_io_file_builtin_open, emit_std_io_open);
+       (Std_lib.std_io_file_builtin_read, emit_std_io_read);
+       (Std_lib.std_io_file_builtin_unlink, emit_std_io_unlink);
+       (Std_lib.std_io_file_builtin_write, emit_std_io_write);
+       (Std_lib.std_sys_exit, emit_std_sys_exit);
+     ]
     |> List.to_seq
-    |> SMap.of_seq )
+    |> SMap.of_seq)
 
 and emit_eq ~ecx arg_vals _ =
   match arg_vals with

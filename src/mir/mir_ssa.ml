@@ -5,45 +5,45 @@ open Mir_type
 
 (* Promotion of variables on stack into registers joined with Phi nodes
 
-  During initial MIR emission variables are stored on the stack, where a Store to that stack
-  location is considered a "write" and a Load from that stack location is considered a "use".
-  For the purpose of this pass, variables are uniquely identified by the pointer of their location
-  on the stack (the id of a StackAlloc instruction).
+   During initial MIR emission variables are stored on the stack, where a Store to that stack
+   location is considered a "write" and a Load from that stack location is considered a "use".
+   For the purpose of this pass, variables are uniquely identified by the pointer of their location
+   on the stack (the id of a StackAlloc instruction).
 
-  Pass 1 (Identify join points):
-    Propagate the last write instruction ids for each variable through the program. Identify the set
-    of join points, where a join point is a (block, variable) pair meaning that there are multiple
-    sources for the last write to the given variable which are joined at this block. This means the
-    block is the earliest point where the variable was last written to in multiple control flow
-    paths. Construct an empty phi chain node at each join point.
- 
-  Pass 2 (Build phi chain graph):
-    Propagate the last write instruction ids for each variable through the program like before, but
-    also count each saved variable join from the first pass as a "write". Use this to build a graph
-    of phi chain nodes, with one phi chain node for each join point/(block, variable) pair from the
-    previous pass. Phi chain nodes contain the set of last write sources as well as previous phi
-    chain nodes. Phi chain nodes are initially "unrealized", meaning they may not be converted to
-    a concrete phi node in the SSA IR.
+   Pass 1 (Identify join points):
+     Propagate the last write instruction ids for each variable through the program. Identify the set
+     of join points, where a join point is a (block, variable) pair meaning that there are multiple
+     sources for the last write to the given variable which are joined at this block. This means the
+     block is the earliest point where the variable was last written to in multiple control flow
+     paths. Construct an empty phi chain node at each join point.
 
-    Also for each block, save the source for each variable currently in scope. The source will
-    either be a concrete location or a phi chain node.
+   Pass 2 (Build phi chain graph):
+     Propagate the last write instruction ids for each variable through the program like before, but
+     also count each saved variable join from the first pass as a "write". Use this to build a graph
+     of phi chain nodes, with one phi chain node for each join point/(block, variable) pair from the
+     previous pass. Phi chain nodes contain the set of last write sources as well as previous phi
+     chain nodes. Phi chain nodes are initially "unrealized", meaning they may not be converted to
+     a concrete phi node in the SSA IR.
 
-    Also for each variable use in each block save the source, which will be either be a concrete
-    location or a phi chain node.
+     Also for each block, save the source for each variable currently in scope. The source will
+     either be a concrete location or a phi chain node.
 
-  Realize Phi Nodes:
-    Determine the minimal set of phi nodes needed for the SSA IR. For each of the saved variables
-    whose source is a phi, mark the phi node as realized (creating a phi instruction for it).
-    
-    Later, when determining the concrete write locations which are args to each phi node, we simply
-    need to traverse the phi chain node graph and collecting all concrete write locations that are
-    reachable, where realized phi chain nodes cannot be traversed through.
+     Also for each variable use in each block save the source, which will be either be a concrete
+     location or a phi chain node.
 
-  Map to SSA IR:
-    Map across IR, removing StackAlloc, Load, and Store instructions for variables that have been
-    promoted to registers. Store instructions are converted to Movs of the stored value to the new
-    SSA variable. Also must rewrite all use variables that were the result of removed Load
-    instructions to now directly reference the new SSA variable. *)
+   Realize Phi Nodes:
+     Determine the minimal set of phi nodes needed for the SSA IR. For each of the saved variables
+     whose source is a phi, mark the phi node as realized (creating a phi instruction for it).
+
+     Later, when determining the concrete write locations which are args to each phi node, we simply
+     need to traverse the phi chain node graph and collecting all concrete write locations that are
+     reachable, where realized phi chain nodes cannot be traversed through.
+
+   Map to SSA IR:
+     Map across IR, removing StackAlloc, Load, and Store instructions for variables that have been
+     promoted to registers. Store instructions are converted to Movs of the stored value to the new
+     SSA variable. Also must rewrite all use variables that were the result of removed Load
+     instructions to now directly reference the new SSA variable. *)
 
 module BlockIMMap = MultiMap.Make (Block) (Int)
 

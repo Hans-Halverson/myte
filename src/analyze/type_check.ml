@@ -669,7 +669,7 @@ and check_implemented_methods
     (fun method_name (super_method : MethodSig.t) ->
       if not (MethodSig.is_inherited super_method) then (
         (* Add concrete method to trait sig *)
-        ( if (not super_method.is_signature) || is_trait then
+        (if (not super_method.is_signature) || is_trait then
           match SMap.find_opt method_name trait_sig.methods with
           (* If base method is defined this method has already been added to trait sig *)
           | Some method_sig when not (MethodSig.is_inherited method_sig) -> ()
@@ -695,7 +695,7 @@ and check_implemented_methods
                 super_method_sig = None;
               }
             in
-            TraitSig.add_method trait_sig method_name method_sig );
+            TraitSig.add_method trait_sig method_name method_sig);
 
         let is_already_implemented = SSet.mem method_name already_implemented_methods in
         if not is_already_implemented then
@@ -737,13 +737,13 @@ and check_implemented_methods
               let super_method_ty =
                 Types.substitute_type_params type_param_bindings super_method_ty
               in
-              ( if
-                not
-                  (Type_context.is_subtype
-                     ~cx
-                     ~trait_object_promotion_loc:None
-                     sub_method_ty
-                     super_method_ty)
+              (if
+               not
+                 (Type_context.is_subtype
+                    ~cx
+                    ~trait_object_promotion_loc:None
+                    sub_method_ty
+                    super_method_ty)
               then
                 let sub_rep_ty = Type_context.find_rep_type ~cx sub_method_ty in
                 let sup_rep_ty = Type_context.find_rep_type ~cx super_method_ty in
@@ -751,7 +751,7 @@ and check_implemented_methods
                   ~cx
                   sub_method.loc
                   (IncompatibleOverridenMethodType
-                     (method_name, implemented.trait_sig.name, sub_rep_ty, sup_rep_ty)) );
+                     (method_name, implemented.trait_sig.name, sub_rep_ty, sup_rep_ty)));
 
               (* Check if super_method is a super method of sub_method by walking up from
                  sub_method and see if super_method is in its super chain. All parent traits
@@ -804,7 +804,7 @@ and check_module ~cx module_ =
           (fun ({ Ast.Function.name; body; static; _ } as method_) ->
             if body <> Signature then (
               (* Set up type of implicit `this` parameter for non-static methods  *)
-              ( if not static then
+              (if not static then
                 let func_decl =
                   Bindings.get_func_decl (Type_context.get_value_binding ~cx name.loc)
                 in
@@ -812,7 +812,7 @@ and check_module ~cx module_ =
                   Type_context.get_this_binding ~cx (Option.get func_decl.this_binding_id)
                 in
                 let this_param_decl = Bindings.get_this_decl this_param_binding in
-                ignore (Type_context.unify ~cx this_type_alias.body (TVar this_param_decl.tvar)) );
+                ignore (Type_context.unify ~cx this_type_alias.body (TVar this_param_decl.tvar)));
               check_function_body ~cx method_
             ))
           methods
@@ -1248,7 +1248,7 @@ and check_expression ~cx expr =
       | None -> false
     in
     (* Otherwise this is a regular function call *)
-    ( if not is_ctor then
+    (if not is_ctor then
       let (func_loc, func_tvar_id) = check_expression ~cx func in
       let args_locs_and_tvar_ids = List.map (check_expression ~cx) args in
       let func_rep_ty = Type_context.find_rep_type ~cx (TVar func_tvar_id) in
@@ -1276,7 +1276,7 @@ and check_expression ~cx expr =
           ~cx
           func_loc
           (NonFunctionCalled (Type_context.find_rep_type ~cx (TVar func_tvar_id)));
-        ignore (Type_context.unify ~cx any (TVar tvar_id)) );
+        ignore (Type_context.unify ~cx any (TVar tvar_id)));
     (loc, tvar_id)
   (*
    * ============================

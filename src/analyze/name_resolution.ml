@@ -289,7 +289,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     ~is_signature:(body = Signature)))
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             register_stdlib_decl name;
-            ( if name.name = "_" then
+            (if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
               match decl with
@@ -317,7 +317,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               | Builtin ->
                 let type_decl = TypeDeclaration.mk ~name:name.name ~loc:name.loc in
                 add_type_binding name (TypeDecl type_decl);
-                Std_lib.register_stdlib_type name.loc type_decl.adt_sig );
+                Std_lib.register_stdlib_type name.loc type_decl.adt_sig);
             (* Check record fields for duplicates and save to compare against methods *)
             (match decl with
             | Record { name = { loc; _ }; fields; _ } ->
@@ -559,8 +559,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | FunctionDeclaration decl ->
             this#visit_function_declaration ~is_method:false ~is_nested:false decl
           | TypeDeclaration
-              ( { Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
-              type_decl ) ->
+              ({ Ast.TypeDeclaration.name = { Ast.Identifier.name; _ }; type_params; _ } as
+              type_decl) ->
             if type_params <> [] then this#enter_scope ();
             this#visit_type_parameters type_params (TypeName name);
             this#type_declaration type_decl;
@@ -1174,7 +1174,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         let ordered_locs = LocGraph.topological_sort ~graph:trait_graph in
         let ordered_traits = List.map (fun loc -> LocMap.find loc traits) ordered_locs in
         Some ordered_traits
-      with LocGraph.CycleException loc ->
+      with
+      | LocGraph.CycleException loc ->
         let trait = LocMap.find loc traits in
         this#add_error loc (CyclicTrait trait.name.name);
         None

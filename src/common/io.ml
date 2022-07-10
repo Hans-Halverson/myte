@@ -3,7 +3,8 @@ let chan_read_contents chan =
     try
       let line = input_line chan in
       line :: read_line lines
-    with End_of_file -> List.rev lines
+    with
+    | End_of_file -> List.rev lines
   in
   let lines = read_line [] in
   let contents = String.concat "\n" lines in
@@ -15,7 +16,8 @@ let file_read_lines file =
     try
       let line = input_line file_in in
       line :: read_lines lines
-    with End_of_file -> List.rev lines
+    with
+    | End_of_file -> List.rev lines
   in
   read_lines []
 
@@ -28,6 +30,7 @@ let file_read_lines_between file start _end =
         line :: read_lines (i + 1) lines
       else
         read_lines (i + 1) lines
-    with End_of_file -> List.rev lines
+    with
+    | End_of_file -> List.rev lines
   in
   read_lines 1 []

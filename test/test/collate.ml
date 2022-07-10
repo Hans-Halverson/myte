@@ -25,8 +25,8 @@ let collate_result suite_result =
     let (num_results, suites) =
       List.fold_left
         (fun ((total_num_fail, total_num_pass, total_num_skip), col_results) result ->
-          let ({ CollatedSuiteResult.num_results = (num_fail, num_pass, num_skip); _ } as col_result)
-              =
+          let ({ CollatedSuiteResult.num_results = (num_fail, num_pass, num_skip); _ } as
+              col_result) =
             collate_result_inner (suite_name :: parents) result
           in
           let num_results =

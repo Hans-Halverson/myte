@@ -138,8 +138,8 @@ let analyze_regs blocks color_to_operand =
        reg is defined (unless the reg is used in the block before it is defined in the block) *)
     if
       (not (set_contains live_in block_id reg))
-      && ( (not (OIMMap.contains reg block_id reg_def_blocks))
-         || OIMMap.contains reg block_id reg_use_before_def_blocks )
+      && ((not (OIMMap.contains reg block_id reg_def_blocks))
+         || OIMMap.contains reg block_id reg_use_before_def_blocks)
     then (
       set_add live_in block_id reg;
       let prev_blocks = IMap.find block_id prev_blocks in
@@ -238,8 +238,8 @@ let analyze_virtual_stack_slots ~(gcx : Gcx.t) =
        var is defined (unless the var is used in the block before it is defined in the block) *)
     if
       (not (set_contains live_in block_id vslot))
-      && ( (not (OIMMap.contains vslot block_id vslot_def_blocks))
-         || OIMMap.contains vslot block_id vslot_use_before_def_blocks )
+      && ((not (OIMMap.contains vslot block_id vslot_def_blocks))
+         || OIMMap.contains vslot block_id vslot_use_before_def_blocks)
     then (
       set_add live_in block_id vslot;
       let prev_blocks = IMap.find block_id prev_blocks in

@@ -636,9 +636,9 @@ and is_subtype ~cx ~trait_object_promotion_loc sub sup =
     in
     let can_promote = type_satisfies_trait_bounds ~cx rep_ty [rep_trait] in
     (* Save locs of all promoted expressions *)
-    ( if can_promote then
+    (if can_promote then
       let expr_loc = Option.get trait_object_promotion_loc in
-      cx.trait_object_promotions <- LocMap.add expr_loc rep_trait cx.trait_object_promotions );
+      cx.trait_object_promotions <- LocMap.add expr_loc rep_trait cx.trait_object_promotions);
     can_promote
   | _ -> false
 

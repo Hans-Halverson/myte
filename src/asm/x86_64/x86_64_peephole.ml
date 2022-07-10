@@ -11,7 +11,7 @@ type peephole_optimization_edit = int * Instruction.t list
 type peephole_optimization_result = peephole_optimization_edit option
 
 (* A peephole optimization is a function that takes an instruction (and the list of following
-  instructions), and returns a peephole optimization result. *)
+   instructions), and returns a peephole optimization result. *)
 type peephole_optimization =
   gcx:Gcx.t -> Instruction.t -> Instruction.t list -> peephole_optimization_result
 
@@ -93,14 +93,14 @@ let coalesce_lea_mapper =
 
 (* Coalesce a Lea instruction's address into the next instruction if the next instruction is the
    only use of the Lea instruction's calculated address.
-   
+
    Example Before:
    leaq 4(%rax, %rdi), %rcx
    mov (%rcx), %rdx
 
    Example After:
    mov 4(%rax, %rdi), %rdx
-   
+
    TODO: Track uses of reg defs to make sure next instruction is only use of Lea result reg *)
 let coalesce_lea_optimization ~gcx:_ instr next_instrs =
   let open Instruction in

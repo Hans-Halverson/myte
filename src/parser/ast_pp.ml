@@ -21,10 +21,10 @@ let pp node =
     | String str -> add_strings ["\""; str; "\""]
     | Bool bool ->
       add_string
-        ( if bool then
+        (if bool then
           "true"
         else
-          "false" )
+          "false")
     | Raw raw -> add_string raw
     | List [] -> add_string "[]"
     | List nodes ->

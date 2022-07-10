@@ -36,7 +36,7 @@ let split_at i lst =
   in
   helper i [] lst
 
-(* Split a list around a given index, which must be in the range [0, length - 1] inclusive. 
+(* Split a list around a given index, which must be in the range [0, length - 1] inclusive.
    Return the list up to (but not including) that index, the item at that index, and the list
    starting after that index. *)
 let split_around i lst =

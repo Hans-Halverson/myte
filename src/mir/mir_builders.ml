@@ -226,9 +226,9 @@ and mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
   if
     not
-      ( is_numeric_type arg_type
+      (is_numeric_type arg_type
       && is_numeric_type type_
-      && size_of_type arg_type >= size_of_type type_ )
+      && size_of_type arg_type >= size_of_type type_)
   then
     failwith
       "Trunc arguments must be numeric with type argument having smaller size than value argument";
@@ -240,9 +240,9 @@ and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
   if
     not
-      ( is_numeric_type arg_type
+      (is_numeric_type arg_type
       && is_numeric_type type_
-      && size_of_type arg_type <= size_of_type type_ )
+      && size_of_type arg_type <= size_of_type type_)
   then
     failwith
       "SExt arguments must be numeric with type argument having larger size than value argument";
@@ -254,9 +254,9 @@ and mk_zext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_type = type_of_value arg in
   if
     not
-      ( is_numeric_type arg_type
+      (is_numeric_type arg_type
       && is_numeric_type type_
-      && size_of_type arg_type <= size_of_type type_ )
+      && size_of_type arg_type <= size_of_type type_)
   then
     failwith
       "ZExt arguments must be numeric with type argument having larger size than value argument";
@@ -543,7 +543,7 @@ and remove_instruction (instr_val : Value.t) =
     if list.first == instr_val then list.first <- next;
     if list.last == instr_val then list.last <- prev
 
-(* Concatenate the instructions in the second block to the end of the first block. 
+(* Concatenate the instructions in the second block to the end of the first block.
    This is a destructive operation on the second block's instructions. Removes the first block's
    terminator instruction. *)
 and concat_instructions (b1 : Block.t) (b2 : Block.t) =
@@ -781,13 +781,13 @@ and remove_block (block : Block.t) =
         | Some ({ instr = Continue _; _ } as term_instr) -> term_instr.instr <- Unreachable
         | Some ({ instr = Branch { test = _; continue; jump }; _ } as term_instr) ->
           term_instr.instr <-
-            ( if continue == block then
+            (if continue == block then
               if jump == block then
                 Unreachable
               else
                 Continue jump
             else
-              Continue continue )
+              Continue continue)
         | _ -> failwith "Previous block must have branching terminator")
       block.prev_blocks
   | Some { instr = Continue next_block; _ } ->
@@ -905,10 +905,10 @@ and map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
     let new_jump = map_next_block jump in
     (* If both branches point to same block convert to continue *)
     term_instr.instr <-
-      ( if new_continue == new_jump then
+      (if new_continue == new_jump then
         Continue new_continue
       else
-        Branch { test; continue = new_continue; jump = new_jump } )
+        Branch { test; continue = new_continue; jump = new_jump })
   | _ -> ()
 
 (* Remove all references to a block from phi nodes of on of its next blocks.

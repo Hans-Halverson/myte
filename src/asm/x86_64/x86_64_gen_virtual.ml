@@ -427,11 +427,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
     Gcx.emit ~gcx inst;
     (* Move result from register A to return operand *)
-    ( if has_return then
+    (if has_return then
       let return_size = register_size_of_mir_value_type return_type in
       let precolored_a = mk_precolored ~type_:return_type A in
       let return_op = operand_of_value_id ~type_:return_type return_id in
-      Gcx.emit ~gcx (MovMM (return_size, precolored_a, return_op)) );
+      Gcx.emit ~gcx (MovMM (return_size, precolored_a, return_op)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -664,7 +664,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | { id = result_id; instr = Unary (Not, arg); type_; _ } :: rest_instructions ->
-    ( if is_bool_value arg.value then (
+    (if is_bool_value arg.value then (
       let arg_reg = emit_bool_as_reg arg in
       let result_op = operand_of_value_id ~type_ result_id in
       Gcx.emit ~gcx (XorMM (Size32, result_op, result_op));
@@ -676,7 +676,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let arg_mem = emit_mem resolved_value in
       let result_op = operand_of_value_id ~type_ result_id in
       Gcx.emit ~gcx (MovMM (size, arg_mem, result_op));
-      Gcx.emit ~gcx (NotM (size, result_op)) );
+      Gcx.emit ~gcx (NotM (size, result_op)));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1261,10 +1261,10 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
   | Lit (Bool b) ->
     SImm
       (Imm8
-         ( if b then
+         (if b then
            1
          else
-           0 ))
+           0))
   | Lit (Byte b) -> SImm (Imm8 b)
   (* Int literals can be downgraded to an 8 byte literal if they fit *)
   | Lit (Int i) -> SImm (Imm32 i)

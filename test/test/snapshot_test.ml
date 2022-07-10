@@ -30,7 +30,8 @@ let parse_config_file config_file =
     let config_contents = Io.chan_read_contents config_in in
     close_in config_in;
     Some config_contents
-  with Sys_error _ -> None
+  with
+  | Sys_error _ -> None
 
 let mk_diff_snippet s1 s2 =
   let s1_lines = String.split_on_char '\n' s1 in
@@ -63,9 +64,9 @@ let mk_diff_snippet s1 s2 =
             in
             ( i,
               Some
-                ( extract_snippet s1_lines (Pp.red_and_bold ^ "- ")
+                (extract_snippet s1_lines (Pp.red_and_bold ^ "- ")
                 ^ "\n"
-                ^ extract_snippet s2_lines (Pp.green_and_bold ^ "+ ") ) ))
+                ^ extract_snippet s2_lines (Pp.green_and_bold ^ "+ ")) ))
       (1, None)
       s1_lines
       s2_lines
@@ -101,7 +102,8 @@ let run_snapshot_test ~commands ~config ~record ~myte_files ~exp_file =
             let exp_contents = Io.chan_read_contents exp_in in
             close_in exp_in;
             Ok exp_contents
-          with Sys_error err ->
+          with
+          | Sys_error err ->
             Error
               (Printf.sprintf
                  "%sReading %s failed with error: %s"

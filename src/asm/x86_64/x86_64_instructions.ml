@@ -218,7 +218,10 @@ module Instruction = struct
     | MovSX of register_size * register_size * Operand.t * (* Register *) Operand.t
     (* Src size then dest size where src size < dest size *)
     | MovZX of register_size * register_size * Operand.t * (* Register *) Operand.t
-    | Lea of register_size * MemoryAddress.t * Operand.t (* Only supports 32 or 64 bit register argument *)
+    | Lea of
+        register_size
+        * MemoryAddress.t
+        * Operand.t (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
     | NegM of register_size * Operand.t
     | AddIM of register_size * immediate * Operand.t
@@ -226,8 +229,15 @@ module Instruction = struct
     (* For sub instructions, right/dest := right/dest - left/src *)
     | SubIM of register_size * immediate * Operand.t
     | SubMM of register_size * Operand.t * Operand.t
-    | IMulMR of register_size * Operand.t * (* Register *) Operand.t (* Only supports 16, 32, and 64-bit arguments *)
-    | IMulMIR of register_size * Operand.t * immediate * (* Register *) Operand.t (* Only supports 16 and 32-bit immediates *)
+    | IMulMR of
+        register_size
+        * Operand.t
+        * (* Register *) Operand.t (* Only supports 16, 32, and 64-bit arguments *)
+    | IMulMIR of
+        register_size
+        * Operand.t
+        * immediate
+        * (* Register *) Operand.t (* Only supports 16 and 32-bit immediates *)
     | IDiv of register_size * Operand.t
     (* Bitwise operations *)
     | NotM of register_size * Operand.t

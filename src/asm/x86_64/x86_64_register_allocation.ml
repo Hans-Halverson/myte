@@ -615,10 +615,10 @@ module RegisterAllocator = struct
       make_worklist ~ra;
       while
         not
-          ( OperandSet.is_empty ra.simplify_worklist
+          (OperandSet.is_empty ra.simplify_worklist
           && ISet.is_empty ra.worklist_moves
           && OperandSet.is_empty ra.freeze_worklist
-          && OperandSet.is_empty ra.spill_worklist )
+          && OperandSet.is_empty ra.spill_worklist)
       do
         if not (OperandSet.is_empty ra.simplify_worklist) then
           simplify ~ra

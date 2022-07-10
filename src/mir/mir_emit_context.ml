@@ -144,11 +144,11 @@ let mk ~pcx =
     current_in_std_lib = false;
     current_loop_contexts = [];
     filter_std_lib =
-      ( Opts.dump_ir ()
+      (Opts.dump_ir ()
       || Opts.dump_pre_ssa_ir ()
       || Opts.dump_virtual_asm ()
       || Opts.dump_asm ()
-      || Opts.dump_full_asm () )
+      || Opts.dump_full_asm ())
       && not (Opts.dump_stdlib ());
     local_variable_to_alloc_instr = BVMap.empty;
     param_to_argument = BVMap.empty;
@@ -425,7 +425,7 @@ let rec get_mir_adt_layout ~ecx (adt_sig : Types.AdtSig.t) (type_args : Types.Ty
    In cases where we need to instantiate the type with a new set of type arguments, create the
    resulting instance type as a placeholder and insert it into tables before checking element types,
    as type may be recursive.
-   
+
    The same general logic for instantiation applies to aggregate layouts (where the instance is
    a single aggregate), and variants layouts (where the instance is an aggregate for the overall
    enum, and variants for all data variants).*)
@@ -636,7 +636,7 @@ and instantiate_mir_adt_template_elements ~ecx template type_param_bindings =
 (* Instantiate a tuple with a particular set of element types. If a tuple with these element types
    has already been instantiated, return its aggregate type. Otherwise create new aggregate type for
    this tuple, save, and return it.
-   
+
    If resulting tuple has no fields return None instead of creating an aggregate. *)
 and instantiate_tuple ~ecx element_types =
   match TypeArgsHashtbl.find_opt ecx.tuple_instantiations element_types with
@@ -891,30 +891,30 @@ and get_zero_size_global_pointer ~ecx =
 
 and builtin_functions =
   lazy
-    ( [
-        Std_lib.std_bool_bool_equals;
-        Std_lib.std_byte_byte_equals;
-        Std_lib.std_byte_byte_toInt;
-        Std_lib.std_byte_byte_toLong;
-        Std_lib.std_gc_collect;
-        Std_lib.std_gc_getHeapSize;
-        Std_lib.std_int_int_equals;
-        Std_lib.std_int_int_toByte;
-        Std_lib.std_int_int_toLong;
-        Std_lib.std_long_long_equals;
-        Std_lib.std_long_long_toByte;
-        Std_lib.std_long_long_toInt;
-        Std_lib.std_memory_array_copy;
-        Std_lib.std_memory_array_isNull;
-        Std_lib.std_memory_array_new;
-        Std_lib.std_io_file_builtin_close;
-        Std_lib.std_io_file_builtin_open;
-        Std_lib.std_io_file_builtin_read;
-        Std_lib.std_io_file_builtin_unlink;
-        Std_lib.std_io_file_builtin_write;
-        Std_lib.std_sys_exit;
-      ]
-    |> SSet.of_list )
+    ([
+       Std_lib.std_bool_bool_equals;
+       Std_lib.std_byte_byte_equals;
+       Std_lib.std_byte_byte_toInt;
+       Std_lib.std_byte_byte_toLong;
+       Std_lib.std_gc_collect;
+       Std_lib.std_gc_getHeapSize;
+       Std_lib.std_int_int_equals;
+       Std_lib.std_int_int_toByte;
+       Std_lib.std_int_int_toLong;
+       Std_lib.std_long_long_equals;
+       Std_lib.std_long_long_toByte;
+       Std_lib.std_long_long_toInt;
+       Std_lib.std_memory_array_copy;
+       Std_lib.std_memory_array_isNull;
+       Std_lib.std_memory_array_new;
+       Std_lib.std_io_file_builtin_close;
+       Std_lib.std_io_file_builtin_open;
+       Std_lib.std_io_file_builtin_read;
+       Std_lib.std_io_file_builtin_unlink;
+       Std_lib.std_io_file_builtin_write;
+       Std_lib.std_sys_exit;
+     ]
+    |> SSet.of_list)
 
 (*
  * Nongeneric Functions
@@ -997,7 +997,7 @@ and mark_pending_trampoline_function_completed ~ecx func =
 
 (* Find the representative type for a particular type, which may be a type parameter bound to a
    concrete type if we are generating an instantiation of a generic function.
-  
+
    Every rep type that is a type parameter is guaranteed to have a concrete type substituted for it. *)
 and find_rep_non_generic_type ~ecx ty =
   let ty = Type_context.find_rep_type ~cx:ecx.pcx.Program_context.type_ctx ty in

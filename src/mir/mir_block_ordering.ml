@@ -82,7 +82,7 @@ let tarjans_scc blocks =
    If the entire current SCC has been visited (known because we reach a dead end and there are no
    blocks currently on the current SCC frontier), then we visit the next SCC in depth-first
    topological order.
- *)
+*)
 let order_blocks start_block =
   (* Depth-first traversal to gather all blocks *)
   let all_blocks = ref BlockSet.empty in

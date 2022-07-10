@@ -457,11 +457,11 @@ let pp_data_section ~buf data_section section_name pp_func =
   Array.iteri
     (fun i data ->
       (* Align data between data values of differing alignments *)
-      ( if data <> [] && i <> 0 then
+      (if data <> [] && i <> 0 then
         let alignment = string_of_int (Int.shift_left 1 i) in
         add_line ~buf (fun buf ->
             add_string ~buf ".balign ";
-            add_string ~buf alignment) );
+            add_string ~buf alignment));
 
       if i = 3 && write_full_asm () then add_label_line ~buf (section_name ^ "_bitmap_start");
 

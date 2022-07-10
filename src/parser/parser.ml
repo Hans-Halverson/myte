@@ -56,7 +56,8 @@ let rec parse_file file =
     try
       let env = Parser_env.from_file file in
       parse env
-    with Sys_error _ -> Error [(Loc.none, CannotOpenFile file)]
+    with
+    | Sys_error _ -> Error [(Loc.none, CannotOpenFile file)]
 
 and parse_string str = parse (Parser_env.from_string str)
 
@@ -78,7 +79,8 @@ and parse env =
       Ok { Module.loc; name; imports; toplevels }
     else
       Error errors
-  with Parse_error.Fatal (loc, err) -> Error [(loc, err)]
+  with
+  | Parse_error.Fatal (loc, err) -> Error [(loc, err)]
 
 and parse_module_name env =
   let marker = mark_loc env in

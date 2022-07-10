@@ -4,7 +4,8 @@ let regexp_matches regexp name =
   try
     let _ = Str.search_forward regexp name 0 in
     true
-  with Not_found -> false
+  with
+  | Not_found -> false
 
 let should_run ~filter ~exclude name =
   let is_filtered =

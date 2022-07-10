@@ -55,6 +55,7 @@ let order_type_aliases ~cx modules =
     let sorted_nodes = LocGraph.topological_sort ~graph in
     let sorted_aliases = List.map (fun node -> LocMap.find node node_to_alias) sorted_nodes in
     Ok sorted_aliases
-  with LocGraph.CycleException node ->
+  with
+  | LocGraph.CycleException node ->
     let alias = LocMap.find node node_to_alias in
     Error alias

@@ -105,7 +105,8 @@ let lower_to_asm ir =
     output_string out_chan program_file;
     close_out out_chan;
     output_file
-  with Sys_error err ->
+  with
+  | Sys_error err ->
     print_error_message err;
     exit 1
 

@@ -237,7 +237,7 @@ end
 
 (* Determine whether the head constructors of a matrix form a complete signature. If so, return
    a list of all signatures. Otherwise return the missing signatures, if they can be enumerated.
-   
+
    Only return enumerated missing signature if the `create_witnesses` flag is present. *)
 let signature_completeness ~create_witness matrix =
   let rec gather_ctors acc pattern =

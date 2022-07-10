@@ -4,7 +4,7 @@ open Mir_builders
 (* SSA destruction - remove all phi nodes in program and replace with explicit move instructions.
    Moves are inserted in the previous block, unless the previous block branches, in which case the
    edge is split and moves are inserted in a new block between the previous and current blocks.
-   
+
    Note that the semantics of phi nodes are that all phi nodes execute in parallel. This means that
    all lowered copy instructions happen in parallel as well to preserve semantics. We must convert
    the parallel copies to a linear sequence of copies, which may need to introduce new copies with
