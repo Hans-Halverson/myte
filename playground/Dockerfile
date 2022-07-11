@@ -30,7 +30,7 @@ RUN npm install
 COPY --from=builds myte/playground/src/server/*.js ${LAMBDA_TASK_ROOT}
 
 # Include built myte binary and lib
-COPY --from=builds myte/build/dune/default/src/myte.exe ${LAMBDA_TASK_ROOT}/myte
+COPY --from=builds myte/_build/default/src/myte.exe ${LAMBDA_TASK_ROOT}/myte
 COPY --from=builds myte/build/lib ${LAMBDA_TASK_ROOT}/lib
 
 ENV MYTEPATH=${LAMBDA_TASK_ROOT}

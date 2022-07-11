@@ -11,4 +11,4 @@ opam exec -- dune build myte.bc --no-print-directory
 
 . "$CURRENT_DIR/setup_myte_env"
 
-ocamldebug "$ROOT_DIR/build/dune/default/src/myte.bc" "$@"
+ocamldebug "$ROOT_DIR/_build/default/src/myte.bc" "$@"
