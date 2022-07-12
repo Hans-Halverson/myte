@@ -669,4 +669,5 @@ let get_record_variant adt_sig name =
 
 let any = Type.Any None
 
-module TraitSigMap = Map.Make (TraitSig)
+module TraitSigCollection = MakeCollection (TraitSig)
+module TraitSigMap = TraitSigCollection.Map

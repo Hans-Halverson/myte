@@ -244,11 +244,14 @@ module Bindings = struct
     | _ -> false
 end
 
-module BVSet = Set.Make (ValueBinding)
-module BVMap = Map.Make (ValueBinding)
-module LBVMMap = MultiMap.Make (Loc) (ValueBinding)
-module BTSet = Set.Make (TypeBinding)
-module BTMap = Map.Make (TypeBinding)
+module ValueBindingCollection = MakeCollection (ValueBinding)
+module TypeBindingCollection = MakeCollection (TypeBinding)
+
+module BVSet = ValueBindingCollection.Set
+module BVMap = ValueBindingCollection.Map
+module LBVMMap = MultiMap.Make (Loc) (ValueBindingCollection)
+module BTSet = TypeBindingCollection.Set
+module BTMap = TypeBindingCollection.Map
 
 let get_value_binding bindings use_loc =
   let open Bindings in

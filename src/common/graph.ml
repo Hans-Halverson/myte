@@ -1,6 +1,7 @@
-module Make (IdType : Map.OrderedType) = struct
-  module Map = Map.Make (IdType)
-  module Set = Set.Make (IdType)
+module Make (IdType : MultiMap.KEY_AND_VALUE_TYPE) = struct
+  module Map = IdType.Map
+  module Set = IdType.Set
+
   module MMap = MultiMap.Make (IdType) (IdType)
 
   exception CycleException of IdType.t

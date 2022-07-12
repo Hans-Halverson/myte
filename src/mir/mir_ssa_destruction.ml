@@ -71,12 +71,12 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
   while not (VVMMap.is_empty !copied_to) do
     (* Try to find a copy that is not part of a cycle *)
     let non_cyclic_copy_opt =
-      VMap.fold
+      VVMMap.KMap.fold
         (fun dest_val arg_vals acc ->
           if VVMMap.contains_key dest_val !copied_to then
             acc
           else
-            Some (dest_val, VSet.choose arg_vals))
+            Some (dest_val, VVMMap.VSet.choose arg_vals))
         !copied_from
         None
     in

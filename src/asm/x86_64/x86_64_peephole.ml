@@ -71,7 +71,7 @@ let coalesce_lea_mapper =
 
     val mutable has_coalesced = false
 
-    val mutable reg_to_replace = A
+    val mutable reg_to_replace = Register.A
 
     val mutable address_to_coalesce = empty_memory_address
 

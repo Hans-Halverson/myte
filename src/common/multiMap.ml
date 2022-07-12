@@ -30,55 +30,79 @@ module type S = sig
   val iter : (key -> VSet.t -> unit) -> t -> unit
 end
 
-module Make (KeyType : Map.OrderedType) (ValueType : Set.OrderedType) = struct
-  module KMap = Map.Make (KeyType)
-  module VSet = Set.Make (ValueType)
+module type KEY_TYPE = sig
+  type t
 
-  type t = VSet.t KMap.t
+  module Map : Map.S with type key = t
 
-  type key = KeyType.t
+  val compare : t -> t -> int
+end
 
-  type value = ValueType.t
+module type VALUE_TYPE = sig
+  type t
 
-  let empty = KMap.empty
+  module Set : Set.S with type elt = t
 
-  let is_empty mmap = KMap.is_empty mmap
+  val compare : t -> t -> int
+end
+
+module type KEY_AND_VALUE_TYPE = sig
+  type t
+  module Set : Set.S with type elt = t
+  module Map : Map.S with type key = t
+  val compare : t -> t -> int
+end
+
+module Make (Key : KEY_TYPE) (Value : VALUE_TYPE) = struct
+  module KMap = Key.Map
+
+  module VSet = Value.Set
+
+  type t = Value.Set.t Key.Map.t
+
+  type key = Key.t
+
+  type value = Value.t
+
+  let empty = Key.Map.empty
+
+  let is_empty mmap = Key.Map.is_empty mmap
 
   let add k v mmap =
-    KMap.add
+    Key.Map.add
       k
-      (match KMap.find_opt k mmap with
-      | None -> VSet.singleton v
-      | Some vs -> VSet.add v vs)
+      (match Key.Map.find_opt k mmap with
+      | None -> Value.Set.singleton v
+      | Some vs -> Value.Set.add v vs)
       mmap
 
   let remove k v mmap =
-    match KMap.find_opt k mmap with
+    match Key.Map.find_opt k mmap with
     | None -> mmap
     | Some vs ->
-      let vs' = VSet.remove v vs in
-      if VSet.is_empty vs' then
-        KMap.remove k mmap
+      let vs' = Value.Set.remove v vs in
+      if Value.Set.is_empty vs' then
+        Key.Map.remove k mmap
       else
-        KMap.add k vs' mmap
+        Key.Map.add k vs' mmap
 
-  let remove_key k mmap = KMap.remove k mmap
+  let remove_key k mmap = Key.Map.remove k mmap
 
   let contains k v mmap =
-    match KMap.find_opt k mmap with
+    match Key.Map.find_opt k mmap with
     | None -> false
-    | Some vs -> VSet.mem v vs
+    | Some vs -> Value.Set.mem v vs
 
-  let contains_key k mmap = KMap.mem k mmap
+  let contains_key k mmap = Key.Map.mem k mmap
 
   let find_all k mmap =
-    match KMap.find_opt k mmap with
-    | None -> VSet.empty
+    match Key.Map.find_opt k mmap with
+    | None -> Value.Set.empty
     | Some vs -> vs
 
   let choose mmap =
-    let (k, vs) = KMap.choose mmap in
-    (k, VSet.choose vs)
+    let (k, vs) = Key.Map.choose mmap in
+    (k, Value.Set.choose vs)
 
-  let iter = KMap.iter
+  let iter = Key.Map.iter
 end

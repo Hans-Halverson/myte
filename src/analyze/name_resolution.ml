@@ -49,8 +49,10 @@ module MethodLocation = struct
     | (SuperTrait (t1, _, _), SuperTrait (t2, _, _)) -> String.compare t1 t2
 end
 
-module MethodSet = Set.Make (MethodLocation)
-module MethodMMap = MultiMap.Make (String) (MethodLocation)
+module MethodLocationCollection = MakeCollection (MethodLocation)
+
+module MethodSet = MethodLocationCollection.Set
+module MethodMMap = MultiMap.Make (StringCollection) (MethodLocationCollection)
 
 let implicit_value_imports =
   let open Std_lib in

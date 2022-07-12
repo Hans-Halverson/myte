@@ -1,3 +1,5 @@
+open Basic_collections
+
 let optimize program =
   Fold_constants.fold_constants_and_prune ~program;
   Mir_normalizer.normalize ~program;
@@ -28,7 +30,8 @@ module MirTransform = struct
     | _ -> None
 end
 
-module MirTransformSet = Set.Make (MirTransform)
+module MirTransformCollection = MakeCollection (MirTransform)
+module MirTransformSet = MirTransformCollection.Set
 
 let apply_transforms program transforms =
   let apply_if_enabled opt f = if MirTransformSet.mem opt transforms then f () in

@@ -10,10 +10,10 @@ open X86_64_instructions
 let mk_operand ~(value : Operand.value) ~(type_ : Type.t) : Operand.t =
   Operand.mk ~id:(Mir.mk_value_id ()) ~value ~type_
 
-let mk_precolored ~(type_ : Type.t) (color : register_slot) : Operand.t =
+let mk_precolored ~(type_ : Type.t) (color : Register.t) : Operand.t =
   mk_operand ~value:(PhysicalRegister color) ~type_
 
-let mk_precolored_of_operand (color : register_slot) (op : Operand.t) : Operand.t =
+let mk_precolored_of_operand (color : Register.t) (op : Operand.t) : Operand.t =
   mk_precolored ~type_:op.type_ color
 
 let mk_virtual_register ~(type_ : Type.t) : Operand.t = mk_operand ~value:VirtualRegister ~type_

@@ -1,14 +1,31 @@
-module ISet = Set.Make (Int)
-module IMap = Map.Make (Int)
-module IIMMap = MultiMap.Make (Int) (Int)
-module I64Set = Set.Make (Int64)
-module I64Map = Map.Make (Int64)
-module SSet = Set.Make (String)
-module SMap = Map.Make (String)
-module BSet = Set.Make (Bool)
-module BMap = Map.Make (Bool)
-module LocSet = Set.Make (Loc)
-module LocMap = Map.Make (Loc)
+module type SORTED = sig
+  type t
+  val compare : t -> t -> int
+end
+
+module MakeCollection (S : SORTED) = struct
+  type t = S.t
+  let compare = S.compare
+  module Set = Set.Make (S)
+  module Map = Map.Make (S)
+end
+
+module IntCollection = MakeCollection (Int)
+module Int64Collection = MakeCollection (Int64)
+module BoolCollection = MakeCollection (Bool)
+module StringCollection = MakeCollection (String)
+
+module ISet = IntCollection.Set
+module IMap = IntCollection.Map
+module IIMMap = MultiMap.Make (IntCollection) (IntCollection)
+module I64Set = Int64Collection.Set
+module I64Map = Int64Collection.Map
+module SSet = StringCollection.Set
+module SMap = StringCollection.Map
+module BSet = BoolCollection.Set
+module BMap = BoolCollection.Map
+module LocSet = Loc.Set
+module LocMap = Loc.Map
 
 let string_of_iset iset =
   let elements = ISet.to_seq iset |> List.of_seq |> List.map string_of_int |> String.concat ", " in

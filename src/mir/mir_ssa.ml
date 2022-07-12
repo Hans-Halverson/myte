@@ -45,8 +45,6 @@ open Mir_type
      SSA variable. Also must rewrite all use variables that were the result of removed Load
      instructions to now directly reference the new SSA variable. *)
 
-module BlockIMMap = MultiMap.Make (Block) (Int)
-
 module PhiChainNode = struct
   type id = int
 
@@ -317,7 +315,7 @@ and rewrite_program ~cx program =
     (* Create and add phis to beginning of block *)
     let phis =
       let realized_phis = BlockIMMap.find_all block cx.realized_phis in
-      ISet.fold
+      BlockIMMap.VSet.fold
         (fun node_id phis ->
           let node = get_node ~cx node_id in
           let phi_instr = Option.get node.realized in

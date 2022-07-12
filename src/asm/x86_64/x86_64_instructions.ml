@@ -8,32 +8,32 @@ type register_size =
   | Size32
   | Size64
 
-type register_slot =
-  | A
-  | B
-  | C
-  | D
-  | SI
-  | DI
-  | SP
-  | BP
-  | R8
-  | R9
-  | R10
-  | R11
-  | R12
-  | R13
-  | R14
-  | R15
-
-module RegCollection = struct
-  type t = register_slot
+module Register = struct
+  type t =
+    | A
+    | B
+    | C
+    | D
+    | SI
+    | DI
+    | SP
+    | BP
+    | R8
+    | R9
+    | R10
+    | R11
+    | R12
+    | R13
+    | R14
+    | R15
 
   let compare = Stdlib.compare
 end
 
-module RegSet = Set.Make (RegCollection)
-module RegMap = Map.Make (RegCollection)
+module RegisterCollection = MakeCollection (Register)
+
+module RegSet = RegisterCollection.Set
+module RegMap = RegisterCollection.Map
 
 let all_registers =
   RegSet.of_list [A; B; C; D; SI; DI; SP; BP; R8; R9; R10; R11; R12; R13; R14; R15]
@@ -42,7 +42,7 @@ let callee_saved_registers = RegSet.of_list [B; SP; BP; R12; R13; R14; R15]
 
 let caller_saved_registers = RegSet.of_list [A; C; D; SI; DI; R8; R9; R10; R11]
 
-type register = register_slot * register_size
+type register = Register.t * register_size
 
 type immediate =
   | Imm8 of int
@@ -87,7 +87,7 @@ and Operand : sig
 
   and value =
     (* A physical register in a particular register slot *)
-    | PhysicalRegister of register_slot
+    | PhysicalRegister of Register.t
     (* This is a virtual register that has not yet been resolved *)
     | VirtualRegister
     (* Memory address (which may contain vregs as the base, offset, or index) *)
@@ -106,7 +106,7 @@ and Operand : sig
 
   val compare : t -> t -> int
 
-  val get_physical_register_value : t -> register_slot
+  val get_physical_register_value : t -> Register.t
 
   val is_memory_value : t -> bool
 
@@ -121,7 +121,7 @@ end = struct
   }
 
   and value =
-    | PhysicalRegister of register_slot
+    | PhysicalRegister of Register.t
     | VirtualRegister
     | MemoryAddress of MemoryAddress.t
     | VirtualStackSlot
@@ -178,10 +178,12 @@ type block_id = int
 
 type func_id = int
 
-module OperandSet = Set.Make (Operand)
-module OperandMap = Map.Make (Operand)
-module OOMMap = MultiMap.Make (Operand) (Operand)
-module OIMMap = MultiMap.Make (Operand) (Int)
+module OperandCollection = MakeCollection (Operand)
+
+module OperandSet = OperandCollection.Set
+module OperandMap = OperandCollection.Map
+module OOMMap = MultiMap.Make (OperandCollection) (OperandCollection)
+module OIMMap = MultiMap.Make (OperandCollection) (IntCollection)
 
 let string_of_oset oset =
   let elements =
@@ -328,8 +330,10 @@ module Function = struct
     id
 end
 
-module InstrSet = Set.Make (Instruction)
-module OInstrMMap = MultiMap.Make (Operand) (Instruction)
+module InstructionCollection = MakeCollection (Instruction)
+
+module InstrSet = InstructionCollection.Set
+module OInstrMMap = MultiMap.Make (OperandCollection) (InstructionCollection)
 
 type data_value =
   | ImmediateData of immediate
@@ -431,7 +435,7 @@ let swap_condition_code_order cc =
   | LE -> GE
   | GE -> LE
 
-let register_of_param i =
+let register_of_param (i : int) : Register.t option =
   if i < 6 then
     Some
       (match i with
@@ -445,7 +449,7 @@ let register_of_param i =
   else
     None
 
-let debug_string_of_reg reg =
+let debug_string_of_reg (reg : Register.t) : string =
   match reg with
   | A -> "rax"
   | B -> "rbx"
@@ -464,7 +468,7 @@ let debug_string_of_reg reg =
   | R14 -> "r14"
   | R15 -> "r15"
 
-let string_of_sized_reg reg size =
+let string_of_sized_reg (reg : Register.t) (size : register_size) : string =
   match (reg, size) with
   | (A, Size64) -> "rax"
   | (B, Size64) -> "rbx"

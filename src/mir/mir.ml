@@ -314,13 +314,24 @@ and Builtin : sig
 end =
   Builtin
 
-and BlockSet : (Set.S with type elt = Block.t) = Set.Make (Block)
-and BlockMap : (Map.S with type key = Block.t) = Map.Make (Block)
-and FunctionSet : (Set.S with type elt = Function.t) = Set.Make (Function)
-and FunctionMap : (Map.S with type key = Function.t) = Map.Make (Function)
+and ValueCollection : MultiMap.KEY_AND_VALUE_TYPE = MakeCollection (Value)
+and BlockCollection : MultiMap.KEY_AND_VALUE_TYPE = MakeCollection (Block)
+and FunctionCollection : MultiMap.KEY_AND_VALUE_TYPE = MakeCollection (Function)
+and VSet : (Set.S with type elt = Value.t) = ValueCollection.Set
+and VMap : (Map.S with type key = Value.t) = ValueCollection.Map
+and BlockSet : (Set.S with type elt = Block.t) = BlockCollection.Set
+and BlockMap : (Map.S with type key = Block.t) = BlockCollection.Map
+and FunctionSet : (Set.S with type elt = Function.t) = FunctionCollection.Set
+and FunctionMap : (Map.S with type key = Function.t) = FunctionCollection.Map
+
+and VVMMap : (MultiMap.S with type key = Value.t and type value = Value.t) =
+  MultiMap.Make (ValueCollection) (ValueCollection)
 
 and BlockMMap : (MultiMap.S with type key = Block.t and type value = Block.t) =
-  MultiMap.Make (Block) (Block)
+  MultiMap.Make (BlockCollection) (BlockCollection)
+
+and BlockIMMap : (MultiMap.S with type key = Block.t and type value = Int.t) =
+  MultiMap.Make (BlockCollection) (IntCollection)
 
 let init_func_name = "_init"
 
@@ -514,7 +525,3 @@ let string_of_block_set (blocks : BlockSet.t) : string =
     |> String.concat ", "
   in
   "(" ^ elements ^ ")"
-
-module VSet = Set.Make (Value)
-module VMap = Map.Make (Value)
-module VVMMap = MultiMap.Make (Value) (Value)
