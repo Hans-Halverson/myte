@@ -1,0 +1,4 @@
+(library
+  (name asm_common)
+  (wrapped false)
+  (libraries myte_common))

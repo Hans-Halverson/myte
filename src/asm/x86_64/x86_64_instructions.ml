@@ -303,6 +303,12 @@ module Block = struct
     let id = !max_id in
     max_id := id + 1;
     id
+
+  let get_id block = block.id
+
+  let iter_instrs_rev f block = List.iter f (List.rev block.instructions)
+
+  let filter_instrs f block = block.instructions <- List.filter f block.instructions
 end
 
 module Function = struct

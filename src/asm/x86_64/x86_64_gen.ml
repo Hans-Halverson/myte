@@ -1,6 +1,5 @@
 open Basic_collections
 open X86_64_gen_context
-open X86_64_register_allocation
 
 let gen_program ir =
   (* Filter out stdlib for printing *)
@@ -26,11 +25,7 @@ let gen_program ir =
   );
 
   (* Perform register allocation for each function *)
-  IMap.iter
-    (fun _ func ->
-      let register_allocator = RegisterAllocator.mk ~gcx ~func in
-      RegisterAllocator.allocate_registers ~ra:register_allocator)
-    gcx.funcs_by_id;
+  IMap.iter (fun _ func -> X86_64_register_allocation.run ~gcx ~func) gcx.funcs_by_id;
 
   (* Color and allocate physical stack slots for virtual stack slots *)
   X86_64_stack_coloring.allocate_stack_slots ~gcx;
