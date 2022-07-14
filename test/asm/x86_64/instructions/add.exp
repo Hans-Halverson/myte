@@ -1,5 +1,10 @@
   .global _main
 
+  .data
+  .balign 8
+_float$1.:
+  .quad 4607182418800017408
+
   .text
 test.addByteImm:
   addb $60, %dil
@@ -12,6 +17,16 @@ test.addByteImm2:
 test.addByteRegs:
   addb %dil, %sil
   movl %esi, %eax
+  ret
+test.addDoubleImm:
+  addsd _float$1.(%rip), %xmm0
+  ret
+test.addDoubleRegs:
+  addsd %xmm0, %xmm1
+  movq %xmm1, %xmm0
+  ret
+test.addImmDouble:
+  addsd _float$1.(%rip), %xmm0
   ret
 test.addIntByteImm:
   addl $60, %edi

@@ -1,7 +1,26 @@
   .global _main
 
   .text
-test.callerSavedRegistersSavedAcrossFunctionCalls:
+test.callerSavedRegistersDoubleSavedAcrossFunctionCalls:
+  subq $40, %rsp
+  movq %xmm0, (%rsp)
+  movq %xmm1, 8(%rsp)
+  movq %xmm2, 16(%rsp)
+  movq %xmm3, 24(%rsp)
+  movq %xmm4, 32(%rsp)
+  movl $3, %edi
+  call test.use$Int$
+  movq 8(%rsp), %xmm1
+  addsd (%rsp), %xmm1
+  movq 16(%rsp), %xmm0
+  addsd %xmm1, %xmm0
+  movq 24(%rsp), %xmm1
+  addsd %xmm0, %xmm1
+  movq 32(%rsp), %xmm0
+  addsd %xmm1, %xmm0
+  addq $40, %rsp
+  ret
+test.callerSavedRegistersIntSavedAcrossFunctionCalls:
   push %rbx
   push %r12
   push %r13

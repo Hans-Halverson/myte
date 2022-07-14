@@ -1,5 +1,10 @@
   .global _main
 
+  .data
+  .balign 8
+_float$5.:
+  .quad 4617315517961601024
+
   .text
 _main:
   movl $0, %eax
@@ -13,6 +18,16 @@ test.mulByteRegImm:
 test.mulByteRegs:
   imulw %di, %si
   movl %esi, %eax
+  ret
+test.mulDoubleImm:
+  mulsd _float$5.(%rip), %xmm0
+  ret
+test.mulDoubleRegs:
+  mulsd %xmm0, %xmm1
+  movq %xmm1, %xmm0
+  ret
+test.mulImmDouble:
+  mulsd _float$5.(%rip), %xmm0
   ret
 test.mulIntImmReg:
   imull $257, %edi, %eax

@@ -1,5 +1,10 @@
   .global _main
 
+  .data
+  .balign 8
+_float$60.:
+  .quad 4633641066610819072
+
   .text
 test.divByteImmReg:
   movw $60, %ax
@@ -74,6 +79,17 @@ test.remByteRegs:
   cwd 
   idivw %cx
   movl %edx, %eax
+  ret
+test.remDoublImmReg:
+  movq _float$60.(%rip), %xmm1
+  divsd %xmm0, %xmm1
+  movq %xmm1, %xmm0
+  ret
+test.remDoubleRegImm:
+  divsd _float$60.(%rip), %xmm0
+  ret
+test.remDoubleRegs:
+  divsd %xmm1, %xmm0
   ret
 test.remIntImmReg:
   movl $257, %eax

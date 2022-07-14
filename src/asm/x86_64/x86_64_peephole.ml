@@ -2,6 +2,7 @@ open Basic_collections
 open X86_64_builders
 open X86_64_instructions
 open X86_64_gen_context
+open X86_64_register
 
 (* A peephole optimization edit consists of the number of instructions to remove (1 for the
    current instruction, 2 for the current and next instruction, etc) as well as the new

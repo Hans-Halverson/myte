@@ -1,8 +1,9 @@
 open Register_allocation
 open X86_64_gen_context
 open X86_64_instructions
+open X86_64_register
 
-let general_purpose_registers =
+let allocatable_general_purpose_registers =
   RegSet.of_list [A; B; C; D; SI; DI; R8; R9; R10; R11; R12; R13; R14; R15]
 
 module X86_64_RegisterAllocatorContext = struct
@@ -51,11 +52,14 @@ module X86_64_RegisterAllocatorContext = struct
 
   (* Calling conventions *)
 
-  let general_purpose_registers = general_purpose_registers
+  let allocatable_registers reg_class =
+    match reg_class with
+    | Register.GeneralClass -> allocatable_general_purpose_registers
+    | SSEClass -> all_sse_registers
 
   let callee_saved_registers = callee_saved_registers
 
-  let num_allocatable_registers = RegSet.cardinal general_purpose_registers - 1
+  let num_allocatable_registers reg_class = RegSet.cardinal (allocatable_registers reg_class) - 1
 
   let get_rep_physical_registers cx = cx.gcx.color_to_op
 
@@ -84,6 +88,11 @@ module X86_64_RegisterAllocatorContext = struct
 
   let assign_physical_register op reg = op.Operand.value <- PhysicalRegister reg
 
+  let get_class op =
+    match op.Operand.type_ with
+    | Double -> Register.SSEClass
+    | _ -> GeneralClass
+
   (* Instruction functions *)
 
   let iter_blocks f cx = List.iter f cx.func.blocks
@@ -94,7 +103,10 @@ module X86_64_RegisterAllocatorContext = struct
 
   let get_move_opt instr =
     match instr.Instruction.instr with
-    | MovMM (_, src_op, dest_op) when Operand.is_reg_value src_op && Operand.is_reg_value dest_op ->
+    | MovMM (_, src_op, dest_op)
+      when Operand.is_reg_value src_op
+           && Operand.is_reg_value dest_op
+           && get_class src_op == get_class dest_op ->
       Some (src_op, dest_op)
     | _ -> None
 

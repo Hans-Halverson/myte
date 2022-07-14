@@ -1,0 +1,24 @@
+  .global _main
+
+  .data
+  .balign 16
+_double_negate_mask:
+  .quad -9223372036854775808
+  .quad 0
+
+  .text
+_main:
+  movl $0, %eax
+  ret
+test.negate:
+  subq $8, %rsp
+  movq %xmm1, (%rsp)
+  xorpd _double_negate_mask(%rip), %xmm0
+  call test.use
+  movq (%rsp), %xmm0
+  xorpd _double_negate_mask(%rip), %xmm0
+  call test.use
+  addq $8, %rsp
+  ret
+test.use:
+  ret

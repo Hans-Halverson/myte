@@ -1,6 +1,7 @@
 open Basic_collections
 open X86_64_gen_context
 open X86_64_instructions
+open X86_64_register
 
 class use_def_finder color_to_representative_operand =
   object (this)

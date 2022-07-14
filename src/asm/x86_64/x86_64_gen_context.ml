@@ -1,8 +1,10 @@
 open Basic_collections
 open Mir_type
 open X86_64_builders
+open X86_64_calling_conventions
 open X86_64_instructions
 open X86_64_layout
+open X86_64_register
 
 module Gcx = struct
   type t = {
@@ -16,17 +18,28 @@ module Gcx = struct
     mutable prev_blocks: IIMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
     mutable mir_block_id_to_block_id: Block.id Mir.BlockMap.t;
+    mutable mir_func_to_param_types: param_types Mir.FunctionMap.t;
     mutable funcs_by_id: Function.t IMap.t;
     (* Map from physical register to a representative precolored register operand *)
     mutable color_to_op: Operand.t RegMap.t;
     mutable agg_to_layout: AggregateLayout.t IMap.t;
+    (* Floating point literals *)
+    mutable added_double_negate_mask: bool;
+    mutable float_immediates: SSet.t;
   }
 
   let mk () =
     (* Initialize representative precolored operands, choosing arbitrary type *)
     let color_to_op =
       RegSet.fold
-        (fun reg color_to_op -> RegMap.add reg (mk_precolored ~type_:Long reg) color_to_op)
+        (fun reg color_to_op ->
+          let type_ =
+            if register_class reg == SSEClass then
+              Type.Double
+            else
+              Long
+          in
+          RegMap.add reg (mk_precolored ~type_ reg) color_to_op)
         all_registers
         RegMap.empty
     in
@@ -38,9 +51,12 @@ module Gcx = struct
       blocks_by_id = IMap.empty;
       prev_blocks = IIMMap.empty;
       mir_block_id_to_block_id = Mir.BlockMap.empty;
+      mir_func_to_param_types = Mir.FunctionMap.empty;
       funcs_by_id = IMap.empty;
       color_to_op;
       agg_to_layout = IMap.empty;
+      added_double_negate_mask = false;
+      float_immediates = SSet.empty;
     }
 
   let finish_builders ~gcx =
@@ -54,6 +70,23 @@ module Gcx = struct
   let add_bss ~gcx uninit_data align =
     let align_index = align_to_data_section_align_index align in
     gcx.bss.(align_index) <- uninit_data :: gcx.bss.(align_index)
+
+  let add_double_negate_mask ~gcx =
+    if not gcx.added_double_negate_mask then (
+      let value = SSELiteral [Imm64 Int64.min_int; Imm64 Int64.zero] in
+      add_data ~gcx { label = double_negate_mask_label; value; size = 16; is_pointer = false };
+      gcx.added_double_negate_mask <- true
+    )
+
+  let get_float_literal ~gcx n =
+    let float_string = Float.to_string n in
+    let literal_label = "_float$" ^ float_string in
+    if not (SSet.mem float_string gcx.float_immediates) then (
+      gcx.float_immediates <- SSet.add float_string gcx.float_immediates;
+      let value = ImmediateData (Imm64 (Int64.bits_of_float n)) in
+      add_data ~gcx { label = literal_label; value; size = 8; is_pointer = false }
+    );
+    literal_label
 
   let get_block_id_from_mir_block ~gcx mir_block =
     match Mir.BlockMap.find_opt mir_block gcx.mir_block_id_to_block_id with
@@ -90,12 +123,13 @@ module Gcx = struct
       gcx.prev_blocks <- IIMMap.add next_block_id current_block.id gcx.prev_blocks
     | _ -> ()
 
-  let start_function ~gcx params prologue =
+  let start_function ~gcx mir_func params prologue =
     let id = Function.mk_id () in
     let func =
       {
         Function.id;
         params;
+        param_types = Mir.FunctionMap.find mir_func gcx.mir_func_to_param_types;
         prologue;
         blocks = [];
         spilled_callee_saved_regs = RegSet.empty;

@@ -1,11 +1,19 @@
   .global _main
 
+  .data
+  .balign 8
+_float$1.:
+  .quad 4607182418800017408
+
   .text
 _main:
   movl $0, %eax
   ret
 test.testNestedReturnNoReturnRegisterMove:
   call test.testReturnsInMain
+  ret
+test.testNestedReturnNoReturnRegisterMoveFloat:
+  call test.testReturnsDouble
   ret
 test.testReturnRegisterClobberAcrossCall:
   push %rbx
@@ -14,6 +22,17 @@ test.testReturnRegisterClobberAcrossCall:
   call test.testReturnsInMain
   addl %ebx, %eax
   pop %rbx
+  ret
+test.testReturnRegisterClobberAcrossCallFloat:
+  subq $8, %rsp
+  call test.testReturnsDouble
+  movq %xmm0, (%rsp)
+  call test.testReturnsDouble
+  addsd (%rsp), %xmm0
+  addq $8, %rsp
+  ret
+test.testReturnsDouble:
+  movq _float$1.(%rip), %xmm0
   ret
 test.testReturnsInMain:
   movl $1, %eax

@@ -33,8 +33,8 @@ let gen_program ir =
   (* Simplify program, write function prologue and epilogue *)
   Gcx.compress_jump_aliases ~gcx;
   Gcx.remove_redundant_instructions ~gcx;
-  X86_64_calling_conventions.write_function_prologues ~gcx;
-  X86_64_calling_conventions.write_function_epilogues ~gcx;
+  X86_64_stack_frame.write_function_prologues ~gcx;
+  X86_64_stack_frame.write_function_epilogues ~gcx;
 
   (* Apply optimizations *)
   X86_64_peephole.run_peephole_optimizations ~gcx;

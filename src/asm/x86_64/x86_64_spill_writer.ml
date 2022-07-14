@@ -132,21 +132,36 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       (* Resolve all operations with two operands only one of which can be a memory *)
       | MovMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> MovMM (size, s, d))
+      (* Destination must be register for floating point operations *)
+      | AddMM (size, src_op, dest_op) when dest_op.type_ = Double ->
+        resolve_operator src_op;
+        force_register_write size dest_op (fun dest_op' -> AddMM (size, src_op, dest_op'))
       | AddMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> AddMM (size, s, d))
+        (* Destination must be register for floating point operations *)
+      | SubMM (size, src_op, dest_op) when dest_op.type_ = Double ->
+        resolve_operator src_op;
+        force_register_write size dest_op (fun dest_op' -> SubMM (size, src_op, dest_op'))
       | SubMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> SubMM (size, s, d))
       | AndMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> AndMM (size, s, d))
       | OrMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> OrMM (size, s, d))
+      | XorMM (Size128, src_op, dest_op) ->
+        resolve_operator src_op;
+        (* Only 8 bytes need to be moved if a Mov is generated since only doubles are supported  *)
+        force_register_write Size64 dest_op (fun dest_op' -> XorMM (Size128, src_op, dest_op'))
       | XorMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> XorMM (size, s, d))
       | CmpMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> CmpMM (size, s, d))
-      | IMulMR (size, src_op, dest_op) ->
+      | MulMR (size, src_op, dest_op) ->
         resolve_operator src_op;
-        force_register_write size dest_op (fun dest_op' -> IMulMR (size, src_op, dest_op'))
+        force_register_write size dest_op (fun dest_op' -> MulMR (size, src_op, dest_op'))
+      | FDivMR (size, src_op, dest_op) ->
+        resolve_operator src_op;
+        force_register_write size dest_op (fun dest_op' -> FDivMR (size, src_op, dest_op'))
       (* Instructions with no register/memories *)
       | PushI _
       | ConvertDouble _

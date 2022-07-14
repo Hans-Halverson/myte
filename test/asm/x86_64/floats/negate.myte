@@ -1,0 +1,10 @@
+module test
+
+fun negate(x: Double, y: Double) {
+  use(-x);
+  use(-y);
+}
+
+fun use(x: Double) {}
+
+fun main() {}

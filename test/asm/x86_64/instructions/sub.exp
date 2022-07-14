@@ -1,5 +1,10 @@
   .global _main
 
+  .data
+  .balign 8
+_float$1.:
+  .quad 4607182418800017408
+
   .text
 _main:
   movl $0, %eax
@@ -15,6 +20,17 @@ test.subByteRegImm:
 test.subByteRegs:
   subb %sil, %dil
   movl %edi, %eax
+  ret
+test.subDoubleImm:
+  subsd _float$1.(%rip), %xmm0
+  ret
+test.subDoubleRegs:
+  subsd %xmm1, %xmm0
+  ret
+test.subImmDouble:
+  movq _float$1.(%rip), %xmm1
+  subsd %xmm0, %xmm1
+  movq %xmm1, %xmm0
   ret
 test.subIntImmReg:
   movl $257, %eax

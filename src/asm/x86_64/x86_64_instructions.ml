@@ -1,46 +1,8 @@
 open Basic_collections
+open X86_64_calling_conventions
+open X86_64_register
 
 type label = string
-
-type register_size =
-  | Size8
-  | Size16
-  | Size32
-  | Size64
-
-module Register = struct
-  type t =
-    | A
-    | B
-    | C
-    | D
-    | SI
-    | DI
-    | SP
-    | BP
-    | R8
-    | R9
-    | R10
-    | R11
-    | R12
-    | R13
-    | R14
-    | R15
-
-  let compare = Stdlib.compare
-end
-
-module RegisterCollection = MakeCollection (Register)
-
-module RegSet = RegisterCollection.Set
-module RegMap = RegisterCollection.Map
-
-let all_registers =
-  RegSet.of_list [A; B; C; D; SI; DI; SP; BP; R8; R9; R10; R11; R12; R13; R14; R15]
-
-let callee_saved_registers = RegSet.of_list [B; SP; BP; R12; R13; R14; R15]
-
-let caller_saved_registers = RegSet.of_list [A; C; D; SI; DI; R8; R9; R10; R11]
 
 type register = Register.t * register_size
 
@@ -214,7 +176,7 @@ module Instruction = struct
     (* Data instructions *)
     (* Allows 64-bit immediate. register_size is destination size which may not match immediate size *)
     | MovIM of register_size * immediate * Operand.t
-    (* Allows 64-bit immediate. register_size is destination size *)
+    (* Allows 64-bit immediate. Allows SSE registers. register_size is destination size, or transferred size if SSE *)
     | MovMM of register_size * Operand.t * Operand.t
     (* Src size then dest size where src size < dest size *)
     | MovSX of register_size * register_size * Operand.t * (* Register *) Operand.t
@@ -227,11 +189,14 @@ module Instruction = struct
     (* Numeric operations *)
     | NegM of register_size * Operand.t
     | AddIM of register_size * immediate * Operand.t
+    (* Allows SSE registers (with 64 bit size), if SSE then destination must be a register *)
     | AddMM of register_size * Operand.t * Operand.t
     (* For sub instructions, right/dest := right/dest - left/src *)
     | SubIM of register_size * immediate * Operand.t
+    (* Allows SSE registers (with 64 bit size), if SSE then destination must be a register *)
     | SubMM of register_size * Operand.t * Operand.t
-    | IMulMR of
+    (* Allows SSE registers (with 64 bit size) *)
+    | MulMR of
         register_size
         * Operand.t
         * (* Register *) Operand.t (* Only supports 16, 32, and 64-bit arguments *)
@@ -241,6 +206,8 @@ module Instruction = struct
         * immediate
         * (* Register *) Operand.t (* Only supports 16 and 32-bit immediates *)
     | IDiv of register_size * Operand.t
+    (* Requires SSE registers (with 64 bit size). right/dest := (right/dest) / (left/src) *)
+    | FDivMR of register_size * Operand.t * Operand.t
     (* Bitwise operations *)
     | NotM of register_size * Operand.t
     | AndIM of register_size * immediate * Operand.t
@@ -248,6 +215,7 @@ module Instruction = struct
     | OrIM of register_size * immediate * Operand.t
     | OrMM of register_size * Operand.t * Operand.t
     | XorIM of register_size * immediate * Operand.t
+    (* Allows SSE registers (with 128 bit size), if SSE then destination must be a register *)
     | XorMM of register_size * Operand.t * Operand.t
     (* Bit shifts *)
     | ShlI of register_size * immediate * Operand.t (* Requires 8-bit immediate *)
@@ -317,6 +285,7 @@ module Function = struct
   type t = {
     id: id;
     mutable params: Operand.t list;
+    param_types: param_type array;
     mutable prologue: block_id;
     mutable blocks: Block.t list;
     mutable spilled_callee_saved_regs: RegSet.t;
@@ -346,6 +315,7 @@ type data_value =
   | AsciiData of string
   | LabelData of string list
   | ArrayData of data_value list
+  | SSELiteral of immediate list
 
 type 'a data_item = {
   label: label;
@@ -373,7 +343,7 @@ type program = {
 
 let pointer_size = 8
 
-let mk_data_section () = Array.make 4 []
+let mk_data_section () = Array.make 5 []
 
 let bytes_of_size size =
   match size with
@@ -381,6 +351,7 @@ let bytes_of_size size =
   | Size16 -> 2
   | Size32 -> 4
   | Size64 -> 8
+  | Size128 -> 16
 
 let size_of_immediate imm =
   match imm with
@@ -401,6 +372,7 @@ let rec align_of_data_value d =
   | ImmediateData imm -> bytes_of_size (size_of_immediate imm)
   | AsciiData _ -> 1
   | LabelData _ -> 8
+  | SSELiteral _ -> 16
   | ArrayData data ->
     List.fold_left
       (fun max_align value ->
@@ -418,6 +390,7 @@ let align_to_data_section_align_index align =
   | 2 -> 1
   | 4 -> 2
   | 8 -> 3
+  | 16 -> 4
   | _ -> failwith "Invalid alignment"
 
 (* Return the opposite of a condition code (NOT CC) *)
@@ -441,106 +414,8 @@ let swap_condition_code_order cc =
   | LE -> GE
   | GE -> LE
 
-let register_of_param (i : int) : Register.t option =
-  if i < 6 then
-    Some
-      (match i with
-      | 0 -> DI
-      | 1 -> SI
-      | 2 -> D
-      | 3 -> C
-      | 4 -> R8
-      | 5 -> R9
-      | _ -> R9)
-  else
-    None
-
-let debug_string_of_reg (reg : Register.t) : string =
-  match reg with
-  | A -> "rax"
-  | B -> "rbx"
-  | C -> "rcx"
-  | D -> "rdx"
-  | SI -> "rsi"
-  | DI -> "rdi"
-  | SP -> "rsp"
-  | BP -> "rbp"
-  | R8 -> "r8"
-  | R9 -> "r9"
-  | R10 -> "r10"
-  | R11 -> "r11"
-  | R12 -> "r12"
-  | R13 -> "r13"
-  | R14 -> "r14"
-  | R15 -> "r15"
-
-let string_of_sized_reg (reg : Register.t) (size : register_size) : string =
-  match (reg, size) with
-  | (A, Size64) -> "rax"
-  | (B, Size64) -> "rbx"
-  | (C, Size64) -> "rcx"
-  | (D, Size64) -> "rdx"
-  | (SI, Size64) -> "rsi"
-  | (DI, Size64) -> "rdi"
-  | (SP, Size64) -> "rsp"
-  | (BP, Size64) -> "rbp"
-  | (R8, Size64) -> "r8"
-  | (R9, Size64) -> "r9"
-  | (R10, Size64) -> "r10"
-  | (R11, Size64) -> "r11"
-  | (R12, Size64) -> "r12"
-  | (R13, Size64) -> "r13"
-  | (R14, Size64) -> "r14"
-  | (R15, Size64) -> "r15"
-  | (A, Size32) -> "eax"
-  | (B, Size32) -> "ebx"
-  | (C, Size32) -> "ecx"
-  | (D, Size32) -> "edx"
-  | (SI, Size32) -> "esi"
-  | (DI, Size32) -> "edi"
-  | (SP, Size32) -> "esp"
-  | (BP, Size32) -> "ebp"
-  | (R8, Size32) -> "r8d"
-  | (R9, Size32) -> "r9d"
-  | (R10, Size32) -> "r10d"
-  | (R11, Size32) -> "r11d"
-  | (R12, Size32) -> "r12d"
-  | (R13, Size32) -> "r13d"
-  | (R14, Size32) -> "r14d"
-  | (R15, Size32) -> "r15d"
-  | (A, Size16) -> "ax"
-  | (B, Size16) -> "bx"
-  | (C, Size16) -> "cx"
-  | (D, Size16) -> "dx"
-  | (SI, Size16) -> "si"
-  | (DI, Size16) -> "di"
-  | (SP, Size16) -> "sp"
-  | (BP, Size16) -> "bp"
-  | (R8, Size16) -> "r8w"
-  | (R9, Size16) -> "r9w"
-  | (R10, Size16) -> "r10w"
-  | (R11, Size16) -> "r11w"
-  | (R12, Size16) -> "r12w"
-  | (R13, Size16) -> "r13w"
-  | (R14, Size16) -> "r14w"
-  | (R15, Size16) -> "r15w"
-  | (A, Size8) -> "al"
-  | (B, Size8) -> "bl"
-  | (C, Size8) -> "cl"
-  | (D, Size8) -> "dl"
-  | (SI, Size8) -> "sil"
-  | (DI, Size8) -> "dil"
-  | (SP, Size8) -> "spl"
-  | (BP, Size8) -> "bpl"
-  | (R8, Size8) -> "r8b"
-  | (R9, Size8) -> "r9b"
-  | (R10, Size8) -> "r10b"
-  | (R11, Size8) -> "r11b"
-  | (R12, Size8) -> "r12b"
-  | (R13, Size8) -> "r13b"
-  | (R14, Size8) -> "r14b"
-  | (R15, Size8) -> "r15b"
-
 let main_label = "_main"
 
 let init_label = "_myte_init"
+
+let double_negate_mask_label = "_double_negate_mask"

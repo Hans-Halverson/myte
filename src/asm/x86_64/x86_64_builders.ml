@@ -1,5 +1,6 @@
 open Mir_type
 open X86_64_instructions
+open X86_64_register
 
 (*
  * ============================

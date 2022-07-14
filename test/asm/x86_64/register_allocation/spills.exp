@@ -1,5 +1,20 @@
   .global _main
 
+  .data
+  .balign 8
+_float$104.:
+  .quad 4637018766331346944
+_float$105.:
+  .quad 4637089135075524608
+_float$106.:
+  .quad 4637159503819702272
+_float$4.:
+  .quad 4616189618054758400
+_float$5.:
+  .quad 4617315517961601024
+_float$6.:
+  .quad 4618441417868443648
+
   .text
 test.cond:
   movb $1, %al
@@ -13,7 +28,7 @@ _main:
   movl $4, %ecx
   movl $5, %r8d
   movl $6, %r9d
-  call test.testSingleSpillUsingAllRegisters
+  call test.testSingleSpillUsingAllIntRegisters
   movl %eax, %edi
   call std.int.Int.toString
   movq %rax, %rdi
@@ -49,7 +64,94 @@ test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
   pop %r12
   pop %rbx
   ret
-test.testSingleSpillUsingAllRegisters:
+test.testRegisterClassesAreIndependent:
+  push %rbx
+  push %r12
+  push %r13
+  subq $24, %rsp
+  call test.cond
+  testb %al, %al
+  je .L0
+  movl $101, %r13d
+  movl $102, %r12d
+  movl $103, %ebx
+  movq _float$104.(%rip), %xmm0
+  movq %xmm0, (%rsp)
+  movq _float$105.(%rip), %xmm0
+  movq %xmm0, 8(%rsp)
+  movq _float$106.(%rip), %xmm0
+  movq %xmm0, 16(%rsp)
+  jmp .L1
+.L0:
+  movl $1, %r13d
+  movl $2, %r12d
+  movl $3, %ebx
+  movq _float$4.(%rip), %xmm0
+  movq %xmm0, (%rsp)
+  movq _float$5.(%rip), %xmm0
+  movq %xmm0, 8(%rsp)
+  movq _float$6.(%rip), %xmm0
+  movq %xmm0, 16(%rsp)
+.L1:
+  movl $16, %edi
+  call __myte_alloc
+  addl %r13d, %r12d
+  addl %r12d, %ebx
+  movl %ebx, (%rax)
+  movq 8(%rsp), %xmm1
+  addsd (%rsp), %xmm1
+  movq 16(%rsp), %xmm0
+  addsd %xmm1, %xmm0
+  movq %xmm0, 8(%rax)
+  addq $24, %rsp
+  pop %r13
+  pop %r12
+  pop %rbx
+  ret
+test.testSingleSpillUsingAllDoubleRegisters:
+  subq $8, %rsp
+  movq %xmm2, %xmm15
+  movq %xmm6, (%rsp)
+  movq %xmm1, %xmm14
+  addsd %xmm0, %xmm14
+  movq %xmm15, %xmm13
+  addsd %xmm0, %xmm13
+  movq %xmm3, %xmm12
+  addsd %xmm0, %xmm12
+  movq %xmm4, %xmm11
+  addsd %xmm0, %xmm11
+  movq %xmm5, %xmm10
+  addsd %xmm0, %xmm10
+  movq %xmm15, %xmm9
+  addsd %xmm1, %xmm9
+  movq %xmm3, %xmm8
+  addsd %xmm1, %xmm8
+  movq %xmm4, %xmm7
+  addsd %xmm1, %xmm7
+  movq %xmm5, %xmm6
+  addsd %xmm1, %xmm6
+  movq %xmm5, %xmm2
+  addsd %xmm1, %xmm2
+  addsd %xmm0, %xmm1
+  addsd %xmm1, %xmm15
+  addsd %xmm15, %xmm3
+  addsd %xmm3, %xmm4
+  addsd %xmm4, %xmm5
+  addsd %xmm5, %xmm14
+  addsd %xmm14, %xmm13
+  addsd %xmm13, %xmm12
+  addsd %xmm12, %xmm11
+  addsd %xmm11, %xmm10
+  addsd %xmm10, %xmm9
+  addsd %xmm9, %xmm8
+  addsd %xmm8, %xmm7
+  addsd %xmm7, %xmm6
+  addsd %xmm6, %xmm2
+  movq (%rsp), %xmm0
+  addsd %xmm2, %xmm0
+  addq $8, %rsp
+  ret
+test.testSingleSpillUsingAllIntRegisters:
   push %rbx
   push %r12
   push %r13
@@ -108,7 +210,7 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   subq $8, %rsp
   call test.cond
   testb %al, %al
-  je .L0
+  je .L2
   movl $101, %r15d
   movl $102, %r14d
   movl $103, %r13d
@@ -124,8 +226,8 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   movl $113, %edx
   movl $114, %ecx
   movl $115, %eax
-  jmp .L1
-.L0:
+  jmp .L3
+.L2:
   movl $1, %r15d
   movl $2, %r14d
   movl $3, %r13d
@@ -141,7 +243,7 @@ test.testSingleSpillUsingAllRegistersFromLocals:
   movl $13, %edx
   movl $14, %ecx
   movl $15, %eax
-.L1:
+.L3:
   addl %r15d, %r14d
   addl %r14d, %r13d
   movl (%rsp), %r14d

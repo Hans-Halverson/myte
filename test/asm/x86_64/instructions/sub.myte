@@ -13,4 +13,8 @@ fun subLongRegs(x: Long, y: Long): Long = x - y
 fun subLongRegImm(x: Long): Long = x - 2147483648
 fun subLongImmReg(x: Long): Long = 2147483648 - x
 
+fun subDoubleRegs(x: Double, y: Double): Double = x - y
+fun subDoubleImm(x: Double, y: Double): Double = x - 1.0
+fun subImmDouble(x: Double, y: Double): Double = 1.0 - x
+
 fun main() {}

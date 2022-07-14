@@ -26,4 +26,8 @@ fun remLongRegs(x: Long, y: Long): Long = x % y
 fun remLongRegImm(x: Long): Long = x % 2147483648
 fun remLongImmReg(x: Long): Long = 2147483648 % x
 
+fun remDoubleRegs(x: Double, y: Double): Double = x / y
+fun remDoubleRegImm(x: Double): Double = x / 60.0
+fun remDoublImmReg(x: Double): Double = 60.0 / x
+
 fun main() {}

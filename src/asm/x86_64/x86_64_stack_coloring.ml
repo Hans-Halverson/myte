@@ -1,7 +1,9 @@
 open Basic_collections
 open X86_64_builders
+open X86_64_calling_conventions
 open X86_64_gen_context
 open X86_64_instructions
+open X86_64_register
 
 class vslot_use_def_finder =
   object
@@ -140,14 +142,17 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
         !color_to_stack_slots;
 
       (* Write physical addresses for each param passed on stack now that stack frame size is known *)
-      let args_on_stack = List_utils.drop 6 func.params in
       let num_used_callee_saved_regs = RegSet.cardinal func.spilled_callee_saved_regs in
       List.iteri
         (fun i param_op ->
-          (* Offset must reach past entire stack frame, then all used callee saved registers that were
-             pushed on stack, then return address pushed onto stack from call instruction, and then
-             finally can start accessing function arguments that were pushed onto stack. *)
-          let offset = stack_frame_size + ((num_used_callee_saved_regs + i + 1) * 8) in
-          resolve_to_physical_stack_slot param_op offset)
-        args_on_stack)
+          let param_type = func.param_types.(i) in
+          match param_type with
+          | ParamInRegister _ -> ()
+          | ParamOnStack i ->
+            (* Offset must reach past entire stack frame, then all used callee saved registers that were
+               pushed on stack, then return address pushed onto stack from call instruction, and then
+               finally can start accessing function arguments that were pushed onto stack. *)
+            let offset = stack_frame_size + ((num_used_callee_saved_regs + i + 1) * 8) in
+            resolve_to_physical_stack_slot param_op offset)
+        func.params)
     gcx.funcs_by_id

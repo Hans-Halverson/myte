@@ -1,6 +1,7 @@
 open Basic_collections
 open X86_64_gen_context
 open X86_64_instructions
+open X86_64_register
 
 type print_context = { mutable block_print_labels: string IMap.t }
 
@@ -85,14 +86,15 @@ let quote_string str =
     str;
   "\"" ^ Buffer.contents buf ^ "\""
 
-let pp_size_suffix ~buf size =
+let pp_integer_size_suffix ~buf size =
   add_char
     ~buf
     (match size with
     | Size8 -> 'b'
     | Size16 -> 'w'
     | Size32 -> 'l'
-    | Size64 -> 'q')
+    | Size64 -> 'q'
+    | Size128 -> failwith "Invalid integer operand size")
 
 let pp_label_debug_prefix ~buf block_id =
   if Opts.dump_debug () then (
@@ -214,7 +216,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       in
       let pp_sized_op op size =
         add_string op;
-        pp_size_suffix ~buf size;
+        pp_integer_size_suffix ~buf size;
         add_char ~buf ' '
       in
       let pp_register = pp_register ~gcx ~buf in
@@ -270,7 +272,10 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_sized_op "neg" size;
         pp_register ~size mem
       | AddMM (size, src_mem, dest_mem) ->
-        pp_sized_op "add" size;
+        if size == Size64 && dest_mem.type_ == Double then
+          pp_op "addsd"
+        else
+          pp_sized_op "add" size;
         pp_register ~size src_mem;
         pp_args_separator ();
         pp_register ~size dest_mem
@@ -280,7 +285,10 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_register ~size dest_mem
       | SubMM (size, src_mem, dest_mem) ->
-        pp_sized_op "sub" size;
+        if size == Size64 && dest_mem.type_ == Double then
+          pp_op "subsd"
+        else
+          pp_sized_op "sub" size;
         pp_register ~size src_mem;
         pp_args_separator ();
         pp_register ~size dest_mem
@@ -289,8 +297,11 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_immediate imm;
         pp_args_separator ();
         pp_register ~size dest_mem
-      | IMulMR (size, src_mem, dest_reg) ->
-        pp_sized_op "imul" size;
+      | MulMR (size, src_mem, dest_reg) ->
+        if size == Size64 && dest_reg.type_ == Double then
+          pp_op "mulsd"
+        else
+          pp_sized_op "imul" size;
         pp_register ~size src_mem;
         pp_args_separator ();
         pp_register ~size dest_reg
@@ -304,6 +315,11 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | IDiv (size, mem) ->
         pp_sized_op "idiv" size;
         pp_register ~size mem
+      | FDivMR (size, src_mem, dest_reg) ->
+        pp_op "divsd";
+        pp_register ~size src_mem;
+        pp_args_separator ();
+        pp_register ~size dest_reg
       (* Bitwise operations *)
       | NotM (size, mem) ->
         pp_sized_op "not" size;
@@ -329,7 +345,10 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_register ~size dest_mem
       | XorMM (size, src_mem, dest_mem) ->
-        pp_sized_op "xor" size;
+        if size == Size128 then
+          pp_op "xorpd"
+        else
+          pp_sized_op "xor" size;
         pp_register ~size src_mem;
         pp_args_separator ();
         pp_register ~size dest_mem
@@ -390,10 +409,12 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | ConvertDouble size ->
         let op =
           match size with
-          | Size8 -> failwith "ConvertDouble cannot have 8-byte size"
           | Size16 -> "cwd"
           | Size32 -> "cdq"
           | Size64 -> "cqo"
+          | Size8
+          | Size128 ->
+            failwith "ConvertDouble cannot have 1-byte or 16-byte size"
         in
         pp_op op
       (* Control flow *)
@@ -426,14 +447,19 @@ let rec pp_data_value ~buf (data_value : data_value) =
         add_char ~buf ' ';
         add_string ~buf value)
   in
+  let add_imm_directive imm =
+    match imm with
+    | Imm8 imm -> add_directive "byte" (string_of_int imm)
+    | Imm16 imm -> add_directive "value" (string_of_int imm)
+    | Imm32 imm -> add_directive "long" (Int32.to_string imm)
+    | Imm64 imm -> add_directive "quad" (Int64.to_string imm)
+  in
   match data_value with
-  | ImmediateData (Imm8 imm) -> add_directive "byte" (string_of_int imm)
-  | ImmediateData (Imm16 imm) -> add_directive "value" (string_of_int imm)
-  | ImmediateData (Imm32 imm) -> add_directive "long" (Int32.to_string imm)
-  | ImmediateData (Imm64 imm) -> add_directive "quad" (Int64.to_string imm)
+  | ImmediateData imm -> add_imm_directive imm
   | AsciiData str -> add_directive "ascii" (quote_string str)
   | LabelData labels -> List.iter (fun label -> add_directive "quad" label) labels
   | ArrayData values -> List.iter (pp_data_value ~buf) values
+  | SSELiteral imms -> List.iter add_imm_directive imms
 
 let pp_initialized_data_item ~buf (init_data : initialized_data_item) =
   (* Data blocks have the form:

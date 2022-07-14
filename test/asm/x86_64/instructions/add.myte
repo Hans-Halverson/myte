@@ -16,6 +16,12 @@ fun addLongByteImm(x: Long): Long = x + 60
 
 fun addLongIntImm(x: Long): Long = x + 257
 
+fun addDoubleRegs(x: Double, y: Double): Double = x + y
+
+fun addDoubleImm(x: Double, y: Double): Double = x + 1.0
+
+fun addImmDouble(x: Double, y: Double): Double = 1.0 + x
+
 // First have to load long to register
 fun addLongLongImm(x: Long): Long = x + 2147483648
 

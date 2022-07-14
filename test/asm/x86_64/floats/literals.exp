@@ -1,0 +1,40 @@
+  .global _main
+
+  .data
+  .balign 8
+_float$1.:
+  .quad 4607182418800017408
+_float$2.:
+  .quad 4611686018427387904
+
+  .text
+_main:
+  push %rbx
+  movl $48, %edi
+  call __myte_alloc
+  movq %rax, %rbx
+  movq _float$1.(%rip), %xmm0
+  movq %xmm0, (%rbx)
+  leaq 8(%rbx), %rax
+  movq _float$2.(%rip), %xmm0
+  movq %xmm0, (%rax)
+  leaq 16(%rbx), %rax
+  movq _float$1.(%rip), %xmm0
+  movq %xmm0, (%rax)
+  leaq 24(%rbx), %rax
+  movq _float$1.(%rip), %xmm0
+  movq %xmm0, (%rax)
+  leaq 32(%rbx), %rax
+  movq _float$2.(%rip), %xmm0
+  movq %xmm0, (%rax)
+  leaq 40(%rbx), %rax
+  movq _float$1.(%rip), %xmm0
+  movq %xmm0, (%rax)
+  movl $16, %edi
+  call __myte_alloc
+  movq %rbx, 8(%rax)
+  movl $6, (%rax)
+  movl $6, 4(%rax)
+  movl $0, %eax
+  pop %rbx
+  ret

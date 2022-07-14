@@ -15,6 +15,12 @@ open Basic_collections
    George, L., & Appel, A. W. (1996). Iterated register coalescing.
    ACM Transactions on Programming Languages and Systems, 18(3), 300–324. *)
 
+module type RA_REGISTER = sig
+  include SORTED
+
+  type class_
+end
+
 module type RA_OPERAND = sig
   include SORTED
 
@@ -28,7 +34,7 @@ module type RA_BLOCK = sig
 end
 
 module type REGISTER_ALLOCATOR_CONTEXT = sig
-  module Register : SORTED
+  module Register : RA_REGISTER
   module Operand : RA_OPERAND
   module Instruction : SORTED
   module Block : RA_BLOCK
@@ -56,11 +62,11 @@ module type REGISTER_ALLOCATOR_CONTEXT = sig
 
   (* Calling conventions *)
 
-  val general_purpose_registers : RegSet.t
+  val allocatable_registers : Register.class_ -> RegSet.t
 
   val callee_saved_registers : RegSet.t
 
-  val num_allocatable_registers : int
+  val num_allocatable_registers : Register.class_ -> int
 
   val get_rep_physical_registers : t -> Operand.t RegMap.t
 
@@ -77,6 +83,8 @@ module type REGISTER_ALLOCATOR_CONTEXT = sig
   val get_physical_register_opt : Operand.t -> Register.t option
 
   val assign_physical_register : Operand.t -> Register.t -> unit
+
+  val get_class : Operand.t -> Register.class_
 
   (* Instruction functions *)
 
@@ -225,7 +233,12 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
             live := OperandSet.union reg_defs !live;
             OperandSet.iter
               (fun reg_def ->
-                OperandSet.iter (fun live_reg -> add_interference_edge ~ra live_reg reg_def) !live)
+                OperandSet.iter
+                  (fun live_reg ->
+                    (* Registers only interfere if they have the same class *)
+                    if Cx.get_class reg_def == Cx.get_class live_reg then
+                      add_interference_edge ~ra live_reg reg_def)
+                  !live)
               reg_defs;
             live := OperandSet.union reg_uses (OperandSet.diff !live reg_defs))
           block)
@@ -250,7 +263,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     OperandSet.iter
       (fun vreg ->
         ra.initial_vregs <- OperandSet.remove vreg ra.initial_vregs;
-        if degree ~ra vreg >= Cx.num_allocatable_registers then
+        if degree ~ra vreg >= Cx.num_allocatable_registers (Cx.get_class vreg) then
           ra.spill_worklist <- OperandSet.add vreg ra.spill_worklist
         else if move_related ~ra vreg then
           ra.freeze_worklist <- OperandSet.add vreg ra.freeze_worklist
@@ -274,7 +287,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   let decrement_degree ~(ra : t) reg =
     let degree = degree ~ra reg in
     ra.interference_degree <- OperandMap.add reg (max 0 (degree - 1)) ra.interference_degree;
-    if degree = Cx.num_allocatable_registers then (
+    if degree = Cx.num_allocatable_registers (Cx.get_class reg) then (
       enable_moves ~ra (OperandSet.add reg (adjacent ~ra reg));
       ra.spill_worklist <- OperandSet.remove reg ra.spill_worklist;
       if move_related ~ra reg then
@@ -296,7 +309,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     if
       (not (is_precolored vreg))
       && (not (move_related ~ra vreg))
-      && degree ~ra vreg < Cx.num_allocatable_registers
+      && degree ~ra vreg < Cx.num_allocatable_registers (Cx.get_class vreg)
     then (
       ra.freeze_worklist <- OperandSet.remove vreg ra.freeze_worklist;
       ra.simplify_worklist <- OperandSet.add vreg ra.simplify_worklist
@@ -308,7 +321,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     OperandSet.for_all
       (fun adjacent_reg ->
         (* Degree stays the same since reg gains and loses a neighbor *)
-        degree ~ra adjacent_reg < Cx.num_allocatable_registers
+        degree ~ra adjacent_reg < Cx.num_allocatable_registers (Cx.get_class adjacent_reg)
         (* All precolored registers interfere so degree does not change *)
         || is_precolored adjacent_reg
         (* Already interferes so degree does not change *)
@@ -322,9 +335,10 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     let neighbor_regs = OperandSet.union (adjacent ~ra reg1) (adjacent ~ra reg2) in
     let k = ref 0 in
     OperandSet.iter
-      (fun reg -> if degree ~ra reg >= Cx.num_allocatable_registers then k := !k + 1)
+      (fun reg ->
+        if degree ~ra reg >= Cx.num_allocatable_registers (Cx.get_class reg) then k := !k + 1)
       neighbor_regs;
-    !k < Cx.num_allocatable_registers
+    !k < Cx.num_allocatable_registers (Cx.get_class reg1)
 
   let rec get_operand_alias ~ra op =
     match OperandMap.find_opt op ra.aliases with
@@ -355,7 +369,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         decrement_degree ~ra adjacent_reg)
       (adjacent ~ra aliased_vreg);
     if
-      degree ~ra rep_reg >= Cx.num_allocatable_registers
+      degree ~ra rep_reg >= Cx.num_allocatable_registers (Cx.get_class rep_reg)
       && OperandSet.mem rep_reg ra.freeze_worklist
     then (
       ra.freeze_worklist <- OperandSet.remove rep_reg ra.freeze_worklist;
@@ -420,7 +434,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         let maybe_unfreeze vreg =
           if
             InstrSet.is_empty (node_moves ~ra vreg)
-            && degree ~ra vreg < Cx.num_allocatable_registers
+            && degree ~ra vreg < Cx.num_allocatable_registers (Cx.get_class vreg)
           then (
             ra.freeze_worklist <- OperandSet.remove vreg ra.freeze_worklist;
             ra.simplify_worklist <- OperandSet.add vreg ra.simplify_worklist
@@ -496,10 +510,10 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     let unused_callee_saved_regs =
       RegSet.diff Cx.callee_saved_registers (Cx.get_spilled_callee_saved_registers ra.cx)
     in
-    let possible_not_unused_callee_saved_regs =
+    let possible_already_used_callee_saved_regs =
       RegSet.diff possible_regs unused_callee_saved_regs
     in
-    match find_highest_priority_reg possible_not_unused_callee_saved_regs reg_priorities with
+    match find_highest_priority_reg possible_already_used_callee_saved_regs reg_priorities with
     | Some reg -> Some reg
     | None ->
       let possible_unused_callee_saved_regs = RegSet.inter possible_regs unused_callee_saved_regs in
@@ -518,7 +532,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
       let interfering_vregs = OOMMap.find_all vreg ra.interference_graph in
 
       (* Create a set of all registers and remove colors of all neighbors in interference graph *)
-      let ok_registers = ref Cx.general_purpose_registers in
+      let ok_registers = ref (Cx.allocatable_registers (Cx.get_class vreg)) in
       OperandSet.iter
         (fun interfering_vreg ->
           let alias = get_operand_alias ~ra interfering_vreg in

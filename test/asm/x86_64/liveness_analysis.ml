@@ -2,6 +2,7 @@ open Basic_collections
 open Myte_test
 open X86_64_builders
 open X86_64_instructions
+open X86_64_register
 
 let mk_vreg id = mk_virtual_register_of_value_id ~value_id:id ~type_:Byte
 

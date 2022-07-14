@@ -47,8 +47,14 @@ fun testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(cond: Bool) {
   use(y);
 }
 
-fun callerSavedRegistersSavedAcrossFunctionCalls(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int): Int {
+fun callerSavedRegistersIntSavedAcrossFunctionCalls(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int): Int {
   // Push callee saved registers then move caller saved args to them to pass this function call
+  use(3);
+  return p1 + p2 + p3 + p4 + p5;
+}
+
+fun callerSavedRegistersDoubleSavedAcrossFunctionCalls(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double): Double {
+  // Move caller saved register to stack to pass the function call
   use(3);
   return p1 + p2 + p3 + p4 + p5;
 }

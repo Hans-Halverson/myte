@@ -53,7 +53,8 @@ class instruction_visitor =
       | TestMR (_, read_op1, read_op2) ->
         visit_read_operand read_op1;
         visit_read_operand read_op2
-      | IMulMR (_, read_op, read_write_op) ->
+      | MulMR (_, read_op, read_write_op)
+      | FDivMR (_, read_op, read_write_op) ->
         visit_read_operand read_op;
         visit_read_operand read_write_op;
         visit_write_operand read_write_op
