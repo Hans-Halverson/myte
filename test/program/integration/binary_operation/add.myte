@@ -5,6 +5,7 @@ import std.test.assertEqual
 fun addBytes(x: Byte, y: Byte): Byte = x + y
 fun addInts(x: Int, y: Int): Int = x + y
 fun addLongs(x: Long, y: Long): Long = x + y
+fun addDoubles(x: Double, y: Double): Double = x + y
 
 fun testAddBytes() {
   // Simple additions
@@ -69,8 +70,24 @@ fun testAddLongs() {
   assertEqual(addLongs(-9223372036854775800, -9), 9223372036854775807);
 }
 
+fun testAddDoubles() {
+  // Simple additions
+  assertEqual(addDoubles(0.0, 0.0), 0.0);
+  assertEqual(addDoubles(0.0, -0.0), 0.0);
+  assertEqual(addDoubles(0.0, 34.87), 34.87);
+  assertEqual(addDoubles(1.3, 6.8), 8.1);
+
+  // Negative numbers
+  assertEqual(addDoubles(-1.0, 0.0), -1.0);
+  assertEqual(addDoubles(-7.8, 7.8), 0.0);
+  assertEqual(addDoubles(-7.8, -9.0), -16.8);
+  assertEqual(addDoubles(-7.8, 7.6), -0.20000000000000018);
+  assertEqual(addDoubles(-7.8, 8.0), 0.20000000000000018);
+}
+
 fun ten(): Int = 10
 fun tenLong(): Long = 10
+fun tenDouble(): Double = 10.0
 
 fun testAddConstant() {
   // Constant ints
@@ -80,11 +97,16 @@ fun testAddConstant() {
   // Constant longs
   assertEqual(1 + tenLong(), 11);
   assertEqual(tenLong() + 1, 11);
+
+  // Constat doubles
+  assertEqual(1.0 + tenDouble(), 11.0);
+  assertEqual(tenDouble() + 1.0, 11.0);
 }
 
 fun main() {
   testAddBytes();
   testAddInts();
   testAddLongs();
+  testAddDoubles();
   testAddConstant();
 }

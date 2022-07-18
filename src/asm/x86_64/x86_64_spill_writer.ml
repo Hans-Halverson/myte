@@ -55,6 +55,25 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
         ) else
           replace_instr (f op)
       in
+      let force_register_read size op f =
+        resolve_operator op;
+        if this#is_memory_value op then (
+          let vreg_dest = mk_vreg_of_op op in
+          add_new_instr (MovMM (size, op, vreg_dest));
+          replace_instr (f vreg_dest)
+        ) else
+          replace_instr (f op)
+      in
+      let force_register_read_write size op f =
+        resolve_operator op;
+        if this#is_memory_value op then (
+          let vreg_dest = mk_vreg_of_op op in
+          add_new_instr (MovMM (size, op, vreg_dest));
+          replace_instr (f vreg_dest);
+          add_new_instr (MovMM (size, vreg_dest, op))
+        ) else
+          replace_instr (f op)
+      in
       let resolve_binop_single_mem size src_op dest_op f =
         resolve_operator src_op;
         resolve_operator dest_op;
@@ -135,13 +154,13 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       (* Destination must be register for floating point operations *)
       | AddMM (size, src_op, dest_op) when dest_op.type_ = Double ->
         resolve_operator src_op;
-        force_register_write size dest_op (fun dest_op' -> AddMM (size, src_op, dest_op'))
+        force_register_read_write size dest_op (fun dest_op' -> AddMM (size, src_op, dest_op'))
       | AddMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> AddMM (size, s, d))
         (* Destination must be register for floating point operations *)
       | SubMM (size, src_op, dest_op) when dest_op.type_ = Double ->
         resolve_operator src_op;
-        force_register_write size dest_op (fun dest_op' -> SubMM (size, src_op, dest_op'))
+        force_register_read_write size dest_op (fun dest_op' -> SubMM (size, src_op, dest_op'))
       | SubMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> SubMM (size, s, d))
       | AndMM (size, src_op, dest_op) ->
@@ -151,17 +170,21 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       | XorMM (Size128, src_op, dest_op) ->
         resolve_operator src_op;
         (* Only 8 bytes need to be moved if a Mov is generated since only doubles are supported  *)
-        force_register_write Size64 dest_op (fun dest_op' -> XorMM (Size128, src_op, dest_op'))
+        force_register_read_write Size64 dest_op (fun dest_op' -> XorMM (Size128, src_op, dest_op'))
       | XorMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> XorMM (size, s, d))
       | CmpMM (size, src_op, dest_op) ->
-        resolve_binop_single_mem size src_op dest_op (fun s d -> CmpMM (size, s, d))
+        if src_op.type_ == Double then (
+          resolve_operator dest_op;
+          force_register_read size src_op (fun src_op' -> CmpMM (size, src_op', dest_op))
+        ) else
+          resolve_binop_single_mem size src_op dest_op (fun s d -> CmpMM (size, s, d))
       | MulMR (size, src_op, dest_op) ->
         resolve_operator src_op;
-        force_register_write size dest_op (fun dest_op' -> MulMR (size, src_op, dest_op'))
+        force_register_read_write size dest_op (fun dest_op' -> MulMR (size, src_op, dest_op'))
       | FDivMR (size, src_op, dest_op) ->
         resolve_operator src_op;
-        force_register_write size dest_op (fun dest_op' -> FDivMR (size, src_op, dest_op'))
+        force_register_read_write size dest_op (fun dest_op' -> FDivMR (size, src_op, dest_op'))
       (* Instructions with no register/memories *)
       | PushI _
       | ConvertDouble _

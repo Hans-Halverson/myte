@@ -10,6 +10,7 @@ fun testPrimitives() {
   (1: Byte) == 2;
   (1: Int) == 2;
   (1: Long) == 2;
+  (1.0: Double) == 2.0;
 
   // IntLiteral on left, does not greedily resolve to Int
   1 == (1: Byte);

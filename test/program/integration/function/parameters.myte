@@ -3,17 +3,44 @@ module test
 import std.test.assertEqual
 import std.io.println
 
-fun manyArgs(p1: Long, p2: Long, p3: Long, p4: Long, p5: Long, p6: Long, p7: Long, p8: Long, p9: Long, p10: Long): Long {
+val longResult: Long = (1: Long) | (2 << 4) | (3 << 8) | (4 << 12) | (5 << 16) | (6 << 20) | (7 << 24) | (8 << 28) | (9 << 32) | (10 << 36)
+
+fun manyArgsInt(p1: Long, p2: Long, p3: Long, p4: Long, p5: Long, p6: Long, p7: Long, p8: Long, p9: Long, p10: Long): Long {
   return p1 | (p2 << 4) | (p3 << 8) | (p4 << 12) | (p5 << 16) | (p6 << 20) | (p7 << 24) | (p8 << 28) | (p9 << 32) | (p10 << 36);
 }
 
-fun testManyArgs() {
-  assertEqual(
-    manyArgs(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-    (1: Long) | (2 << 4) | (3 << 8) | (4 << 12) | (5 << 16) | (6 << 20) | (7 << 24) | (8 << 28) | (9 << 32) | (10 << 36),
-  );
+fun testManyArgsInt() {
+  assertEqual(manyArgsInt(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), longResult);
+}
+
+fun manyArgsDouble(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double, p7: Double, p8: Double, p9: Double, p10: Double): Double {
+  return p1 + (p2 * 10.0) + (p3 * 100.0) + (p4 * 1000.0) + (p5 * 10000.0) + (p6 * 100000.0) + (p7 * 1000000.0) + (p8 * 10000000.0) + (p9 * 100000000.0) + (p10 * 1000000000.0);
+}
+
+fun testManyArgsDouble() {
+  assertEqual(manyArgsDouble(1.1, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0), 10987654321.1);
+}
+
+fun manyArgsInterleaved(
+  l1: Long, l2: Long, l3: Long, l4: Long, l5: Long, l6: Long,  
+  d1: Double, d2: Double, d3: Double, d4: Double, d5: Double, d6: Double,
+  l7: Long, l8: Long, l9: Long, l10: Long,
+  d7: Double, d8: Double, d9: Double, d10: Double,
+): (Long, Double) {
+  val l = l1 | (l2 << 4) | (l3 << 8) | (l4 << 12) | (l5 << 16) | (l6 << 20) | (l7 << 24) | (l8 << 28) | (l9 << 32) | (l10 << 36);
+  val d = d1 + (d2 * 10.0) + (d3 * 100.0) + (d4 * 1000.0) + (d5 * 10000.0) + (d6 * 100000.0) + (d7 * 1000000.0) + (d8 * 10000000.0) + (d9 * 100000000.0) + (d10 * 1000000000.0);
+
+  return (l, d);
+}
+
+fun testManyArgsInterleaved() {
+  val (l, d) = manyArgsInterleaved(1, 2, 3, 4, 5, 6, 1.1, 2.0, 3.0, 4.0, 5.0, 6.0, 7, 8, 9, 10, 7.0, 8.0, 9.0, 10.0);
+  assertEqual(l, longResult);
+  assertEqual(d, 10987654321.1);
 }
 
 fun main() {
-  testManyArgs();
+  testManyArgsInt();
+  testManyArgsDouble();
+  testManyArgsInterleaved();
 }

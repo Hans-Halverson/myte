@@ -22,7 +22,6 @@
 # Features
 - Do while loops
 - Labels for break and continue
-- Floating point numbers
 - unicode encodings
 - Pattern matching (syntax with optional: "| ?a -> 1" or "| ?(a, b) -> 1")
 - Unused variable errors/warnings

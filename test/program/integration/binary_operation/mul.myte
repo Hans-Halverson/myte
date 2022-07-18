@@ -5,6 +5,7 @@ import std.test.assertEqual
 fun mulBytes(x: Byte, y: Byte): Byte = x * y
 fun mulInts(x: Int, y: Int): Int = x * y
 fun mulLongs(x: Long, y: Long): Long = x * y
+fun mulDoubles(x: Double, y: Double): Double = x * y
 
 fun testMulBytes() {
   // Simple multiplications
@@ -78,9 +79,27 @@ fun testMulLongs() {
   assertEqual(mulLongs(-1702043188199811, 5419), 9223372036854775807);
 }
 
+fun testMulDoubles() {
+  // Simple multiplications
+  assertEqual(mulDoubles(0.0, 0.0), 0.0);
+  assertEqual(mulDoubles(0.0, 1.0), 0.0);
+  assertEqual(mulDoubles(5.0, -0.0), 0.0);
+  assertEqual(mulDoubles(1.0, 1.0), 1.0);
+  assertEqual(mulDoubles(1.0, 5.0), 5.0);
+  assertEqual(mulDoubles(5.0, 1.0), 5.0);
+  assertEqual(mulDoubles(3.0, 4.1), 12.299999999999999);
+
+  // Negative numbers
+  assertEqual(mulDoubles(-1.0, 88.0), -88.0);
+  assertEqual(mulDoubles(-7.0, -8.0), 56.0);
+  assertEqual(mulDoubles(-6.0, 10.0), -60.0);
+  assertEqual(mulDoubles(3.0, -41.0), -123.0);
+}
+
 fun ten(): Int = 10
 fun tenByte(): Byte = 10
 fun tenLong(): Long = 10
+fun tenDouble(): Double = 10.0
 
 fun testMulConstant() {
   // Constant ints
@@ -94,6 +113,10 @@ fun testMulConstant() {
   // Constant longs
   assertEqual(3 * tenLong(), 30);
   assertEqual(tenLong() * 3, 30);
+
+  // Constant doubles
+  assertEqual(3.0 * tenDouble(), 30.0);
+  assertEqual(tenDouble() * 3.0, 30.0);
 }
 
 fun testMulPowerOfTwo() {
@@ -108,12 +131,17 @@ fun testMulPowerOfTwo() {
   assertEqual(2 * tenLong(), 20);
   assertEqual(4 * tenLong(), 40);
   assertEqual(8 * tenLong(), 80);
+
+  assertEqual(2.0 * tenDouble(), 20.0);
+  assertEqual(4.0 * tenDouble(), 40.0);
+  assertEqual(8.0 * tenDouble(), 80.0);
 }
 
 fun main() {
   testMulBytes();
   testMulInts();
   testMulLongs();
+  testMulDoubles();
   testMulConstant();
   testMulPowerOfTwo();
 }

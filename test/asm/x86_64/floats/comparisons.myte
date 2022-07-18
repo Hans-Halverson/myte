@@ -1,0 +1,75 @@
+module test
+
+fun testCompareMemoryMemory(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double, p7: Double, p8: Double, p9: Double, p10: Double): Bool {
+  if (p9 == p10) {
+    return p9 == p10;
+  } else if (p9 != p10) {
+    return p9 != p10;
+  } else if (p9 < p10) {
+    return p9 < p10;
+  } else if (p9 <= p10) {
+    return p9 <= p10;
+  } else if (p9 > p10) {
+    return p9 > p10;
+  } else if (p9 >= p10) {
+    return p9 >= p10;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareMemoryRegister(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double, p7: Double, p8: Double, p9: Double): Bool {
+  if (p9 == p1) {
+    return p9 == p1;
+  } else if (p9 != p1) {
+    return p9 != p1;
+  } else if (p9 < p1) {
+    return p9 < p1;
+  } else if (p9 <= p1) {
+    return p9 <= p1;
+  } else if (p9 > p1) {
+    return p9 > p1;
+  } else if (p9 >= p1) {
+    return p9 >= p1;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareRegisterMemory(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double, p7: Double, p8: Double, p9: Double): Bool {
+  if (p1 == p9) {
+    return p1 == p9;
+  } else if (p1 != p9) {
+    return p1 != p9;
+  } else if (p1 < p9) {
+    return p1 < p9;
+  } else if (p1 <= p9) {
+    return p1 <= p9;
+  } else if (p1 > p9) {
+    return p1 > p9;
+  } else if (p1 >= p9) {
+    return p1 >= p9;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareRegisterRegister(p1: Double, p2: Double): Bool {
+  if (p1 == p2) {
+    return p1 == p2;
+  } else if (p1 != p2) {
+    return p1 != p2;
+  } else if (p1 < p2) {
+    return p1 < p2;
+  } else if (p1 <= p2) {
+    return p1 <= p2;
+  } else if (p1 > p2) {
+    return p1 > p2;
+  } else if (p1 >= p2) {
+    return p1 >= p2;
+  } else {
+    return true;
+  }
+}
+
+fun main() {}

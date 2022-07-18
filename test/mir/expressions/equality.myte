@@ -18,6 +18,12 @@ fun longs(x: Long, y: Long) {
   x != y;
 }
 
+fun doubles(x: Double, y: Double) {
+  x.equals(y);
+  x == y;
+  x != y;
+}
+
 fun units(x: Unit, y: Unit) {
   x.equals(y);
   x == y;

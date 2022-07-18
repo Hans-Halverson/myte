@@ -1,34 +1,34 @@
 Error: Expected type `Bool` but found `Int`
-test/analyze/type_check/binary_operation/equality.myte:25:10
- 25 |   true == 1;
+test/analyze/type_check/binary_operation/equality.myte:26:10
+ 26 |   true == 1;
     |           ^
 
 Error: Expected type `Unit` but found `Int`
-test/analyze/type_check/binary_operation/equality.myte:26:8
- 26 |   () != 1;
+test/analyze/type_check/binary_operation/equality.myte:27:8
+ 27 |   () != 1;
     |         ^
 
 Error: Expected type `T: Equatable` but found `Int`
-test/analyze/type_check/binary_operation/equality.myte:35:7
- 35 |   x == 1;
+test/analyze/type_check/binary_operation/equality.myte:36:7
+ 36 |   x == 1;
     |        ^
 
 Error: Operator `==` requires type `T` to implement trait `Equatable`
-test/analyze/type_check/binary_operation/equality.myte:48:2
- 48 |   x == x;
+test/analyze/type_check/binary_operation/equality.myte:49:2
+ 49 |   x == x;
     |   ^
 
 Error: Operator `==` requires type `NonEquatableType` to implement trait `Equatable`
-test/analyze/type_check/binary_operation/equality.myte:49:2
- 49 |   y == y;
+test/analyze/type_check/binary_operation/equality.myte:50:2
+ 50 |   y == y;
     |   ^
 
 Error: Operator `!=` requires type `() -> Unit` to implement trait `Equatable`
-test/analyze/type_check/binary_operation/equality.myte:50:2-16
- 50 |   testPrimitives != testPrimitives;
+test/analyze/type_check/binary_operation/equality.myte:51:2-16
+ 51 |   testPrimitives != testPrimitives;
     |   ^^^^^^^^^^^^^^
 
 Error: Operator `!=` requires type `(Int, Bool)` to implement trait `Equatable`
-test/analyze/type_check/binary_operation/equality.myte:51:2-11
- 51 |   (1, true) != (1, true);
+test/analyze/type_check/binary_operation/equality.myte:52:2-11
+ 52 |   (1, true) != (1, true);
     |   ^^^^^^^^^

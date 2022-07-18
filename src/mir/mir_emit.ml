@@ -1809,6 +1809,7 @@ and builtin_functions =
        (Std_lib.std_byte_byte_equals, emit_eq);
        (Std_lib.std_byte_byte_toInt, emit_std_byte_byte_toInt);
        (Std_lib.std_byte_byte_toLong, emit_std_byte_byte_toLong);
+       (Std_lib.std_double_double_equals, emit_eq);
        (Std_lib.std_gc_collect, emit_std_gc_collect);
        (Std_lib.std_gc_getHeapSize, emit_std_gc_getHeapSize);
        (Std_lib.std_int_int_equals, emit_eq);

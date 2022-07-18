@@ -135,6 +135,10 @@ type condition_code =
   | LE
   | G
   | GE
+  | B
+  | BE
+  | A
+  | AE
 
 type block_id = int
 
@@ -226,6 +230,7 @@ module Instruction = struct
     | SarR of register_size * Operand.t
     (* Comparisons *)
     | CmpMI of register_size * Operand.t * immediate
+    (* Allows SSE registers (with 64 bit size). Must be CmpRM if SSE. *)
     | CmpMM of register_size * Operand.t * Operand.t
     | TestMR of register_size * Operand.t * (* Register *) Operand.t
     | SetCC of condition_code * Operand.t (* Only supports 8-bit destination *)
@@ -402,6 +407,10 @@ let invert_condition_code cc =
   | G -> LE
   | LE -> G
   | GE -> L
+  | B -> AE
+  | BE -> A
+  | A -> BE
+  | AE -> B
 
 (* Return the condition code that results from swapping the arguments *)
 let swap_condition_code_order cc =
@@ -413,6 +422,10 @@ let swap_condition_code_order cc =
   | G -> L
   | LE -> GE
   | GE -> LE
+  | B -> A
+  | A -> B
+  | BE -> AE
+  | AE -> BE
 
 let main_label = "_main"
 

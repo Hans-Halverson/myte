@@ -74,9 +74,86 @@ fun testGtEq() {
   assertTrue(gtEqRightConst(11));
 }
 
+fun ltVarsDouble(x: Double, y: Double): Bool = x < y
+fun ltLeftConstDouble(x: Double): Bool = 10.1 < x
+fun ltRightConstDouble(x: Double): Bool = x < 10.1
+
+fun gtVarsDouble(x: Double, y: Double): Bool = x > y
+fun gtLeftConstDouble(x: Double): Bool = 10.1 > x
+fun gtRightConstDouble(x: Double): Bool = x > 10.1
+
+fun ltEqVarsDouble(x: Double, y: Double): Bool = x <= y
+fun ltEqLeftConstDouble(x: Double): Bool = 10.1 <= x
+fun ltEqRightConstDouble(x: Double): Bool = x <= 10.1
+
+fun gtEqVarsDouble(x: Double, y: Double): Bool = x >= y
+fun gtEqLeftConstDouble(x: Double): Bool = 10.1 >= x
+fun gtEqRightConstDouble(x: Double): Bool = x >= 10.1
+
+fun testLtDouble() {
+  assertTrue(ltVarsDouble(1.0, 2.0));
+  assertFalse(ltVarsDouble(2.0, 2.0));
+  assertFalse(ltVarsDouble(3.0, 2.0));
+
+  assertFalse(ltLeftConstDouble(10.0));
+  assertFalse(ltLeftConstDouble(10.1));
+  assertTrue(ltLeftConstDouble(10.2));
+
+  assertTrue(ltRightConstDouble(10.0));
+  assertFalse(ltRightConstDouble(10.1));
+  assertFalse(ltRightConstDouble(10.2));
+}
+
+fun testGtDouble() {
+  assertFalse(gtVarsDouble(1.0, 2.0));
+  assertFalse(gtVarsDouble(2.0, 2.0));
+  assertTrue(gtVarsDouble(3.0, 2.0));
+
+  assertTrue(gtLeftConstDouble(10.0));
+  assertFalse(gtLeftConstDouble(10.1));
+  assertFalse(gtLeftConstDouble(10.2));
+
+  assertFalse(gtRightConstDouble(10.0));
+  assertFalse(gtRightConstDouble(10.1));
+  assertTrue(gtRightConstDouble(10.2));
+}
+
+fun testLtEqDouble() {
+  assertTrue(ltEqVarsDouble(1.0, 2.0));
+  assertTrue(ltEqVarsDouble(2.0, 2.0));
+  assertFalse(ltEqVarsDouble(3.0, 2.0));
+
+  assertFalse(ltEqLeftConstDouble(10.0));
+  assertTrue(ltEqLeftConstDouble(10.1));
+  assertTrue(ltEqLeftConstDouble(10.2));
+
+  assertTrue(ltEqRightConstDouble(10.0));
+  assertTrue(ltEqRightConstDouble(10.1));
+  assertFalse(ltEqRightConstDouble(10.2));
+}
+
+fun testGtEqDouble() {
+  assertFalse(gtEqVarsDouble(1.0, 2.0));
+  assertTrue(gtEqVarsDouble(2.0, 2.0));
+  assertTrue(gtEqVarsDouble(3.0, 2.0));
+
+  assertTrue(gtEqLeftConstDouble(10.0));
+  assertTrue(gtEqLeftConstDouble(10.1));
+  assertFalse(gtEqLeftConstDouble(10.2));
+
+  assertFalse(gtEqRightConstDouble(10.0));
+  assertTrue(gtEqRightConstDouble(10.1));
+  assertTrue(gtEqRightConstDouble(10.2));
+}
+
 fun main() {
   testLt();
   testGt();
   testLtEq();
   testGtEq();
+
+  testLtDouble();
+  testGtDouble();
+  testLtEqDouble();
+  testGtEqDouble();
 }

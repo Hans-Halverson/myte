@@ -117,6 +117,10 @@ let pp_condition_code cc =
   | G -> "g"
   | LE -> "le"
   | GE -> "ge"
+  | B -> "b"
+  | BE -> "be"
+  | A -> "a"
+  | AE -> "ae"
 
 let pp_immediate ~buf imm =
   add_char ~buf '$';
@@ -389,7 +393,10 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_register ~size dest_mem
       (* Comparisons - arguments intentionally flipped *)
       | CmpMM (size, mem1, mem2) ->
-        pp_sized_op "cmp" size;
+        if size == Size64 && mem1.type_ == Double then
+          pp_op "ucomisd"
+        else
+          pp_sized_op "cmp" size;
         pp_register ~size mem2;
         pp_args_separator ();
         pp_register ~size mem1

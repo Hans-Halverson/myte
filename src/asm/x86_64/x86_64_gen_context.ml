@@ -6,6 +6,10 @@ open X86_64_instructions
 open X86_64_layout
 open X86_64_register
 
+let invalid_label_chars = Str.regexp "[-+<>,*():]"
+
+let label_of_mir_label label = Str.global_replace invalid_label_chars "$" label
+
 module Gcx = struct
   type t = {
     (* Virtual blocks and builders *)
@@ -80,7 +84,7 @@ module Gcx = struct
 
   let get_float_literal ~gcx n =
     let float_string = Float.to_string n in
-    let literal_label = "_float$" ^ float_string in
+    let literal_label = label_of_mir_label ("_float$" ^ float_string) in
     if not (SSet.mem float_string gcx.float_immediates) then (
       gcx.float_immediates <- SSet.add float_string gcx.float_immediates;
       let value = ImmediateData (Imm64 (Int64.bits_of_float n)) in

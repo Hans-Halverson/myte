@@ -10,6 +10,7 @@ fun equal<T: Equatable>(x: T, y: T): Bool = x == y
 fun equalBytes(x: Byte, y: Byte): Bool = x == y
 fun equalInts(x: Int, y: Int): Bool = x == y
 fun equalLongs(x: Long, y: Long): Bool = x == y
+fun equalDoubles(x: Double, y: Double): Bool = x == y
 
 fun getUnit(): Unit = ()
 fun getTrue(): Bool = true
@@ -17,6 +18,7 @@ fun getFalse(): Bool = false
 fun getByte(): Byte = 1
 fun getInt(): Int = 1
 fun getLong(): Long = 1
+fun getDouble(): Double = 1.11
 
 fun testEqualUnits() {
   // Equal
@@ -97,6 +99,23 @@ fun testEqualLongs() {
   assertTrue(1 == 1);
 }
 
+fun testEqualDoubles() {
+  // Equal
+  assertTrue(equalDoubles(0.0, 0.0));
+  assertTrue(equalDoubles(100.345, 100.345));
+  assertTrue(equalDoubles(-100.345, -100.345));
+  assertTrue(equalDoubles(0.0, -0.0));
+
+  // Not equal
+  assertFalse(equalDoubles(0.0, 1.0));
+  assertFalse(equalDoubles(100.345, -100.345));
+
+  // Constants
+  assertTrue(1.11 == getDouble());
+  assertTrue(getDouble() == 1.11);
+  assertTrue(1.11 == 1.11);
+}
+
 fun testEqualStrings() {
   // Equal
   assertTrue("" == "");
@@ -132,6 +151,7 @@ fun main() {
   testEqualBytes();
   testEqualInts();
   testEqualLongs();
+  testEqualDoubles();
   testEqualStrings();
   testEqualCustomType();
 }

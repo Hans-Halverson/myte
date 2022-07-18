@@ -36,6 +36,8 @@ let std_byte_byte_toLong = "std.byte.Byte.toLong"
 
 let std_double_double = "std.double.Double"
 
+let std_double_double_equals = "std.double.Double.equals"
+
 let std_gc_collect = "std.gc.collect"
 
 let std_gc_getHeapSize = "std.gc.getHeapSize"
@@ -130,6 +132,7 @@ let all_stdlib_names =
       std_byte_byte_toInt;
       std_byte_byte_toLong;
       std_double_double;
+      std_double_double_equals;
       std_gc_getHeapSize;
       std_io_file_builtin_close;
       std_io_file_builtin_open;
@@ -223,6 +226,7 @@ let get_primitive_adt_sig (ty : Types.Type.t) =
   | Byte -> !byte_adt_sig
   | Int -> !int_adt_sig
   | Long -> !long_adt_sig
+  | Double -> !double_adt_sig
   | _ -> failwith "Can only be called on primitive type"
 
 let get_primitive_type_for_adt_sig adt_sig =
@@ -236,6 +240,8 @@ let get_primitive_type_for_adt_sig adt_sig =
     Some Int
   else if adt_sig == !long_adt_sig then
     Some Long
+  else if adt_sig == !double_adt_sig then
+    Some Double
   else
     None
 

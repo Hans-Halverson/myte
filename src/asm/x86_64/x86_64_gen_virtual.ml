@@ -19,8 +19,6 @@ type resolved_source_value =
   (* Value is a memory address *)
   | SAddr of MemoryAddress.t * Type.t
 
-let invalid_label_chars = Str.regexp "[<>,*():]"
-
 let rec gen ~gcx (ir : Program.t) =
   (* Calculate layout of all aggregate types *)
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
@@ -348,7 +346,12 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let other_mem = emit_mem other in
       Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
       false
-    (* Cannot compare two memory locations at the same time *)
+    (* Floating point comparison requires first operand to be a register, so flip if possible *)
+    | (SMem (mem1, size), SReg (reg2, _)) when mem1.type_ == Double ->
+      Gcx.emit ~gcx (CmpMM (size, reg2, mem1));
+      true
+    (* Cannot compare two memory locations at the same time. First operand must be a register for
+       floating point comparisons. *)
     | (SMem (mem1, size), SMem (mem2, _)) ->
       let vreg = mk_vreg_of_op mem1 in
       Gcx.emit ~gcx (MovMM (size, mem1, vreg));
@@ -847,10 +850,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
    };
   ]
     when result_id == id ->
-    let cc = cc_of_mir_comparison cmp in
+    let cc = cc_of_mir_comparison cmp (type_of_use left_val) in
     gen_cond_jmp cc result_id left_val right_val
   | { id = result_id; instr = Cmp (cmp, left_val, right_val); _ } :: rest_instructions ->
-    let cc = cc_of_mir_comparison cmp in
+    let cc = cc_of_mir_comparison cmp (type_of_use left_val) in
     ignore (gen_cmp_set_cc cc result_id left_val right_val);
     gen_instructions rest_instructions
   (*
@@ -1383,14 +1386,18 @@ and min_size16 size =
   | Size8 -> Size16
   | _ -> size
 
-and cc_of_mir_comparison cmp =
-  match cmp with
-  | Mir.Instruction.Eq -> E
-  | Neq -> NE
-  | Lt -> L
-  | LtEq -> LE
-  | Gt -> G
-  | GtEq -> GE
+and cc_of_mir_comparison cmp mir_type =
+  match (cmp, mir_type) with
+  | (Mir.Instruction.Eq, _) -> E
+  | (Neq, _) -> NE
+  | (Lt, Type.Double) -> B
+  | (LtEq, Double) -> BE
+  | (Gt, Double) -> A
+  | (GtEq, Double) -> AE
+  | (Lt, _) -> L
+  | (LtEq, _) -> LE
+  | (Gt, _) -> G
+  | (GtEq, _) -> GE
 
 and mk_label_memory_address label =
   {
@@ -1398,8 +1405,6 @@ and mk_label_memory_address label =
     base = IPBase;
     index_and_scale = None;
   }
-
-and label_of_mir_label label = Str.global_replace invalid_label_chars "$" label
 
 and is_zero_size_global use =
   match use.value.value with

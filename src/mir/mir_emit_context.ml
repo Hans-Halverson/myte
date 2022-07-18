@@ -897,6 +897,7 @@ and builtin_functions =
        Std_lib.std_byte_byte_equals;
        Std_lib.std_byte_byte_toInt;
        Std_lib.std_byte_byte_toLong;
+       Std_lib.std_double_double_equals;
        Std_lib.std_gc_collect;
        Std_lib.std_gc_getHeapSize;
        Std_lib.std_int_int_equals;

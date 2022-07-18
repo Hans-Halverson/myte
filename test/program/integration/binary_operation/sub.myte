@@ -5,6 +5,7 @@ import std.test.assertEqual
 fun subBytes(x: Byte, y: Byte): Byte = x - y
 fun subInts(x: Int, y: Int): Int = x - y
 fun subLongs(x: Long, y: Long): Long = x - y
+fun subDoubles(x: Double, y: Double): Double = x - y
 
 fun testSubBytes() {
   // Simple subtractions
@@ -69,8 +70,25 @@ fun testSubLongs() {
   assertEqual(subLongs(-9223372036854775800, 9), 9223372036854775807);
 }
 
+fun testSubDoubles() {
+  // Simple additions
+  assertEqual(subDoubles(0.0, 0.0), 0.0);
+  assertEqual(subDoubles(0.0, -0.0), 0.0);
+  assertEqual(subDoubles(0.0, 34.87), -34.87);
+  assertEqual(subDoubles(34.87, -0.0), 34.87);
+  assertEqual(subDoubles(1.3, 6.8), -5.5);
+
+  // Negative numbers
+  assertEqual(subDoubles(-1.0, 0.0), -1.0);
+  assertEqual(subDoubles(-7.8, 7.8), -15.6);
+  assertEqual(subDoubles(7.8, -9.0), 16.8);
+  assertEqual(subDoubles(-7.8, -7.6), -0.20000000000000018);
+  assertEqual(subDoubles(-7.8, -8.0), 0.20000000000000018);
+}
+
 fun ten(): Int = 10
 fun tenLong(): Long = 10
+fun tenDouble(): Double = 10.0
 
 fun testSubConstant() {
   // Constant ints
@@ -80,11 +98,16 @@ fun testSubConstant() {
   // Constant longs
   assertEqual(1 - tenLong(), -9);
   assertEqual(tenLong() - 1, 9);
+  
+  // Constant doubles
+  assertEqual(1.0 - tenDouble(), -9.0);
+  assertEqual(tenDouble() - 1.0, 9.0);
 }
 
 fun main() {
   testSubBytes();
   testSubInts();
   testSubLongs();
+  testSubDoubles();
   testSubConstant();
 }
