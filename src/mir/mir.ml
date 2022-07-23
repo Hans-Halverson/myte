@@ -454,6 +454,15 @@ and literals_equal (lit1 : Literal.t) (lit2 : Literal.t) : bool =
 let values_have_same_type (v1 : Value.t) (v2 : Value.t) : bool =
   types_equal (type_of_value v1) (type_of_value v2)
 
+let invert_comparison (comparison : Instruction.comparison) : Instruction.comparison =
+  match comparison with
+  | Eq -> Neq
+  | Neq -> Eq
+  | Lt -> GtEq
+  | LtEq -> Gt
+  | Gt -> LtEq
+  | GtEq -> Lt
+
 let is_shift_op (op : Instruction.binary_operation) : bool =
   match op with
   | Shl

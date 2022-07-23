@@ -207,15 +207,21 @@ and mk_binary
   let right_use = user_add_use ~user:value ~use:right in
   mk_instr ~value ~block ~type_:(type_of_value left) ~instr:(Binary (op, left_use, right_use))
 
-and mk_cmp ~(block : Block.t) ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) :
-    Value.t =
+and mk_blockless_cmp ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) : Value.t
+    =
   if not (is_comparable_value left && is_comparable_value right && values_have_same_type left right)
   then
     failwith "Cmp arguments must be numeric or pointers and have the same type";
   let value = mk_uninit_value () in
   let left_use = user_add_use ~user:value ~use:left in
   let right_use = user_add_use ~user:value ~use:right in
-  mk_instr ~value ~block ~type_:Bool ~instr:(Cmp (cmp, left_use, right_use))
+  mk_blockless_instr ~value ~type_:Bool ~instr:(Cmp (cmp, left_use, right_use))
+
+and mk_cmp ~(block : Block.t) ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) :
+    Value.t =
+  let instr_value = mk_blockless_cmp ~cmp ~left ~right in
+  append_instruction block instr_value;
+  instr_value
 
 and mk_cast ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   if not (is_pointer_value arg && is_pointer_type type_) then
@@ -377,6 +383,8 @@ and value_has_single_use (value : Value.t) : bool =
   match value.uses with
   | Some first_use when first_use.next == first_use -> true
   | _ -> false
+
+and is_single_use (use : Use.t) : bool = use.next == use
 
 and value_iter_uses ~(value : Value.t) (f : Use.t -> unit) =
   match value.uses with

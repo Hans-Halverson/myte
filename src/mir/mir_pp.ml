@@ -9,22 +9,20 @@ module Context = struct
     mutable max_print_value_id: int;
     mutable print_block_id_map: string BlockMap.t;
     mutable max_print_block_id: int;
-    program: Program.t;
   }
 
-  let mk program =
+  let mk () =
     {
       print_value_id_map = IMap.empty;
       max_print_value_id = 0;
       print_block_id_map = BlockMap.empty;
       max_print_block_id = 0;
-      program;
     }
 end
 
 let rec pp_program program =
   let open Program in
-  let cx = Context.mk program in
+  let cx = Context.mk () in
   (* Filter items to print depending on dump_stdlib settings *)
   let dump_stdlib = Opts.dump_stdlib () in
   let dump_stdlib_prefix = Opts.dump_stdlib_prefix () in

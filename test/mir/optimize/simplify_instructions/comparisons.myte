@@ -1,0 +1,22 @@
+module test
+
+fun negateComparisons(x: Int) {
+  use(!(x == 1));
+  use(x != 1);
+  use(!(x != 1));
+  use(!(x < 1));
+  use(!(x <= 1));
+  use(!(x > 1));
+  use(!(x >= 1));
+}
+
+fun negateMultiple(x: Int) {
+  use(!(x == 1));
+  use(!!(x == 1));
+  use(!!!(x == 1));
+  use(!!!!(x == 1));
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}
