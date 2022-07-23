@@ -1,0 +1,22 @@
+module test
+
+import std.double.{NaN, NEGATIVE_INFINITY, POSITIVE_INFINITY}
+import std.test.{assertFalse, assertNotEqual, assertTrue}
+
+fun testIsNaN() {
+  assertNotEqual(NaN, NaN);
+  assertTrue(NaN.isNaN());
+}
+
+fun testIsInfinite() {
+  assertTrue(POSITIVE_INFINITY.isInfinite());
+  assertTrue(NEGATIVE_INFINITY.isInfinite());
+  assertFalse(0.0.isInfinite());
+  assertFalse(1.0.isInfinite());
+  assertFalse(NaN.isInfinite());
+}
+
+fun main() {
+  testIsNaN();
+  testIsInfinite();
+}

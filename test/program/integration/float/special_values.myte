@@ -1,0 +1,32 @@
+module test
+
+import std.double.{NaN, NEGATIVE_INFINITY, POSITIVE_INFINITY}
+import std.test.{assertEqual, assertFalse, assertNotEqual, assertTrue}
+
+fun add(x: Double, y: Double): Double = x + y
+fun sub(x: Double, y: Double): Double = x - y
+fun mul(x: Double, y: Double): Double = x * y
+fun div(x: Double, y: Double): Double = x / y
+
+fun testNaN() {
+  assertNotEqual(NaN, NaN);
+  assertNotEqual(NaN, 0.0);
+  assertNotEqual(NaN, POSITIVE_INFINITY);
+
+  assertTrue(add(1.0, NaN).isNaN());
+  assertTrue(add(NaN, 1.0).isNaN());
+  assertTrue(sub(NaN, 1.0).isNaN());
+  assertTrue(mul(NaN, 1.0).isNaN());
+  assertTrue(div(NaN, 1.0).isNaN());
+}
+
+fun testInfinities() {
+  assertEqual(POSITIVE_INFINITY, POSITIVE_INFINITY);
+  assertEqual(NEGATIVE_INFINITY, NEGATIVE_INFINITY);
+  assertNotEqual(POSITIVE_INFINITY, NEGATIVE_INFINITY);
+}
+
+fun main() {
+  testNaN();
+  testInfinities();
+}

@@ -121,6 +121,8 @@ let pp_condition_code cc =
   | BE -> "be"
   | A -> "a"
   | AE -> "ae"
+  | P -> "p"
+  | NP -> "np"
 
 let pp_immediate ~buf imm =
   add_char ~buf '$';

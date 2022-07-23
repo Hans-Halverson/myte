@@ -5,8 +5,18 @@ import std.ops.Equatable
 
 builtin type Double
 
+val NaN: Double = 0.0 / 0.0
+val POSITIVE_INFINITY: Double = 1.0 / 0.0
+val NEGATIVE_INFINITY: Double = -1.0 / 0.0
+
 methods Double {
   implements Equatable
 
   builtin override fun equals(other: Double): Bool
+}
+
+methods Double {
+  fun isNaN(): Bool = this != this
+
+  fun isInfinite(): Bool = this == POSITIVE_INFINITY || this == NEGATIVE_INFINITY
 }

@@ -139,6 +139,8 @@ type condition_code =
   | BE
   | A
   | AE
+  | P
+  | NP
 
 type block_id = int
 
@@ -411,6 +413,8 @@ let invert_condition_code cc =
   | BE -> A
   | A -> BE
   | AE -> B
+  | P -> NP
+  | NP -> P
 
 (* Return the condition code that results from swapping the arguments *)
 let swap_condition_code_order cc =
@@ -426,6 +430,11 @@ let swap_condition_code_order cc =
   | A -> B
   | BE -> AE
   | AE -> BE
+  (* Only valid to be swapped because partity flag is only used for ucomisd, where it signals
+     whether arguments are "unordered" (at least one of the arguments was NaN). *)
+  | P
+  | NP ->
+    cc
 
 let main_label = "_main"
 

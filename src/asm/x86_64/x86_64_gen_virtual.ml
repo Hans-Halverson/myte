@@ -19,6 +19,14 @@ type resolved_source_value =
   (* Value is a memory address *)
   | SAddr of MemoryAddress.t * Type.t
 
+type mir_comparison_ccs =
+  (* Condition is true if condition code is set *)
+  | SingleCC of condition_code
+  (* Condition is true if both condition codes are set *)
+  | AndCC of condition_code * condition_code
+  (* Condition is true if at least one condition code is set *)
+  | OrCC of condition_code * condition_code
+
 let rec gen ~gcx (ir : Program.t) =
   (* Calculate layout of all aggregate types *)
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
@@ -363,6 +371,12 @@ and gen_instructions ~gcx ~ir ~block instructions =
       Gcx.emit ~gcx (CmpMM (register_size_of_svalue v1, mem1, mem2));
       false
   in
+  let swap_compound_cc cc =
+    match cc with
+    | SingleCC cc -> SingleCC (swap_condition_code_order cc)
+    | AndCC (cc1, cc2) -> AndCC (swap_condition_code_order cc1, swap_condition_code_order cc2)
+    | OrCC (cc1, cc2) -> OrCC (swap_condition_code_order cc1, swap_condition_code_order cc2)
+  in
   (* Generate a comparison and SetCC instruction to load the result of the comparison to a register.
      Return the condition code that was used (may be different than the input condition code, as
      order of arguments may have been swapped). *)
@@ -372,12 +386,28 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let swapped = gen_cmp left_val right_val in
     let cc =
       if swapped then
-        swap_condition_code_order cc
+        swap_compound_cc cc
       else
         cc
     in
-    Gcx.emit ~gcx (SetCC (cc, result_op));
-    cc
+    match cc with
+    | SingleCC cc ->
+      Gcx.emit ~gcx (SetCC (cc, result_op));
+      SingleCC cc
+    (* For compound conditions generate multiple SetCCs and And the results. Only true if all
+       conditions were true (aka And/Or result is 1, aka ZF=0, equivalent to NE condition code) *)
+    | AndCC (cc1, cc2) ->
+      let vreg = mk_vreg ~type_:Bool in
+      Gcx.emit ~gcx (SetCC (cc1, result_op));
+      Gcx.emit ~gcx (SetCC (cc2, vreg));
+      Gcx.emit ~gcx (AndMM (Size8, vreg, result_op));
+      SingleCC NE
+    | OrCC (cc1, cc2) ->
+      let vreg = mk_vreg ~type_:Bool in
+      Gcx.emit ~gcx (SetCC (cc1, result_op));
+      Gcx.emit ~gcx (SetCC (cc2, vreg));
+      Gcx.emit ~gcx (OrMM (Size8, vreg, result_op));
+      SingleCC NE
   in
   let gen_cond_jmp cc result_id left_val right_val =
     let cc =
@@ -386,7 +416,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       if value_has_single_use left_val.Use.user then
         let swapped = gen_cmp left_val right_val in
         if swapped then
-          swap_condition_code_order cc
+          swap_compound_cc cc
         else
           cc
       (* Otherwise the result of the comparison is used elsewhere, so we must load to a register
@@ -399,11 +429,26 @@ and gen_instructions ~gcx ~ir ~block instructions =
       | Some { instr = Branch { continue; jump; _ }; _ } -> (continue, jump)
       | _ -> failwith "Only called on blocks with conditional branches"
     in
-    (* Note that the condition code is inverted as we emit a JmpCC to the false branch *)
-    let cc = invert_condition_code cc in
-    Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_id_from_mir_block ~gcx jump));
-    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+    match cc with
+    | SingleCC cc ->
+      (* Note that the condition code is inverted as we emit a JmpCC to the false branch *)
+      let cc = invert_condition_code cc in
+      Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_id_from_mir_block ~gcx jump));
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+    | AndCC (cc1, cc2) ->
+      (* Jump to jump block if either condition code is false *)
+      let cc1 = invert_condition_code cc1 in
+      let cc2 = invert_condition_code cc2 in
+      Gcx.emit ~gcx (JmpCC (cc1, Gcx.get_block_id_from_mir_block ~gcx jump));
+      Gcx.emit ~gcx (JmpCC (cc2, Gcx.get_block_id_from_mir_block ~gcx jump));
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+    | OrCC (cc1, cc2) ->
+      (* Jump to continue block if either condition code is true *)
+      Gcx.emit ~gcx (JmpCC (cc1, Gcx.get_block_id_from_mir_block ~gcx continue));
+      Gcx.emit ~gcx (JmpCC (cc2, Gcx.get_block_id_from_mir_block ~gcx continue));
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx jump))
   in
+
   match instructions with
   | [] -> ()
   (*
@@ -1388,16 +1433,18 @@ and min_size16 size =
 
 and cc_of_mir_comparison cmp mir_type =
   match (cmp, mir_type) with
-  | (Mir.Instruction.Eq, _) -> E
-  | (Neq, _) -> NE
-  | (Lt, Type.Double) -> B
-  | (LtEq, Double) -> BE
-  | (Gt, Double) -> A
-  | (GtEq, Double) -> AE
-  | (Lt, _) -> L
-  | (LtEq, _) -> LE
-  | (Gt, _) -> G
-  | (GtEq, _) -> GE
+  | (Mir.Instruction.Eq, Type.Double) -> AndCC (E, NP)
+  | (Neq, Double) -> OrCC (NE, P)
+  | (Lt, Double) -> SingleCC B
+  | (LtEq, Double) -> SingleCC BE
+  | (Gt, Double) -> SingleCC A
+  | (GtEq, Double) -> SingleCC AE
+  | (Eq, _) -> SingleCC E
+  | (Neq, _) -> SingleCC NE
+  | (Lt, _) -> SingleCC L
+  | (LtEq, _) -> SingleCC LE
+  | (Gt, _) -> SingleCC G
+  | (GtEq, _) -> SingleCC GE
 
 and mk_label_memory_address label =
   {

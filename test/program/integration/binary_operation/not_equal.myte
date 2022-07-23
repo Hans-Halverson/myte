@@ -7,6 +7,7 @@ fun notEqual<T: Equatable>(x: T, y: T): Bool = x != y
 fun notEqualBytes(x: Byte, y: Byte): Bool = x != y
 fun notEqualInts(x: Int, y: Int): Bool = x != y
 fun notEqualLongs(x: Long, y: Long): Bool = x != y
+fun notEqualDoubles(x: Double, y: Double): Bool = x != y
 
 fun getUnit(): Unit = ()
 fun getTrue(): Bool = true
@@ -14,6 +15,7 @@ fun getFalse(): Bool = false
 fun getByte(): Byte = 1
 fun getInt(): Int = 1
 fun getLong(): Long = 1
+fun getDouble(): Double = 3.0
 
 fun testNotEqualUnits() {
   // Not equal
@@ -85,6 +87,21 @@ fun testNotEqualLongs() {
   assertFalse(1 != 1);
 }
 
+fun testNotEqualDoubles() {
+  // Not equal
+  assertFalse(notEqualDoubles(0.0, 0.0));
+  assertFalse(notEqualDoubles(99.0, 99.0));
+
+  // Equal
+  assertTrue(notEqualDoubles(0.0, 1.0));
+  assertTrue(notEqualDoubles(1.0, -1.0));
+
+  // Constants
+  assertFalse(3.0 != getDouble());
+  assertFalse(getDouble() != 3.0);
+  assertFalse(3.0 != 3.0);
+}
+
 fun testNotEqualStrings() {
   // Not equal
   assertFalse("" != "");
@@ -120,6 +137,7 @@ fun main() {
   testNotEqualBytes();
   testNotEqualInts();
   testNotEqualLongs();
+  testNotEqualDoubles();
   testNotEqualStrings();
   testNotEqualCustomType();
 }
