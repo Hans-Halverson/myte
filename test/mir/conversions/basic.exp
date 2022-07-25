@@ -1,18 +1,28 @@
 func void @test.testConvertByte(byte %0) {
   %1 := SExt byte %0 to int
   %2 := SExt byte %0 to long
+  %3 := IntToFloat byte %0 to double
   Ret
 }
 
 func void @test.testConvertInt(int %0) {
   %1 := Trunc int %0 to byte
   %2 := SExt int %0 to long
+  %3 := IntToFloat int %0 to double
   Ret
 }
 
 func void @test.testConvertLong(long %0) {
   %1 := Trunc long %0 to byte
   %2 := Trunc long %0 to int
+  %3 := IntToFloat long %0 to double
+  Ret
+}
+
+func void @test.testConvertDouble(double %0) {
+  %1 := FloatToInt double %0 to byte
+  %2 := FloatToInt double %0 to int
+  %3 := FloatToInt double %0 to long
   Ret
 }
 

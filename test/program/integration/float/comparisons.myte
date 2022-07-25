@@ -1,0 +1,96 @@
+module test
+
+import std.test.assertEqual
+
+fun eq(x: Double): Int {
+  return if (x == 1.0) {
+    3
+  } else {
+    4
+  };
+}
+
+fun testEq() {
+  assertEqual(eq(0.0), 4);
+  assertEqual(eq(1.0), 3);
+  assertEqual(eq(2.0), 4);
+}
+
+fun neq(x: Double): Int {
+  return if (x != 1.0) {
+    3
+  } else {
+    4
+  };
+}
+
+fun testNeq() {
+  assertEqual(neq(0.0), 3);
+  assertEqual(neq(1.0), 4);
+  assertEqual(neq(2.0), 3);
+}
+
+fun lt(x: Double): Int {
+  return if (x < 1.0) {
+    3
+  } else {
+    4
+  };
+}
+
+fun testLt() {
+  assertEqual(lt(0.0), 3);
+  assertEqual(lt(1.0), 4);
+  assertEqual(lt(2.0), 4);
+}
+
+fun ltEq(x: Double): Int {
+  return if (x <= 1.0) {
+    3
+  } else {
+    4
+  };
+}
+
+fun testLtEq() {
+  assertEqual(ltEq(0.0), 3);
+  assertEqual(ltEq(1.0), 3);
+  assertEqual(ltEq(2.0), 4);
+}
+
+fun gt(x: Double): Int {
+  return if (x > 1.0) {
+    3
+  } else {
+    4
+  };
+}
+
+fun testGt() {
+  assertEqual(gt(0.0), 4);
+  assertEqual(gt(1.0), 4);
+  assertEqual(gt(2.0), 3);
+}
+
+fun gtEq(x: Double): Int {
+  return if (x >= 1.0) {
+    3
+  } else {
+    4
+  };
+}
+
+fun testGtEq() {
+  assertEqual(gtEq(0.0), 4);
+  assertEqual(gtEq(1.0), 3);
+  assertEqual(gtEq(2.0), 3);
+}
+
+fun main() {
+  testEq();
+  testNeq();
+  testLt();
+  testLtEq();
+  testGt();
+  testGtEq();
+}

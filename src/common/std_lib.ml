@@ -34,9 +34,17 @@ let std_byte_byte_toInt = "std.byte.Byte.toInt"
 
 let std_byte_byte_toLong = "std.byte.Byte.toLong"
 
+let std_byte_byte_toDouble = "std.byte.Byte.toDouble"
+
 let std_double_double = "std.double.Double"
 
 let std_double_double_equals = "std.double.Double.equals"
+
+let std_double_double_toByte = "std.double.Double.toByte"
+
+let std_double_double_toInt = "std.double.Double.toInt"
+
+let std_double_double_toLong = "std.double.Double.toLong"
 
 let std_gc_collect = "std.gc.collect"
 
@@ -49,6 +57,8 @@ let std_int_int_equals = "std.int.Int.equals"
 let std_int_int_toByte = "std.int.Int.toByte"
 
 let std_int_int_toLong = "std.int.Int.toLong"
+
+let std_int_int_toDouble = "std.int.Int.toDouble"
 
 let std_io_file_builtin_close = "std.io.file.File.__builtin_close"
 
@@ -69,6 +79,8 @@ let std_long_long_equals = "std.long.Long.equals"
 let std_long_long_toByte = "std.long.Long.toByte"
 
 let std_long_long_toInt = "std.long.Long.toInt"
+
+let std_long_long_toDouble = "std.long.Long.toDouble"
 
 let std_map_map = "std.map.Map"
 
@@ -131,8 +143,12 @@ let all_stdlib_names =
       std_byte_byte_equals;
       std_byte_byte_toInt;
       std_byte_byte_toLong;
+      std_byte_byte_toDouble;
       std_double_double;
       std_double_double_equals;
+      std_double_double_toByte;
+      std_double_double_toInt;
+      std_double_double_toLong;
       std_gc_getHeapSize;
       std_io_file_builtin_close;
       std_io_file_builtin_open;
@@ -144,10 +160,12 @@ let all_stdlib_names =
       std_int_int_equals;
       std_int_int_toByte;
       std_int_int_toLong;
+      std_int_int_toDouble;
       std_long_long;
       std_long_long_equals;
       std_long_long_toByte;
       std_long_long_toInt;
+      std_long_long_toDouble;
       std_map_map;
       std_map_map_add;
       std_map_map_new;

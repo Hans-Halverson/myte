@@ -1807,17 +1807,23 @@ and builtin_functions =
     ([
        (Std_lib.std_bool_bool_equals, emit_eq);
        (Std_lib.std_byte_byte_equals, emit_eq);
-       (Std_lib.std_byte_byte_toInt, emit_std_byte_byte_toInt);
-       (Std_lib.std_byte_byte_toLong, emit_std_byte_byte_toLong);
+       (Std_lib.std_byte_byte_toInt, emit_sext Type.Int);
+       (Std_lib.std_byte_byte_toLong, emit_sext Long);
+       (Std_lib.std_byte_byte_toDouble, emit_int_to_float Type.Double);
        (Std_lib.std_double_double_equals, emit_eq);
+       (Std_lib.std_double_double_toByte, emit_float_to_int Type.Byte);
+       (Std_lib.std_double_double_toInt, emit_float_to_int Int);
+       (Std_lib.std_double_double_toLong, emit_float_to_int Long);
        (Std_lib.std_gc_collect, emit_std_gc_collect);
        (Std_lib.std_gc_getHeapSize, emit_std_gc_getHeapSize);
        (Std_lib.std_int_int_equals, emit_eq);
-       (Std_lib.std_int_int_toByte, emit_std_int_int_toByte);
-       (Std_lib.std_int_int_toLong, emit_std_int_int_toLong);
+       (Std_lib.std_int_int_toByte, emit_trunc Type.Byte);
+       (Std_lib.std_int_int_toLong, emit_sext Long);
+       (Std_lib.std_int_int_toDouble, emit_int_to_float Double);
        (Std_lib.std_long_long_equals, emit_eq);
-       (Std_lib.std_long_long_toByte, emit_std_long_long_toByte);
-       (Std_lib.std_long_long_toInt, emit_std_long_long_toInt);
+       (Std_lib.std_long_long_toByte, emit_trunc Byte);
+       (Std_lib.std_long_long_toInt, emit_trunc Int);
+       (Std_lib.std_long_long_toDouble, emit_int_to_float Double);
        (Std_lib.std_memory_array_copy, emit_std_memory_array_copy);
        (Std_lib.std_memory_array_isNull, emit_std_memory_array_isNull);
        (Std_lib.std_memory_array_new, emit_std_memory_array_new);
@@ -1836,11 +1842,17 @@ and emit_eq ~ecx arg_vals _ =
   | [left; right] -> Some (mk_cmp ~block:(Ecx.get_current_block ~ecx) ~cmp:Eq ~left ~right)
   | _ -> failwith "Expected two arguments"
 
-and emit_std_byte_byte_toInt ~ecx arg_vals _ =
-  Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Int)
+and emit_sext type_ ~ecx arg_vals _ =
+  Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_)
 
-and emit_std_byte_byte_toLong ~ecx arg_vals _ =
-  Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Long)
+and emit_trunc type_ ~ecx arg_vals _ =
+  Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_)
+
+and emit_int_to_float type_ ~ecx arg_vals _ =
+  Some (mk_int_to_float ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_)
+
+and emit_float_to_int type_ ~ecx arg_vals _ =
+  Some (mk_float_to_int ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_)
 
 and emit_std_gc_collect ~ecx _ _ =
   mk_call_builtin_no_return_ ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_collect [];
@@ -1848,18 +1860,6 @@ and emit_std_gc_collect ~ecx _ _ =
 
 and emit_std_gc_getHeapSize ~ecx _ _ =
   Some (mk_call_builtin ~block:(Ecx.get_current_block ~ecx) Mir_builtin.myte_get_heap_size [] [])
-
-and emit_std_int_int_toByte ~ecx arg_vals _ =
-  Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Byte)
-
-and emit_std_int_int_toLong ~ecx arg_vals _ =
-  Some (mk_sext ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Long)
-
-and emit_std_long_long_toByte ~ecx arg_vals _ =
-  Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Byte)
-
-and emit_std_long_long_toInt ~ecx arg_vals _ =
-  Some (mk_trunc ~block:(Ecx.get_current_block ~ecx) ~arg:(List.hd arg_vals) ~type_:Int)
 
 and emit_std_memory_array_copy ~ecx arg_vals _ =
   match arg_vals with

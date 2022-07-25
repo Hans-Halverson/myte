@@ -2,6 +2,7 @@ module std.long
 
 import std.bool.Bool
 import std.byte.Byte
+import std.double.Double
 import std.hash.Hashable
 import std.int.Int
 import std.iterator.Iterator
@@ -33,6 +34,8 @@ methods Long {
   builtin fun toByte(): Byte
 
   builtin fun toInt(): Int
+
+  builtin fun toDouble(): Double
 
   override fun toString(): String {
     var n = this;

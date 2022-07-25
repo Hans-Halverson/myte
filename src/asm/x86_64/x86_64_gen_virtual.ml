@@ -1125,6 +1125,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       else
         Gcx.emit ~gcx (MovMM (arg_size, arg_mem, result_op)));
     gen_instructions rest_instructions
+  | { instr = IntToFloat _ | FloatToInt _; _ } :: _ ->
+    failwith "TODO: Generate assembly for int/float conversions"
   | { instr = Mir.Instruction.Phi _; _ } :: _ -> failwith "Phi nodes must be removed before asm gen"
   | { instr = Mir.Instruction.StackAlloc _; _ } :: _ ->
     failwith "StackAlloc instructions removed before asm gen"

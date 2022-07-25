@@ -1,6 +1,9 @@
 module std.double
 
 import std.bool.Bool
+import std.byte.Byte
+import std.int.Int
+import std.long.Long
 import std.ops.Equatable
 
 builtin type Double
@@ -16,6 +19,12 @@ methods Double {
 }
 
 methods Double {
+  builtin fun toByte(): Byte
+
+  builtin fun toInt(): Int
+
+  builtin fun toLong(): Long
+
   fun isNaN(): Bool = this != this
 
   fun isInfinite(): Bool = this == POSITIVE_INFINITY || this == NEGATIVE_INFINITY

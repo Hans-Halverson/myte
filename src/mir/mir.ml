@@ -184,6 +184,8 @@ and Instruction : sig
     | Trunc of (* Integer *) Use.t (* Instruction type is type value is truncated to *)
     | SExt of (* Integer *) Use.t (* Instruction type is type value is sign extended to *)
     | ZExt of (* Integer *) Use.t (* Instruction type is type value is zero extended to *)
+    | IntToFloat of Use.t (* Instruction type is type value is converted to *)
+    | FloatToInt of Use.t (* Instruction type is type value is converted to *)
     (* Block terminators *)
     | Ret of Use.t option
     | Continue of Block.t

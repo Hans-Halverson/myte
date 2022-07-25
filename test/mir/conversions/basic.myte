@@ -3,16 +3,25 @@ module test
 fun testConvertByte(x: Byte) {
   x.toInt();
   x.toLong();
+  x.toDouble();
 }
 
 fun testConvertInt(x: Int) {
   x.toByte();
   x.toLong();
+  x.toDouble();
 }
 
 fun testConvertLong(x: Long) {
   x.toByte();
   x.toInt();
+  x.toDouble();
+}
+
+fun testConvertDouble(x: Double) {
+  x.toByte();
+  x.toInt();
+  x.toLong();
 }
 
 fun main() {}

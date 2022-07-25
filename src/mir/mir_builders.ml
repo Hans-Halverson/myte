@@ -272,6 +272,22 @@ and mk_zext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   let arg_use = user_add_use ~user:value ~use:arg in
   mk_instr ~value ~block ~type_ ~instr:(ZExt arg_use)
 
+and mk_int_to_float ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  let arg_type = type_of_value arg in
+  if not (is_integer_type arg_type && is_float_type type_) then
+    failwith "IntToFloat must have integer argument converted to float type";
+  let value = mk_uninit_value () in
+  let arg_use = user_add_use ~user:value ~use:arg in
+  mk_instr ~value ~block ~type_ ~instr:(IntToFloat arg_use)
+
+and mk_float_to_int ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  let arg_type = type_of_value arg in
+  if not (is_float_type arg_type && is_integer_type type_) then
+    failwith "IntToFloat must have float argument converted to integer type";
+  let value = mk_uninit_value () in
+  let arg_use = user_add_use ~user:value ~use:arg in
+  mk_instr ~value ~block ~type_ ~instr:(FloatToInt arg_use)
+
 and mk_unreachable_ ~(block : Block.t) : unit =
   let value = mk_uninit_value () in
   ignore (mk_instr ~value ~block ~type_:no_return_type ~instr:Unreachable)
@@ -450,6 +466,8 @@ and instruction_iter_operands ~(instr : Instruction.t) (f : Use.t -> unit) =
   | Trunc operand
   | SExt operand
   | ZExt operand
+  | IntToFloat operand
+  | FloatToInt operand
   | Mov operand
   | Branch { test = operand; _ } ->
     f operand

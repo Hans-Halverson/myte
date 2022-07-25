@@ -164,6 +164,11 @@ let is_integer_type (t : Type.t) : bool =
     true
   | _ -> false
 
+let is_float_type (t : Type.t) : bool =
+  match t with
+  | Double -> true
+  | _ -> false
+
 let is_numeric_type (t : Type.t) : bool =
   match t with
   | Double -> true
