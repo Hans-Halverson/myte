@@ -39,6 +39,8 @@ class instruction_visitor =
         visit_write_operand write_op
       | MovSX (_, _, read_op, write_op)
       | MovZX (_, _, read_op, write_op)
+      | ConvertIntToFloat (_, read_op, write_op)
+      | ConvertFloatToInt (_, read_op, write_op)
       | IMulMIR (_, read_op, _, write_op) ->
         visit_read_operand read_op;
         visit_write_operand write_op

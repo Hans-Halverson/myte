@@ -12,6 +12,8 @@ fun testToString() {
   assertEqual((-9223372036854775808: Long).toString(), "-9223372036854775808");
 }
 
+fun toByte(x: Long): Byte = x.toByte()
+
 fun testToByte() {
   assertEqual((0: Long).toByte(), 0);
   assertEqual((1: Long).toByte(), 1);
@@ -22,7 +24,19 @@ fun testToByte() {
   assertEqual((129: Long).toByte(), -127);
   assertEqual((-129: Long).toByte(), 127);
   assertEqual((-130: Long).toByte(), 126);
+
+  assertEqual(toByte(0), 0);
+  assertEqual(toByte(1), 1);
+  assertEqual(toByte(-1), -1);
+  assertEqual(toByte(127), 127);
+  assertEqual(toByte(-128), -128);
+  assertEqual(toByte(128), -128);
+  assertEqual(toByte(129), -127);
+  assertEqual(toByte(-129), 127);
+  assertEqual(toByte(-130), 126);
 }
+
+fun toInt(x: Long): Int = x.toInt()
 
 fun testToInt() {
   assertEqual((0: Long).toInt(), 0);
@@ -34,6 +48,32 @@ fun testToInt() {
   assertEqual((2147483649: Long).toInt(), -2147483647);
   assertEqual((-2147483649: Long).toInt(), 2147483647);
   assertEqual((-2147483650: Long).toInt(), 2147483646);
+
+  assertEqual(toInt(0), 0);
+  assertEqual(toInt(1), 1);
+  assertEqual(toInt(-1), -1);
+  assertEqual(toInt(2147483647), 2147483647);
+  assertEqual(toInt(-2147483648), -2147483648);
+  assertEqual(toInt(2147483648), -2147483648);
+  assertEqual(toInt(2147483649), -2147483647);
+  assertEqual(toInt(-2147483649), 2147483647);
+  assertEqual(toInt(-2147483650), 2147483646);
+}
+
+fun toDouble(x: Long): Double = x.toDouble()
+
+fun testToDouble() {
+  assertEqual((0: Long).toDouble(), 0.0);
+  assertEqual((1: Long).toDouble(), 1.0);
+  assertEqual((-1: Long).toDouble(), -1.0);
+  assertEqual((9223372036854775807: Long).toDouble(), 9223372036854775807.0);
+  assertEqual((-9223372036854775808: Long).toDouble(), -9223372036854775808.0);
+
+  assertEqual(toDouble(0), 0.0);
+  assertEqual(toDouble(1), 1.0);
+  assertEqual(toDouble(-1), -1.0);
+  assertEqual(toDouble(9223372036854775807), 9223372036854775807.0);
+  assertEqual(toDouble(-9223372036854775808), -9223372036854775808.0);
 }
 
 fun testHash() {
@@ -47,5 +87,6 @@ fun main() {
   testToString();
   testToByte();
   testToInt();
+  testToDouble();
   testHash();
 }

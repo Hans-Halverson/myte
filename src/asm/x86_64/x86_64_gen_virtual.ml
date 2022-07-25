@@ -1125,8 +1125,40 @@ and gen_instructions ~gcx ~ir ~block instructions =
       else
         Gcx.emit ~gcx (MovMM (arg_size, arg_mem, result_op)));
     gen_instructions rest_instructions
-  | { instr = IntToFloat _ | FloatToInt _; _ } :: _ ->
-    failwith "TODO: Generate assembly for int/float conversions"
+  (*
+   * ===========================================
+   *                IntToFloat
+   * ===========================================
+   *)
+  | { id = return_id; type_; instr = IntToFloat arg_val; _ } :: rest_instructions ->
+    let result_op = operand_of_value_id ~type_ return_id in
+    (match resolve_ir_value arg_val with
+    | SImm _ -> failwith "Constants must be folded before gen"
+    | arg ->
+      let int_size = register_size_of_svalue arg in
+      let arg_mem = emit_mem arg in
+      (* Sign extend argument to 32-bits if smaller *)
+      if int_size == Size8 || int_size == Size16 then (
+        let vreg = mk_vreg_of_op arg_mem in
+        Gcx.emit ~gcx (MovSX (int_size, Size32, arg_mem, vreg));
+        Gcx.emit ~gcx (ConvertIntToFloat (Size32, vreg, result_op))
+      ) else
+        Gcx.emit ~gcx (ConvertIntToFloat (int_size, arg_mem, result_op)));
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                FloatToInt
+   * ===========================================
+   *)
+  | { id = return_id; type_; instr = FloatToInt arg_val; _ } :: rest_instructions ->
+    let result_op = operand_of_value_id ~type_ return_id in
+    (match resolve_ir_value arg_val with
+    | SImm _ -> failwith "Constants must be folded before gen"
+    | arg ->
+      let int_size = min_size32 (register_size_of_mir_value_type type_) in
+      let arg_mem = emit_mem arg in
+      Gcx.emit ~gcx (ConvertFloatToInt (int_size, arg_mem, result_op)));
+    gen_instructions rest_instructions
   | { instr = Mir.Instruction.Phi _; _ } :: _ -> failwith "Phi nodes must be removed before asm gen"
   | { instr = Mir.Instruction.StackAlloc _; _ } :: _ ->
     failwith "StackAlloc instructions removed before asm gen"
@@ -1431,6 +1463,13 @@ and register_size_of_svalue value =
 and min_size16 size =
   match size with
   | Size8 -> Size16
+  | _ -> size
+
+and min_size32 size =
+  match size with
+  | Size8
+  | Size16 ->
+    Size32
   | _ -> size
 
 and cc_of_mir_comparison cmp mir_type =

@@ -426,6 +426,16 @@ let pp_instruction ~gcx ~pcx ~buf instr =
             failwith "ConvertDouble cannot have 1-byte or 16-byte size"
         in
         pp_op op
+      | ConvertIntToFloat (size, src_mem, dest_mem) ->
+        pp_op "cvtsi2sd";
+        pp_register ~size src_mem;
+        pp_args_separator ();
+        pp_register ~size dest_mem
+      | ConvertFloatToInt (size, src_mem, dest_mem) ->
+        pp_op "cvttsd2si";
+        pp_register ~size src_mem;
+        pp_args_separator ();
+        pp_register ~size dest_mem
       (* Control flow *)
       | Jmp block_id ->
         let block = IMap.find block_id gcx.Gcx.blocks_by_id in

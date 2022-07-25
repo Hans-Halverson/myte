@@ -202,7 +202,13 @@ and pp_literal lit =
   | Byte i -> string_of_int i
   | Int i -> Int32.to_string i
   | Long i -> Int64.to_string i
-  | Double f -> Float.to_string f
+  | Double f ->
+    (* Do not leave a trailing decimal point *)
+    let str = Float.to_string f in
+    if String.ends_with ~suffix:"." str then
+      str ^ "0"
+    else
+      str
   | Function { name; _ }
   | Global { name; _ } ->
     "@" ^ name

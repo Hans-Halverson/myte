@@ -185,6 +185,12 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       | FDivMR (size, src_op, dest_op) ->
         resolve_operator src_op;
         force_register_read_write size dest_op (fun dest_op' -> FDivMR (size, src_op, dest_op'))
+      | ConvertIntToFloat (size, src_op, dest_op) ->
+        force_register_write size dest_op (fun dest_op' ->
+            ConvertIntToFloat (size, src_op, dest_op'))
+      | ConvertFloatToInt (size, src_op, dest_op) ->
+        force_register_write size dest_op (fun dest_op' ->
+            ConvertFloatToInt (size, src_op, dest_op'))
       (* Instructions with no register/memories *)
       | PushI _
       | ConvertDouble _

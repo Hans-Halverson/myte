@@ -53,11 +53,11 @@ global byte[4] @.S0 = "test"
 
 global bool @test.a1 = true
 
-global double @test.d1 = 1.
+global double @test.d1 = 1.0
 
 global double @test.d2 = 1.23
 
-global double @test.d3 = 230000000.
+global double @test.d3 = 230000000.0
 
 global double @test.d4 = 2.3872e-07
 

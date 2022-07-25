@@ -1,7 +1,90 @@
 module test
 
 import std.double.{NaN, NEGATIVE_INFINITY, POSITIVE_INFINITY}
-import std.test.{assertFalse, assertNotEqual, assertTrue}
+import std.test.{assertEqual, assertFalse, assertNotEqual, assertTrue}
+
+fun toByte(x: Double): Byte = x.toByte()
+
+fun testToByte() {
+  assertEqual((0.0: Double).toByte(), 0);
+  assertEqual((1.0: Double).toByte(), 1);
+  assertEqual((-1.0: Double).toByte(), -1);
+  assertEqual((127.0: Double).toByte(), 127);
+  assertEqual((-128.0: Double).toByte(), -128);
+  assertEqual((128.0: Double).toByte(), -128);
+  assertEqual((129.0: Double).toByte(), -127);
+  assertEqual((-129.0: Double).toByte(), 127);
+  assertEqual((-130.0: Double).toByte(), 126);
+
+  assertEqual(toByte(0.0), 0);
+  assertEqual(toByte(1.0), 1);
+  assertEqual(toByte(-1.0), -1);
+  assertEqual(toByte(127.0), 127);
+  assertEqual(toByte(-128.0), -128);
+  assertEqual(toByte(128.0), -128);
+  assertEqual(toByte(129.0), -127);
+  assertEqual(toByte(-129.0), 127);
+  assertEqual(toByte(-130.0), 126);
+}
+
+fun toInt(x: Double): Int = x.toInt()
+
+fun testToInt() {
+  assertEqual((0.0: Double).toInt(), 0);
+  assertEqual((1.0: Double).toInt(), 1);
+  assertEqual((-1.0: Double).toInt(), -1);
+  assertEqual((2147483647.0: Double).toInt(), 2147483647);
+  assertEqual((-2147483648.0: Double).toInt(), -2147483648);
+  assertEqual((2147483648.0: Double).toInt(), -2147483648);
+  assertEqual((2147483649.0: Double).toInt(), -2147483648);
+  assertEqual((2147483650.0: Double).toInt(), -2147483648);
+  assertEqual((-2147483649.0: Double).toInt(), -2147483648);
+  assertEqual((-2147483650.0: Double).toInt(), -2147483648);
+
+  assertEqual(toInt(0.0), 0);
+  assertEqual(toInt(1.0), 1);
+  assertEqual(toInt(-1.0), -1);
+  assertEqual(toInt(2147483647.0), 2147483647);
+  assertEqual(toInt(-2147483648.0), -2147483648);
+  assertEqual(toInt(2147483648.0), -2147483648);
+  assertEqual(toInt(2147483649.0), -2147483648);
+  assertEqual(toInt(2147483650.0), -2147483648);
+  assertEqual(toInt(-2147483649.0), -2147483648);
+  assertEqual(toInt(-2147483650.0), -2147483648);
+}
+
+fun toLong(x: Double): Long = x.toLong()
+
+fun testToLong() {
+  assertEqual((0.0: Double).toLong(), 0);
+  assertEqual((1.0: Double).toLong(), 1);
+  assertEqual((-1.0: Double).toLong(), -1);
+  assertEqual((2147483648.0: Double).toLong(), 2147483648);
+  assertEqual((-2147483649.0: Double).toLong(), -2147483649);
+  assertEqual((9223372036854774783.0: Double).toLong(), 9223372036854774784);
+  assertEqual((9223372036854775295.0: Double).toLong(), 9223372036854774784);
+  // TODO: Fix floating point rounding for large numbers
+  // assertEqual((9223372036854775296.0: Double).toLong(), -9223372036854775808);
+  // assertEqual(toLong(9223372036854775807.0), 9223372036854774784);
+  // assertEqual(toLong(9223372036854775808.0), 9223372036854774784);
+  assertEqual((-9223372036854775807.0: Double).toLong(), -9223372036854775808);
+  assertEqual((-9223372036854775808.0: Double).toLong(), -9223372036854775808);
+  assertEqual((-9223372036854776500.0: Double).toLong(), -9223372036854775808);
+
+  assertEqual(toLong(0.0), 0);
+  assertEqual(toLong(1.0), 1);
+  assertEqual(toLong(-1.0), -1);
+  assertEqual(toLong(2147483648.0), 2147483648);
+  assertEqual(toLong(-2147483649.0), -2147483649);
+  assertEqual(toLong(9223372036854774783.0), 9223372036854774784);
+  assertEqual(toLong(9223372036854775295.0), 9223372036854774784);
+  assertEqual(toLong(9223372036854775296.0), 9223372036854774784);
+  assertEqual(toLong(9223372036854775807.0), 9223372036854774784);
+  assertEqual(toLong(9223372036854775808.0), 9223372036854774784);
+  assertEqual(toLong(-9223372036854775807.0), -9223372036854775808);
+  assertEqual(toLong(-9223372036854775808.0), -9223372036854775808);
+  assertEqual(toLong(-9223372036854776500.0), -9223372036854775808);
+}
 
 fun testIsNaN() {
   assertNotEqual(NaN, NaN);
@@ -17,6 +100,9 @@ fun testIsInfinite() {
 }
 
 fun main() {
+  testToByte();
+  testToInt();
+  testToLong();
   testIsNaN();
   testIsInfinite();
 }

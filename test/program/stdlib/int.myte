@@ -12,6 +12,8 @@ fun testToString() {
   assertEqual((-2147483648: Int).toString(), "-2147483648");
 }
 
+fun toByte(x: Int): Byte = x.toByte()
+
 fun testToByte() {
   assertEqual((0: Int).toByte(), 0);
   assertEqual((1: Int).toByte(), 1);
@@ -22,7 +24,19 @@ fun testToByte() {
   assertEqual((129: Int).toByte(), -127);
   assertEqual((-129: Int).toByte(), 127);
   assertEqual((-130: Int).toByte(), 126);
+
+  assertEqual(toByte(0), 0);
+  assertEqual(toByte(1), 1);
+  assertEqual(toByte(-1), -1);
+  assertEqual(toByte(127), 127);
+  assertEqual(toByte(-128), -128);
+  assertEqual(toByte(128), -128);
+  assertEqual(toByte(129), -127);
+  assertEqual(toByte(-129), 127);
+  assertEqual(toByte(-130), 126);
 }
+
+fun toLong(x: Int): Long = x.toLong()
 
 fun testToLong() {
   assertEqual((0: Int).toLong(), 0);
@@ -30,6 +44,28 @@ fun testToLong() {
   assertEqual((-1: Int).toLong(), -1);
   assertEqual((2147483647: Int).toLong(), 2147483647);
   assertEqual((-2147483648: Int).toLong(), -2147483648);
+
+  assertEqual(toLong(0), 0);
+  assertEqual(toLong(1), 1);
+  assertEqual(toLong(-1), -1);
+  assertEqual(toLong(2147483647), 2147483647);
+  assertEqual(toLong(-2147483648), -2147483648);
+}
+
+fun toDouble(x: Int): Double = x.toDouble()
+
+fun testToDouble() {
+  assertEqual((0: Int).toDouble(), 0.0);
+  assertEqual((1: Int).toDouble(), 1.0);
+  assertEqual((-1: Int).toDouble(), -1.0);
+  assertEqual((2147483647: Int).toDouble(), 2147483647.0);
+  assertEqual((-2147483648: Int).toDouble(), -2147483648.0);
+
+  assertEqual(toDouble(0), 0.0);
+  assertEqual(toDouble(1), 1.0);
+  assertEqual(toDouble(-1), -1.0);
+  assertEqual(toDouble(2147483647), 2147483647.0);
+  assertEqual(toDouble(-2147483648), -2147483648.0);
 }
 
 fun testHash() {
@@ -44,5 +80,6 @@ fun main() {
   testToString();
   testToByte();
   testToLong();
+  testToDouble();
   testHash();
 }

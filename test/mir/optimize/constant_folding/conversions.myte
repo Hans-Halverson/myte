@@ -61,6 +61,72 @@ fun longTruncation() {
   use((-2147483649: Long).toInt());
 }
 
+fun byteToDouble() {
+  use((0: Byte).toDouble());
+  use((1: Byte).toDouble());
+  use((-1: Byte).toDouble());
+  use((127: Byte).toDouble());
+  use((-128: Byte).toDouble());
+}
+
+fun intToDouble() {
+  use((0: Int).toDouble());
+  use((1: Int).toDouble());
+  use((-1: Int).toDouble());
+  use((2147483647: Int).toDouble());
+  use((-2147483648: Int).toDouble());
+}
+
+fun longToDouble() {
+  use((0: Long).toDouble());
+  use((1: Long).toDouble());
+  use((-1: Long).toDouble());
+  use((9223372036854775807: Long).toDouble());
+  use((-9223372036854775808: Long).toDouble());
+}
+
+fun doubleToByte() {
+  use((0.0: Double).toByte());
+  use((1.0: Double).toByte());
+  use((-1.0: Double).toByte());
+  use((127.0: Double).toByte());
+  use((-128.0: Double).toByte());
+  use((128.0: Double).toByte());
+  use((129.0: Double).toByte());
+  use((-129.0: Double).toByte());
+  use((-130.0: Double).toByte());
+}
+
+fun doubleToInt() {
+  use((0.0: Double).toInt());
+  use((1.0: Double).toInt());
+  use((-1.0: Double).toInt());
+  use((2147483647.0: Double).toInt());
+  use((-2147483648.0: Double).toInt());
+  use((2147483648.0: Double).toInt());
+  use((2147483649.0: Double).toInt());
+  use((2147483650.0: Double).toInt());
+  use((-2147483649.0: Double).toInt());
+  use((-2147483650.0: Double).toInt());
+}
+
+fun doubleToLong() {
+  use((0.0: Double).toLong());
+  use((1.0: Double).toLong());
+  use((-1.0: Double).toLong());
+  use((2147483648.0: Double).toLong());
+  use((-2147483649.0: Double).toLong());
+  use((9223372036854774783.0: Double).toLong());
+  use((9223372036854775295.0: Double).toLong());
+  // TODO: Fix floating point rounding for large numbers
+  // use((9223372036854775296.0: Double).toLong());
+  // use(toLong(9223372036854775807.0));
+  // use(toLong(9223372036854775808.0));
+  use((-9223372036854775807.0: Double).toLong());
+  use((-9223372036854775808.0: Double).toLong());
+  use((-9223372036854776500.0: Double).toLong());
+}
+
 fun use<T>(x: T): T = x
 
 fun main() {}

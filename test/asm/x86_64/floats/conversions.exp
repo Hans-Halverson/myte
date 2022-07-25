@@ -1,0 +1,39 @@
+  .global _main
+
+  .text
+test.convertByteToDouble:
+  movsx %dil, %eax
+  cvtsi2sd %eax, %xmm0
+  call test.use$Double$
+  ret
+test.convertDoubleToByte:
+  cvttsd2si %xmm0, %edi
+  call test.use$Byte$
+  ret
+test.convertDoubleToInt:
+  cvttsd2si %xmm0, %edi
+  call test.use$Int$
+  ret
+test.convertDoubleToLong:
+  cvttsd2si %xmm0, %rdi
+  call test.use$Long$
+  ret
+test.convertIntToDouble:
+  cvtsi2sd %edi, %xmm0
+  call test.use$Double$
+  ret
+test.convertLongToDouble:
+  cvtsi2sd %rdi, %xmm0
+  call test.use$Double$
+  ret
+_main:
+  movl $0, %eax
+  ret
+test.use$Byte$:
+  ret
+test.use$Double$:
+  ret
+test.use$Int$:
+  ret
+test.use$Long$:
+  ret

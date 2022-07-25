@@ -238,6 +238,15 @@ module Instruction = struct
     | SetCC of condition_code * Operand.t (* Only supports 8-bit destination *)
     (* Conversions *)
     | ConvertDouble of register_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
+    (* Converts with truncation towards zero *)
+    | ConvertFloatToInt of
+        (* GP register size, must be 32 or 64-bit *) register_size
+        * (* SSE mem *) Operand.t
+        * (* GP register *) Operand.t
+    | ConvertIntToFloat of
+        (* GP size, must be 32 or 64-bit *) register_size
+        * (* GP mem *) Operand.t
+        * (* SSE register *) Operand.t
     (* Control flow *)
     | Jmp of block_id
     | JmpCC of condition_code * block_id

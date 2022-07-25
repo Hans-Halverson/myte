@@ -7,6 +7,8 @@ type conversion_op =
   | TruncOp of Type.t
   | SExtOp of Type.t
   | ZExtOp of Type.t
+  | IntToFloatOp of Type.t
+  | FloatToIntOp of Type.t
 
 let apply_unary_operation op (x : Literal.t) : Literal.t =
   match (op, x) with
@@ -105,6 +107,17 @@ let apply_conversion op (x : Literal.t) : Literal.t =
   | (ZExtOp Int, Byte x) -> Int (Integers.zext_byte_to_int x)
   | (ZExtOp Long, Byte x) -> Long (Integers.zext_byte_to_long x)
   | (ZExtOp Long, Int x) -> Long (Integers.zext_int_to_long x)
+  | (IntToFloatOp Double, Byte x) -> Double (Float.of_int x)
+  | (IntToFloatOp Double, Int x) -> Double (Int32.to_float x)
+  | (IntToFloatOp Double, Long x) -> Double (Int64.to_float x)
+  | (FloatToIntOp Byte, Double x) -> Byte (Integers.trunc_int_to_byte (Int32.of_float x))
+  | (FloatToIntOp Int, Double x) -> Int (Int32.of_float x)
+  | (FloatToIntOp Long, Double x) ->
+    (* Largest  *)
+    if x > 9223372036854775295.0 then
+      Long Int64.max_int
+    else
+      Long (Int64.of_float x)
   | _ -> failwith "Invalid operation"
 
 let fold_constants_compare (x : Literal.t) (y : Literal.t) : int =
@@ -205,6 +218,8 @@ class constant_folding_transform ~(program : Program.t) =
       | Trunc arg -> try_fold_conversion arg (TruncOp instr.type_)
       | SExt arg -> try_fold_conversion arg (SExtOp instr.type_)
       | ZExt arg -> try_fold_conversion arg (ZExtOp instr.type_)
+      | IntToFloat arg -> try_fold_conversion arg (IntToFloatOp instr.type_)
+      | FloatToInt arg -> try_fold_conversion arg (FloatToIntOp instr.type_)
       (* Propagate global constants through pointers *)
       | Load { value = { value = Lit (Global { is_constant; init_val = Some init_val; _ }); _ }; _ }
         when is_constant ->
