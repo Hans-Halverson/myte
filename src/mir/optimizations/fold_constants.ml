@@ -134,10 +134,6 @@ class constant_folding_transform ~(program : Program.t) =
     val mutable values_queue : VSet.t = VSet.empty
 
     method run () =
-      (* Every time a use changes due to simplifying phis or blocks, enqueue it to check for
-         constant folding. *)
-      set_value_replace_use_hook (Some this#enqueue_value);
-
       (* Initially visit all globals and instructions for an initial round of constant folding *)
       SMap.iter (fun _ global -> this#visit_global global) program.globals;
       program_iter_blocks program (fun block ->
@@ -150,9 +146,7 @@ class constant_folding_transform ~(program : Program.t) =
         | Lit (Global global) -> this#visit_global global
         | Instr instr -> this#visit_instruction next_value instr
         | _ -> ()
-      done;
-
-      set_value_replace_use_hook None
+      done
 
     method enqueue_value value = values_queue <- VSet.add value values_queue
 
@@ -234,6 +228,11 @@ class constant_folding_transform ~(program : Program.t) =
           remove_instruction instr_val;
           this#visit_global global);
         None
+      (* Phis where all branches have the same literal argument are replaced with that literal *)
+      | Phi phi ->
+        (match phi_get_single_arg_value phi with
+        | Some { value = Lit arg_literal; _ } -> Some arg_literal
+        | _ -> None)
       (* A constant test means the other branch is pruned *)
       | Branch { test; _ } ->
         (match this#get_constant_opt test with

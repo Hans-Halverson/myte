@@ -1,22 +1,3 @@
-open Basic_collections
-
-(* Full set of optimizations *)
-let optimize program =
-  Simplify_instructions.simplify_instructions ~program;
-  Fold_constants.fold_constants_and_prune ~program;
-  Mir_normalizer.normalize ~program;
-  program
-
-(* Minimal transformations needed to emit assembly, without optimization set *)
-let transform_for_assembly program =
-  Fold_constants.fold_constants_and_prune ~program;
-  Mir_normalizer.normalize ~program;
-  program
-
-let transform_for_dump_ir program =
-  Mir_normalizer.normalize ~program;
-  program
-
 module MirTransform = struct
   type t =
     | Normalize
@@ -35,20 +16,20 @@ module MirTransform = struct
     | _ -> None
 end
 
-module MirTransformCollection = MakeCollection (MirTransform)
-module MirTransformSet = MirTransformCollection.Set
+let apply_transforms (program : Mir.Program.t) (transforms : MirTransform.t list) =
+  List.iter
+    (fun transform ->
+      match transform with
+      | MirTransform.Normalize -> Mir_normalizer.normalize ~program
+      | SimplifyInstructions -> Simplify_instructions.simplify_instructions ~program
+      | ConstantFolding -> Fold_constants.fold_constants_and_prune ~program
+      | SSADestruction -> Mir_ssa_destruction.destruct_ssa program)
+    transforms
 
-let apply_transforms program transforms =
-  let apply_if_enabled opt f = if MirTransformSet.mem opt transforms then f () in
+(* Full set of optimizations *)
+let optimize program = apply_transforms program [SimplifyInstructions; ConstantFolding; Normalize]
 
-  apply_if_enabled Normalize (fun () -> Mir_normalizer.normalize ~program);
+(* Minimal transformations needed to emit assembly, without optimization set *)
+let transform_for_assembly program = apply_transforms program [ConstantFolding; Normalize]
 
-  apply_if_enabled SimplifyInstructions (fun () ->
-      Simplify_instructions.simplify_instructions ~program);
-
-  apply_if_enabled ConstantFolding (fun () ->
-      Fold_constants.fold_constants_and_prune ~program;
-      Mir_normalizer.normalize ~program);
-
-  apply_if_enabled SSADestruction (fun () -> ignore (Mir_ssa_destruction.destruct_ssa program));
-  program
+let transform_for_dump_ir program = apply_transforms program [Normalize]

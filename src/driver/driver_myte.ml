@@ -19,17 +19,13 @@ let dump_ast asts =
 
 let dump_ir ir =
   let open Mir_optimize in
-  let transforms =
-    Opts.dump_ir_transforms () |> List.filter_map MirTransform.of_string |> MirTransformSet.of_list
-  in
-  let ir =
-    if not (MirTransformSet.is_empty transforms) then
-      Mir_optimize.apply_transforms ir transforms
-    else if Opts.optimize () then
-      Mir_optimize.optimize ir
-    else
-      Mir_optimize.transform_for_dump_ir ir
-  in
+  let transforms = Opts.dump_ir_transforms () |> List.filter_map MirTransform.of_string in
+  if transforms <> [] then
+    Mir_optimize.apply_transforms ir transforms
+  else if Opts.optimize () then
+    Mir_optimize.optimize ir
+  else
+    Mir_optimize.transform_for_dump_ir ir;
   print_string (Mir_pp.pp_program ir);
   exit 0
 
@@ -77,18 +73,19 @@ and parse_and_check ~pcx ~is_stdlib files =
 let lower_to_ir pcx =
   let ir = Mir_emit.emit pcx in
   if Opts.dump_pre_ssa_ir () then dump_ir ir;
-  let ir = Mir_ssa.promote_variables_to_registers ir in
+  Mir_ssa.promote_variables_to_registers ir;
   if Opts.dump_ir () then dump_ir ir;
   if Opts.optimize () then
     Mir_optimize.optimize ir
   else
-    Mir_optimize.transform_for_assembly ir
+    Mir_optimize.transform_for_assembly ir;
+  ir
 
 let lower_to_asm ir =
-  let destructed_ir = Mir_ssa_destruction.destruct_ssa ir in
+  Mir_ssa_destruction.destruct_ssa ir;
 
   (* Generate x86_64 program  *)
-  let gcx = X86_64_gen.gen_program destructed_ir in
+  let gcx = X86_64_gen.gen_program ir in
   let program_file = X86_64_pp.pp_program ~gcx in
   let output_file =
     match Opts.output_file () with

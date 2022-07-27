@@ -3,6 +3,8 @@ open Mir
 open Mir_builders
 
 let rec normalize ~program =
+  simplify_phis ~program;
+  remove_empty_blocks ~program;
   consolidate_adjacent_blocks ~program;
   remove_empty_init_func ~program
 
@@ -52,3 +54,30 @@ and remove_empty_init_func ~program =
     in
     if is_ret_terminator && has_single_instruction init_start_block then
       program.funcs <- SMap.remove init_func_name program.funcs
+
+and remove_empty_blocks ~program = program_iter_blocks program block_remove_if_empty
+
+(* Replace phis where all args have same value (including single arg phis) with the arg itself *)
+and simplify_phi ~worklist (phi_instr : Value.t) =
+  let phi = cast_to_phi (cast_to_instruction phi_instr) in
+  match phi_get_single_arg_value phi with
+  | None -> ()
+  | Some arg_value ->
+    (* If replaced phi is as arg of other phis, recheck those phis *)
+    value_iter_uses ~value:phi_instr (fun use ->
+        match use.value.value with
+        | Instr { instr = Phi _; _ } -> worklist := VSet.add use.value !worklist
+        | _ -> ());
+    replace_instruction ~from:phi_instr ~to_:arg_value
+
+and simplify_phis ~program =
+  let worklist = ref VSet.empty in
+  (* Initial pass visits all instructions, enqueuing dependent uses to recheck *)
+  program_iter_blocks program (fun block ->
+      block_iter_phis block (fun phi_instr _ -> simplify_phi ~worklist phi_instr));
+  (* Keep checking for simplification and enqueuing depdent uses until no possible changes are left *)
+  while not (VSet.is_empty !worklist) do
+    let instr_value = VSet.choose !worklist in
+    worklist := VSet.remove instr_value !worklist;
+    simplify_phi ~worklist instr_value
+  done

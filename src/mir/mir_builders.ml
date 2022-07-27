@@ -419,22 +419,8 @@ and value_replace_uses ~(from : Value.t) ~(to_ : Value.t) =
   value_iter_uses ~value:from (fun use ->
       (* Change the value for this use in-place and attach to use list of new value *)
       use.value <- to_;
-      add_value_use ~value:to_ ~use;
-
-      (* A configurable hook that runs on the user for each updated use *)
-      (match !value_replace_use_hook with
-      | Some hook_func -> hook_func use.user
-      | None -> ());
-
-      (* Can trigger further simplification if a phi was changed *)
-      match use.user.value with
-      | Instr { instr = Phi phi; _ } -> phi_simplify ~value:use.user ~phi
-      | _ -> ());
+      add_value_use ~value:to_ ~use);
   from.uses <- None
-
-and value_replace_use_hook : (Value.t -> unit) option ref = ref None
-
-and set_value_replace_use_hook f = value_replace_use_hook := f
 
 (* Utility function to check if a use list has a valid structure *)
 and assert_valid_use_list ~(value : Value.t) =
@@ -557,7 +543,7 @@ and remove_instruction (instr_val : Value.t) =
       if instr_val != use.value then
         match use.value.value with
         | Instr { instr = Phi phi; _ } ->
-          phi_filter_args ~value:use.value ~phi (fun _ arg_use -> arg_use.Use.value != instr_val)
+          phi_filter_args ~phi (fun _ arg_use -> arg_use.Use.value != instr_val)
         | _ -> ());
 
   (* Instruction list is circular, so check if single element list *)
@@ -592,16 +578,8 @@ and concat_instructions (b1 : Block.t) (b2 : Block.t) =
 (* Replace an instruction with another value, removing the instruction and replacing all its
    uses with the other value. *)
 and replace_instruction ~(from : Value.t) ~(to_ : Value.t) =
-  (* A configurable hook that runs on the replaced instruction*)
-  (match !replace_instruction_hook with
-  | Some replace_instruction_hook -> replace_instruction_hook from to_
-  | None -> ());
   value_replace_uses ~from ~to_;
   remove_instruction from
-
-and replace_instruction_hook : (Value.t -> Value.t -> unit) option ref = ref None
-
-and set_replace_instruction_hook f = replace_instruction_hook := f
 
 (* Utility function to check if an instruction list has a valid structure *)
 and assert_valid_instruction_list (block : Block.t) =
@@ -689,45 +667,39 @@ and block_fold_phis (block : Block.t) (acc : 'a) (f : Value.t -> Instruction.Phi
 
 and block_clear_phis (block : Block.t) = block_filter_phis block (fun _ _ -> false)
 
-and phi_set_args ~(value : Value.t) ~(phi : Instruction.Phi.t) ~(args : Use.t BlockMap.t) =
-  phi.args <- args;
-  phi_simplify ~value ~phi
-
 and phi_add_arg
     ~(phi_val : Value.t) ~(phi : Instruction.Phi.t) ~(block : Block.t) ~(value : Value.t) =
   let use = user_add_use ~user:phi_val ~use:value in
   phi.args <- BlockMap.add block use phi.args
 
-and phi_remove_arg ~(value : Value.t) ~(phi : Instruction.Phi.t) ~(block : Block.t) =
+and phi_remove_arg ~(phi : Instruction.Phi.t) ~(block : Block.t) =
   match BlockMap.find_opt block phi.args with
   | None -> ()
   | Some use ->
     remove_use use;
-    phi.args <- BlockMap.remove block phi.args;
-    phi_simplify ~value ~phi
+    phi.args <- BlockMap.remove block phi.args
 
-and phi_filter_args ~(value : Value.t) ~(phi : Instruction.Phi.t) (f : Block.t -> Use.t -> bool) =
+and phi_filter_args ~(phi : Instruction.Phi.t) (f : Block.t -> Use.t -> bool) =
   phi.args <-
     BlockMap.filter
       (fun block use ->
         let keep = f block use in
         if not keep then remove_use use;
         keep)
-      phi.args;
-  phi_simplify ~value ~phi
+      phi.args
 
-and phi_simplify ~(value : Value.t) ~(phi : Instruction.Phi.t) =
-  (* Remove this phi instruction if it has no arguments *)
-  if BlockMap.is_empty phi.args then
-    remove_instruction value
-  else
-    (* If all arguments to phi instruction have same value, remove phi instruction and replace its
-       uses with the value. *)
-    let (_, chosen_use) = BlockMap.choose phi.args in
+(* If all phi args have the same value, return that value. Otherwise return None. *)
+and phi_get_single_arg_value (phi : Instruction.Phi.t) : Value.t option =
+  match BlockMap.choose_opt phi.args with
+  | None -> None
+  | Some (_, first_arg) ->
     let has_single_arg_value =
-      BlockMap.for_all (fun _ arg_use -> values_equal arg_use.Use.value chosen_use.value) phi.args
+      BlockMap.for_all (fun _ arg_use -> values_equal arg_use.Use.value first_arg.value) phi.args
     in
-    if has_single_arg_value then replace_instruction ~from:value ~to_:chosen_use.value
+    if has_single_arg_value then
+      Some first_arg.value
+    else
+      None
 
 (*
  * ============================
@@ -942,8 +914,8 @@ and map_next_block (block : Block.t) ~(from : Block.t) ~(to_ : Block.t) =
 (* Remove all references to a block from phi nodes of on of its next blocks.
    This may be needed when removing a block or block link. *)
 and remove_phi_backreferences_for_block ~(block : Block.t) ~(to_remove : Block.t) =
-  block_iter_phis block (fun phi_val phi ->
-      phi_filter_args ~value:phi_val ~phi (fun prev_block _ -> prev_block != to_remove))
+  block_iter_phis block (fun _ phi ->
+      phi_filter_args ~phi (fun prev_block _ -> prev_block != to_remove))
 
 (* Replace all references to old_block_id in the phis of a block with new_block_ids. Note that there
    may be multiple new_block_ids, so a single phi argument may be expanded to multiple arguments.
@@ -956,7 +928,7 @@ and map_phi_backreferences_for_block ~(block : Block.t) ~(from : Block.t) ~(to_ 
         BlockSet.iter
           (fun to_block -> phi_add_arg ~phi_val ~phi ~block:to_block ~value:use.value)
           to_;
-        phi_remove_arg ~value:phi_val ~phi ~block:from)
+        phi_remove_arg ~phi ~block:from)
 
 (*
  * ============================
