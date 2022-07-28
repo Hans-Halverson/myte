@@ -115,11 +115,11 @@ let mk_phi_chain_node ~cx block =
 
 let get_node ~cx node_id = IMap.find node_id cx.phi_chain_nodes
 
-let rec promote_variables_to_registers ir =
+let rec run ~program =
   let cx = mk_cx () in
-  find_join_points ~cx ir;
-  build_phi_nodes ~cx ir;
-  rewrite_program ~cx ir
+  find_join_points ~cx program;
+  build_phi_nodes ~cx program;
+  rewrite_program ~cx program
 
 and find_join_points ~cx program =
   let open Program in

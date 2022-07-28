@@ -135,6 +135,6 @@ let lower_phis_to_copies ~(ir : Program.t) =
 
       block_clear_phis block)
 
-let run (ir : Program.t) =
-  split_edges ~ir;
-  lower_phis_to_copies ~ir
+let run ~(program : Program.t) =
+  split_edges ~ir:program;
+  lower_phis_to_copies ~ir:program

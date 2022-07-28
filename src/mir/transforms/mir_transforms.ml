@@ -1,5 +1,7 @@
 module MirTransform = struct
   type t =
+    (* Promote variables to registers in SSA form *)
+    | SSA
     | Normalize
     | ConstantFolding
     | SimplifyInstructions
@@ -11,6 +13,7 @@ module MirTransform = struct
 
   let of_string str =
     match str with
+    | "ssa" -> Some SSA
     | "normalize" -> Some Normalize
     | "constant-folding" -> Some ConstantFolding
     | "simplify-instructions" -> Some SimplifyInstructions
@@ -23,18 +26,22 @@ let apply_transforms (program : Mir.Program.t) (transforms : MirTransform.t list
   List.iter
     (fun transform ->
       match transform with
-      | MirTransform.Normalize -> Mir_normalizer.run ~program
+      | MirTransform.SSA -> Ssa.run ~program
+      | Normalize -> Mir_normalizer.run ~program
       | SimplifyInstructions -> Simplify_instructions.run ~program
       | ConstantFolding -> Fold_constants.run ~program
       | DIE -> Dead_instruction_elimination.run ~program
-      | SSADestruction -> Mir_ssa_destruction.run program)
+      | SSADestruction -> Ssa_destruction.run ~program)
     transforms
 
 (* Full set of optimizations *)
 let optimize program =
-  apply_transforms program [SimplifyInstructions; ConstantFolding; DIE; Normalize]
+  apply_transforms
+    program
+    [SSA; SimplifyInstructions; ConstantFolding; DIE; Normalize; SSADestruction]
 
 (* Minimal transformations needed to emit assembly, without optimization set *)
-let transform_for_assembly program = apply_transforms program [ConstantFolding; Normalize]
+let transform_for_assembly program =
+  apply_transforms program [SSA; ConstantFolding; Normalize; SSADestruction]
 
-let transform_for_dump_ir program = apply_transforms program [Normalize]
+let transform_for_dump_ir program = apply_transforms program [SSA; Normalize]

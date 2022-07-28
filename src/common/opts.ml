@@ -3,8 +3,8 @@ type t = {
   custom_gc: bool ref;
   dump_ast: bool ref;
   dump_ir: bool ref;
-  dump_pre_ssa_ir: bool ref;
-  dump_ir_transforms: string list ref;
+  dump_transformed_ir: string list ref;
+  dump_untransformed_ir: bool ref;
   dump_virtual_asm: bool ref;
   dump_asm: bool ref;
   dump_full_asm: bool ref;
@@ -24,8 +24,8 @@ let opts =
     custom_gc = ref false;
     dump_ast = ref false;
     dump_ir = ref false;
-    dump_pre_ssa_ir = ref false;
-    dump_ir_transforms = ref [];
+    dump_transformed_ir = ref [];
+    dump_untransformed_ir = ref false;
     dump_virtual_asm = ref false;
     dump_asm = ref false;
     dump_full_asm = ref false;
@@ -47,12 +47,12 @@ let spec =
     ("--custom-gc", Arg.Set opts.custom_gc, " Use the custom garbage collector");
     ("--dump-ast", Arg.Set opts.dump_ast, " Print the AST to stdout");
     ("--dump-ir", Arg.Set opts.dump_ir, " Print the IR to stdout");
-    ( "--dump-pre-ssa-ir",
-      Arg.Set opts.dump_pre_ssa_ir,
-      " Print the IR before SSA construction to stdout" );
-    ( "--dump-ir-transforms",
-      Arg.String (fun transforms -> opts.dump_ir_transforms := split_comma_list transforms),
-      " Transforms to apply to IR before printing to stdout" );
+    ( "--dump-transformed-ir",
+      Arg.String (fun transforms -> opts.dump_transformed_ir := split_comma_list transforms),
+      " Print the IR after a sequence of transforms have been applied" );
+    ( "--dump-untransformed-ir",
+      Arg.Set opts.dump_untransformed_ir,
+      " Print the IR before any transforms have been applied" );
     ("--dump-virtual-asm", Arg.Set opts.dump_virtual_asm, " Print the virtual assembly to stdout");
     ("--dump-asm", Arg.Set opts.dump_asm, " Print the assembly to stdout");
     ( "--dump-full-asm",
@@ -92,9 +92,9 @@ let dump_ast () = !(opts.dump_ast)
 
 let dump_ir () = !(opts.dump_ir)
 
-let dump_pre_ssa_ir () = !(opts.dump_pre_ssa_ir)
+let dump_transformed_ir () = !(opts.dump_transformed_ir)
 
-let dump_ir_transforms () = !(opts.dump_ir_transforms)
+let dump_untransformed_ir () = !(opts.dump_untransformed_ir)
 
 let dump_virtual_asm () = !(opts.dump_virtual_asm)
 

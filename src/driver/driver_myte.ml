@@ -17,18 +17,6 @@ let dump_ast asts =
   in
   Printf.printf "%s" (String.concat "\n" ast_strings)
 
-let dump_ir ir =
-  let open Mir_optimize in
-  let transforms = Opts.dump_ir_transforms () |> List.filter_map MirTransform.of_string in
-  if transforms <> [] then
-    Mir_optimize.apply_transforms ir transforms
-  else if Opts.optimize () then
-    Mir_optimize.optimize ir
-  else
-    Mir_optimize.transform_for_dump_ir ir;
-  print_string (Mir_pp.pp_program ir);
-  exit 0
-
 (* Stages of compilation *)
 
 let rec parse_and_check_stdlib () =
@@ -70,20 +58,41 @@ and parse_and_check ~pcx ~is_stdlib files =
     exit 1
   | Ok () -> ()
 
-let lower_to_ir pcx =
-  let ir = Mir_emit.emit pcx in
-  if Opts.dump_pre_ssa_ir () then dump_ir ir;
-  Mir_ssa.promote_variables_to_registers ir;
-  if Opts.dump_ir () then dump_ir ir;
+let lower_to_ir pcx = Mir_emit.emit pcx
+
+let transform_ir ir =
+  let dump_ir () =
+    print_string (Mir_pp.pp_program ir);
+    exit 0
+  in
+
+  if Opts.dump_untransformed_ir () then dump_ir ();
+
+  (* Dump IR when sequence of transforms is specified *)
+  let transforms =
+    Opts.dump_transformed_ir () |> List.filter_map Mir_transforms.MirTransform.of_string
+  in
+  if transforms <> [] then (
+    Mir_transforms.apply_transforms ir transforms;
+    dump_ir ()
+  );
+
+  (* Generic IR dumps *)
+  if Opts.dump_ir () then (
+    if Opts.optimize () then
+      Mir_transforms.optimize ir
+    else
+      Mir_transforms.transform_for_dump_ir ir;
+
+    dump_ir ()
+  );
+
   if Opts.optimize () then
-    Mir_optimize.optimize ir
+    Mir_transforms.optimize ir
   else
-    Mir_optimize.transform_for_assembly ir;
-  ir
+    Mir_transforms.transform_for_assembly ir
 
 let lower_to_asm ir =
-  Mir_ssa_destruction.run ir;
-
   (* Generate x86_64 program  *)
   let gcx = X86_64_gen.gen_program ir in
   let program_file = X86_64_pp.pp_program ~gcx in
@@ -116,6 +125,9 @@ let compile files =
   let pcx = parse_and_check_stdlib () in
   parse_and_check ~pcx ~is_stdlib:false files;
   if Opts.check () then exit 0;
+
   let ir = lower_to_ir pcx in
+  transform_ir ir;
+
   let asm_file = lower_to_asm ir in
   gen_executable asm_file

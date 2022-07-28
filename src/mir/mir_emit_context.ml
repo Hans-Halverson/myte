@@ -145,7 +145,7 @@ let mk ~pcx =
     current_loop_contexts = [];
     filter_std_lib =
       (Opts.dump_ir ()
-      || Opts.dump_pre_ssa_ir ()
+      || Opts.dump_untransformed_ir ()
       || Opts.dump_virtual_asm ()
       || Opts.dump_asm ()
       || Opts.dump_full_asm ())

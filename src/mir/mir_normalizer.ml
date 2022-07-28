@@ -2,19 +2,28 @@ open Basic_collections
 open Mir
 open Mir_builders
 
+(*
+  Simplify the MIR, applying the following changes:
+   - Replace all phis where all arguments are the same value (including single argument phis) with
+     that argument.
+   - Remove empty blocks
+   - Merge adjacent blocks when possible
+   - Remove the init function if it is empty
+*)
+
 let rec run ~program =
   simplify_phis ~program;
   remove_empty_blocks ~program;
-  consolidate_adjacent_blocks ~program;
+  merge_adjacent_blocks ~program;
   remove_empty_init_func ~program
 
-(* Consolidate adjacent blocks into a single large block when possible *)
-and consolidate_adjacent_blocks ~program =
+(* Merge adjacent blocks into a single large block when possible *)
+and merge_adjacent_blocks ~program =
   let removed_blocks = ref BlockSet.empty in
   (* Iterate to fixpoint *)
   let rec iter () =
     program_iter_blocks program (fun (block : Block.t) ->
-        (* Can only consolidate this block if it continues to a block with no other previous blocks,
+        (* Can only merge this block if it continues to a block with no other previous blocks,
            and the next block has no phis (as phi arg vars may have been defined in this block). *)
         match get_terminator block with
         | Some { instr = Continue next_block; _ }
@@ -28,7 +37,7 @@ and consolidate_adjacent_blocks ~program =
             && not next_block_is_start
           then (
             removed_blocks := BlockSet.add next_block !removed_blocks;
-            merge_adjacent_blocks block next_block
+            Mir_builders.merge_adjacent_blocks block next_block
           )
         | _ -> ());
     if BlockSet.is_empty !removed_blocks then
