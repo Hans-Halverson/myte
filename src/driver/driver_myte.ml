@@ -82,7 +82,7 @@ let lower_to_ir pcx =
   ir
 
 let lower_to_asm ir =
-  Mir_ssa_destruction.destruct_ssa ir;
+  Mir_ssa_destruction.run ir;
 
   (* Generate x86_64 program  *)
   let gcx = X86_64_gen.gen_program ir in

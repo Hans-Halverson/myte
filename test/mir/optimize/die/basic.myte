@@ -1,0 +1,32 @@
+module test
+
+var global: Int = 0
+
+fun eliminatedInstructions(x: Int, y: Int, z: Int) {
+  // Eliminated
+  x + 1 + y + 2 + z;
+
+  // Not eliminated
+  use(x + 3 + y + 4 + z);
+}
+
+fun loadsEliminated() {
+  global + 1;
+
+  use(global + 2);
+}
+
+
+fun ignoredInstructions(): Int {
+  // Calls are kept even if value is not used
+  use(2);
+
+  // Stores are kept
+  global = 2;
+
+  return 3;
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

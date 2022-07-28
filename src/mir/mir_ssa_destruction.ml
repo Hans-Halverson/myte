@@ -135,6 +135,6 @@ let lower_phis_to_copies ~(ir : Program.t) =
 
       block_clear_phis block)
 
-let destruct_ssa (ir : Program.t) =
+let run (ir : Program.t) =
   split_edges ~ir;
   lower_phis_to_copies ~ir

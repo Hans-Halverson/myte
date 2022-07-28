@@ -242,6 +242,6 @@ class constant_folding_transform ~(program : Program.t) =
       | _ -> None
   end
 
-let fold_constants_and_prune ~program =
+let run ~program =
   let transform = new constant_folding_transform ~program in
   transform#run ()

@@ -3,6 +3,8 @@ module MirTransform = struct
     | Normalize
     | ConstantFolding
     | SimplifyInstructions
+    (* Dead instruction elimination *)
+    | DIE
     | SSADestruction
 
   let compare = Stdlib.compare
@@ -12,6 +14,7 @@ module MirTransform = struct
     | "normalize" -> Some Normalize
     | "constant-folding" -> Some ConstantFolding
     | "simplify-instructions" -> Some SimplifyInstructions
+    | "die" -> Some DIE
     | "ssa-destruction" -> Some SSADestruction
     | _ -> None
 end
@@ -20,14 +23,16 @@ let apply_transforms (program : Mir.Program.t) (transforms : MirTransform.t list
   List.iter
     (fun transform ->
       match transform with
-      | MirTransform.Normalize -> Mir_normalizer.normalize ~program
-      | SimplifyInstructions -> Simplify_instructions.simplify_instructions ~program
-      | ConstantFolding -> Fold_constants.fold_constants_and_prune ~program
-      | SSADestruction -> Mir_ssa_destruction.destruct_ssa program)
+      | MirTransform.Normalize -> Mir_normalizer.run ~program
+      | SimplifyInstructions -> Simplify_instructions.run ~program
+      | ConstantFolding -> Fold_constants.run ~program
+      | DIE -> Dead_instruction_elimination.run ~program
+      | SSADestruction -> Mir_ssa_destruction.run program)
     transforms
 
 (* Full set of optimizations *)
-let optimize program = apply_transforms program [SimplifyInstructions; ConstantFolding; Normalize]
+let optimize program =
+  apply_transforms program [SimplifyInstructions; ConstantFolding; DIE; Normalize]
 
 (* Minimal transformations needed to emit assembly, without optimization set *)
 let transform_for_assembly program = apply_transforms program [ConstantFolding; Normalize]

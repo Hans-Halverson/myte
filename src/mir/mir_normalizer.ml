@@ -2,7 +2,7 @@ open Basic_collections
 open Mir
 open Mir_builders
 
-let rec normalize ~program =
+let rec run ~program =
   simplify_phis ~program;
   remove_empty_blocks ~program;
   consolidate_adjacent_blocks ~program;

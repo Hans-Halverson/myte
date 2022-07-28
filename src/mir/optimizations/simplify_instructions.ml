@@ -25,7 +25,7 @@ let simplify_instruction ~cx instr_value =
     | _ -> ())
   | _ -> ()
 
-let simplify_instructions ~program =
+let run ~program =
   let cx = { worklist = VSet.empty } in
   (* Initial pass visits all instructions, enqueuing dependent uses to recheck *)
   program_iter_blocks program (fun block ->
