@@ -977,7 +977,7 @@ methods Parser {
     // Parse if keyword and parenthesized test
     this.expect(token.If);
     this.expect(token.LeftParen);
-    val test = this.parseExpression();
+    val test = this.parseTest();
     this.expect(token.RightParen);
 
     // Consequent must always be a block
@@ -998,6 +998,21 @@ methods Parser {
     val loc = this.currentLoc(startLoc);
 
     return ast.If { loc, test, conseq, altern };
+  }
+
+  fun parseTest(): ast.Test {
+    val startLoc = this.loc;
+    val expr = this.parseExpression();
+
+    if (this.token == token.Match) {
+      this.advance();
+      val pattern = this.parsePattern(false);
+      val loc = this.currentLoc(startLoc);
+
+      return ast.TMatch (ast.TestMatch { loc, expr, pattern });
+    } else {
+      return ast.TExpression (expr);
+    }
   }
 
   fun parseMatchCase(isExpression: Bool): ast.MatchCase {
@@ -1052,7 +1067,7 @@ methods Parser {
 
     // Parse test and block body
     this.expect(token.LeftParen);
-    val test = this.parseExpression();
+    val test = this.parseTest();
     this.expect(token.RightParen);
     val body = this.parseBlock();
 

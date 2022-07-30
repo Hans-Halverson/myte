@@ -222,7 +222,7 @@ trait AstVisitor {
   }
 
   fun visitIf(if_: ast.If) {
-    this.visitExpression(if_.test);
+    this.visitTest(if_.test);
     this.visitBlock(if_.conseq);
 
     match (if_.altern) {
@@ -230,6 +230,18 @@ trait AstVisitor {
       | ast.ElseIf (if_) -> this.visitIf(if_)
       | ast.NoAltern -> ()
     }
+  }
+
+  fun visitTest(test: ast.Test) {
+    match (test) {
+      | ast.TExpression (expr) -> this.visitExpression(expr)
+      | ast.TMatch (match_) -> this.visitTestMatch(match_)
+    }
+  }
+
+  fun visitTestMatch(match_: ast.TestMatch) {
+    this.visitExpression(match_.expr);
+    this.visitPattern(match_.pattern);
   }
 
   fun visitMatch(match_: ast.Match) {
@@ -257,7 +269,7 @@ trait AstVisitor {
   }
 
   fun visitWhile(while_: ast.While) {
-    this.visitExpression(while_.test);
+    this.visitTest(while_.test);
     this.visitBlock(while_.body);
   }
 

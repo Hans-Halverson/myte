@@ -1856,7 +1856,7 @@ and check_if ~cx ~is_expr if_ =
   let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
 
   (* Check test expression, which must be of Bool type *)
-  let (test_loc, test_tvar_id) = check_expression ~cx test in
+  let (test_loc, test_tvar_id) = check_test ~cx test in
   Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
 
   let (_, conseq_tvar_id) = check_block ~cx ~is_expr conseq in
@@ -1892,6 +1892,11 @@ and check_if ~cx ~is_expr if_ =
   in
   ignore (Type_context.unify ~cx stmt_ty (TVar tvar_id));
   (loc, tvar_id)
+
+and check_test ~cx test =
+  match test with
+  | Ast.Test.Expression expr -> check_expression ~cx expr
+  | Match _ -> failwith "TODO: Type check match tests"
 
 and check_match ~cx ~is_expr match_ =
   let open Ast.Match in
@@ -2369,7 +2374,7 @@ and check_statement ~cx ~is_expr stmt =
    *)
   | While { While.loc; test; body } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let (test_loc, test_tvar_id) = check_expression ~cx test in
+    let (test_loc, test_tvar_id) = check_test ~cx test in
     Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
     Type_context.enter_loop ~cx;
     ignore (check_block ~cx ~is_expr:false body);

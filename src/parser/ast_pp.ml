@@ -458,7 +458,7 @@ and node_of_block block =
 
 and node_of_while while_ =
   let { Statement.While.loc; test; body } = while_ in
-  node "While" loc [("test", node_of_expression test); ("body", node_of_block body)]
+  node "While" loc [("test", node_of_test test); ("body", node_of_block body)]
 
 and node_of_for for_ =
   let { Statement.For.loc; pattern; annot; iterator; body } = for_ in
@@ -517,10 +517,17 @@ and node_of_if ~is_expr if_ =
     | If if_ -> node_of_if ~is_expr if_
     | None -> None
   in
-  node
-    name
-    loc
-    [("test", node_of_expression test); ("conseq", node_of_block conseq); ("altern", altern)]
+  node name loc [("test", node_of_test test); ("conseq", node_of_block conseq); ("altern", altern)]
+
+and node_of_test test =
+  let open Test in
+  match test with
+  | Expression expr -> node_of_expression expr
+  | Match match_ -> node_of_test_match match_
+
+and node_of_test_match match_ =
+  let { Test.Match.loc; expr; pattern } = match_ in
+  node "TestMatch" loc [("expr", node_of_expression expr); ("pattern", node_of_pattern pattern)]
 
 and node_of_match match_ ~is_expr =
   let { Match.loc; args; cases } = match_ in

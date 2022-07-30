@@ -1433,7 +1433,11 @@ and emit_if_expression ~ecx if_ =
   in
 
   (* Branch to conseq or altern blocks *)
-  let test_val = emit_bool_expression ~ecx test in
+  let test_val =
+    match test with
+    | Test.Expression expr -> emit_bool_expression ~ecx expr
+    | Match _ -> failwith "TODO: Compile match tests"
+  in
   let conseq_block = Ecx.mk_block ~ecx in
   let altern_block = Ecx.mk_block ~ecx in
   let join_block = Ecx.mk_block ~ecx in
@@ -2380,7 +2384,11 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
    *)
   | If { loc = _; test; conseq; altern = None } ->
     (* Branch to conseq or join blocks *)
-    let test_val = emit_bool_expression ~ecx test in
+    let test_val =
+      match test with
+      | Test.Expression expr -> emit_bool_expression ~ecx expr
+      | Match _ -> failwith "TODO: Compile match tests"
+    in
     let conseq_block = Ecx.mk_block ~ecx in
     let join_block = Ecx.mk_block ~ecx in
     Ecx.finish_block_branch ~ecx test_val conseq_block join_block;
@@ -2398,7 +2406,11 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
       emit_if_expression ~ecx if_
     else
       (* Branch to conseq or altern blocks *)
-      let test_val = emit_bool_expression ~ecx test in
+      let test_val =
+        match test with
+        | Test.Expression expr -> emit_bool_expression ~ecx expr
+        | Match _ -> failwith "TODO: Compile match tests"
+      in
       let conseq_block = Ecx.mk_block ~ecx in
       let altern_block = Ecx.mk_block ~ecx in
       let join_block = Ecx.mk_block ~ecx in
@@ -2434,7 +2446,11 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
 
     (* Emit test block which branches to finish or body blocks *)
     Ecx.set_current_block ~ecx test_block;
-    let test_val = emit_bool_expression ~ecx test in
+    let test_val =
+      match test with
+      | Test.Expression expr -> emit_bool_expression ~ecx expr
+      | Match _ -> failwith "TODO: Compile match tests"
+    in
     Ecx.finish_block_branch ~ecx test_val body_block finish_block;
 
     (* Emit body block which continues to test block *)

@@ -177,7 +177,7 @@ type ExpressionStatement {
 
 type If {
   loc: Loc,
-  test: Expression,
+  test: Test,
   conseq: Block,
   altern: IfAltern,
 }
@@ -186,6 +186,16 @@ type IfAltern =
   | Else (Block)
   | ElseIf (If)
   | NoAltern
+
+type Test =
+  | TExpression (Expression)
+  | TMatch (TestMatch)
+
+type TestMatch {
+  loc: Loc,
+  expr: Expression,
+  pattern: Pattern,
+}
 
 type Match {
   loc: Loc,
@@ -206,7 +216,7 @@ type MatchCaseBody =
 
 type While {
   loc: Loc,
-  test: Expression,
+  test: Test,
   body: Block,
 }
 

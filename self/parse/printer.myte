@@ -376,13 +376,27 @@ fun nodeOfIf(if_: ast.If, isStatement: Bool): PrintNode {
     name,
     loc,
     fields: [
-      ("test", nodeOfExpression(test)),
+      ("test", nodeOfTest(test)),
       ("conseq", nodeOfBlock(conseq)),
       ("altern", altern),
     ],
   };
 }  
 
+fun nodeOfTest(test: ast.Test): PrintNode =
+  match (test) {
+    | ast.TExpression (expr) -> nodeOfExpression(expr)
+    | ast.TMatch (match_) -> nodeOfTestMatch(match_)
+  }
+
+fun nodeOfTestMatch(match_: ast.TestMatch): PrintNode {
+  val ast.TestMatch { loc, expr, pattern } = match_;
+  return Node {
+    name: "TestMatch",
+    loc,
+    fields: [("expr", nodeOfExpression(expr)), ("pattern", nodeOfPattern(pattern))],
+  };
+}
 
 fun nodeOfMatch(match_: ast.Match, isStatement: Bool): PrintNode {
   val ast.Match { loc, args, cases } = match_;
@@ -423,9 +437,8 @@ fun nodeOfMatchCase(case: ast.MatchCase): PrintNode {
 fun nodeOfWhile(w: ast.While): PrintNode {
   val ast.While { loc, test, body } = w;
   return Node {
-    name: "While",
-    loc,
-    fields: [("test", nodeOfExpression(test)), ("body", nodeOfBlock(body))],
+    name: "While", loc,
+    fields: [("test", nodeOfTest(test)), ("body", nodeOfBlock(body))],
   };
 }
 

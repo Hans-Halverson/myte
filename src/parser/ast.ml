@@ -62,7 +62,7 @@ and Statement : sig
   module While : sig
     type t = {
       loc: Loc.t;
-      test: Expression.t;
+      test: Test.t;
       body: Block.t;
     }
   end
@@ -619,7 +619,7 @@ end =
 and If : sig
   type t = {
     loc: Loc.t;
-    test: Expression.t;
+    test: Test.t;
     conseq: Statement.Block.t;
     altern: altern;
   }
@@ -630,6 +630,21 @@ and If : sig
     | None
 end =
   If
+
+and Test : sig
+  module Match : sig
+    type t = {
+      loc: Loc.t;
+      expr: Expression.t;
+      pattern: Pattern.t;
+    }
+  end
+
+  type t =
+    | Expression of Expression.t
+    | Match of Match.t
+end =
+  Test
 
 and Match : sig
   module Case : sig

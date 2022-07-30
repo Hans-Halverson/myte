@@ -1,0 +1,10 @@
+module test
+
+fun test() {
+  if (1 match x) {}
+  if (x match 1) {}
+  if (x match Some (y)) {}
+  if (1 + 2 match Some (x, y)) {}
+
+  while (x match 1) {}
+}

@@ -1129,7 +1129,7 @@ and parse_if env =
   let marker = mark_loc env in
   Env.expect env T_IF;
   Env.expect env T_LEFT_PAREN;
-  let test = parse_expression env in
+  let test = parse_test env in
   Env.expect env T_RIGHT_PAREN;
   let conseq = parse_block env in
   let altern =
@@ -1144,11 +1144,23 @@ and parse_if env =
   let loc = marker env in
   { loc; test; conseq; altern }
 
+and parse_test env =
+  let open Test in
+  let marker = mark_loc env in
+  let expr = parse_expression env in
+  if Env.token env == T_MATCH then (
+    Env.advance env;
+    let pattern = parse_pattern ~is_decl:false env in
+    let loc = marker env in
+    Match { loc; expr; pattern }
+  ) else
+    Expression expr
+
 and parse_while env =
   let marker = mark_loc env in
   Env.expect env T_WHILE;
   Env.expect env T_LEFT_PAREN;
-  let test = parse_expression env in
+  let test = parse_test env in
   Env.expect env T_RIGHT_PAREN;
   let body = parse_block env in
   let loc = marker env in

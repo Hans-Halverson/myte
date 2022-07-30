@@ -312,18 +312,7 @@
       "end": "(?<=\\})",
       "patterns": [
         { "include": "#comments" },
-        {
-          "name": "meta.if.test.myte",
-          "begin": "\\(",
-          "beginCaptures": {
-            "0": { "name": "punctuation.brackets.round.myte" }
-          },
-          "end": "\\)",
-          "endCaptures": {
-            "0": { "name": "punctuation.brackets.round.myte" }
-          },
-          "patterns": [{ "include": "#expressions" }]
-        },
+        { "include": "#test" },
         {
           "name": "meta.if.block.myte",
           "begin": "{",
@@ -792,10 +781,11 @@
         { "include": "#variable-declarations" },
         {
           "name": "keyword.control.myte",
-          "match": "\\b(while|break|continue|return)\\b"
+          "match": "\\b(break|continue|return)\\b"
         },
         { "include": "#for" },
         { "include": "#if" },
+        { "include": "#while" },
         { "include": "#match" },
         { "include": "#set-literal" },
         { "include": "#block" },
@@ -846,6 +836,29 @@
           },
           "patterns": [{ "include": "#expressions" }]
         }
+      ]
+    },
+    "test": {
+      "name": "meta.test.myte",
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.brackets.round.myte" }
+      },
+      "patterns": [
+        {
+          "name": "meta.test.match.myte",
+          "begin": "\\bmatch\\b",
+          "beginCaptures": {
+            "0": { "name": "keyword.control.myte" }
+          },
+          "end": "(?=\\))",
+          "patterns": [{ "include": "#pattern" }]
+        },
+        { "include": "#expressions" }
       ]
     },
     "trait-declarations": {
@@ -1046,6 +1059,19 @@
           "name": "keyword.operator.and.myte",
           "match": "&"
         }
+      ]
+    },
+    "while": {
+      "name": "meta.while.myte",
+      "begin": "\\bwhile\\b",
+      "beginCaptures": {
+        "0": { "name": "keyword.control.myte" }
+      },
+      "end": "(?<=\\})",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#test" },
+        { "include": "#block" }
       ]
     },
     "variable-declarations": {

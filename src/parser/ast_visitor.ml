@@ -347,7 +347,7 @@ class visitor =
     method while_ while_ =
       let open Statement.While in
       let { loc = _; test; body } = while_ in
-      this#expression test;
+      this#test test;
       this#block body
 
     method for_ for_ =
@@ -378,12 +378,24 @@ class visitor =
     method if_ if_ =
       let open If in
       let { loc = _; test; conseq; altern } = if_ in
-      this#expression test;
+      this#test test;
       this#block conseq;
       match altern with
       | Block block -> this#block block
       | If if_ -> this#if_ if_
       | None -> ()
+
+    method test test =
+      let open Test in
+      match test with
+      | Expression expr -> this#expression expr
+      | Match match_ -> this#test_match match_
+
+    method test_match match_ =
+      let open Test.Match in
+      let { loc = _; expr; pattern } = match_ in
+      this#expression expr;
+      this#pattern pattern
 
     method match_ match_ =
       let open Match in

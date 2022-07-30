@@ -1,0 +1,229 @@
+test/parser/match_test/basic.myte
+{
+  node: Module,
+  loc: 1:0-10:1,
+  name: {
+    node: ModuleName,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-10:1,
+      name: {
+        node: Identifier,
+        loc: 3:4-3:8,
+        name: "test",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 3:11-10:1,
+        statements: [
+          {
+            node: IfStatement,
+            loc: 4:2-4:19,
+            test: {
+              node: TestMatch,
+              loc: 4:6-4:15,
+              expr: {
+                node: IntLiteral,
+                loc: 4:6-4:7,
+                raw: "1",
+              },
+              pattern: {
+                node: ScopedIdentifier,
+                loc: 4:14-4:15,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 4:14-4:15,
+                  name: "x",
+                },
+              },
+            },
+            conseq: {
+              node: Block,
+              loc: 4:17-4:19,
+              statements: [],
+            },
+            altern: None,
+          },
+          {
+            node: IfStatement,
+            loc: 5:2-5:19,
+            test: {
+              node: TestMatch,
+              loc: 5:6-5:15,
+              expr: {
+                node: Identifier,
+                loc: 5:6-5:7,
+                name: "x",
+              },
+              pattern: {
+                node: IntLiteral,
+                loc: 5:14-5:15,
+                raw: "1",
+              },
+            },
+            conseq: {
+              node: Block,
+              loc: 5:17-5:19,
+              statements: [],
+            },
+            altern: None,
+          },
+          {
+            node: IfStatement,
+            loc: 6:2-6:26,
+            test: {
+              node: TestMatch,
+              loc: 6:6-6:22,
+              expr: {
+                node: Identifier,
+                loc: 6:6-6:7,
+                name: "x",
+              },
+              pattern: {
+                node: TuplePattern,
+                loc: 6:14-6:22,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 6:14-6:18,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 6:14-6:18,
+                    name: "Some",
+                  },
+                },
+                elements: [
+                  {
+                    node: ScopedIdentifier,
+                    loc: 6:20-6:21,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 6:20-6:21,
+                      name: "y",
+                    },
+                  },
+                ],
+              },
+            },
+            conseq: {
+              node: Block,
+              loc: 6:24-6:26,
+              statements: [],
+            },
+            altern: None,
+          },
+          {
+            node: IfStatement,
+            loc: 7:2-7:33,
+            test: {
+              node: TestMatch,
+              loc: 7:6-7:29,
+              expr: {
+                node: BinaryOperation,
+                loc: 7:6-7:11,
+                op: Add,
+                left: {
+                  node: IntLiteral,
+                  loc: 7:6-7:7,
+                  raw: "1",
+                },
+                right: {
+                  node: IntLiteral,
+                  loc: 7:10-7:11,
+                  raw: "2",
+                },
+              },
+              pattern: {
+                node: TuplePattern,
+                loc: 7:18-7:29,
+                name: {
+                  node: ScopedIdentifier,
+                  loc: 7:18-7:22,
+                  scopes: [],
+                  name: {
+                    node: Identifier,
+                    loc: 7:18-7:22,
+                    name: "Some",
+                  },
+                },
+                elements: [
+                  {
+                    node: ScopedIdentifier,
+                    loc: 7:24-7:25,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 7:24-7:25,
+                      name: "x",
+                    },
+                  },
+                  {
+                    node: ScopedIdentifier,
+                    loc: 7:27-7:28,
+                    scopes: [],
+                    name: {
+                      node: Identifier,
+                      loc: 7:27-7:28,
+                      name: "y",
+                    },
+                  },
+                ],
+              },
+            },
+            conseq: {
+              node: Block,
+              loc: 7:31-7:33,
+              statements: [],
+            },
+            altern: None,
+          },
+          {
+            node: While,
+            loc: 9:2-9:22,
+            test: {
+              node: TestMatch,
+              loc: 9:9-9:18,
+              expr: {
+                node: Identifier,
+                loc: 9:9-9:10,
+                name: "x",
+              },
+              pattern: {
+                node: IntLiteral,
+                loc: 9:17-9:18,
+                raw: "1",
+              },
+            },
+            body: {
+              node: Block,
+              loc: 9:20-9:22,
+              statements: [],
+            },
+          },
+        ],
+      },
+      return: None,
+      type_params: [],
+      builtin: false,
+      static: false,
+      override: false,
+    },
+  ],
+}

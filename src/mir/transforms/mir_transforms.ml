@@ -27,7 +27,7 @@ let apply_transforms (program : Mir.Program.t) (transforms : MirTransform.t list
     (fun transform ->
       match transform with
       | MirTransform.SSA -> Ssa.run ~program
-      | Normalize -> Mir_normalizer.run ~program
+      | Normalize -> Normalizer.run ~program
       | SimplifyInstructions -> Simplify_instructions.run ~program
       | ConstantFolding -> Fold_constants.run ~program
       | DIE -> Dead_instruction_elimination.run ~program
