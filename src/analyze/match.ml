@@ -809,6 +809,16 @@ class match_analyzer ~cx =
     method! for_ for_ =
       this#analyze_destructure for_.pattern;
       super#for_ for_
+
+    method! match_test match_test =
+      let loc = Ast_utils.pattern_loc match_test.pattern in
+      let row = pattern_vector_of_pattern_node ~cx match_test.pattern in
+
+      (* Check for reachability but not exhaustiveness of subpatterns *)
+      let reachable_result = ReachableAnalyzer.useful ~is_guarded:false [] row in
+      this#check_reachable_result loc reachable_result;
+
+      super#match_test match_test
   end
 
 let analyze ~cx modules =

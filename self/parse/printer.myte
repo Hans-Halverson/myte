@@ -386,13 +386,13 @@ fun nodeOfIf(if_: ast.If, isStatement: Bool): PrintNode {
 fun nodeOfTest(test: ast.Test): PrintNode =
   match (test) {
     | ast.TExpression (expr) -> nodeOfExpression(expr)
-    | ast.TMatch (match_) -> nodeOfTestMatch(match_)
+    | ast.TMatch (match_) -> nodeOfMatchTest(match_)
   }
 
-fun nodeOfTestMatch(match_: ast.TestMatch): PrintNode {
-  val ast.TestMatch { loc, expr, pattern } = match_;
+fun nodeOfMatchTest(match_: ast.MatchTest): PrintNode {
+  val ast.MatchTest { loc, expr, pattern } = match_;
   return Node {
-    name: "TestMatch",
+    name: "MatchTest",
     loc,
     fields: [("expr", nodeOfExpression(expr)), ("pattern", nodeOfPattern(pattern))],
   };

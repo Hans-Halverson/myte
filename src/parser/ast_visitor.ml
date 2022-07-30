@@ -380,6 +380,10 @@ class visitor =
       let { loc = _; test; conseq; altern } = if_ in
       this#test test;
       this#block conseq;
+      this#if_altern altern
+
+    method if_altern altern =
+      let open If in
       match altern with
       | Block block -> this#block block
       | If if_ -> this#if_ if_
@@ -389,9 +393,9 @@ class visitor =
       let open Test in
       match test with
       | Expression expr -> this#expression expr
-      | Match match_ -> this#test_match match_
+      | Match match_ -> this#match_test match_
 
-    method test_match match_ =
+    method match_test match_ =
       let open Test.Match in
       let { loc = _; expr; pattern } = match_ in
       this#expression expr;

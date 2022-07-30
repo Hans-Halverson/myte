@@ -523,11 +523,11 @@ and node_of_test test =
   let open Test in
   match test with
   | Expression expr -> node_of_expression expr
-  | Match match_ -> node_of_test_match match_
+  | Match match_ -> node_of_match_test match_
 
-and node_of_test_match match_ =
+and node_of_match_test match_ =
   let { Test.Match.loc; expr; pattern } = match_ in
-  node "TestMatch" loc [("expr", node_of_expression expr); ("pattern", node_of_pattern pattern)]
+  node "MatchTest" loc [("expr", node_of_expression expr); ("pattern", node_of_pattern pattern)]
 
 and node_of_match match_ ~is_expr =
   let { Match.loc; args; cases } = match_ in

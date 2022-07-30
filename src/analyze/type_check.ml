@@ -1855,9 +1855,7 @@ and check_if ~cx ~is_expr if_ =
   let { Ast.If.loc; test; conseq; altern } = if_ in
   let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
 
-  (* Check test expression, which must be of Bool type *)
-  let (test_loc, test_tvar_id) = check_test ~cx test in
-  Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
+  check_test ~cx test;
 
   let (_, conseq_tvar_id) = check_block ~cx ~is_expr conseq in
   let merge_branches (altern_loc, altern_tvar_id) =
@@ -1895,8 +1893,15 @@ and check_if ~cx ~is_expr if_ =
 
 and check_test ~cx test =
   match test with
-  | Ast.Test.Expression expr -> check_expression ~cx expr
-  | Match _ -> failwith "TODO: Type check match tests"
+  (* Check test expression, which must be of Bool type *)
+  | Ast.Test.Expression expr ->
+    let (test_loc, test_tvar_id) = check_expression ~cx expr in
+    Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id)
+  (* Check match test, expression and pattern must have the same type *)
+  | Match { loc = _; expr; pattern } ->
+    let (_, expr_tvar_id) = check_expression ~cx expr in
+    let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
+    Type_context.assert_unify ~cx pattern_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
 
 and check_match ~cx ~is_expr match_ =
   let open Ast.Match in
@@ -2374,8 +2379,7 @@ and check_statement ~cx ~is_expr stmt =
    *)
   | While { While.loc; test; body } ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-    let (test_loc, test_tvar_id) = check_test ~cx test in
-    Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id);
+    check_test ~cx test;
     Type_context.enter_loop ~cx;
     ignore (check_block ~cx ~is_expr:false body);
     Type_context.exit_loop ~cx;

@@ -16,7 +16,13 @@ fun testAssignmentPatterns() {
 }
 
 fun testForLoopPatterns() {
+  // Exhaustiveness and reachability errors
   for (Tup1 (x | x) in [Tup1 (1)]) {}
+}
+
+fun testIfMatchPatterns() {
+  // Exhaustiveness but not reachability errors
+  if (Tup1 (1) match Tup1 (x | x)) {}
 }
 
 fun matchExpressionInPatternStatement() {

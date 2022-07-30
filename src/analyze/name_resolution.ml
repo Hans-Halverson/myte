@@ -768,6 +768,30 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       this#block body;
       this#exit_scope ()
 
+    method! if_ if_ =
+      match if_.test with
+      | Expression _ -> super#if_ if_
+      | Match match_test ->
+        this#visit_match_test_and_block match_test if_.conseq;
+        this#if_altern if_.altern
+
+    method! while_ while_ =
+      match while_.test with
+      | Expression _ -> super#while_ while_
+      | Match match_test -> this#visit_match_test_and_block match_test while_.body
+
+    method visit_match_test_and_block match_test block =
+      (* Match tests introduces a single case of bindings scoped to a single block *)
+      let { Test.Match.loc = _; expr; pattern } = match_test in
+      this#expression expr;
+      this#enter_scope ();
+      this#visit_pattern
+        ~is_match:true
+        ~mk_decl:(Some (fun _ -> MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ())))
+        pattern;
+      this#block block;
+      this#exit_scope ()
+
     method! match_case case =
       let { Match.Case.pattern; _ } = case in
       this#enter_scope ();

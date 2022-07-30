@@ -1,0 +1,19 @@
+Error: Expected type `Unit` but found `(Int, String)`
+test/analyze/type_check/match_test/basic.myte:6:5-11
+ 6 |     ((y, z): Unit);
+   |      ^^^^^^
+
+Error: Expected type `Unit` but found `(Int, String)`
+test/analyze/type_check/match_test/basic.myte:13:5-11
+ 13 |     ((y, z): Unit);
+    |      ^^^^^^
+
+Error: Expected type `(Int, String)` but found `(a, b, c)`
+test/analyze/type_check/match_test/basic.myte:22:14-23
+ 22 |   if (x match (y, _, _)) {
+    |               ^^^^^^^^^
+
+Error: Expected type `(Int, String)` but found `(Int, Bool)`
+test/analyze/type_check/match_test/basic.myte:27:24-33
+ 27 |   if ((1, "test") match (1, true)) {}
+    |                         ^^^^^^^^^

@@ -1,0 +1,34 @@
+module test
+
+fun testScopes(x: (Int, Int)) {
+  // Bindings are only usable in body
+  if (x match (y, z)) {
+    // Success
+    (y, z);
+  } else if (x match (a, b)) {
+    // Success
+    (a, b);
+
+    // Failure
+    (y, z);
+  } else {
+    // Failure
+    (a, b);
+    (y, z);
+  }
+
+  // Failure
+  (y, z);
+
+  // Match tests in while loops
+  while (x match (y, z)) {
+    (y, z);
+  }
+
+  // Pattern bindings not usable in expression
+  if (y match y) {
+    y;
+  }
+}
+
+fun main() {}

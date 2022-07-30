@@ -235,11 +235,11 @@ trait AstVisitor {
   fun visitTest(test: ast.Test) {
     match (test) {
       | ast.TExpression (expr) -> this.visitExpression(expr)
-      | ast.TMatch (match_) -> this.visitTestMatch(match_)
+      | ast.TMatch (match_) -> this.visitMatchTest(match_)
     }
   }
 
-  fun visitTestMatch(match_: ast.TestMatch) {
+  fun visitMatchTest(match_: ast.MatchTest) {
     this.visitExpression(match_.expr);
     this.visitPattern(match_.pattern);
   }

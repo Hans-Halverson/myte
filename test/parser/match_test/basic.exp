@@ -35,7 +35,7 @@ test/parser/match_test/basic.myte
             node: IfStatement,
             loc: 4:2-4:19,
             test: {
-              node: TestMatch,
+              node: MatchTest,
               loc: 4:6-4:15,
               expr: {
                 node: IntLiteral,
@@ -64,7 +64,7 @@ test/parser/match_test/basic.myte
             node: IfStatement,
             loc: 5:2-5:19,
             test: {
-              node: TestMatch,
+              node: MatchTest,
               loc: 5:6-5:15,
               expr: {
                 node: Identifier,
@@ -88,7 +88,7 @@ test/parser/match_test/basic.myte
             node: IfStatement,
             loc: 6:2-6:26,
             test: {
-              node: TestMatch,
+              node: MatchTest,
               loc: 6:6-6:22,
               expr: {
                 node: Identifier,
@@ -133,7 +133,7 @@ test/parser/match_test/basic.myte
             node: IfStatement,
             loc: 7:2-7:33,
             test: {
-              node: TestMatch,
+              node: MatchTest,
               loc: 7:6-7:29,
               expr: {
                 node: BinaryOperation,
@@ -198,7 +198,7 @@ test/parser/match_test/basic.myte
             node: While,
             loc: 9:2-9:22,
             test: {
-              node: TestMatch,
+              node: MatchTest,
               loc: 9:9-9:18,
               expr: {
                 node: Identifier,

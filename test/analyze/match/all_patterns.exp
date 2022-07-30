@@ -19,39 +19,44 @@ test/analyze/match/all_patterns.myte:15:12
     |             ^
 
 Error: Inexhaustive pattern matching. For example the pattern `Tup2 _` is not matched.
-test/analyze/match/all_patterns.myte:19:7-19
- 19 |   for (Tup1 (x | x) in [Tup1 (1)]) {}
+test/analyze/match/all_patterns.myte:20:7-19
+ 20 |   for (Tup1 (x | x) in [Tup1 (1)]) {}
     |        ^^^^^^^^^^^^
 
 Error: Unreachable pattern
-test/analyze/match/all_patterns.myte:19:17
- 19 |   for (Tup1 (x | x) in [Tup1 (1)]) {}
+test/analyze/match/all_patterns.myte:20:17
+ 20 |   for (Tup1 (x | x) in [Tup1 (1)]) {}
     |                  ^
 
+Error: Unreachable pattern
+test/analyze/match/all_patterns.myte:25:31
+ 25 |   if (Tup1 (1) match Tup1 (x | x)) {}
+    |                                ^
+
 Error: Inexhaustive pattern matching. For example the pattern `Tup2 _` is not matched.
-test/analyze/match/all_patterns.myte:23:10-25:3
- 23 | /   var x = match (Tup1 (1)) {
+test/analyze/match/all_patterns.myte:29:10-31:3
+ 29 | /   var x = match (Tup1 (1)) {
     | |           ^^^^^^^^^^^^^^^^^^
- 24 | |     | Tup1 (x | x) -> 1
+ 30 | |     | Tup1 (x | x) -> 1
     | | ^^^^^^^^^^^^^^^^^^^^^^^
- 25 | |   };
+ 31 | |   };
     | \ ^^^
 
 Error: Unreachable pattern
-test/analyze/match/all_patterns.myte:24:16
- 24 |     | Tup1 (x | x) -> 1
+test/analyze/match/all_patterns.myte:30:16
+ 30 |     | Tup1 (x | x) -> 1
     |                 ^
 
 Error: Inexhaustive pattern matching. For example the pattern `Tup2 _` is not matched.
-test/analyze/match/all_patterns.myte:27:6-29:3
- 27 | /   x = match (Tup1 (1)) {
+test/analyze/match/all_patterns.myte:33:6-35:3
+ 33 | /   x = match (Tup1 (1)) {
     | |       ^^^^^^^^^^^^^^^^^^
- 28 | |     | Tup1 (x | x) -> 1
+ 34 | |     | Tup1 (x | x) -> 1
     | | ^^^^^^^^^^^^^^^^^^^^^^^
- 29 | |   };
+ 35 | |   };
     | \ ^^^
 
 Error: Unreachable pattern
-test/analyze/match/all_patterns.myte:28:16
- 28 |     | Tup1 (x | x) -> 1
+test/analyze/match/all_patterns.myte:34:16
+ 34 |     | Tup1 (x | x) -> 1
     |                 ^

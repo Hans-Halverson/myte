@@ -1009,7 +1009,7 @@ methods Parser {
       val pattern = this.parsePattern(false);
       val loc = this.currentLoc(startLoc);
 
-      return ast.TMatch (ast.TestMatch { loc, expr, pattern });
+      return ast.TMatch (ast.MatchTest { loc, expr, pattern });
     } else {
       return ast.TExpression (expr);
     }

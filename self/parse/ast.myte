@@ -189,9 +189,9 @@ type IfAltern =
 
 type Test =
   | TExpression (Expression)
-  | TMatch (TestMatch)
+  | TMatch (MatchTest)
 
-type TestMatch {
+type MatchTest {
   loc: Loc,
   expr: Expression,
   pattern: Pattern,

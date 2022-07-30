@@ -1,0 +1,30 @@
+module test
+
+fun testDestructuring(x: (Int, String)) {
+  if (x match (y, z)) {
+    // Intentional error to print type
+    ((y, z): Unit);
+    (y: Int);
+    (z: String);
+  }
+
+  while (x match (y, z)) {
+    // Intentional error to print type
+    ((y, z): Unit);
+    (y: Int);
+    (z: String);
+  }
+
+
+}
+
+fun testPatternMachesExpression(x: (Int, String)) {
+  if (x match (y, _, _)) {
+    // Does not error
+    (y: Unit);
+  }
+
+  if ((1, "test") match (1, true)) {}
+}
+
+fun main() {}
