@@ -38,7 +38,9 @@ let mk_mir_record_layout ~(ecx : Ecx.t) decl_node record_decl_node =
   let field_sigs = Types.get_record_variant adt_sig id.name in
   let field_locs = get_record_field_locs record_decl_node in
   let field_sigs_and_locs =
-    SMap.mapi (fun name sig_ty -> (sig_ty, SMap.find name field_locs)) field_sigs
+    SMap.mapi
+      (fun name field_sig -> (field_sig.Types.AdtSig.Variant.type_, SMap.find name field_locs))
+      field_sigs
   in
   let template = MirAdtLayout.SingleTemplate (RecordTemplate field_sigs_and_locs) in
   let layouts = mk_layouts adt_sig in
@@ -105,7 +107,10 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
         | Record field_sigs ->
           let field_locs = SMap.find name field_locs in
           let field_sigs_and_locs =
-            SMap.mapi (fun name sig_ty -> (sig_ty, SMap.find name field_locs)) field_sigs
+            SMap.mapi
+              (fun name field_sig ->
+                (field_sig.Types.AdtSig.Variant.type_, SMap.find name field_locs))
+              field_sigs
           in
           SMap.add name (RecordTemplate field_sigs_and_locs) acc)
       adt_sig.variants

@@ -1,14 +1,29 @@
 Error: Expected type `Int` but found `String`
-test/analyze/type_check/assignment/lvalue_expression.myte:16:16-24
- 16 |   rec1.field1 = "string";
+test/analyze/type_check/assignment/lvalue_expression.myte:26:16-24
+ 26 |   rec1.field1 = "string";
     |                 ^^^^^^^^
 
 Error: Expected type `Bool` but found `String`
-test/analyze/type_check/assignment/lvalue_expression.myte:17:23-31
- 17 |   rec1.field2.field3 = "string";
+test/analyze/type_check/assignment/lvalue_expression.myte:27:23-31
+ 27 |   rec1.field2.field3 = "string";
     |                        ^^^^^^^^
 
 Error: Expected type `Rec3` but found `String`
-test/analyze/type_check/assignment/lvalue_expression.myte:18:23-31
- 18 |   rec1.field2.field4 = "string";
+test/analyze/type_check/assignment/lvalue_expression.myte:28:23-31
+ 28 |   rec1.field2.field4 = "string";
     |                        ^^^^^^^^
+
+Error: Cannot reassign methods
+test/analyze/type_check/assignment/lvalue_expression.myte:31:2-13
+ 31 |   rec1.method = fn () {};
+    |   ^^^^^^^^^^^
+
+Error: Cannot reassign methods
+test/analyze/type_check/assignment/lvalue_expression.myte:32:2-13
+ 32 |   rec1.method = fn (x: Bool): Int -> 1;
+    |   ^^^^^^^^^^^
+
+Error: Cannot resolve field or method with name `nonexist` on type `Rec1`
+test/analyze/type_check/assignment/lvalue_expression.myte:35:2-6
+ 35 |   rec1.nonexist = 1;
+    |   ^^^^

@@ -99,7 +99,12 @@ and AdtSig : sig
     and kind =
       | Enum
       | Tuple of Type.t list
-      | Record of Type.t SMap.t
+      | Record of record_field SMap.t
+
+    and record_field = {
+      type_: Type.t;
+      is_mutable: bool;
+    }
   end
 
   type id = int
@@ -134,7 +139,12 @@ end = struct
     and kind =
       | Enum
       | Tuple of Type.t list
-      | Record of Type.t SMap.t
+      | Record of record_field SMap.t
+
+    and record_field = {
+      type_: Type.t;
+      is_mutable: bool;
+    }
   end
 
   type id = int

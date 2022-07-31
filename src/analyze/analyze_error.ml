@@ -67,6 +67,7 @@ type t =
   | RecordExpressionWithRest
   | NonIndexableIndexed of Type.t
   | UnresolvedNamedAccess of string * Type.t
+  | UnresolvedSuperNamedAccess of string * Type.t
   | InvalidTraitObject
   | TupleIndexIsNotLiteral
   | TupleIndexOutOfBounds of int
@@ -97,6 +98,7 @@ and invalid_assignment_kind =
   | InvalidAssignmentImmutableVariable
   | InvalidAssignmentFunction
   | InvalidAssignmentFunctionParam
+  | InvalidAssignmentMethod
   | InvalidAssignmentThis
   | InvalidAssignmentConstructor
   | InvalidAssignmentMatchCaseVariable
@@ -195,16 +197,15 @@ let to_string error =
     Printf.sprintf "`_` is the wildcard pattern and cannot be used as an identifier"
   | BuiltinNotFound name -> Printf.sprintf "No declaration found for builtin `%s`" name
   | InvalidAssignment (name, kind) ->
-    let kind_string =
-      match kind with
-      | InvalidAssignmentImmutableVariable -> " immutable variable"
-      | InvalidAssignmentFunction -> " function"
-      | InvalidAssignmentFunctionParam -> " function parameter"
-      | InvalidAssignmentThis -> ""
-      | InvalidAssignmentConstructor -> " constructor"
-      | InvalidAssignmentMatchCaseVariable -> " match case variable"
-    in
-    Printf.sprintf "Cannot reassign%s `%s`" kind_string name
+    let with_name kind_string = Printf.sprintf "Cannot reassign%s `%s`" kind_string name in
+    (match kind with
+    | InvalidAssignmentImmutableVariable -> with_name " immutable variable"
+    | InvalidAssignmentFunction -> with_name " function"
+    | InvalidAssignmentFunctionParam -> with_name " function parameter"
+    | InvalidAssignmentMethod -> "Cannot reassign methods"
+    | InvalidAssignmentThis -> with_name ""
+    | InvalidAssignmentConstructor -> with_name " constructor"
+    | InvalidAssignmentMatchCaseVariable -> with_name " match case variable")
   | InvalidLValue kind ->
     let kind_string =
       match kind with
@@ -442,6 +443,11 @@ let to_string error =
   | UnresolvedNamedAccess (field_name, ty) ->
     Printf.sprintf
       "Cannot resolve field or method with name `%s` on type `%s`"
+      field_name
+      (Types.pp ty)
+  | UnresolvedSuperNamedAccess (field_name, ty) ->
+    Printf.sprintf
+      "Cannot resolve method with name `%s` in super traits of type `%s`"
       field_name
       (Types.pp ty)
   | InvalidTraitObject ->

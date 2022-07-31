@@ -15,9 +15,9 @@ trait Trait1 {
   fun inherited() {}
 }
 
-type RecordLikeTrait1 { foo: Long }
+type RecordLikeTrait1 { foo: Long, field: Int }
 
-type Type1 (Int)
+type Type1 { fooField: Int }
 methods Type1 {
   implements Trait1
 
@@ -31,7 +31,7 @@ methods Type1 {
     (super.foo(): SubType1);
 
     // Super can be shadowed
-    val super: RecordLikeTrait1 = RecordLikeTrait1 { foo: 1 };
+    val super: RecordLikeTrait1 = RecordLikeTrait1 { foo: 1, field: 2 };
     // Intentionally wrong to print type
     (super.foo: Unit);
     (super: Unit);
@@ -53,6 +53,14 @@ methods Type1 {
     super;
     use(super); 
   }
+
+  fun superFieldAccess() {
+    (super.field: Unit);
+    super.field = ();
+
+    // Cannot reassign 
+    super.field = 1;
+  }
 }
 
 trait Trait2 {
@@ -69,6 +77,10 @@ trait Trait3 {
   fun superCallSignatureErrors() {
     super.a();
     super.b();
+  }
+
+  fun superNonexist() {
+    super.c();
   }
 }
 

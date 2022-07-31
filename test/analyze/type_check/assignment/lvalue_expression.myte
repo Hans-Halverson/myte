@@ -6,6 +6,16 @@ type Rec3 { field5: Tup1 }
 
 type Tup1 (String)
 
+trait Trait1 {
+  fun method() {}
+}
+
+methods Rec1 {
+  implements Trait1
+
+  override fun method() {}
+}
+
 fun namedAccess(rec1: Rec1) {
   // Passes
   rec1.field1 = 1;
@@ -16,6 +26,13 @@ fun namedAccess(rec1: Rec1) {
   rec1.field1 = "string";
   rec1.field2.field3 = "string";
   rec1.field2.field4 = "string";
+
+  // Errors since method cannot be reassigned
+  rec1.method = fn () {};
+  rec1.method = fn (x: Bool): Int -> 1;
+
+  // Errors since field does not exist
+  rec1.nonexist = 1;
 }
 
 fun main() {}

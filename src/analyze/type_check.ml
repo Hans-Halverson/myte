@@ -423,12 +423,13 @@ and build_type_declaration ~cx decl =
     type_decl.adt_sig
   in
   let build_element_tys ~cx elements = List.map (build_type ~cx) elements in
-  let build_field_tys ~cx fields =
+  let build_field_sigs ~cx fields =
     List.fold_left
-      (fun field_tys field ->
-        let { Record.Field.name = { Ast.Identifier.name; _ }; ty; _ } = field in
-        let field_ty = build_type ~cx ty in
-        SMap.add name field_ty field_tys)
+      (fun field_sigs field ->
+        let { Record.Field.name = { Ast.Identifier.name; _ }; ty; is_mutable; _ } = field in
+        let field_type = build_type ~cx ty in
+        let field_sig = { AdtSig.Variant.type_ = field_type; is_mutable } in
+        SMap.add name field_sig field_sigs)
       SMap.empty
       fields
   in
@@ -440,8 +441,8 @@ and build_type_declaration ~cx decl =
     adt_sig.variants <- SMap.singleton name.name variant
   | { name; decl = Record { loc; fields; _ }; _ } ->
     let adt_sig = get_adt_sig name.loc in
-    let field_tys = build_field_tys ~cx fields in
-    let variant = { AdtSig.Variant.name = name.name; loc; kind = Record field_tys } in
+    let field_sigs = build_field_sigs ~cx fields in
+    let variant = { AdtSig.Variant.name = name.name; loc; kind = Record field_sigs } in
     adt_sig.variants <- SMap.singleton name.name variant
   | { name; decl = Variant variants; _ } ->
     let adt_sig = get_adt_sig name.loc in
@@ -458,8 +459,8 @@ and build_type_declaration ~cx decl =
             let variant_sig = { AdtSig.Variant.name = name.name; loc; kind = Tuple element_tys } in
             SMap.add name.name variant_sig variant_sigs
           | RecordVariant { loc; name; fields; _ } ->
-            let field_tys = build_field_tys ~cx fields in
-            let variant_sig = { AdtSig.Variant.name = name.name; loc; kind = Record field_tys } in
+            let field_sigs = build_field_sigs ~cx fields in
+            let variant_sig = { AdtSig.Variant.name = name.name; loc; kind = Record field_sigs } in
             SMap.add name.name variant_sig variant_sigs)
         SMap.empty
         variants
@@ -954,8 +955,6 @@ and check_expression ~cx expr =
    * ============================
    *)
   | Identifier id -> check_identifier_expression ~cx id.loc id
-  | NamedAccess { NamedAccess.loc; name; _ } when Type_context.is_scope_named_access ~cx loc ->
-    check_identifier_expression ~cx loc name
   (* 
    * ============================
    *         Literals
@@ -1391,9 +1390,9 @@ and check_expression ~cx expr =
                 let field_sig = SMap.find field_name field_sigs in
                 let field_ty =
                   if adt_sig.type_params = [] then
-                    field_sig
+                    field_sig.type_
                   else
-                    Types.substitute_type_params type_param_bindings field_sig
+                    Types.substitute_type_params type_param_bindings field_sig.type_
                 in
                 Type_context.assert_is_subtype ~cx arg_loc (TVar arg_tvar_id) field_ty)
               field_args;
@@ -1509,138 +1508,8 @@ and check_expression ~cx expr =
    *        Named Access
    * ============================
    *)
-  | NamedAccess { NamedAccess.loc; target; name } ->
-    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-
-    (* Determine if this is a super access *)
-    let super_data =
-      match target with
-      | Identifier { name = "super"; loc } ->
-        let binding = Type_context.get_value_binding ~cx loc in
-        (match binding.declaration with
-        | ThisDecl { tvar = this_tvar_id } ->
-          (* Bind super node to `this` type *)
-          let target_tvar_id = Type_context.mk_tvar_id ~cx ~loc in
-          ignore (Type_context.unify ~cx (TVar this_tvar_id) (TVar target_tvar_id));
-          Some (loc, target_tvar_id)
-        | _ -> None)
-      | _ -> None
-    in
-
-    (* Find type and loc of the target if this is not a super access *)
-    let (target_loc, target_tvar_id) =
-      match super_data with
-      | Some (target_loc, tvar_id) -> (target_loc, tvar_id)
-      | None -> check_expression ~cx target
-    in
-    let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
-
-    (* Try to find a method with the given name in a set of trait sigs *)
-    let try_resolve_method trait_sigs type_args =
-      List.exists
-        (fun { TraitSig.type_params = trait_type_params; methods; _ } ->
-          match SMap.find_opt name.name methods with
-          | None -> false
-          | Some ({ MethodSig.type_params; params; return; super_method_sig; _ } as method_sig) ->
-            let open Type_context.MethodUse in
-            (* Use type of super method if this is a super access *)
-            let is_super_access = Option.is_some super_data in
-            let (_type_params, params, return, method_use) =
-              match super_method_sig with
-              | Some
-                  ( ({ MethodSig.type_params; _ } as super_method_sig),
-                    { Function.params; return; _ } )
-                when is_super_access ->
-                let method_use = { method_sig = super_method_sig; is_super_call = true } in
-                (type_params, params, return, method_use)
-              | _ ->
-                if is_super_access then
-                  if MethodSig.is_inherited method_sig then
-                    Type_context.add_error ~cx loc (SuperNonOverridenMethod name.name)
-                  else
-                    Type_context.add_error ~cx loc (NoImplementedSuperMethod name.name);
-                let method_use = { method_sig; is_super_call = false } in
-                (type_params, params, return, method_use)
-            in
-
-            Type_context.add_method_use ~cx name.loc method_use;
-
-            (* Create fresh function type (refreshing only type params bound to the method itself).
-               Also must substitute trait's type params with true type args for ADT, since method will
-               be using trait's type args. *)
-            let method_type = Types.fresh_function_instance type_params params return in
-            let trait_type_param_bindings =
-              Types.bind_type_params_to_args trait_type_params type_args
-            in
-            let method_type = Types.substitute_type_params trait_type_param_bindings method_type in
-            ignore (Type_context.unify ~cx method_type (TVar tvar_id));
-            true)
-        trait_sigs
-    in
-    let try_resolve_adt_method { AdtSig.traits; _ } type_args =
-      try_resolve_method traits type_args
-    in
-    let try_resolve_trait_bounds_method bounds =
-      List.exists
-        (fun { TraitSig.trait_sig; type_args } -> try_resolve_method [trait_sig] type_args)
-        bounds
-    in
-    let try_resolve_trait_object_method { TraitSig.trait_sig; type_args } =
-      try_resolve_method [trait_sig] type_args
-    in
-
-    (* Try to resolve named access to a method access *)
-    let is_resolved =
-      match target_rep_ty with
-      (* Propagate anys *)
-      | Type.Any _ ->
-        ignore (Type_context.unify ~cx target_rep_ty (TVar tvar_id));
-        true
-      | Unit
-      | Bool
-      | Byte
-      | Int
-      | Long
-      | Double ->
-        let adt_sig = Std_lib.get_primitive_adt_sig target_rep_ty in
-        try_resolve_adt_method adt_sig []
-      | IntLiteral lit_ty ->
-        let resolved_ty = Type_context.resolve_int_literal_from_values ~cx lit_ty in
-        let adt_sig = Std_lib.get_primitive_adt_sig resolved_ty in
-        try_resolve_adt_method adt_sig []
-      | ADT { adt_sig; type_args } -> try_resolve_adt_method adt_sig type_args
-      | TypeParam { bounds; _ } -> try_resolve_trait_bounds_method bounds
-      | BoundedExistential { bounds; _ } -> try_resolve_trait_bounds_method bounds
-      | TraitObject trait -> try_resolve_trait_object_method trait
-      | _ -> false
-    in
-
-    (* If named access does not resolve to a method, try to resolve to a field access *)
-    let is_resolved =
-      is_resolved
-      ||
-      match target_rep_ty with
-      (* Can only index into ADTs with a single record variant *)
-      | ADT { adt_sig = { variants; _ }; _ } ->
-        (match SMap.choose_opt variants with
-        | Some (_, { kind = Record field_sigs; _ }) when SMap.cardinal variants = 1 ->
-          (match SMap.find_opt name.name field_sigs with
-          | None -> false
-          | Some field_sig_ty ->
-            (* If there are type params, calculate type param to type arg bindings and substitute
-               type params for type args in sig field type. *)
-            let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
-            let field_type = Types.substitute_type_params type_param_bindings field_sig_ty in
-            ignore (Type_context.unify ~cx field_type (TVar tvar_id));
-            true)
-        | _ -> false)
-      | _ -> false
-    in
-
-    if not is_resolved then (
-      Type_context.add_error ~cx target_loc (UnresolvedNamedAccess (name.name, target_rep_ty));
-      ignore (Type_context.unify ~cx any (TVar tvar_id))
-    );
+  | NamedAccess named_access ->
+    let (loc, tvar_id, _) = check_named_access ~cx named_access in
     (loc, tvar_id)
   (*
    * ============================
@@ -1911,6 +1780,154 @@ and check_guard ~cx guard =
   | Some guard ->
     let (guard_loc, guard_tvar_id) = check_expression ~cx guard in
     Type_context.assert_unify ~cx guard_loc Bool (TVar guard_tvar_id)
+
+and check_named_access ~cx named_access =
+  let { Ast.Expression.NamedAccess.loc; target; name } = named_access in
+
+  (* Named acesses may actually be a single scoped identifier *)
+  if Type_context.is_scope_named_access ~cx loc then
+    let (loc, tvar_id) = check_identifier_expression ~cx loc name in
+    (loc, tvar_id, false)
+  else
+    let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+
+    (* Determine if this is a super access *)
+    let super_data =
+      match target with
+      | Identifier { name = "super"; loc } ->
+        let binding = Type_context.get_value_binding ~cx loc in
+        (match binding.declaration with
+        | ThisDecl { tvar = this_tvar_id } ->
+          (* Bind super node to `this` type *)
+          let target_tvar_id = Type_context.mk_tvar_id ~cx ~loc in
+          ignore (Type_context.unify ~cx (TVar this_tvar_id) (TVar target_tvar_id));
+          Some (loc, target_tvar_id)
+        | _ -> None)
+      | _ -> None
+    in
+    let is_super_access = Option.is_some super_data in
+
+    (* Find type and loc of the target if this is not a super access *)
+    let (target_loc, target_tvar_id) =
+      match super_data with
+      | Some (target_loc, tvar_id) -> (target_loc, tvar_id)
+      | None -> check_expression ~cx target
+    in
+    let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
+
+    (* Try to find a method with the given name in a set of trait sigs *)
+    let try_resolve_method trait_sigs type_args =
+      List.exists
+        (fun { TraitSig.type_params = trait_type_params; methods; _ } ->
+          match SMap.find_opt name.name methods with
+          | None -> false
+          | Some ({ MethodSig.type_params; params; return; super_method_sig; _ } as method_sig) ->
+            let open Type_context.MethodUse in
+            (* Use type of super method if this is a super access *)
+            let (_type_params, params, return, method_use) =
+              match super_method_sig with
+              | Some
+                  ( ({ MethodSig.type_params; _ } as super_method_sig),
+                    { Function.params; return; _ } )
+                when is_super_access ->
+                let method_use = { method_sig = super_method_sig; is_super_call = true } in
+                (type_params, params, return, method_use)
+              | _ ->
+                if is_super_access then
+                  if MethodSig.is_inherited method_sig then
+                    Type_context.add_error ~cx loc (SuperNonOverridenMethod name.name)
+                  else
+                    Type_context.add_error ~cx loc (NoImplementedSuperMethod name.name);
+                let method_use = { method_sig; is_super_call = false } in
+                (type_params, params, return, method_use)
+            in
+
+            Type_context.add_method_use ~cx name.loc method_use;
+
+            (* Create fresh function type (refreshing only type params bound to the method itself).
+               Also must substitute trait's type params with true type args for ADT, since method will
+               be using trait's type args. *)
+            let method_type = Types.fresh_function_instance type_params params return in
+            let trait_type_param_bindings =
+              Types.bind_type_params_to_args trait_type_params type_args
+            in
+            let method_type = Types.substitute_type_params trait_type_param_bindings method_type in
+            ignore (Type_context.unify ~cx method_type (TVar tvar_id));
+            true)
+        trait_sigs
+    in
+    let try_resolve_adt_method { AdtSig.traits; _ } type_args =
+      try_resolve_method traits type_args
+    in
+    let try_resolve_trait_bounds_method bounds =
+      List.exists
+        (fun { TraitSig.trait_sig; type_args } -> try_resolve_method [trait_sig] type_args)
+        bounds
+    in
+    let try_resolve_trait_object_method { TraitSig.trait_sig; type_args } =
+      try_resolve_method [trait_sig] type_args
+    in
+
+    (* Try to resolve named access to a method access *)
+    let is_resolved =
+      match target_rep_ty with
+      (* Propagate anys *)
+      | Type.Any _ ->
+        ignore (Type_context.unify ~cx target_rep_ty (TVar tvar_id));
+        true
+      | Unit
+      | Bool
+      | Byte
+      | Int
+      | Long
+      | Double ->
+        let adt_sig = Std_lib.get_primitive_adt_sig target_rep_ty in
+        try_resolve_adt_method adt_sig []
+      | IntLiteral lit_ty ->
+        let resolved_ty = Type_context.resolve_int_literal_from_values ~cx lit_ty in
+        let adt_sig = Std_lib.get_primitive_adt_sig resolved_ty in
+        try_resolve_adt_method adt_sig []
+      | ADT { adt_sig; type_args } -> try_resolve_adt_method adt_sig type_args
+      | TypeParam { bounds; _ } -> try_resolve_trait_bounds_method bounds
+      | BoundedExistential { bounds; _ } -> try_resolve_trait_bounds_method bounds
+      | TraitObject trait -> try_resolve_trait_object_method trait
+      | _ -> false
+    in
+
+    (* If named access does not resolve to a method, try to resolve to a field access *)
+    let is_method = is_resolved in
+    let is_resolved =
+      is_resolved
+      ||
+      match target_rep_ty with
+      (* Can only index into ADTs with a single record variant *)
+      | ADT { adt_sig = { variants; _ }; _ } ->
+        (match SMap.choose_opt variants with
+        | Some (_, { kind = Record field_sigs; _ }) when SMap.cardinal variants = 1 ->
+          (match SMap.find_opt name.name field_sigs with
+          | None -> false
+          | Some field_sig ->
+            (* If there are type params, calculate type param to type arg bindings and substitute
+               type params for type args in sig field type. *)
+            let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
+            let field_type = Types.substitute_type_params type_param_bindings field_sig.type_ in
+            ignore (Type_context.unify ~cx field_type (TVar tvar_id));
+            true)
+        | _ -> false)
+      | _ -> false
+    in
+
+    if not is_resolved then (
+      let error =
+        if is_super_access then
+          UnresolvedSuperNamedAccess (name.name, target_rep_ty)
+        else
+          UnresolvedNamedAccess (name.name, target_rep_ty)
+      in
+      Type_context.add_error ~cx target_loc error;
+      ignore (Type_context.unify ~cx any (TVar tvar_id))
+    );
+    (loc, tvar_id, is_method)
 
 and check_match ~cx ~is_expr match_ =
   let open Ast.Match in
@@ -2241,8 +2258,8 @@ and check_pattern ~cx patt =
           let type_param_bindings = Types.get_adt_type_param_bindings adt in
           SMap.iter
             (fun field_name (param_loc, param_tvar_id) ->
-              let field_sig_ty = SMap.find field_name field_sigs in
-              let field_ty = Types.substitute_type_params type_param_bindings field_sig_ty in
+              let field_sig = SMap.find field_name field_sigs in
+              let field_ty = Types.substitute_type_params type_param_bindings field_sig.type_ in
               Type_context.assert_unify ~cx param_loc field_ty (TVar param_tvar_id))
             field_params;
           (* Result is algebraic data type unless the fields do not match,
@@ -2507,9 +2524,18 @@ and check_statement ~cx ~is_expr stmt =
           Type_context.add_error ~cx loc (InvalidLValue InvalidLValueTuple);
           None
         | _ -> Some (expr_loc, TVar expr_tvar_id))
-      | Expression expr ->
-        let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
-        Some (expr_loc, TVar expr_tvar_id)
+      | Expression (NamedAccess named_access) ->
+        let (expr_loc, expr_tvar_id, is_method) = check_named_access ~cx named_access in
+        (* Methods cannot be reassigned *)
+        if is_method then (
+          Type_context.add_error
+            ~cx
+            expr_loc
+            (InvalidAssignment (named_access.name.name, InvalidAssignmentMethod));
+          Some (expr_loc, any)
+        ) else
+          Some (expr_loc, TVar expr_tvar_id)
+      | _ -> failwith "Invalid expression for assignment lvalue"
     in
     let (expr_loc, expr_tvar_id) = check_expression ~cx expr in
     (match lvalue_loc_and_ty_opt with
