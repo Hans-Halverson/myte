@@ -119,11 +119,26 @@ module PatternPath = struct
       parent
 end
 
+module AstNodes = struct
+  type t = {
+    loc: Loc.t;
+    guard: Ast.Expression.t option;
+    body: body;
+  }
+
+  and body =
+    (* AST nodes to emit for the body *)
+    | Expression of Ast.Expression.t
+    | Statement of Ast.Statement.t
+    (* A particular MIR block to jump to as the body *)
+    | Block of Mir.Block.t
+end
+
 module DecisionTree = struct
   type t =
     | Leaf of {
-        (* The match case AST node this leaf corresponds to, or None if this is a destructuring *)
-        case_node: Ast.Match.Case.t option;
+        (* The match case AST nodes this leaf corresponds to, or None if this is a destructuring *)
+        ast_nodes: AstNodes.t option;
         mutable bindings: (PatternPath.t * Loc.t) list;
         (* If this case is guarded, tree for when the guard fails. Filled after creation. *)
         mutable guard_fail_case: t option;
@@ -137,8 +152,8 @@ end
 
 module CaseRow = struct
   type t = {
-    (* The match case AST node this row corresponds to, or None if this is a destructuring *)
-    node: Ast.Match.Case.t option;
+    (* The match case AST nodes this row corresponds to, or None if this is a destructuring *)
+    ast_nodes: AstNodes.t option;
     (* The pattern vector corresponding to this case *)
     row: Pattern.t list;
     (* All binding collected for this case so far. Invariant: all wildcards with bindings at the top
@@ -377,8 +392,28 @@ let rec build_match_decision_tree
 
 and build_destructure_decision_tree
     ~(ecx : Ecx.t) (value : Mir.Value.t) (pattern_node : Ast.Pattern.t) =
-  let pattern_matrix = rows_of_destructuring_node ~ecx (Some value) pattern_node in
+  let pattern_matrix = rows_of_destructuring_node ~ecx (Some value) pattern_node None in
   let scrutinee_vector = [PatternPath.Root (Some value)] in
+  build_decision_tree ~prev_guard:None scrutinee_vector pattern_matrix
+
+and build_match_test_decision_tree
+    ~(ecx : Ecx.t)
+    (scrutinee_val : Mir.Value.t option)
+    (pattern : Ast.Pattern.t)
+    (true_ast_nodes : AstNodes.t)
+    (false_ast_nodes : AstNodes.t) =
+  let test_pattern_rows =
+    rows_of_destructuring_node ~ecx scrutinee_val pattern (Some true_ast_nodes)
+  in
+  let wildcard_row =
+    {
+      CaseRow.ast_nodes = Some false_ast_nodes;
+      row = [{ Pattern.pattern = Wildcard; bindings = [] }];
+      bindings = [];
+    }
+  in
+  let pattern_matrix = test_pattern_rows @ [wildcard_row] in
+  let scrutinee_vector = [PatternPath.Root scrutinee_val] in
   build_decision_tree ~prev_guard:None scrutinee_vector pattern_matrix
 
 and build_decision_tree ~prev_guard scrutinee_vector matrix =
@@ -402,14 +437,14 @@ and build_decision_tree ~prev_guard scrutinee_vector matrix =
       first_row
   in
   if first_row_all_patterns then (
-    let case_node = first_case.node in
+    let ast_nodes = first_case.ast_nodes in
     let leaf_node =
-      DecisionTree.Leaf { case_node; bindings = first_case.bindings; guard_fail_case = None }
+      DecisionTree.Leaf { ast_nodes; bindings = first_case.bindings; guard_fail_case = None }
     in
     connect_prev_guard leaf_node;
 
     (* If this case is guarded we must connect its fail case to the tree created for its unguarded matrix *)
-    (match case_node with
+    (match ast_nodes with
     | Some { guard = Some _; _ } ->
       let unguarded_matrix = List.tl matrix in
       ignore (build_decision_tree ~prev_guard:(Some leaf_node) scrutinee_vector unguarded_matrix)
@@ -658,23 +693,23 @@ and pattern_of_pattern_node ~(ecx : Ecx.t) ~bindings ~scrutinee pattern =
 
 and rows_of_case_node ~ecx ~scrutinee_vals case_node =
   let pattern_node = case_node.Ast.Match.Case.pattern in
+  let body =
+    match case_node.right with
+    | Expression expr -> AstNodes.Expression expr
+    | Statement stmt -> Statement stmt
+  in
+  let ast_nodes = Some { AstNodes.loc = case_node.loc; guard = case_node.guard; body } in
   match scrutinee_vals with
   | [scrutinee] ->
     let bindings = ref [] in
     let row = [pattern_of_pattern_node ~ecx ~bindings ~scrutinee pattern_node] in
-    [{ CaseRow.node = Some case_node; row; bindings = !bindings }]
+    [{ CaseRow.ast_nodes; row; bindings = !bindings }]
   | scrutinees ->
     (* Recursively expand or patterns at top level *)
     let rec rows_of_top_level pattern_node scrutinees =
       match pattern_node with
       | Ast.Pattern.Wildcard _ ->
-        [
-          {
-            CaseRow.node = Some case_node;
-            row = wildcards_vector (List.length scrutinees);
-            bindings = [];
-          };
-        ]
+        [{ CaseRow.ast_nodes; row = wildcards_vector (List.length scrutinees); bindings = [] }]
       (* Top level tuple patterns are unwrapped, and have bindings collected *)
       | Tuple { elements; _ } ->
         let bindings = ref [] in
@@ -687,14 +722,14 @@ and rows_of_case_node ~ecx ~scrutinee_vals case_node =
             elements
             scrutinee_vals
         in
-        [{ CaseRow.node = Some case_node; row = List.rev row; bindings = !bindings }]
+        [{ CaseRow.ast_nodes; row = List.rev row; bindings = !bindings }]
       | Or { left; right; _ } ->
         rows_of_top_level left scrutinees @ rows_of_top_level right scrutinees
       | _ -> failwith "Invalid pattern for multiple match arguments"
     in
     rows_of_top_level pattern_node scrutinees
 
-and rows_of_destructuring_node ~ecx value pattern_node =
+and rows_of_destructuring_node ~ecx value pattern_node ast_nodes =
   let bindings = ref [] in
   let row = [pattern_of_pattern_node ~ecx ~bindings ~scrutinee:value pattern_node] in
-  [{ CaseRow.node = None; row; bindings = !bindings }]
+  [{ CaseRow.ast_nodes; row; bindings = !bindings }]

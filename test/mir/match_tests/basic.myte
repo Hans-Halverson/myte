@@ -1,0 +1,92 @@
+module test
+
+type V1 =
+  | Tuple1 (Int, Int)
+  | Record1 { foo: Int, bar: Int }
+
+fun testIfStatementNoAltern(x: V1) {
+  use(1);
+
+  if (x match Tuple1 (y, z)) {
+    use(y);
+    use(z);
+  }
+
+  use(2);
+}
+
+fun testIfStatementWithAltern(x: V1) {
+  use(1);
+
+  if (x match Tuple1 (y, z)) {
+    use(y);
+    use(z);
+  } else {
+    use(2);
+  }
+
+  use(3);
+}
+
+fun testIfStatementWithAlternMatch1(x: V1) {
+  use(1);
+
+  if (x match Tuple1 (y, z)) {
+    use(y);
+    use(z);
+  } else if (x match Record1 { foo: y, bar: z }) {
+    use(y);
+    use(z);
+  }
+
+  use(2);
+}
+
+fun testIfStatementWithAlternMatch2(x: V1) {
+  use(1);
+
+  if (x match Tuple1 (y, z)) {
+    use(y);
+    use(z);
+  } else if (x match Record1 { foo: y, bar: z }) {
+    use(y);
+    use(z);
+  } else {
+    use(2);
+  }
+
+  use(3);
+}
+
+fun testEvaluateTest(x: Int, y: Int) {
+  if (Some (x + y) match Some (z)) {
+    use(z);
+  }
+}
+
+fun testIfExpression(x: V1, a: Int) {
+  use(1);
+
+  val y = if (x match Tuple1 (y, z)) {
+    y + z
+  } else {
+    a + 10
+  };
+
+  use(y);
+}
+
+fun testWhile(x: V1) {
+  use(1);
+
+  while (x match Tuple1 (y, z)) {
+    use(y);
+    use(z);
+  }
+
+  use(2);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

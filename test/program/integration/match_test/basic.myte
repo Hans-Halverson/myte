@@ -1,0 +1,87 @@
+module test
+
+import std.test.assertEqual
+import std.io.println
+
+type V1 =
+  | Tuple1 (Int, Int, Int)
+  | Record1 { foo: Int, bar: Int }
+
+fun ifExpression(x: V1): Int {
+  return if (x match Tuple1 (y, _, z)) {
+    y + z + 3
+  } else if (x match Record1 { foo: 1, bar }) {
+    bar + 10
+  } else {
+    100
+  };
+}
+
+fun testIfExpression() {
+  assertEqual(ifExpression(Tuple1 (5, 6, 7)), 15);
+  assertEqual(ifExpression(Record1 { foo: 1, bar: 2}), 12);
+  assertEqual(ifExpression(Record1 { foo: 2, bar: 2 }), 100);
+}
+
+fun ifStatementNoAltern(x: V1): Int {
+  var result = 5;
+
+  if (x match (Tuple1 (y, _, z))) {
+    result = y + z;
+  }
+
+  return result;
+}
+
+fun testIfStatementNoAltern() {
+  assertEqual(ifStatementNoAltern(Tuple1 (5, 6, 7)), 12);
+  assertEqual(ifStatementNoAltern(Record1 { foo: 1, bar: 2 }), 5);
+}
+
+fun ifStatementWithAltern(x: V1): Int {
+  var result = 0;
+
+  if (x match (Tuple1 (y, _, z))) {
+    result = y + z;
+  } else {
+    result = 10;
+  }
+
+  return result;
+}
+
+fun testIfStatementWithAltern() {
+  assertEqual(ifStatementWithAltern(Tuple1 (5, 6, 7)), 12);
+  assertEqual(ifStatementWithAltern(Record1 { foo: 1, bar: 2 }), 10);
+}
+
+fun while_(x: V1): Int {
+  var t = x;
+  var result = 3;
+
+  while (t match (Tuple1 (y, _, z))) {
+    if (y > 0) {
+      t = Tuple1 (y - 1, 0, z * 2);
+      result += z;
+    } else {
+      t = Record1 { foo: 1, bar: 2 };
+      result += 1;
+    }
+  }
+
+  return result;
+}
+
+fun testWhile() {
+  println(`${while_(Tuple1 (4, 2, 3))}`);
+  assertEqual(while_(Tuple1 (4, 2, 3)), 49);
+  assertEqual(while_(Tuple1 (0, 2, 5)), 4);
+  assertEqual(while_(Record1 { foo: 1, bar: 2 }), 3);
+}
+
+fun main() {
+  testIfExpression();
+  testIfStatementNoAltern();
+  testIfStatementWithAltern();
+  testWhile();
+}

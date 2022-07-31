@@ -1432,16 +1432,11 @@ and emit_if_expression ~ecx if_ =
     | Some type_ -> Some (mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_)
   in
 
-  (* Branch to conseq or altern blocks *)
-  let test_val =
-    match test with
-    | Test.Expression expr -> emit_bool_expression ~ecx expr
-    | Match _ -> failwith "TODO: Compile match tests"
-  in
   let conseq_block = Ecx.mk_block ~ecx in
   let altern_block = Ecx.mk_block ~ecx in
   let join_block = Ecx.mk_block ~ecx in
-  Ecx.finish_block_branch ~ecx test_val conseq_block altern_block;
+
+  emit_match_test ~ecx test (conseq_block, conseq.loc) (altern_block, loc);
 
   (* Emit conseq, store result, and continue to join block *)
   Ecx.set_current_block ~ecx conseq_block;
@@ -2382,16 +2377,11 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
    *        If Statement
    * ============================
    *)
-  | If { loc = _; test; conseq; altern = None } ->
-    (* Branch to conseq or join blocks *)
-    let test_val =
-      match test with
-      | Test.Expression expr -> emit_bool_expression ~ecx expr
-      | Match _ -> failwith "TODO: Compile match tests"
-    in
+  | If { loc = if_loc; test; conseq; altern = None } ->
     let conseq_block = Ecx.mk_block ~ecx in
     let join_block = Ecx.mk_block ~ecx in
-    Ecx.finish_block_branch ~ecx test_val conseq_block join_block;
+
+    emit_match_test ~ecx test (conseq_block, conseq.loc) (join_block, if_loc);
 
     (* Emit conseq and continue to join block *)
     Ecx.set_current_block ~ecx conseq_block;
@@ -2401,20 +2391,15 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
     (* Start join block *)
     Ecx.set_current_block ~ecx join_block;
     None
-  | If ({ loc = _; test; conseq; altern } as if_) ->
+  | If ({ loc = if_loc; test; conseq; altern } as if_) ->
     if is_expr then
       emit_if_expression ~ecx if_
     else
-      (* Branch to conseq or altern blocks *)
-      let test_val =
-        match test with
-        | Test.Expression expr -> emit_bool_expression ~ecx expr
-        | Match _ -> failwith "TODO: Compile match tests"
-      in
       let conseq_block = Ecx.mk_block ~ecx in
       let altern_block = Ecx.mk_block ~ecx in
       let join_block = Ecx.mk_block ~ecx in
-      Ecx.finish_block_branch ~ecx test_val conseq_block altern_block;
+
+      emit_match_test ~ecx test (conseq_block, conseq.loc) (altern_block, if_loc);
 
       (* Emit conseq and continue to join block *)
       Ecx.set_current_block ~ecx conseq_block;
@@ -2437,7 +2422,7 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
    *         While Loop
    * ============================
    *)
-  | While { loc = _; test; body } ->
+  | While { loc = while_loc; test; body } ->
     (* Set up blocks for loop *)
     let test_block = Ecx.mk_block ~ecx in
     let body_block = Ecx.mk_block ~ecx in
@@ -2446,12 +2431,8 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
 
     (* Emit test block which branches to finish or body blocks *)
     Ecx.set_current_block ~ecx test_block;
-    let test_val =
-      match test with
-      | Test.Expression expr -> emit_bool_expression ~ecx expr
-      | Match _ -> failwith "TODO: Compile match tests"
-    in
-    Ecx.finish_block_branch ~ecx test_val body_block finish_block;
+
+    emit_match_test ~ecx test (body_block, body.loc) (finish_block, while_loc);
 
     (* Emit body block which continues to test block *)
     Ecx.push_loop_context ~ecx finish_block test_block;
@@ -2909,6 +2890,25 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
     emit_match_decision_tree ~ecx ~join_block ~result_ptr:None ~alloc:true decision_tree;
     Ecx.set_current_block ~ecx join_block
 
+and emit_match_test
+    ~(ecx : Ecx.t) (test : Ast.Test.t) (true_block, true_loc) (false_block, false_loc) =
+  match test with
+  (* Branch to conseq or join blocks based on result of evaluating expression *)
+  | Expression expr ->
+    let test_val = emit_bool_expression ~ecx expr in
+    Ecx.finish_block_branch ~ecx test_val true_block false_block
+  (* Emit decision tree that branches to true or false cases depending on if scrutinee matches pattern *)
+  | Match { loc = _; expr; pattern } ->
+    let open Mir_match_decision_tree in
+    let scrutinee_val = emit_expression ~ecx expr in
+    let true_ast_nodes = { AstNodes.loc = true_loc; guard = None; body = Block true_block } in
+    let false_ast_nodes = { AstNodes.loc = false_loc; guard = None; body = Block false_block } in
+    let decision_tree =
+      build_match_test_decision_tree ~ecx scrutinee_val pattern true_ast_nodes false_ast_nodes
+    in
+    (* Join block is not used when MIR blocks for case bodies are specified *)
+    emit_match_decision_tree ~ecx ~join_block:true_block ~result_ptr:None ~alloc:true decision_tree
+
 (* Structure of leaf and case body blocks:
 
    Leaves of a decision tree are unique and are guaranteed to have a single incoming edge. However
@@ -2936,13 +2936,22 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
   (* Maintain cache of blocks at beginning of each case body (including guard) *)
   let constructed_case_bodies = ref LocSet.empty in
   let case_body_block_cache = ref LocMap.empty in
-  let get_case_body_block case_body_loc =
-    match LocMap.find_opt case_body_loc !case_body_block_cache with
-    | Some block -> block
-    | None ->
-      let block = Ecx.mk_block ~ecx in
-      case_body_block_cache := LocMap.add case_body_loc block !case_body_block_cache;
+  let get_case_body_block (ast_nodes : AstNodes.t) =
+    let loc = ast_nodes.loc in
+    let cache_block_and_return block =
+      case_body_block_cache := LocMap.add loc block !case_body_block_cache;
       block
+    in
+    (* Use the existing MIR block if one is specified *)
+    match ast_nodes.body with
+    | Block block -> cache_block_and_return block
+    | _ ->
+      (* Otherwise create new MIR block for this case body *)
+      (match LocMap.find_opt loc !case_body_block_cache with
+      | Some block -> block
+      | None ->
+        let block = Ecx.mk_block ~ecx in
+        cache_block_and_return block)
   in
 
   (* First emit stack allocations for every binding in decision tree. For each binding, save the
@@ -2986,7 +2995,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
     match tree_node with
     (* When a leaf tree node is encountered, the pattern has been matched and we can proceed to
        emit the body of the case. *)
-    | DecisionTree.Leaf { case_node; guard_fail_case; bindings } ->
+    | DecisionTree.Leaf { ast_nodes; guard_fail_case; bindings } ->
       (* First emit bindings for this leaf node, in the order they are defined *)
       let bindings = List.sort (fun (_, loc1) (_, loc2) -> Loc.compare loc1 loc2) bindings in
       ignore
@@ -3012,12 +3021,12 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
 
       (* Then if case is guarded, emit guard expression and only proceed to case body if guard
          succeeds, otherwise jump to and emit guard fail case, which is itself a decision tree. *)
-      (match case_node with
+      (match ast_nodes with
       (* Destructurings do not have a case body, so simply continue to join block *)
       | None -> Ecx.finish_block_continue ~ecx join_block
-      | Some case_node ->
-        let case_body_block = get_case_body_block case_node.loc in
-        (match case_node.guard with
+      | Some ast_nodes ->
+        let case_body_block = get_case_body_block ast_nodes in
+        (match ast_nodes.guard with
         | None -> Ecx.finish_block_continue ~ecx case_body_block
         | Some guard_expr ->
           let guard_test_val = emit_bool_expression ~ecx guard_expr in
@@ -3026,20 +3035,27 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           Ecx.set_current_block ~ecx guard_fail_block;
           emit_tree_node ~path_cache (Option.get guard_fail_case));
 
+        let block_needs_construction =
+          match ast_nodes.body with
+          | Block _ -> false
+          | _ -> true
+        in
+
         (* Ensure that case body is only emitted once, and shared between leaves *)
-        if not (LocSet.mem case_node.loc !constructed_case_bodies) then (
-          constructed_case_bodies := LocSet.add case_node.loc !constructed_case_bodies;
+        if block_needs_construction && not (LocSet.mem ast_nodes.loc !constructed_case_bodies) then (
+          constructed_case_bodies := LocSet.add ast_nodes.loc !constructed_case_bodies;
           Ecx.set_current_block ~ecx case_body_block;
 
           (* Emit the right hand side of case *)
           let (body_val, body_ty) =
-            match case_node.right with
+            match ast_nodes.body with
             | Expression expr ->
               let body_ty = type_of_loc ~ecx (Ast_utils.expression_loc expr) in
               (emit_expression ~ecx expr, body_ty)
             | Statement stmt ->
               let body_ty = type_of_loc ~ecx (Ast_utils.statement_loc stmt) in
               (emit_statement ~ecx ~is_expr:(result_ptr <> None) stmt, body_ty)
+            | Block _ -> failwith "Block has already been constructed"
           in
 
           (* Store result at result ptr if one is supplied and case does not diverge *)
