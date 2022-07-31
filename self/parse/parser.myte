@@ -474,7 +474,7 @@ methods Parser {
       }
       // A left brace following the name signifies a single record variant
       | token.LeftBrace -> {
-        val record = this.parseRecordDeclaration(name, nameStartLoc);
+        val record = this.parseRecordDeclaration(name, nameStartLoc, false);
         val loc = this.currentLoc(startLoc);
 
         return ast.TypeDeclaration { loc, name, typeParams, decl: ast.TDRecord (record) };
@@ -509,7 +509,7 @@ methods Parser {
 
       val variant = match (this.token) {
         | token.LeftParen -> ast.TupleVariant (this.parseTupleDeclaration(name, startLoc))
-        | token.LeftBrace -> ast.RecordVariant (this.parseRecordDeclaration(name, startLoc))
+        | token.LeftBrace -> ast.RecordVariant (this.parseRecordDeclaration(name, startLoc, true))
         | _ -> ast.EnumVariant (name)
       };
 
@@ -547,18 +547,26 @@ methods Parser {
     return ast.TupleDeclaration { loc, name, elements };
   }
 
-  fun parseRecordDeclaration(name: ast.Identifier, startLoc: Loc): ast.RecordDeclaration {
+  fun parseRecordDeclaration(name: ast.Identifier, startLoc: Loc, isVariant: Bool): ast.RecordDeclaration {
     this.expect(token.LeftBrace);
 
     val fields: Vec<ast.RecordDeclarationField> = [];
     while (this.token != token.RightBrace) {
       val startLoc = this.loc;
+      
+      val isMutable = if (!isVariant && this.token == token.Var) {
+        this.advance();
+        true
+      } else {
+        false
+      };
+
       val name = this.parseIdentifier();
       this.expect(token.Colon);
       val type_ = this.parseType();
       val loc = this.currentLoc(startLoc);
 
-      fields.push(ast.RecordDeclarationField { loc, name, type_ });
+      fields.push(ast.RecordDeclarationField { loc, name, type_, isMutable });
 
       match (this.token) {
         | token.RightBrace -> ()

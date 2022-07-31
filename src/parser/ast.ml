@@ -553,6 +553,7 @@ and TypeDeclaration : sig
         loc: Loc.t;
         name: Identifier.t;
         ty: Type.t;
+        is_mutable: bool;
       }
     end
 

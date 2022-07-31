@@ -125,6 +125,7 @@ type RecordDeclarationField {
   loc: Loc,
   name: Identifier,
   type_: Type,
+  isMutable: Bool,
 }
 
 type VariantDeclaration =

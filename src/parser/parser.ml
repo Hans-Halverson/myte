@@ -1267,7 +1267,7 @@ and parse_type_declaration ~is_builtin env =
         let loc = marker env in
         { loc; name; type_params; decl = Tuple tuple }
       | T_LEFT_BRACE ->
-        let record = parse_record_variant env name name_marker in
+        let record = parse_record_variant env ~is_variant:false name name_marker in
         let loc = marker env in
         { loc; name; type_params; decl = Record record }
       | T_EQUALS ->
@@ -1286,7 +1286,7 @@ and parse_variant env name type_params marker =
     let name = parse_identifier env in
     let variant =
       match Env.token env with
-      | T_LEFT_BRACE -> RecordVariant (parse_record_variant env name marker)
+      | T_LEFT_BRACE -> RecordVariant (parse_record_variant env ~is_variant:true name marker)
       | T_LEFT_PAREN -> TupleVariant (parse_tuple_variant env name marker)
       | _ -> EnumVariant name
     in
@@ -1301,7 +1301,7 @@ and parse_variant env name type_params marker =
   if List.length variants = 1 then Parse_error.fatal (loc, SingleVariant);
   { loc; name; type_params; decl = Variant variants }
 
-and parse_record_variant env name marker =
+and parse_record_variant env ~is_variant name marker =
   let open TypeDeclaration.Record in
   Env.expect env T_LEFT_BRACE;
   let rec parse_fields () =
@@ -1311,6 +1311,14 @@ and parse_record_variant env name marker =
       []
     | _ ->
       let marker = mark_loc env in
+      (* Non-variant types can mark mutable fields by prefixing field with var *)
+      let is_mutable =
+        if (not is_variant) && Env.token env == T_VAR then (
+          Env.advance env;
+          true
+        ) else
+          false
+      in
       let name = parse_identifier env in
       Env.expect env T_COLON;
       let field =
@@ -1320,7 +1328,7 @@ and parse_record_variant env name marker =
         | T_RIGHT_BRACE -> ()
         | T_COMMA -> Env.advance env
         | _ -> Env.expect env T_RIGHT_BRACE);
-        { Field.loc; name; ty }
+        { Field.loc; name; ty; is_mutable }
       in
       field :: parse_fields ()
   in

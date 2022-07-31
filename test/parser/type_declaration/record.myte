@@ -13,3 +13,5 @@ type r5 { foo: ((Int)), bar: (Bool, String) -> Unit, baz: (String, Unit) }
 type t6<T> { foo: T }
 
 type t7<T, U, V> { foo: (V, U, T) }
+
+type t8 { var foo: Int, bar: Bool, var baz: String }

@@ -463,7 +463,7 @@ class visitor =
 
     method record_variant_field field =
       let open TypeDeclaration.Record.Field in
-      let { loc = _; name; ty } = field in
+      let { loc = _; name; ty; is_mutable = _ } = field in
       this#identifier name;
       this#type_ ty
 

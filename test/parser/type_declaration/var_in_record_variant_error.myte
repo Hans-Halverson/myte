@@ -1,0 +1,5 @@
+module test
+
+type Variants =
+  | Enum
+  | Record { var foo: Int }

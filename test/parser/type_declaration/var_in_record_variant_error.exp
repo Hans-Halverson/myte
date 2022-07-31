@@ -1,0 +1,4 @@
+Error: Unexpected token `var`, expected identifier
+test/parser/type_declaration/var_in_record_variant_error.myte:5:13-16
+ 5 |   | Record { var foo: Int }
+   |              ^^^

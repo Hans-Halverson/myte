@@ -642,8 +642,11 @@ and node_of_record_variant record =
 
 and node_of_record_variant_field field =
   let open TypeDeclaration.Record.Field in
-  let { loc; name; ty } = field in
-  node "RecordVariantField" loc [("name", node_of_identifier name); ("type", node_of_type ty)]
+  let { loc; name; ty; is_mutable } = field in
+  node
+    "RecordVariantField"
+    loc
+    [("name", node_of_identifier name); ("type", node_of_type ty); ("is_mutable", Bool is_mutable)]
 
 and node_of_tuple_variant tuple =
   let open TypeDeclaration.Tuple in

@@ -275,11 +275,15 @@ fun nodeOfRecordDeclaration(decl: ast.RecordDeclaration): PrintNode {
 }
 
 fun nodeOfRecordDeclarationField(field: ast.RecordDeclarationField): PrintNode {
-  val ast.RecordDeclarationField { loc, name, type_ } = field;
+  val ast.RecordDeclarationField { loc, name, type_, isMutable } = field;
   return Node {
     name: "RecordVariantField",
     loc,
-    fields: [("name", nodeOfIdentifier(name)), ("type", nodeOfType(type_))],
+    fields: [
+      ("name", nodeOfIdentifier(name)),
+      ("type", nodeOfType(type_)),
+      ("is_mutable", Bool (isMutable)),
+    ],
   };
 }
 
