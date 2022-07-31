@@ -73,7 +73,6 @@ fun while_(x: V1): Int {
 }
 
 fun testWhile() {
-  println(`${while_(Tuple1 (4, 2, 3))}`);
   assertEqual(while_(Tuple1 (4, 2, 3)), 49);
   assertEqual(while_(Tuple1 (0, 2, 5)), 4);
   assertEqual(while_(Record1 { foo: 1, bar: 2 }), 3);
