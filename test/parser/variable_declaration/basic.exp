@@ -1,7 +1,7 @@
 test/parser/variable_declaration/basic.myte
 {
   node: Module,
-  loc: 1:0-6:14,
+  loc: 1:0-7:14,
   name: {
     node: ModuleName,
     loc: 1:0-1:11,
@@ -38,62 +38,65 @@ test/parser/variable_declaration/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
-      loc: 4:0-4:9,
+      loc: 5:0-5:13,
       kind: Mutable,
       pattern: {
         node: ScopedIdentifier,
-        loc: 4:4-4:5,
+        loc: 5:8-5:9,
         scopes: [],
         name: {
           node: Identifier,
-          loc: 4:4-4:5,
+          loc: 5:8-5:9,
           name: "y",
         },
       },
       init: {
         node: IntLiteral,
-        loc: 4:8-4:9,
+        loc: 5:12-5:13,
         raw: "2",
       },
       annot: None,
+      is_public: true,
     },
     {
       node: VariableDeclaration,
-      loc: 6:0-6:14,
+      loc: 7:0-7:14,
       kind: Immutable,
       pattern: {
         node: ScopedIdentifier,
-        loc: 6:4-6:5,
+        loc: 7:4-7:5,
         scopes: [],
         name: {
           node: Identifier,
-          loc: 6:4-6:5,
+          loc: 7:4-7:5,
           name: "x",
         },
       },
       init: {
         node: IntLiteral,
-        loc: 6:13-6:14,
+        loc: 7:13-7:14,
         raw: "1",
       },
       annot: {
         node: IdentifierType,
-        loc: 6:7-6:10,
+        loc: 7:7-7:10,
         name: {
           node: ScopedIdentifier,
-          loc: 6:7-6:10,
+          loc: 7:7-7:10,
           scopes: [],
           name: {
             node: Identifier,
-            loc: 6:7-6:10,
+            loc: 7:7-7:10,
             name: "Int",
           },
         },
         type_args: [],
       },
+      is_public: false,
     },
   ],
 }

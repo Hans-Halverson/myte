@@ -1,7 +1,7 @@
 test/parser/type_declaration/record.myte
 {
   node: Module,
-  loc: 1:0-17:52,
+  loc: 1:0-23:1,
   name: {
     node: ModuleName,
     loc: 1:0-1:11,
@@ -59,10 +59,12 @@ test/parser/type_declaration/record.myte
               },
               type_args: [],
             },
+            is_public: false,
             is_mutable: false,
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -105,123 +107,77 @@ test/parser/type_declaration/record.myte
               },
               type_args: [],
             },
+            is_public: false,
             is_mutable: false,
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
-      loc: 7:0-7:44,
+      loc: 7:0-7:24,
       name: {
         node: Identifier,
-        loc: 7:5-7:7,
-        name: "r3",
+        loc: 7:9-7:11,
+        name: "p1",
       },
       type_params: [],
       record: {
         node: RecordVariant,
-        loc: 7:5-7:44,
+        loc: 7:9-7:24,
         name: {
           node: Identifier,
-          loc: 7:5-7:7,
-          name: "r3",
+          loc: 7:9-7:11,
+          name: "p1",
         },
         fields: [
           {
             node: RecordVariantField,
-            loc: 7:10-7:18,
+            loc: 7:14-7:22,
             name: {
               node: Identifier,
-              loc: 7:10-7:13,
+              loc: 7:14-7:17,
               name: "foo",
             },
             type: {
               node: IdentifierType,
-              loc: 7:15-7:18,
+              loc: 7:19-7:22,
               name: {
                 node: ScopedIdentifier,
-                loc: 7:15-7:18,
+                loc: 7:19-7:22,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 7:15-7:18,
+                  loc: 7:19-7:22,
                   name: "Int",
                 },
               },
               type_args: [],
             },
-            is_mutable: false,
-          },
-          {
-            node: RecordVariantField,
-            loc: 7:20-7:29,
-            name: {
-              node: Identifier,
-              loc: 7:20-7:23,
-              name: "bar",
-            },
-            type: {
-              node: IdentifierType,
-              loc: 7:25-7:29,
-              name: {
-                node: ScopedIdentifier,
-                loc: 7:25-7:29,
-                scopes: [],
-                name: {
-                  node: Identifier,
-                  loc: 7:25-7:29,
-                  name: "Bool",
-                },
-              },
-              type_args: [],
-            },
-            is_mutable: false,
-          },
-          {
-            node: RecordVariantField,
-            loc: 7:31-7:42,
-            name: {
-              node: Identifier,
-              loc: 7:31-7:34,
-              name: "baz",
-            },
-            type: {
-              node: IdentifierType,
-              loc: 7:36-7:42,
-              name: {
-                node: ScopedIdentifier,
-                loc: 7:36-7:42,
-                scopes: [],
-                name: {
-                  node: Identifier,
-                  loc: 7:36-7:42,
-                  name: "String",
-                },
-              },
-              type_args: [],
-            },
+            is_public: false,
             is_mutable: false,
           },
         ],
       },
+      is_public: true,
     },
     {
       node: TypeDeclaration,
-      loc: 9:0-9:45,
+      loc: 9:0-9:44,
       name: {
         node: Identifier,
         loc: 9:5-9:7,
-        name: "r4",
+        name: "r3",
       },
       type_params: [],
       record: {
         node: RecordVariant,
-        loc: 9:5-9:45,
+        loc: 9:5-9:44,
         name: {
           node: Identifier,
           loc: 9:5-9:7,
-          name: "r4",
+          name: "r3",
         },
         fields: [
           {
@@ -247,6 +203,7 @@ test/parser/type_declaration/record.myte
               },
               type_args: [],
             },
+            is_public: false,
             is_mutable: false,
           },
           {
@@ -272,6 +229,7 @@ test/parser/type_declaration/record.myte
               },
               type_args: [],
             },
+            is_public: false,
             is_mutable: false,
           },
           {
@@ -297,32 +255,34 @@ test/parser/type_declaration/record.myte
               },
               type_args: [],
             },
+            is_public: false,
             is_mutable: false,
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
-      loc: 11:0-11:74,
+      loc: 11:0-11:45,
       name: {
         node: Identifier,
         loc: 11:5-11:7,
-        name: "r5",
+        name: "r4",
       },
       type_params: [],
       record: {
         node: RecordVariant,
-        loc: 11:5-11:74,
+        loc: 11:5-11:45,
         name: {
           node: Identifier,
           loc: 11:5-11:7,
-          name: "r5",
+          name: "r4",
         },
         fields: [
           {
             node: RecordVariantField,
-            loc: 11:10-11:22,
+            loc: 11:10-11:18,
             name: {
               node: Identifier,
               loc: 11:10-11:13,
@@ -330,43 +290,144 @@ test/parser/type_declaration/record.myte
             },
             type: {
               node: IdentifierType,
-              loc: 11:17-11:20,
+              loc: 11:15-11:18,
               name: {
                 node: ScopedIdentifier,
-                loc: 11:17-11:20,
+                loc: 11:15-11:18,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 11:17-11:20,
+                  loc: 11:15-11:18,
                   name: "Int",
                 },
               },
               type_args: [],
             },
+            is_public: false,
             is_mutable: false,
           },
           {
             node: RecordVariantField,
-            loc: 11:24-11:51,
+            loc: 11:20-11:29,
             name: {
               node: Identifier,
-              loc: 11:24-11:27,
+              loc: 11:20-11:23,
+              name: "bar",
+            },
+            type: {
+              node: IdentifierType,
+              loc: 11:25-11:29,
+              name: {
+                node: ScopedIdentifier,
+                loc: 11:25-11:29,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 11:25-11:29,
+                  name: "Bool",
+                },
+              },
+              type_args: [],
+            },
+            is_public: false,
+            is_mutable: false,
+          },
+          {
+            node: RecordVariantField,
+            loc: 11:31-11:42,
+            name: {
+              node: Identifier,
+              loc: 11:31-11:34,
+              name: "baz",
+            },
+            type: {
+              node: IdentifierType,
+              loc: 11:36-11:42,
+              name: {
+                node: ScopedIdentifier,
+                loc: 11:36-11:42,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 11:36-11:42,
+                  name: "String",
+                },
+              },
+              type_args: [],
+            },
+            is_public: false,
+            is_mutable: false,
+          },
+        ],
+      },
+      is_public: false,
+    },
+    {
+      node: TypeDeclaration,
+      loc: 13:0-13:74,
+      name: {
+        node: Identifier,
+        loc: 13:5-13:7,
+        name: "r5",
+      },
+      type_params: [],
+      record: {
+        node: RecordVariant,
+        loc: 13:5-13:74,
+        name: {
+          node: Identifier,
+          loc: 13:5-13:7,
+          name: "r5",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 13:10-13:22,
+            name: {
+              node: Identifier,
+              loc: 13:10-13:13,
+              name: "foo",
+            },
+            type: {
+              node: IdentifierType,
+              loc: 13:17-13:20,
+              name: {
+                node: ScopedIdentifier,
+                loc: 13:17-13:20,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 13:17-13:20,
+                  name: "Int",
+                },
+              },
+              type_args: [],
+            },
+            is_public: false,
+            is_mutable: false,
+          },
+          {
+            node: RecordVariantField,
+            loc: 13:24-13:51,
+            name: {
+              node: Identifier,
+              loc: 13:24-13:27,
               name: "bar",
             },
             type: {
               node: FunctionType,
-              loc: 11:29-11:51,
+              loc: 13:29-13:51,
               params: [
                 {
                   node: IdentifierType,
-                  loc: 11:30-11:34,
+                  loc: 13:30-13:34,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 11:30-11:34,
+                    loc: 13:30-13:34,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 11:30-11:34,
+                      loc: 13:30-13:34,
                       name: "Bool",
                     },
                   },
@@ -374,14 +435,14 @@ test/parser/type_declaration/record.myte
                 },
                 {
                   node: IdentifierType,
-                  loc: 11:36-11:42,
+                  loc: 13:36-13:42,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 11:36-11:42,
+                    loc: 13:36-13:42,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 11:36-11:42,
+                      loc: 13:36-13:42,
                       name: "String",
                     },
                   },
@@ -390,44 +451,45 @@ test/parser/type_declaration/record.myte
               ],
               return: {
                 node: IdentifierType,
-                loc: 11:47-11:51,
+                loc: 13:47-13:51,
                 name: {
                   node: ScopedIdentifier,
-                  loc: 11:47-11:51,
+                  loc: 13:47-13:51,
                   scopes: [],
                   name: {
                     node: Identifier,
-                    loc: 11:47-11:51,
+                    loc: 13:47-13:51,
                     name: "Unit",
                   },
                 },
                 type_args: [],
               },
             },
+            is_public: false,
             is_mutable: false,
           },
           {
             node: RecordVariantField,
-            loc: 11:53-11:72,
+            loc: 13:53-13:72,
             name: {
               node: Identifier,
-              loc: 11:53-11:56,
+              loc: 13:53-13:56,
               name: "baz",
             },
             type: {
               node: TupleType,
-              loc: 11:58-11:72,
+              loc: 13:58-13:72,
               elements: [
                 {
                   node: IdentifierType,
-                  loc: 11:59-11:65,
+                  loc: 13:59-13:65,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 11:59-11:65,
+                    loc: 13:59-13:65,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 11:59-11:65,
+                      loc: 13:59-13:65,
                       name: "String",
                     },
                   },
@@ -435,14 +497,14 @@ test/parser/type_declaration/record.myte
                 },
                 {
                   node: IdentifierType,
-                  loc: 11:67-11:71,
+                  loc: 13:67-13:71,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 11:67-11:71,
+                    loc: 13:67-13:71,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 11:67-11:71,
+                      loc: 13:67-13:71,
                       name: "Unit",
                     },
                   },
@@ -450,75 +512,20 @@ test/parser/type_declaration/record.myte
                 },
               ],
             },
+            is_public: false,
             is_mutable: false,
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
-      loc: 13:0-13:21,
-      name: {
-        node: Identifier,
-        loc: 13:5-13:7,
-        name: "t6",
-      },
-      type_params: [
-        {
-          node: TypeParameter,
-          loc: 13:8-13:9,
-          name: {
-            node: Identifier,
-            loc: 13:8-13:9,
-            name: "T",
-          },
-          bounds: [],
-        },
-      ],
-      record: {
-        node: RecordVariant,
-        loc: 13:5-13:21,
-        name: {
-          node: Identifier,
-          loc: 13:5-13:7,
-          name: "t6",
-        },
-        fields: [
-          {
-            node: RecordVariantField,
-            loc: 13:13-13:19,
-            name: {
-              node: Identifier,
-              loc: 13:13-13:16,
-              name: "foo",
-            },
-            type: {
-              node: IdentifierType,
-              loc: 13:18-13:19,
-              name: {
-                node: ScopedIdentifier,
-                loc: 13:18-13:19,
-                scopes: [],
-                name: {
-                  node: Identifier,
-                  loc: 13:18-13:19,
-                  name: "T",
-                },
-              },
-              type_args: [],
-            },
-            is_mutable: false,
-          },
-        ],
-      },
-    },
-    {
-      node: TypeDeclaration,
-      loc: 15:0-15:35,
+      loc: 15:0-15:21,
       name: {
         node: Identifier,
         loc: 15:5-15:7,
-        name: "t7",
+        name: "t6",
       },
       type_params: [
         {
@@ -531,22 +538,81 @@ test/parser/type_declaration/record.myte
           },
           bounds: [],
         },
+      ],
+      record: {
+        node: RecordVariant,
+        loc: 15:5-15:21,
+        name: {
+          node: Identifier,
+          loc: 15:5-15:7,
+          name: "t6",
+        },
+        fields: [
+          {
+            node: RecordVariantField,
+            loc: 15:13-15:19,
+            name: {
+              node: Identifier,
+              loc: 15:13-15:16,
+              name: "foo",
+            },
+            type: {
+              node: IdentifierType,
+              loc: 15:18-15:19,
+              name: {
+                node: ScopedIdentifier,
+                loc: 15:18-15:19,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 15:18-15:19,
+                  name: "T",
+                },
+              },
+              type_args: [],
+            },
+            is_public: false,
+            is_mutable: false,
+          },
+        ],
+      },
+      is_public: false,
+    },
+    {
+      node: TypeDeclaration,
+      loc: 17:0-17:35,
+      name: {
+        node: Identifier,
+        loc: 17:5-17:7,
+        name: "t7",
+      },
+      type_params: [
         {
           node: TypeParameter,
-          loc: 15:11-15:12,
+          loc: 17:8-17:9,
           name: {
             node: Identifier,
-            loc: 15:11-15:12,
+            loc: 17:8-17:9,
+            name: "T",
+          },
+          bounds: [],
+        },
+        {
+          node: TypeParameter,
+          loc: 17:11-17:12,
+          name: {
+            node: Identifier,
+            loc: 17:11-17:12,
             name: "U",
           },
           bounds: [],
         },
         {
           node: TypeParameter,
-          loc: 15:14-15:15,
+          loc: 17:14-17:15,
           name: {
             node: Identifier,
-            loc: 15:14-15:15,
+            loc: 17:14-17:15,
             name: "V",
           },
           bounds: [],
@@ -554,35 +620,35 @@ test/parser/type_declaration/record.myte
       ],
       record: {
         node: RecordVariant,
-        loc: 15:5-15:35,
+        loc: 17:5-17:35,
         name: {
           node: Identifier,
-          loc: 15:5-15:7,
+          loc: 17:5-17:7,
           name: "t7",
         },
         fields: [
           {
             node: RecordVariantField,
-            loc: 15:19-15:33,
+            loc: 17:19-17:33,
             name: {
               node: Identifier,
-              loc: 15:19-15:22,
+              loc: 17:19-17:22,
               name: "foo",
             },
             type: {
               node: TupleType,
-              loc: 15:24-15:33,
+              loc: 17:24-17:33,
               elements: [
                 {
                   node: IdentifierType,
-                  loc: 15:25-15:26,
+                  loc: 17:25-17:26,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 15:25-15:26,
+                    loc: 17:25-17:26,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 15:25-15:26,
+                      loc: 17:25-17:26,
                       name: "V",
                     },
                   },
@@ -590,14 +656,14 @@ test/parser/type_declaration/record.myte
                 },
                 {
                   node: IdentifierType,
-                  loc: 15:28-15:29,
+                  loc: 17:28-17:29,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 15:28-15:29,
+                    loc: 17:28-17:29,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 15:28-15:29,
+                      loc: 17:28-17:29,
                       name: "U",
                     },
                   },
@@ -605,14 +671,14 @@ test/parser/type_declaration/record.myte
                 },
                 {
                   node: IdentifierType,
-                  loc: 15:31-15:32,
+                  loc: 17:31-17:32,
                   name: {
                     node: ScopedIdentifier,
-                    loc: 15:31-15:32,
+                    loc: 17:31-17:32,
                     scopes: [],
                     name: {
                       node: Identifier,
-                      loc: 15:31-15:32,
+                      loc: 17:31-17:32,
                       name: "T",
                     },
                   },
@@ -620,106 +686,112 @@ test/parser/type_declaration/record.myte
                 },
               ],
             },
+            is_public: false,
             is_mutable: false,
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
-      loc: 17:0-17:52,
+      loc: 19:0-23:1,
       name: {
         node: Identifier,
-        loc: 17:5-17:7,
+        loc: 19:5-19:7,
         name: "t8",
       },
       type_params: [],
       record: {
         node: RecordVariant,
-        loc: 17:5-17:52,
+        loc: 19:5-23:1,
         name: {
           node: Identifier,
-          loc: 17:5-17:7,
+          loc: 19:5-19:7,
           name: "t8",
         },
         fields: [
           {
             node: RecordVariantField,
-            loc: 17:10-17:22,
+            loc: 20:2-20:14,
             name: {
               node: Identifier,
-              loc: 17:14-17:17,
+              loc: 20:6-20:9,
               name: "foo",
             },
             type: {
               node: IdentifierType,
-              loc: 17:19-17:22,
+              loc: 20:11-20:14,
               name: {
                 node: ScopedIdentifier,
-                loc: 17:19-17:22,
+                loc: 20:11-20:14,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 17:19-17:22,
+                  loc: 20:11-20:14,
                   name: "Int",
                 },
               },
               type_args: [],
             },
+            is_public: false,
             is_mutable: true,
           },
           {
             node: RecordVariantField,
-            loc: 17:24-17:33,
+            loc: 21:2-21:21,
             name: {
               node: Identifier,
-              loc: 17:24-17:27,
+              loc: 21:10-21:13,
               name: "bar",
             },
             type: {
               node: IdentifierType,
-              loc: 17:29-17:33,
+              loc: 21:15-21:21,
               name: {
                 node: ScopedIdentifier,
-                loc: 17:29-17:33,
+                loc: 21:15-21:21,
                 scopes: [],
                 name: {
                   node: Identifier,
-                  loc: 17:29-17:33,
-                  name: "Bool",
-                },
-              },
-              type_args: [],
-            },
-            is_mutable: false,
-          },
-          {
-            node: RecordVariantField,
-            loc: 17:35-17:50,
-            name: {
-              node: Identifier,
-              loc: 17:39-17:42,
-              name: "baz",
-            },
-            type: {
-              node: IdentifierType,
-              loc: 17:44-17:50,
-              name: {
-                node: ScopedIdentifier,
-                loc: 17:44-17:50,
-                scopes: [],
-                name: {
-                  node: Identifier,
-                  loc: 17:44-17:50,
+                  loc: 21:15-21:21,
                   name: "String",
                 },
               },
               type_args: [],
             },
+            is_public: true,
             is_mutable: true,
+          },
+          {
+            node: RecordVariantField,
+            loc: 22:2-22:11,
+            name: {
+              node: Identifier,
+              loc: 22:2-22:5,
+              name: "baz",
+            },
+            type: {
+              node: IdentifierType,
+              loc: 22:7-22:11,
+              name: {
+                node: ScopedIdentifier,
+                loc: 22:7-22:11,
+                scopes: [],
+                name: {
+                  node: Identifier,
+                  loc: 22:7-22:11,
+                  name: "Bool",
+                },
+              },
+              type_args: [],
+            },
+            is_public: false,
+            is_mutable: false,
           },
         ],
       },
+      is_public: false,
     },
   ],
 }

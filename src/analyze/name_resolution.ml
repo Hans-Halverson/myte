@@ -278,7 +278,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; _ } ->
             let ids = Ast_utils.ids_of_pattern pattern in
             List.iter (fun id -> add_value_binding id (VarDecl (VariableDeclaration.mk kind))) ids
-          | FunctionDeclaration { Ast.Function.name; builtin; static; override; body; _ } ->
+          | FunctionDeclaration { Ast.Function.name; is_builtin; is_static; is_override; body; _ }
+            ->
             register_stdlib_decl name;
             add_value_binding
               name
@@ -286,9 +287,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                  (FunctionDeclaration.mk
                     ~name:name.name
                     ~loc:name.loc
-                    ~is_builtin:builtin
-                    ~is_static:static
-                    ~is_override:override
+                    ~is_builtin
+                    ~is_static
+                    ~is_override
                     ~is_signature:(body = Signature)))
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             register_stdlib_decl name;
@@ -463,14 +464,15 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         (* Fill in methods for trait *)
         let methods =
           List.fold_left
-            (fun methods { Function.name = { name; loc }; builtin; static; override; body; _ } ->
+            (fun methods
+                 { Function.name = { name; loc }; is_builtin; is_static; is_override; body; _ } ->
               let method_ =
                 FunctionDeclaration.mk
                   ~name
                   ~loc
-                  ~is_builtin:builtin
-                  ~is_static:static
-                  ~is_override:override
+                  ~is_builtin
+                  ~is_static
+                  ~is_override
                   ~is_signature:(body = Function.Signature)
               in
               ignore
@@ -587,7 +589,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       block'
 
     method visit_variable_declaration ~is_toplevel decl =
-      let { Ast.Statement.VariableDeclaration.kind; pattern; init; annot; loc = _ } = decl in
+      let { Ast.Statement.VariableDeclaration.loc = _; kind; pattern; init; annot; is_public = _ } =
+        decl
+      in
       Option.iter this#type_ annot;
 
       (* Set global init context if this is toplevel *)
@@ -650,9 +654,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         name = { Ast.Identifier.loc; name = func_name };
         params;
         type_params;
-        builtin;
-        static;
-        override;
+        is_builtin;
+        is_static;
+        is_override;
         body;
         _;
       } =
@@ -669,9 +673,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                  (FunctionDeclaration.mk
                     ~name:func_name
                     ~loc
-                    ~is_builtin:builtin
-                    ~is_static:static
-                    ~is_override:override
+                    ~is_builtin
+                    ~is_static
+                    ~is_override
                     ~is_signature:(body = Signature)))
           in
           this#add_value_to_scope func_name (Decl binding);
@@ -683,7 +687,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       this#push_context (Function (loc, false));
       this#visit_type_parameters type_params (FunctionName func_name);
       (* Add implicit `this` type to scope within method *)
-      if is_method && (not static) && body <> Signature then (
+      if is_method && (not is_static) && body <> Signature then (
         let binding = this#add_this_declaration func_binding in
         this#add_value_to_scope "this" (Decl binding);
         this#add_value_to_scope "super" (Decl binding)
@@ -726,9 +730,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           List.iter (fun ty -> ignore (this#type_ ty)) type_args)
         implemented;
       List.iter
-        (fun ({ Function.static; _ } as method_) ->
+        (fun ({ Function.is_static; _ } as method_) ->
           (* Static methods cannot reference trait's type parameters, so resolve in parent scope *)
-          if static then
+          if is_static then
             this#in_parent_scope (fun _ ->
                 this#visit_function_declaration ~is_nested:false ~is_method:false method_)
           else (

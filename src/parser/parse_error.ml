@@ -24,6 +24,7 @@ type t =
   | EmptyTuple
   | SingleVariant
   | InvalidBuiltin
+  | PublicMethodsBlock
   | FileDoesNotExist of string
   | FileIsDirectory of string
   | CannotOpenFile of string
@@ -91,6 +92,7 @@ let to_string error =
   | SingleVariant -> "Variant type must have at least two variants"
   | InvalidBuiltin ->
     "A type alias cannot be builtin. Only function and type declarations can be builtin."
+  | PublicMethodsBlock -> "Public qualifier cannot be used on entire method declarations block"
   | FileDoesNotExist file -> Printf.sprintf "Cannot find file %s" file
   | FileIsDirectory file -> Printf.sprintf "File %s is a directory" file
   | CannotOpenFile file -> Printf.sprintf "Cannot open file %s" file

@@ -80,6 +80,7 @@ test/parser/type/type_param_bounds.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -143,6 +144,7 @@ test/parser/type/type_param_bounds.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -236,6 +238,7 @@ test/parser/type/type_param_bounds.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -329,6 +332,7 @@ test/parser/type/type_param_bounds.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -459,6 +463,7 @@ test/parser/type/type_param_bounds.myte
           },
         ],
       },
+      is_public: false,
     },
   ],
 }

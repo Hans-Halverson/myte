@@ -799,15 +799,15 @@ and check_module ~cx module_ =
     (fun toplevel ->
       match toplevel with
       | VariableDeclaration decl -> check_variable_declaration ~cx ~is_toplevel:true decl
-      | FunctionDeclaration decl -> if not decl.builtin then check_function_body ~cx decl
+      | FunctionDeclaration decl -> if not decl.is_builtin then check_function_body ~cx decl
       | TraitDeclaration { loc; methods; _ } ->
         let this_type_binding = Type_context.get_type_binding ~cx loc in
         let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
         List.iter
-          (fun ({ Ast.Function.name; body; static; _ } as method_) ->
+          (fun ({ Ast.Function.name; body; is_static; _ } as method_) ->
             if body <> Signature then (
               (* Set up type of implicit `this` parameter for non-static methods  *)
-              (if not static then
+              (if not is_static then
                 let func_decl =
                   Bindings.get_func_decl (Type_context.get_value_binding ~cx name.loc)
                 in
@@ -2674,8 +2674,8 @@ class ensure_resolved_types_visitor ~cx =
     inherit Ast_visitor.visitor as super
 
     method! function_ decl =
-      let { Ast.Function.builtin; _ } = decl in
-      if builtin then
+      let { Ast.Function.is_builtin; _ } = decl in
+      if is_builtin then
         ()
       else
         super#function_ decl

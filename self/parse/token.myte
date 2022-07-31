@@ -77,6 +77,7 @@ type Token =
   | Alias
   | Builtin
   | Override
+  | Pub
   | Static
   | Methods
   | Implements
@@ -161,6 +162,7 @@ methods Token {
       | Alias -> "alias"
       | Builtin -> "builtin"
       | Override -> "override"
+      | Pub -> "pub"
       | Static -> "static"
       | Methods -> "methods"
       | Implements -> "implements"
@@ -245,6 +247,7 @@ methods Token {
       | (Alias, Alias)
       | (Builtin, Builtin)
       | (Override, Override)
+      | (Pub, Pub)
       | (Static, Static)
       | (Methods, Methods)
       | (Implements, Implements)

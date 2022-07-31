@@ -2,6 +2,8 @@ module Test
 
 fun foo(): Int = 1
 
+pub fun foo(): Int = 1
+
 fun foo(): Int {}
 
 fun foo(a: Int, b: String, c: Bool): Int {}

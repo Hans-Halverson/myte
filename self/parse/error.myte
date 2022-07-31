@@ -33,6 +33,7 @@ type ParseError =
   | TypeAliasBuiltin
   | InvalidAssignmentPattern
   | LiteralInPattern
+  | PublicMethodsBlock
   | CannotOpenFile { filename: String }
 
 fun fatal(error: ParseError, loc: Loc): Never {
@@ -93,6 +94,7 @@ methods ParseError {
         "A type alias cannot be builtin. Only function and type declarations can be builtin."
       | InvalidAssignmentPattern -> "Invalid left hand side of assignment"
       | LiteralInPattern -> "Literals cannot appear in variable declaration patterns"
+      | PublicMethodsBlock -> "Public qualifier cannot be used on entire method declarations block"
       | CannotOpenFile { filename } -> `Cannot open file ${filename}`
     }
 }

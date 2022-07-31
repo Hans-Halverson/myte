@@ -46,6 +46,7 @@ test/parser/type/trait_type.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -91,6 +92,7 @@ test/parser/type/trait_type.myte
           ],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -145,6 +147,7 @@ test/parser/type/trait_type.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -194,6 +197,7 @@ test/parser/type/trait_type.myte
           ],
         },
       },
+      is_public: false,
     },
   ],
 }

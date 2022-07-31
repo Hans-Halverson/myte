@@ -568,7 +568,7 @@ and node_of_match_case case =
     ]
 
 and node_of_variable_decl decl =
-  let { Statement.VariableDeclaration.loc; kind; pattern; init; annot } = decl in
+  let { Statement.VariableDeclaration.loc; kind; pattern; init; annot; is_public } = decl in
   let kind =
     match kind with
     | Immutable -> "Immutable"
@@ -582,11 +582,12 @@ and node_of_variable_decl decl =
       ("pattern", node_of_pattern pattern);
       ("init", node_of_expression init);
       ("annot", opt node_of_type annot);
+      ("is_public", Bool is_public);
     ]
 
 and node_of_trait_decl decl =
   let open TraitDeclaration in
-  let { loc; kind; name; type_params; implemented; methods } = decl in
+  let { loc; kind; name; type_params; implemented; methods; is_public } = decl in
   let kind =
     match kind with
     | Methods -> "Methods"
@@ -601,32 +602,37 @@ and node_of_trait_decl decl =
       ("type_params", List (List.map node_of_type_parameter type_params));
       ("implemented", List (List.map node_of_identifier_type implemented));
       ("methods", List (List.map node_of_function methods));
+      ("is_public", Bool is_public);
     ]
 
 and node_of_type_decl decl =
   let open TypeDeclaration in
-  let { loc; name; type_params; decl } = decl in
+  let { loc; name; type_params; decl; is_public } = decl in
+  let decl =
+    match decl with
+    | Builtin -> ("builtin", Bool true)
+    | Alias alias -> ("alias", node_of_type alias)
+    | Record record -> ("record", node_of_record_variant record)
+    | Tuple tuple -> ("tuple", node_of_tuple_variant tuple)
+    | Variant variants ->
+      ( "variants",
+        List
+          (List.map
+             (fun variant ->
+               match variant with
+               | RecordVariant record -> node_of_record_variant record
+               | TupleVariant tuple -> node_of_tuple_variant tuple
+               | EnumVariant id -> node_of_identifier id)
+             variants) )
+  in
   node
     "TypeDeclaration"
     loc
     [
       ("name", node_of_identifier name);
       ("type_params", List (List.map node_of_type_parameter type_params));
-      (match decl with
-      | Builtin -> ("builtin", Bool true)
-      | Alias alias -> ("alias", node_of_type alias)
-      | Record record -> ("record", node_of_record_variant record)
-      | Tuple tuple -> ("tuple", node_of_tuple_variant tuple)
-      | Variant variants ->
-        ( "variants",
-          List
-            (List.map
-               (fun variant ->
-                 match variant with
-                 | RecordVariant record -> node_of_record_variant record
-                 | TupleVariant tuple -> node_of_tuple_variant tuple
-                 | EnumVariant id -> node_of_identifier id)
-               variants) ));
+      decl;
+      ("is_public", Bool is_public);
     ]
 
 and node_of_record_variant record =
@@ -642,11 +648,16 @@ and node_of_record_variant record =
 
 and node_of_record_variant_field field =
   let open TypeDeclaration.Record.Field in
-  let { loc; name; ty; is_mutable } = field in
+  let { loc; name; ty; is_public; is_mutable } = field in
   node
     "RecordVariantField"
     loc
-    [("name", node_of_identifier name); ("type", node_of_type ty); ("is_mutable", Bool is_mutable)]
+    [
+      ("name", node_of_identifier name);
+      ("type", node_of_type ty);
+      ("is_public", Bool is_public);
+      ("is_mutable", Bool is_mutable);
+    ]
 
 and node_of_tuple_variant tuple =
   let open TypeDeclaration.Tuple in
@@ -658,7 +669,20 @@ and node_of_tuple_variant tuple =
 
 and node_of_function func =
   let open Function in
-  let { loc; name; type_params; params; body; return; builtin; static; override } = func in
+  let {
+    loc;
+    name;
+    type_params;
+    params;
+    body;
+    return;
+    is_public;
+    is_builtin;
+    is_static;
+    is_override;
+  } =
+    func
+  in
   let body =
     match body with
     | Block block -> node_of_block block
@@ -674,9 +698,10 @@ and node_of_function func =
       ("body", body);
       ("return", opt node_of_type return);
       ("type_params", List (List.map node_of_type_parameter type_params));
-      ("builtin", Bool builtin);
-      ("static", Bool static);
-      ("override", Bool override);
+      ("is_public", Bool is_public);
+      ("is_builtin", Bool is_builtin);
+      ("is_static", Bool is_static);
+      ("is_override", Bool is_override);
     ]
 
 and node_of_function_param param =

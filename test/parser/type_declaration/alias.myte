@@ -2,7 +2,7 @@ module Test
 
 type alias t1 = Unit
 
-type alias t2 = Int
+pub type alias t2 = Int
 
 type alias t3 = (String, Bool) -> Unit
 

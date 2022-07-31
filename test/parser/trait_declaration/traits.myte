@@ -2,6 +2,8 @@ module test
 
 trait Foo {}
 
+pub trait Foo {}
+
 trait Foo {
   extends Bar<T>
   extends Baz<T, (U, V)>

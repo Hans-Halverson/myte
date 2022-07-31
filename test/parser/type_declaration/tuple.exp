@@ -53,6 +53,7 @@ test/parser/type_declaration/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -89,6 +90,7 @@ test/parser/type_declaration/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -155,6 +157,7 @@ test/parser/type_declaration/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -221,6 +224,7 @@ test/parser/type_declaration/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -293,6 +297,7 @@ test/parser/type_declaration/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -340,6 +345,7 @@ test/parser/type_declaration/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -407,6 +413,7 @@ test/parser/type_declaration/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
   ],
 }

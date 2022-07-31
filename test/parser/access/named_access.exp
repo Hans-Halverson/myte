@@ -80,9 +80,10 @@ test/parser/access/named_access.myte
       },
       return: None,
       type_params: [],
-      builtin: false,
-      static: false,
-      override: false,
+      is_public: false,
+      is_builtin: false,
+      is_static: false,
+      is_override: false,
     },
   ],
 }

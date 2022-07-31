@@ -84,6 +84,7 @@ test/parser/type/precedence.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -151,6 +152,7 @@ test/parser/type/precedence.myte
           },
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -218,6 +220,7 @@ test/parser/type/precedence.myte
           },
         },
       },
+      is_public: false,
     },
   ],
 }

@@ -74,6 +74,7 @@ type t =
   | T_METHODS
   | T_EXTENDS
   | T_IMPLEMENTS
+  | T_PUB
   | T_STATIC
   | T_OVERRIDE
   | T_EOF
@@ -159,6 +160,7 @@ let to_string token =
   | T_METHODS -> "methods"
   | T_EXTENDS -> "extends"
   | T_IMPLEMENTS -> "implements"
+  | T_PUB -> "pub"
   | T_STATIC -> "static"
   | T_OVERRIDE -> "override"
   | T_EOF -> "<EOF>"

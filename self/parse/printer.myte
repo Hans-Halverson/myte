@@ -171,8 +171,19 @@ fun nodeOfToplevel(toplevel: ast.Toplevel): PrintNode =
   }
 
 fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
-  val ast.FunctionDeclaration
-    { loc, name, params, body, return_, typeParams, isBuiltin, isStatic, isOverride } = decl;
+  val ast.FunctionDeclaration {
+    loc,
+    name,
+    params,
+    body,
+    return_,
+    typeParams,
+    isPublic,
+    isBuiltin,
+    isStatic,
+    isOverride,
+  } = decl;
+
   val body = match (body) {
     | ast.FBBlock (block) -> nodeOfBlock(block)
     | ast.FBExpression (expr) -> nodeOfExpression(expr)
@@ -188,9 +199,10 @@ fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
       ("body", body),
       ("return", optional(return_, nodeOfType)),
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
-      ("builtin", Bool (isBuiltin)),
-      ("static", Bool (isStatic)),
-      ("override", Bool (isOverride)),
+      ("is_public", Bool (isPublic)),
+      ("is_builtin", Bool (isBuiltin)),
+      ("is_static", Bool (isStatic)),
+      ("is_override", Bool (isOverride)),
     ]
   };
 }
@@ -214,7 +226,7 @@ fun nodeOfTypeParameter(param: ast.TypeParameter): PrintNode {
 }
 
 fun nodeOfVariableDeclaration(decl: ast.VariableDeclaration): PrintNode {
-  val ast.VariableDeclaration { loc, kind, pattern, init, annot } = decl;
+  val ast.VariableDeclaration { loc, kind, pattern, init, annot, isPublic } = decl;
   val kind = match (kind) {
     | ast.Immutable -> "Immutable"
     | ast.Mutable -> "Mutable"
@@ -228,12 +240,13 @@ fun nodeOfVariableDeclaration(decl: ast.VariableDeclaration): PrintNode {
       ("pattern", nodeOfPattern(pattern)),
       ("init", nodeOfExpression(init)),
       ("annot", optional(annot, nodeOfType)),
+      ("is_public", Bool (isPublic)),
     ],
  };
 }
 
 fun nodeOfTypeDeclaration(decl: ast.TypeDeclaration): PrintNode {
-  val ast.TypeDeclaration { loc, name, typeParams, decl } = decl;
+  val ast.TypeDeclaration { loc, name, typeParams, decl, isPublic } = decl;
   val decl = match (decl) {
     | ast.TDAlias (typeAlias) -> ("alias", nodeOfType(typeAlias))
     | ast.TDTuple (tuple) -> ("tuple", nodeOfTupleDeclaration(tuple))
@@ -249,6 +262,7 @@ fun nodeOfTypeDeclaration(decl: ast.TypeDeclaration): PrintNode {
       ("name", nodeOfIdentifier(name)),
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
       decl,
+      ("is_public", Bool (isPublic)),
     ],
   };
 }
@@ -275,13 +289,14 @@ fun nodeOfRecordDeclaration(decl: ast.RecordDeclaration): PrintNode {
 }
 
 fun nodeOfRecordDeclarationField(field: ast.RecordDeclarationField): PrintNode {
-  val ast.RecordDeclarationField { loc, name, type_, isMutable } = field;
+  val ast.RecordDeclarationField { loc, name, type_, isPublic, isMutable } = field;
   return Node {
     name: "RecordVariantField",
     loc,
     fields: [
       ("name", nodeOfIdentifier(name)),
       ("type", nodeOfType(type_)),
+      ("is_public", Bool (isPublic)),
       ("is_mutable", Bool (isMutable)),
     ],
   };
@@ -295,7 +310,7 @@ fun nodeOfVariantDeclaration(decl: ast.VariantDeclaration): PrintNode =
   }
 
 fun nodeOfTraitDeclaration(decl: ast.TraitDeclaration): PrintNode {
-  val ast.TraitDeclaration { loc, kind, name, typeParams, implemented, methods_ } = decl;
+  val ast.TraitDeclaration { loc, kind, name, typeParams, implemented, methods_, isPublic } = decl;
   val kind = match (kind) {
     | ast.TKMethods -> "Methods"
     | ast.TKTrait -> "Trait"
@@ -310,6 +325,7 @@ fun nodeOfTraitDeclaration(decl: ast.TraitDeclaration): PrintNode {
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
       ("implemented", List (implemented.map(nodeOfIdentifierType))),
       ("methods", List (methods_.map(nodeOfFunctionDeclaration))),
+      ("is_public", Bool (isPublic)),
     ],
  };
 }

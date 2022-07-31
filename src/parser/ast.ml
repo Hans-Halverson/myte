@@ -129,6 +129,7 @@ and Statement : sig
       pattern: Pattern.t;
       init: Expression.t;
       annot: Type.t option;
+      is_public: bool;
     }
   end
 
@@ -539,9 +540,10 @@ and Function : sig
     body: body;
     return: Type.t option;
     type_params: TypeParameter.t list;
-    builtin: bool;
-    static: bool;
-    override: bool;
+    is_public: bool;
+    is_builtin: bool;
+    is_static: bool;
+    is_override: bool;
   }
 end =
   Function
@@ -553,6 +555,7 @@ and TypeDeclaration : sig
         loc: Loc.t;
         name: Identifier.t;
         ty: Type.t;
+        is_public: bool;
         is_mutable: bool;
       }
     end
@@ -589,6 +592,7 @@ and TypeDeclaration : sig
     name: Identifier.t;
     type_params: TypeParameter.t list;
     decl: decl;
+    is_public: bool;
   }
 end =
   TypeDeclaration
@@ -605,6 +609,7 @@ and TraitDeclaration : sig
     type_params: TypeParameter.t list;
     implemented: Type.Identifier.t list;
     methods: Function.t list;
+    is_public: bool;
   }
 end =
   TraitDeclaration

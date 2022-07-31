@@ -2,4 +2,6 @@ module test
 
 builtin fun foo()
 
+pub builtin fun foo()
+
 builtin fun foo<T>(x: Int): Unit

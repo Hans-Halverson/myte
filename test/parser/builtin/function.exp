@@ -1,7 +1,7 @@
 test/parser/builtin/function.myte
 {
   node: Module,
-  loc: 1:0-5:32,
+  loc: 1:0-7:32,
   name: {
     node: ModuleName,
     loc: 1:0-1:11,
@@ -30,37 +30,55 @@ test/parser/builtin/function.myte
       body: None,
       return: None,
       type_params: [],
-      builtin: true,
-      static: false,
-      override: false,
+      is_public: false,
+      is_builtin: true,
+      is_static: false,
+      is_override: false,
     },
     {
       node: Function,
-      loc: 5:0-5:32,
+      loc: 5:0-5:21,
       name: {
         node: Identifier,
-        loc: 5:12-5:15,
+        loc: 5:16-5:19,
+        name: "foo",
+      },
+      params: [],
+      body: None,
+      return: None,
+      type_params: [],
+      is_public: true,
+      is_builtin: true,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 7:0-7:32,
+      name: {
+        node: Identifier,
+        loc: 7:12-7:15,
         name: "foo",
       },
       params: [
         {
           node: Param,
-          loc: 5:19-5:25,
+          loc: 7:19-7:25,
           name: {
             node: Identifier,
-            loc: 5:19-5:20,
+            loc: 7:19-7:20,
             name: "x",
           },
           annot: {
             node: IdentifierType,
-            loc: 5:22-5:25,
+            loc: 7:22-7:25,
             name: {
               node: ScopedIdentifier,
-              loc: 5:22-5:25,
+              loc: 7:22-7:25,
               scopes: [],
               name: {
                 node: Identifier,
-                loc: 5:22-5:25,
+                loc: 7:22-7:25,
                 name: "Int",
               },
             },
@@ -71,14 +89,14 @@ test/parser/builtin/function.myte
       body: None,
       return: {
         node: IdentifierType,
-        loc: 5:28-5:32,
+        loc: 7:28-7:32,
         name: {
           node: ScopedIdentifier,
-          loc: 5:28-5:32,
+          loc: 7:28-7:32,
           scopes: [],
           name: {
             node: Identifier,
-            loc: 5:28-5:32,
+            loc: 7:28-7:32,
             name: "Unit",
           },
         },
@@ -87,18 +105,19 @@ test/parser/builtin/function.myte
       type_params: [
         {
           node: TypeParameter,
-          loc: 5:16-5:17,
+          loc: 7:16-7:17,
           name: {
             node: Identifier,
-            loc: 5:16-5:17,
+            loc: 7:16-7:17,
             name: "T",
           },
           bounds: [],
         },
       ],
-      builtin: true,
-      static: false,
-      override: false,
+      is_public: false,
+      is_builtin: true,
+      is_static: false,
+      is_override: false,
     },
   ],
 }

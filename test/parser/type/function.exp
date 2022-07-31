@@ -47,6 +47,7 @@ test/parser/type/function.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -93,6 +94,7 @@ test/parser/type/function.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -139,6 +141,7 @@ test/parser/type/function.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -200,6 +203,7 @@ test/parser/type/function.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -276,6 +280,7 @@ test/parser/type/function.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -373,6 +378,7 @@ test/parser/type/function.myte
           },
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -434,6 +440,7 @@ test/parser/type/function.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -480,6 +487,7 @@ test/parser/type/function.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -547,6 +555,7 @@ test/parser/type/function.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: Function,
@@ -564,9 +573,10 @@ test/parser/type/function.myte
       },
       return: None,
       type_params: [],
-      builtin: false,
-      static: false,
-      override: false,
+      is_public: false,
+      is_builtin: false,
+      is_static: false,
+      is_override: false,
     },
   ],
 }

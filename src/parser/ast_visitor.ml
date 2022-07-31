@@ -303,9 +303,10 @@ class visitor =
         return;
         type_params;
         body;
-        builtin = _;
-        static = _;
-        override = _;
+        is_public = _;
+        is_builtin = _;
+        is_static = _;
+        is_override = _;
       } =
         func
       in
@@ -419,14 +420,14 @@ class visitor =
 
     method variable_declaration decl =
       let open Statement.VariableDeclaration in
-      let { loc = _; kind = _; pattern; init; annot } = decl in
+      let { loc = _; kind = _; pattern; init; annot; is_public = _ } = decl in
       this#pattern pattern;
       this#expression init;
       Option.iter this#type_ annot
 
     method trait_declaration decl =
       let open TraitDeclaration in
-      let { loc = _; kind = _; name; type_params; implemented; methods } = decl in
+      let { loc = _; kind = _; name; type_params; implemented; methods; is_public = _ } = decl in
       this#identifier name;
       List.iter this#type_parameter type_params;
       List.iter this#identifier_type implemented;
@@ -434,7 +435,7 @@ class visitor =
 
     method type_declaration decl =
       let open TypeDeclaration in
-      let { loc = _; name; type_params; decl } = decl in
+      let { loc = _; name; type_params; decl; is_public = _ } = decl in
       this#identifier name;
       List.iter this#type_parameter type_params;
       this#type_declaration_declaration decl
@@ -463,7 +464,7 @@ class visitor =
 
     method record_variant_field field =
       let open TypeDeclaration.Record.Field in
-      let { loc = _; name; ty; is_mutable = _ } = field in
+      let { loc = _; name; ty; is_public = _; is_mutable = _ } = field in
       this#identifier name;
       this#type_ ty
 

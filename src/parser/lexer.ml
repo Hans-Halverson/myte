@@ -179,6 +179,7 @@ let parse_identifier_or_keyword lex =
       | "methods" -> token_result T_METHODS
       | "extends" -> token_result T_EXTENDS
       | "implements" -> token_result T_IMPLEMENTS
+      | "pub" -> token_result T_PUB
       | "static" -> token_result T_STATIC
       | "override" -> token_result T_OVERRIDE
       | _ -> token_result (T_IDENTIFIER raw))

@@ -61,6 +61,7 @@ type FunctionDeclaration {
   body: FunctionBody,
   return_: Option<Type>,
   typeParams: Vec<TypeParameter>,
+  isPublic: Bool,
   isBuiltin: Bool,
   isStatic: Bool,
   isOverride: Bool,
@@ -89,6 +90,7 @@ type VariableDeclaration {
   pattern: Pattern,
   init: Expression,
   annot: Option<Type>,
+  isPublic: Bool,
 }
 
 type VariableDeclarationKind =
@@ -100,6 +102,7 @@ type TypeDeclaration {
   name: Identifier,
   typeParams: Vec<TypeParameter>,
   decl: TypeDecl,
+  isPublic: Bool,
 }
 
 type TypeDecl =
@@ -125,6 +128,7 @@ type RecordDeclarationField {
   loc: Loc,
   name: Identifier,
   type_: Type,
+  isPublic: Bool,
   isMutable: Bool,
 }
 
@@ -140,6 +144,7 @@ type TraitDeclaration {
   typeParams: Vec<TypeParameter>,
   implemented: Vec<IdentifierType>,
   methods_: Vec<FunctionDeclaration>,
+  isPublic: Bool,
 }
 
 type TraitDeclarationKind =

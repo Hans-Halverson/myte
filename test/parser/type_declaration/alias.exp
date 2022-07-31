@@ -42,31 +42,33 @@ test/parser/type_declaration/alias.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
-      loc: 5:0-5:19,
+      loc: 5:0-5:23,
       name: {
         node: Identifier,
-        loc: 5:11-5:13,
+        loc: 5:15-5:17,
         name: "t2",
       },
       type_params: [],
       alias: {
         node: IdentifierType,
-        loc: 5:16-5:19,
+        loc: 5:20-5:23,
         name: {
           node: ScopedIdentifier,
-          loc: 5:16-5:19,
+          loc: 5:20-5:23,
           scopes: [],
           name: {
             node: Identifier,
-            loc: 5:16-5:19,
+            loc: 5:20-5:23,
             name: "Int",
           },
         },
         type_args: [],
       },
+      is_public: true,
     },
     {
       node: TypeDeclaration,
@@ -128,6 +130,7 @@ test/parser/type_declaration/alias.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -164,6 +167,7 @@ test/parser/type_declaration/alias.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -220,6 +224,7 @@ test/parser/type_declaration/alias.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
   ],
 }

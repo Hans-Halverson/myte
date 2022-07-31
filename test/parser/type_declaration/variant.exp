@@ -39,6 +39,7 @@ test/parser/type_declaration/variant.myte
           name: "Bar",
         },
       ],
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -61,6 +62,7 @@ test/parser/type_declaration/variant.myte
           name: "Bar",
         },
       ],
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -181,6 +183,7 @@ test/parser/type_declaration/variant.myte
           ],
         },
       ],
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -224,6 +227,7 @@ test/parser/type_declaration/variant.myte
                 },
                 type_args: [],
               },
+              is_public: false,
               is_mutable: false,
             },
           ],
@@ -260,6 +264,7 @@ test/parser/type_declaration/variant.myte
                 },
                 type_args: [],
               },
+              is_public: false,
               is_mutable: false,
             },
           ],
@@ -296,6 +301,7 @@ test/parser/type_declaration/variant.myte
                 },
                 type_args: [],
               },
+              is_public: false,
               is_mutable: false,
             },
             {
@@ -321,6 +327,7 @@ test/parser/type_declaration/variant.myte
                 },
                 type_args: [],
               },
+              is_public: false,
               is_mutable: false,
             },
             {
@@ -346,11 +353,13 @@ test/parser/type_declaration/variant.myte
                 },
                 type_args: [],
               },
+              is_public: false,
               is_mutable: false,
             },
           ],
         },
       ],
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -425,11 +434,13 @@ test/parser/type_declaration/variant.myte
                 },
                 type_args: [],
               },
+              is_public: false,
               is_mutable: false,
             },
           ],
         },
       ],
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -582,11 +593,13 @@ test/parser/type_declaration/variant.myte
                 },
                 type_args: [],
               },
+              is_public: false,
               is_mutable: false,
             },
           ],
         },
       ],
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -641,6 +654,7 @@ test/parser/type_declaration/variant.myte
           ],
         },
       ],
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -762,6 +776,7 @@ test/parser/type_declaration/variant.myte
           ],
         },
       ],
+      is_public: false,
     },
   ],
 }

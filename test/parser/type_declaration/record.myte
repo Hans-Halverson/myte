@@ -4,6 +4,8 @@ type r1 { foo: Int }
 
 type r2 { foo: Int, }
 
+pub type p1 { foo: Int }
+
 type r3 { foo: Int, bar: Bool, baz: String }
 
 type r4 { foo: Int, bar: Bool, baz: String, }
@@ -14,4 +16,8 @@ type t6<T> { foo: T }
 
 type t7<T, U, V> { foo: (V, U, T) }
 
-type t8 { var foo: Int, bar: Bool, var baz: String }
+type t8 {
+  var foo: Int,
+  pub var bar: String,
+  baz: Bool,
+}

@@ -38,6 +38,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -53,6 +54,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -79,6 +81,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -117,6 +120,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -165,6 +169,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -213,6 +218,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -250,6 +256,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -297,6 +304,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -354,6 +362,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -411,6 +420,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -458,6 +468,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -501,6 +512,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -563,6 +575,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -644,6 +657,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -687,6 +701,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -730,6 +745,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -762,6 +778,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -815,6 +832,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -874,6 +892,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -929,6 +948,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1015,6 +1035,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1088,6 +1109,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1113,6 +1135,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1149,6 +1172,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1206,6 +1230,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1231,6 +1256,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1252,6 +1278,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1282,6 +1309,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1326,6 +1354,7 @@ test/parser/pattern/basic.myte
         raw: "1",
       },
       annot: None,
+      is_public: false,
     },
   ],
 }

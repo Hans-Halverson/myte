@@ -78,6 +78,7 @@ test/parser/type/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -202,6 +203,7 @@ test/parser/type/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -248,6 +250,7 @@ test/parser/type/tuple.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: TypeDeclaration,
@@ -315,6 +318,7 @@ test/parser/type/tuple.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
   ],
 }

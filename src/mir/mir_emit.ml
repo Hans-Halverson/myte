@@ -171,7 +171,7 @@ and emit_all_enqueue_pending ~ecx =
         let is_trait_generic = kind = Trait || type_params <> [] in
         List.iter
           (fun meth ->
-            if (not is_trait_generic) || meth.Ast.Function.static then
+            if (not is_trait_generic) || meth.Ast.Function.is_static then
               enqueue_nongeneric_function meth)
           methods
       (* Nongeneric types are enqueued *)
@@ -204,12 +204,12 @@ and emit_global_variable_declaration ~ecx name decl =
   global_set_init ~global ~init
 
 and emit_nongeneric_function ~ecx func func_decl =
-  if not func_decl.builtin then emit_function_body ~ecx func func_decl
+  if not func_decl.is_builtin then emit_function_body ~ecx func func_decl
 
 and emit_generic_function_instantiation ~ecx (name, (func, type_param_bindings)) =
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
-      if not func_decl_node.builtin then emit_function_body ~ecx func func_decl_node)
+      if not func_decl_node.is_builtin then emit_function_body ~ecx func func_decl_node)
 
 and emit_anonymous_function_instantiation
     ~ecx func (pending_anon_func : Ecx.PendingAnonymousFunction.t) =

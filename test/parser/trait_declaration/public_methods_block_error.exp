@@ -1,0 +1,4 @@
+Error: Public qualifier cannot be used on entire method declarations block
+test/parser/trait_declaration/public_methods_block_error.myte:3:0-3
+ 3 | pub methods Foo {}
+   | ^^^

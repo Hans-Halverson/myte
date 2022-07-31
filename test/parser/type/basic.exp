@@ -51,6 +51,7 @@ test/parser/type/basic.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -86,6 +87,7 @@ test/parser/type/basic.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -121,6 +123,7 @@ test/parser/type/basic.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -156,6 +159,7 @@ test/parser/type/basic.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -191,6 +195,7 @@ test/parser/type/basic.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -226,6 +231,7 @@ test/parser/type/basic.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -282,6 +288,7 @@ test/parser/type/basic.myte
           type_args: [],
         },
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -359,6 +366,7 @@ test/parser/type/basic.myte
           },
         },
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -457,6 +465,7 @@ test/parser/type/basic.myte
           },
         },
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -492,6 +501,7 @@ test/parser/type/basic.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -538,6 +548,7 @@ test/parser/type/basic.myte
         },
         type_args: [],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -633,6 +644,7 @@ test/parser/type/basic.myte
           },
         },
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -684,6 +696,7 @@ test/parser/type/basic.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -765,6 +778,7 @@ test/parser/type/basic.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -846,6 +860,7 @@ test/parser/type/basic.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -929,6 +944,7 @@ test/parser/type/basic.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1001,6 +1017,7 @@ test/parser/type/basic.myte
           },
         ],
       },
+      is_public: false,
     },
     {
       node: VariableDeclaration,
@@ -1052,6 +1069,7 @@ test/parser/type/basic.myte
           },
         ],
       },
+      is_public: false,
     },
   ],
 }

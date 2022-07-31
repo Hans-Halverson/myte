@@ -1,6 +1,7 @@
 module Test
 
 val x = 1
-var y = 2
+
+pub var y = 2
 
 val x: Int = 1
