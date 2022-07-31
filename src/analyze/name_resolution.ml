@@ -782,13 +782,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method visit_match_test_and_block match_test block =
       (* Match tests introduces a single case of bindings scoped to a single block *)
-      let { Test.Match.loc = _; expr; pattern } = match_test in
+      let { Test.Match.loc = _; expr; pattern; guard } = match_test in
       this#expression expr;
       this#enter_scope ();
       this#visit_pattern
         ~is_match:true
         ~mk_decl:(Some (fun _ -> MatchCaseVarDecl (MatchCaseVariableDeclaration.mk ())))
         pattern;
+      Option.iter this#expression guard;
       this#block block;
       this#exit_scope ()
 

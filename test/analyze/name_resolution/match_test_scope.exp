@@ -1,4 +1,14 @@
 Error: Could not resolve name `y` to value
+test/analyze/name_resolution/match_test_scope.myte:8:33
+ 8 |   } else if (x match (a, b) when y == z) {
+   |                                  ^
+
+Error: Could not resolve name `z` to value
+test/analyze/name_resolution/match_test_scope.myte:8:38
+ 8 |   } else if (x match (a, b) when y == z) {
+   |                                       ^
+
+Error: Could not resolve name `y` to value
 test/analyze/name_resolution/match_test_scope.myte:13:5
  13 |     (y, z);
     |      ^

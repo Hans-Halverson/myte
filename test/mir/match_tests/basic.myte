@@ -87,6 +87,53 @@ fun testWhile(x: V1) {
   use(2);
 }
 
+fun testGuard1(x: V1) {
+  use(1);
+
+  if (x match Tuple1 (y, z) when y == 1) {
+    use(y);
+    use(z);
+  }
+
+  use(2);
+}
+
+fun testGuard2(x: V1) {
+  use(1);
+
+  if (x match Tuple1 (y, z) when y == 1) {
+    use(y);
+    use(z);
+  } else if (x match Record1 { foo, bar} when foo == bar) {
+    use(foo);
+    use(bar);
+  } else {
+    use(2);
+  }
+
+  use(3);
+}
+
+fun testMultiDestructuring(x: V1) {
+  use(1);
+
+  if (x match Tuple1 (2, y) | Tuple1 (y, 3)) {
+    use(y);
+  }
+
+  use(2);
+}
+
+fun testMultiDestructuringGuard(x: V1) {
+  use(1);
+
+  if (x match Tuple1 (2, y) | Tuple1 (y, 3) when y == 4) {
+    use(y);
+  }
+
+  use(2);
+}
+
 fun use<T>(x: T) {}
 
 fun main() {}

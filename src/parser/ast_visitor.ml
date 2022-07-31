@@ -397,9 +397,10 @@ class visitor =
 
     method match_test match_ =
       let open Test.Match in
-      let { loc = _; expr; pattern } = match_ in
+      let { loc = _; expr; pattern; guard } = match_ in
       this#expression expr;
-      this#pattern pattern
+      this#pattern pattern;
+      Option.iter this#expression guard
 
     method match_ match_ =
       let open Match in

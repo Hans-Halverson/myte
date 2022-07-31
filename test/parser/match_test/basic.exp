@@ -1,7 +1,7 @@
 test/parser/match_test/basic.myte
 {
   node: Module,
-  loc: 1:0-10:1,
+  loc: 1:0-13:1,
   name: {
     node: ModuleName,
     loc: 1:0-1:11,
@@ -20,7 +20,7 @@ test/parser/match_test/basic.myte
   toplevels: [
     {
       node: Function,
-      loc: 3:0-10:1,
+      loc: 3:0-13:1,
       name: {
         node: Identifier,
         loc: 3:4-3:8,
@@ -29,7 +29,7 @@ test/parser/match_test/basic.myte
       params: [],
       body: {
         node: Block,
-        loc: 3:11-10:1,
+        loc: 3:11-13:1,
         statements: [
           {
             node: IfStatement,
@@ -52,6 +52,7 @@ test/parser/match_test/basic.myte
                   name: "x",
                 },
               },
+              guard: None,
             },
             conseq: {
               node: Block,
@@ -76,6 +77,7 @@ test/parser/match_test/basic.myte
                 loc: 5:14-5:15,
                 raw: "1",
               },
+              guard: None,
             },
             conseq: {
               node: Block,
@@ -121,6 +123,7 @@ test/parser/match_test/basic.myte
                   },
                 ],
               },
+              guard: None,
             },
             conseq: {
               node: Block,
@@ -186,6 +189,7 @@ test/parser/match_test/basic.myte
                   },
                 ],
               },
+              guard: None,
             },
             conseq: {
               node: Block,
@@ -210,12 +214,42 @@ test/parser/match_test/basic.myte
                 loc: 9:17-9:18,
                 raw: "1",
               },
+              guard: None,
             },
             body: {
               node: Block,
               loc: 9:20-9:22,
               statements: [],
             },
+          },
+          {
+            node: IfStatement,
+            loc: 12:2-12:26,
+            test: {
+              node: MatchTest,
+              loc: 12:6-12:22,
+              expr: {
+                node: Identifier,
+                loc: 12:6-12:7,
+                name: "x",
+              },
+              pattern: {
+                node: IntLiteral,
+                loc: 12:14-12:15,
+                raw: "1",
+              },
+              guard: {
+                node: IntLiteral,
+                loc: 12:21-12:22,
+                raw: "2",
+              },
+            },
+            conseq: {
+              node: Block,
+              loc: 12:24-12:26,
+              statements: [],
+            },
+            altern: None,
           },
         ],
       },

@@ -2898,10 +2898,10 @@ and emit_match_test
     let test_val = emit_bool_expression ~ecx expr in
     Ecx.finish_block_branch ~ecx test_val true_block false_block
   (* Emit decision tree that branches to true or false cases depending on if scrutinee matches pattern *)
-  | Match { loc = _; expr; pattern } ->
+  | Match { loc = _; expr; pattern; guard } ->
     let open Mir_match_decision_tree in
     let scrutinee_val = emit_expression ~ecx expr in
-    let true_ast_nodes = { AstNodes.loc = true_loc; guard = None; body = Block true_block } in
+    let true_ast_nodes = { AstNodes.loc = true_loc; guard; body = Block true_block } in
     let false_ast_nodes = { AstNodes.loc = false_loc; guard = None; body = Block false_block } in
     let decision_tree =
       build_match_test_decision_tree ~ecx scrutinee_val pattern true_ast_nodes false_ast_nodes

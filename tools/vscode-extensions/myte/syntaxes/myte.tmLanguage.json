@@ -856,7 +856,18 @@
             "0": { "name": "keyword.control.myte" }
           },
           "end": "(?=\\))",
-          "patterns": [{ "include": "#pattern" }]
+          "patterns": [
+            {
+              "name": "meta.test.match.guard.myte",
+              "begin": "\\bwhen\\b",
+              "beginCaptures": {
+                "0": { "name": "keyword.control.when.myte" }
+              },
+              "end": "(?=\\))",
+              "patterns": [{ "include": "#expressions" }]
+            },
+            { "include": "#pattern" }
+          ]
         },
         { "include": "#expressions" }
       ]

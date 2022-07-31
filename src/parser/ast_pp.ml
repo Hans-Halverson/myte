@@ -526,8 +526,15 @@ and node_of_test test =
   | Match match_ -> node_of_match_test match_
 
 and node_of_match_test match_ =
-  let { Test.Match.loc; expr; pattern } = match_ in
-  node "MatchTest" loc [("expr", node_of_expression expr); ("pattern", node_of_pattern pattern)]
+  let { Test.Match.loc; expr; pattern; guard } = match_ in
+  node
+    "MatchTest"
+    loc
+    [
+      ("expr", node_of_expression expr);
+      ("pattern", node_of_pattern pattern);
+      ("guard", opt node_of_expression guard);
+    ]
 
 and node_of_match match_ ~is_expr =
   let { Match.loc; args; cases } = match_ in

@@ -1,11 +1,11 @@
 module test
 
 fun testScopes(x: (Int, Int)) {
-  // Bindings are only usable in body
-  if (x match (y, z)) {
+  // Bindings are only usable in body and guard
+  if (x match (y, z) when y == z) {
     // Success
     (y, z);
-  } else if (x match (a, b)) {
+  } else if (x match (a, b) when y == z) {
     // Success
     (a, b);
 

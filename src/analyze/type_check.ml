@@ -1898,10 +1898,19 @@ and check_test ~cx test =
     let (test_loc, test_tvar_id) = check_expression ~cx expr in
     Type_context.assert_unify ~cx test_loc Bool (TVar test_tvar_id)
   (* Check match test, expression and pattern must have the same type *)
-  | Match { loc = _; expr; pattern } ->
+  | Match { loc = _; expr; pattern; guard } ->
     let (_, expr_tvar_id) = check_expression ~cx expr in
     let (pattern_loc, pattern_tvar_id) = check_pattern ~cx pattern in
-    Type_context.assert_unify ~cx pattern_loc (TVar expr_tvar_id) (TVar pattern_tvar_id)
+    Type_context.assert_unify ~cx pattern_loc (TVar expr_tvar_id) (TVar pattern_tvar_id);
+    check_guard ~cx guard
+
+and check_guard ~cx guard =
+  (* Guard must evaluate to a boolean *)
+  match guard with
+  | None -> ()
+  | Some guard ->
+    let (guard_loc, guard_tvar_id) = check_expression ~cx guard in
+    Type_context.assert_unify ~cx guard_loc Bool (TVar guard_tvar_id)
 
 and check_match ~cx ~is_expr match_ =
   let open Ast.Match in
@@ -1932,12 +1941,7 @@ and check_match ~cx ~is_expr match_ =
         Type_context.assert_unify ~cx pattern_loc arg_ty (TVar pattern_tvar_id);
         if num_args <> 1 then check_multiple_args_pattern ~cx pattern;
 
-        (* Guard must evaluate to a boolean *)
-        (match guard with
-        | None -> ()
-        | Some guard ->
-          let (guard_loc, guard_tvar_id) = check_expression ~cx guard in
-          Type_context.assert_unify ~cx guard_loc Bool (TVar guard_tvar_id));
+        check_guard ~cx guard;
 
         (* All cases must evaluate to same result value *)
         let (rhs_loc, rhs_tvar_id) =

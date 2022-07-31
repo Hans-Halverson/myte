@@ -390,11 +390,15 @@ fun nodeOfTest(test: ast.Test): PrintNode =
   }
 
 fun nodeOfMatchTest(match_: ast.MatchTest): PrintNode {
-  val ast.MatchTest { loc, expr, pattern } = match_;
+  val ast.MatchTest { loc, expr, pattern, guard } = match_;
   return Node {
     name: "MatchTest",
     loc,
-    fields: [("expr", nodeOfExpression(expr)), ("pattern", nodeOfPattern(pattern))],
+    fields: [
+      ("expr", nodeOfExpression(expr)),
+      ("pattern", nodeOfPattern(pattern)),
+      ("guard", optional(guard, nodeOfExpression)),
+    ],
   };
 }
 

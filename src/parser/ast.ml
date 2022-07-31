@@ -637,6 +637,7 @@ and Test : sig
       loc: Loc.t;
       expr: Expression.t;
       pattern: Pattern.t;
+      guard: Expression.t option;
     }
   end
 

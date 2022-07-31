@@ -195,6 +195,7 @@ type MatchTest {
   loc: Loc,
   expr: Expression,
   pattern: Pattern,
+  guard: Option<Expression>,
 }
 
 type Match {

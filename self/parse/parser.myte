@@ -1007,9 +1007,17 @@ methods Parser {
     if (this.token == token.Match) {
       this.advance();
       val pattern = this.parsePattern(false);
+
+      val guard = if (this.token == token.When) {
+        this.advance();
+        Some (this.parseExpression())
+      } else {
+        None
+      };
+
       val loc = this.currentLoc(startLoc);
 
-      return ast.TMatch (ast.MatchTest { loc, expr, pattern });
+      return ast.TMatch (ast.MatchTest { loc, expr, pattern, guard });
     } else {
       return ast.TExpression (expr);
     }

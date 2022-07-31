@@ -9,11 +9,16 @@ test/analyze/type_check/match_test/basic.myte:13:5-11
     |      ^^^^^^
 
 Error: Expected type `(Int, String)` but found `(a, b, c)`
-test/analyze/type_check/match_test/basic.myte:22:14-23
- 22 |   if (x match (y, _, _)) {
+test/analyze/type_check/match_test/basic.myte:20:14-23
+ 20 |   if (x match (y, _, _)) {
     |               ^^^^^^^^^
 
 Error: Expected type `(Int, String)` but found `(Int, Bool)`
-test/analyze/type_check/match_test/basic.myte:27:24-33
- 27 |   if ((1, "test") match (1, true)) {}
+test/analyze/type_check/match_test/basic.myte:25:24-33
+ 25 |   if ((1, "test") match (1, true)) {}
     |                         ^^^^^^^^^
+
+Error: Expected type `Bool` but found `String`
+test/analyze/type_check/match_test/basic.myte:32:26
+ 32 |   if (x match (y, z) when z) {}
+    |                           ^

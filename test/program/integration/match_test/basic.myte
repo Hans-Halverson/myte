@@ -78,9 +78,73 @@ fun testWhile() {
   assertEqual(while_(Record1 { foo: 1, bar: 2 }), 3);
 }
 
+fun guard1(x: V1): Int {
+  return if (x match Tuple1 (y, _, z) when y == 2) {
+    z
+  } else {
+    -1
+  };
+}
+
+fun guard2(x: V1): Int {
+  return if (x match Tuple1 (y, _, z) when y == 2) {
+    z
+  } else if (x match Record1 { foo, bar } when foo == bar) {
+    foo
+  } else {
+    -1
+  };
+}
+
+fun testGuards() {
+  assertEqual(guard1(Tuple1 (1, 0, 3)), -1);
+  assertEqual(guard1(Tuple1 (2, 0, 3)), 3);
+  assertEqual(guard1(Record1 { foo: 1, bar: 2 }), -1);
+
+  assertEqual(guard2(Tuple1 (1, 0, 3)), -1);
+  assertEqual(guard2(Tuple1 (2, 0, 3)), 3);
+  assertEqual(guard2(Record1 { foo: 1, bar: 2 }), -1);
+  assertEqual(guard2(Record1 { foo: 2, bar: 2 }), 2);
+}
+
+fun multiDestructuring(x: V1): Int {
+  return if (x match Tuple1 (2, _, y) | Tuple1 (y, 3, _)) {
+    y + 5
+  } else {
+    -1
+  };
+}
+
+fun testMultiDestructuring() {
+  assertEqual(multiDestructuring(Tuple1 (2, 0, 7)), 12);
+  assertEqual(multiDestructuring(Tuple1 (1, 0, 7)), -1);
+  assertEqual(multiDestructuring(Tuple1 (6, 2, 2)), -1);
+  assertEqual(multiDestructuring(Tuple1 (6, 3, 2)), 11);
+}
+
+fun multiDestructuringGuard(x: V1): Int {
+  return if (x match Tuple1 (2, _, y) | Tuple1 (y, 3, _) when y > 5) {
+    y + 5
+  } else {
+    -1
+  };
+}
+
+fun testMultiDestructuringGuard() {
+  assertEqual(multiDestructuringGuard(Tuple1 (2, 0, 6)), 11);
+  assertEqual(multiDestructuringGuard(Tuple1 (2, 0, 5)), -1);
+  assertEqual(multiDestructuringGuard(Tuple1 (1, 0, 7)), -1);
+  assertEqual(multiDestructuringGuard(Tuple1 (6, 2, 2)), -1);
+  assertEqual(multiDestructuringGuard(Tuple1 (5, 3, 2)), -1);
+  assertEqual(multiDestructuringGuard(Tuple1 (7, 3, 2)), 12);
+}
+
 fun main() {
   testIfExpression();
   testIfStatementNoAltern();
   testIfStatementWithAltern();
   testWhile();
+  testGuards();
+  testMultiDestructuring();
+  testMultiDestructuringGuard();
 }

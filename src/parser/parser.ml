@@ -1151,8 +1151,16 @@ and parse_test env =
   if Env.token env == T_MATCH then (
     Env.advance env;
     let pattern = parse_pattern ~is_decl:false env in
+    let guard =
+      if Env.token env == T_WHEN then (
+        Env.advance env;
+        Some (parse_expression env)
+      ) else
+        None
+    in
+
     let loc = marker env in
-    Match { loc; expr; pattern }
+    Match { loc; expr; pattern; guard }
   ) else
     Expression expr
 

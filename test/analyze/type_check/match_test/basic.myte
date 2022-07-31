@@ -14,8 +14,6 @@ fun testDestructuring(x: (Int, String)) {
     (y: Int);
     (z: String);
   }
-
-
 }
 
 fun testPatternMachesExpression(x: (Int, String)) {
@@ -25,6 +23,13 @@ fun testPatternMachesExpression(x: (Int, String)) {
   }
 
   if ((1, "test") match (1, true)) {}
+}
+
+fun testGuardIsBoolean(x: (Int, String)) {
+  // Success
+  if (x match (y, z) when y == 1) {}
+  // Failure
+  if (x match (y, z) when z) {}
 }
 
 fun main() {}
