@@ -2,13 +2,13 @@ module test
 
 import std.test.assertEqual
 
-type Rec1 { foo: Int, bar: Byte }
+type Rec1 { var foo: Int, var bar: Byte }
 
 type Rec2 { foo: Bool, bar: Rec1 }
 
-type Rec3 { foo: Unit, bar: Unit }
+type Rec3 { var foo: Unit, var bar: Unit }
 
-type Rec4 { one: Int, two: Unit, three: Unit, four: Bool }
+type Rec4 { var one: Int, var two: Unit, var three: Unit, var four: Bool }
 
 type Tup1 (String, Rec1)
 

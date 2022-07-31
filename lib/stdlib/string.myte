@@ -15,9 +15,9 @@ import std.vec.Vec
 type alias Char = Byte
 
 type String {
-  data: Array<Char>,
-  size: Int,
-  capacity: Int,
+  var data: Array<Char>,
+  var size: Int,
+  var capacity: Int,
 }
 
 methods String {
@@ -295,7 +295,7 @@ methods String {
 /**
  * An iterator over the bytes of a String.
  */
-type StringByteIterator { data: Array<Byte>, size: Int, index: Int }
+type StringByteIterator { data: Array<Byte>, size: Int, var index: Int }
 
 methods StringByteIterator {
   implements Iterator<Byte>

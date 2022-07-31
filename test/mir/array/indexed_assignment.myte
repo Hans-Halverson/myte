@@ -14,7 +14,7 @@ fun nestedAccesses(x1: Array<Array<Array<String>>>, x2: Array<String>) {
 }
 
 type Tup1 (Byte, Array<Rec1>, Bool)
-type Rec1 { foo: Bool, bar: Byte, baz: String }
+type Rec1 { foo: Bool, bar: Byte, var baz: String }
 
 type Rec2 { foo: Array<Long>, bar: Byte }
 

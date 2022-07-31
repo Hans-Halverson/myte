@@ -13,20 +13,20 @@ import std.option.{None, Option, Some}
  */
 type Map<K: Equatable & Hashable, V> {
   // Entries in the hash table
-  data: Array<Option<Entry<K, V>>>,
+  var data: Array<Option<Entry<K, V>>>,
   // Number of items inserted in map
-  size: Int,
+  var size: Int,
   // Number of slots for entries in data array. Always a power of two.
-  capacity: Int,
+  var capacity: Int,
   // Bit mask to apply to a hash value to mod it to range [0, capacity)
-  capacityMask: Int,
+  var capacityMask: Int,
 }
 
 type Entry<K, V> {
-  key: K,
-  value: V,
-  hash: Int,
-  isDeleted: Bool,
+  var key: K,
+  var value: V,
+  var hash: Int,
+  var isDeleted: Bool,
 }
 
 methods Map<K: Equatable & Hashable, V> {
@@ -245,7 +245,7 @@ methods Map<K: Equatable & Hashable, V> {
 type MapIterator<K: Equatable & Hashable, V> {
   data: Array<Option<Entry<K, V>>>,
   capacity: Int,
-  index: Int,
+  var index: Int,
 }
 
 /*

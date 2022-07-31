@@ -20,7 +20,7 @@ trait Writer {
 type BufferedWriter<W: Writer> {
   writer: W,
   buffer: Vec<Byte>,
-  nextPos: Int,
+  var nextPos: Int,
   bufferSize: Int,
  }
 

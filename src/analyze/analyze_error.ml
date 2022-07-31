@@ -102,6 +102,7 @@ and invalid_assignment_kind =
   | InvalidAssignmentThis
   | InvalidAssignmentConstructor
   | InvalidAssignmentMatchCaseVariable
+  | InvalidAssignmentImmutableField
 
 and invalid_lvalue_kind = InvalidLValueTuple
 
@@ -205,7 +206,8 @@ let to_string error =
     | InvalidAssignmentMethod -> "Cannot reassign methods"
     | InvalidAssignmentThis -> with_name ""
     | InvalidAssignmentConstructor -> with_name " constructor"
-    | InvalidAssignmentMatchCaseVariable -> with_name " match case variable")
+    | InvalidAssignmentMatchCaseVariable -> with_name " match case variable"
+    | InvalidAssignmentImmutableField -> with_name " immutable field")
   | InvalidLValue kind ->
     let kind_string =
       match kind with

@@ -60,7 +60,7 @@ fun shifts() {
   x <<= (1: Long);
 }
 
-type Rec { foo: Int, bar: Bool }
+type Rec { var foo: Int, var bar: Bool }
 
 fun leftHandAccess(x: Rec, y: Vec<Int>, z: Map<String, Int>) {
   // Success

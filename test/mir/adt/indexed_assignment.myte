@@ -1,12 +1,12 @@
 module test
 
-type Rec1 { foo: Int }
+type Rec1 { var foo: Int }
 
-type Rec2 { foo: String, bar: Bool, baz: Int }
+type Rec2 { var foo: String, var bar: Bool, var baz: Int }
 
-type Rec3 { foo: Byte, bar: Rec2, baz: Long }
+type Rec3 { var foo: Byte, var bar: Rec2, var baz: Long }
 
-type Rec4 { foo: Int, bar: Int, baz: Rec3 }
+type Rec4 { var foo: Int, var bar: Int, var baz: Rec3 }
 
 type Tup1 (Rec3)
 

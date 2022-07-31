@@ -14,13 +14,13 @@ import myte.parse.token
 import myte.parse.token.Token
 
 type Parser {
-  lexer: Lexer,
-  token: Token,
-  loc: Loc,
-  prevToken: Token,
-  prevLoc: Loc,
+  var lexer: Lexer,
+  var token: Token,
+  var loc: Loc,
+  var prevToken: Token,
+  var prevLoc: Loc,
   // Whether the lexer should currently be lexing an interpolated string 
-  inInterpolatedString: Bool,
+  var inInterpolatedString: Bool,
   // A stack of bools where each bool represents whether bitwise or is not allowed
   // in the enclosing matches.
   matchStack: Vec<Bool>,

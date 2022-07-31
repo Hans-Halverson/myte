@@ -1509,7 +1509,7 @@ and check_expression ~cx expr =
    * ============================
    *)
   | NamedAccess named_access ->
-    let (loc, tvar_id, _) = check_named_access ~cx named_access in
+    let (loc, tvar_id, _, _) = check_named_access ~cx named_access in
     (loc, tvar_id)
   (*
    * ============================
@@ -1787,7 +1787,7 @@ and check_named_access ~cx named_access =
   (* Named acesses may actually be a single scoped identifier *)
   if Type_context.is_scope_named_access ~cx loc then
     let (loc, tvar_id) = check_identifier_expression ~cx loc name in
-    (loc, tvar_id, false)
+    (loc, tvar_id, false, false)
   else
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
 
@@ -1896,25 +1896,26 @@ and check_named_access ~cx named_access =
 
     (* If named access does not resolve to a method, try to resolve to a field access *)
     let is_method = is_resolved in
-    let is_resolved =
-      is_resolved
-      ||
-      match target_rep_ty with
-      (* Can only index into ADTs with a single record variant *)
-      | ADT { adt_sig = { variants; _ }; _ } ->
-        (match SMap.choose_opt variants with
-        | Some (_, { kind = Record field_sigs; _ }) when SMap.cardinal variants = 1 ->
-          (match SMap.find_opt name.name field_sigs with
-          | None -> false
-          | Some field_sig ->
-            (* If there are type params, calculate type param to type arg bindings and substitute
-               type params for type args in sig field type. *)
-            let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
-            let field_type = Types.substitute_type_params type_param_bindings field_sig.type_ in
-            ignore (Type_context.unify ~cx field_type (TVar tvar_id));
-            true)
-        | _ -> false)
-      | _ -> false
+    let (is_resolved, is_immutable_field) =
+      if is_resolved then
+        (true, false)
+      else
+        match target_rep_ty with
+        (* Can only index into ADTs with a single record variant *)
+        | ADT { adt_sig = { variants; _ }; _ } ->
+          (match SMap.choose_opt variants with
+          | Some (_, { kind = Record field_sigs; _ }) when SMap.cardinal variants = 1 ->
+            (match SMap.find_opt name.name field_sigs with
+            | None -> (false, false)
+            | Some field_sig ->
+              (* If there are type params, calculate type param to type arg bindings and substitute
+                 type params for type args in sig field type. *)
+              let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
+              let field_type = Types.substitute_type_params type_param_bindings field_sig.type_ in
+              ignore (Type_context.unify ~cx field_type (TVar tvar_id));
+              (true, not field_sig.is_mutable))
+          | _ -> (false, false))
+        | _ -> (false, false)
     in
 
     if not is_resolved then (
@@ -1927,7 +1928,7 @@ and check_named_access ~cx named_access =
       Type_context.add_error ~cx target_loc error;
       ignore (Type_context.unify ~cx any (TVar tvar_id))
     );
-    (loc, tvar_id, is_method)
+    (loc, tvar_id, is_method, is_immutable_field)
 
 and check_match ~cx ~is_expr match_ =
   let open Ast.Match in
@@ -2525,13 +2526,21 @@ and check_statement ~cx ~is_expr stmt =
           None
         | _ -> Some (expr_loc, TVar expr_tvar_id))
       | Expression (NamedAccess named_access) ->
-        let (expr_loc, expr_tvar_id, is_method) = check_named_access ~cx named_access in
+        let (expr_loc, expr_tvar_id, is_method, is_immutable_field) =
+          check_named_access ~cx named_access
+        in
         (* Methods cannot be reassigned *)
         if is_method then (
           Type_context.add_error
             ~cx
             expr_loc
             (InvalidAssignment (named_access.name.name, InvalidAssignmentMethod));
+          Some (expr_loc, any)
+        ) else if is_immutable_field then (
+          Type_context.add_error
+            ~cx
+            expr_loc
+            (InvalidAssignment (named_access.name.name, InvalidAssignmentImmutableField));
           Some (expr_loc, any)
         ) else
           Some (expr_loc, TVar expr_tvar_id)

@@ -101,7 +101,7 @@ methods Int {
 }
 
 type IntRange {
-  current: Int,
+  var current: Int,
   end: Int,
 }
 
@@ -121,7 +121,7 @@ methods IntRange {
 }
 
 type IntRangeInclusive {
-  current: Int,
+  var current: Int,
   end: Int,
 }
 
@@ -141,7 +141,7 @@ methods IntRangeInclusive {
 }
 
 type IntRangeWithStep {
-  current: Int,
+  var current: Int,
   end: Int,
   step: Int,
 }
@@ -162,7 +162,7 @@ methods IntRangeWithStep {
 }
 
 type IntRangeWithStepDown {
-  current: Int,
+  var current: Int,
   end: Int,
   step: Int,
 }

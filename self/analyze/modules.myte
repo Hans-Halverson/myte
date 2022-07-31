@@ -12,7 +12,7 @@ type ModuleTree {
   errors: Vec<AnalyzeError>,
 }
 
-type ModuleType { exists: Bool }
+type ModuleType { var exists: Bool }
 
 type ModuleTreeNode =
   | Module { type_: ModuleType, scope: ModuleScope }

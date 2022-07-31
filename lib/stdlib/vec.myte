@@ -11,9 +11,9 @@ import std.sys.abort
  * A resizable container of elements.
  */
 type Vec<T> {
-  data: Array<T>,
-  size: Int,
-  capacity: Int,
+  var data: Array<T>,
+  var size: Int,
+  var capacity: Int,
 }
 
 methods Vec<T> {
@@ -148,7 +148,7 @@ methods Vec<T> {
 /*
  * An iterator over a Vec. Contains both the Vec and the index of the next item to visit.
  */
-type VecIterator<T> { data: Array<T>, size: Int, index: Int }
+type VecIterator<T> { data: Array<T>, size: Int, var index: Int }
 
 methods Vec<T> {
   implements Iterable<T>

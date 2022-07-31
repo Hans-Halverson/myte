@@ -1,7 +1,7 @@
 module test
 
 // Test uses of this directly in type trait
-type RecordType { foo: Int, bar: Bool }
+type RecordType { foo: Int, var bar: Bool }
 methods RecordType {
   fun getBar(): Bool = this.bar
 

@@ -27,3 +27,8 @@ Error: Cannot resolve field or method with name `nonexist` on type `Rec1`
 test/analyze/type_check/assignment/lvalue_expression.myte:35:2-6
  35 |   rec1.nonexist = 1;
     |   ^^^^
+
+Error: Cannot reassign immutable field `field6`
+test/analyze/type_check/assignment/lvalue_expression.myte:42:2-10
+ 42 |   x.field6 = 2;
+    |   ^^^^^^^^

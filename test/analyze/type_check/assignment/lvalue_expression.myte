@@ -1,7 +1,7 @@
 module test
 
-type Rec1 { field1: Int, field2: Rec2 }
-type Rec2 { field3: Bool, field4: Rec3 }
+type Rec1 { var field1: Int, field2: Rec2 }
+type Rec2 { var field3: Bool, var field4: Rec3 }
 type Rec3 { field5: Tup1 }
 
 type Tup1 (String)
@@ -33,6 +33,13 @@ fun namedAccess(rec1: Rec1) {
 
   // Errors since field does not exist
   rec1.nonexist = 1;
+}
+
+type Rec4 { field6: Int }
+
+fun test(x: Rec4) {
+  // Reassign immutable field
+  x.field6 = 2;
 }
 
 fun main() {}

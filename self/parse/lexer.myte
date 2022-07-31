@@ -15,15 +15,15 @@ type Lexer {
   // Name of source file that is being tokenized
   source: String,
   // Current byte
-  current: LexByte,
+  var current: LexByte,
   // Offset of current byte in bytes
-  currentOffset: Int,
+  var currentOffset: Int,
   // Line number of current byte
-  currentLine: Int,
+  var currentLine: Int,
   // Offset of current line in bytes
-  currentLineOffset: Int,
+  var currentLineOffset: Int,
   // Position of the start of the current token
-  currentTokenStartPos: Pos,
+  var currentTokenStartPos: Pos,
 }
 
 type TokenResult {

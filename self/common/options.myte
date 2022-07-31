@@ -4,9 +4,9 @@ import std.io.println
 import std.sys.{args, exit}
 
 type Options {
-  check: Bool,
-  dumpAst: Bool,
-  noPrettyPrint: Bool,
+  var check: Bool,
+  var dumpAst: Bool,
+  var noPrettyPrint: Bool,
 }
 
 val options: Options = Options {

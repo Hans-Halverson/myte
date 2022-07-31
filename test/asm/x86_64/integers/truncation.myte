@@ -1,7 +1,7 @@
 module test
 
 // Include struct to force register to memory mov
-type Numbers { byte: Byte, int: Int }
+type Numbers { var byte: Byte, var int: Int }
 
 fun truncIntToByte(n: Numbers, x: Int): Byte {
   n.byte = x.toByte();

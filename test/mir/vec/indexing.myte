@@ -11,7 +11,7 @@ fun testIndexRec1(x: Rec1) {
   x.bar[7] = 1;
 }
 
-type Rec2 { a: Long, b: Bool }
+type Rec2 { a: Long, var b: Bool }
 fun testIndexVecRec2(x: Vec<Rec2>) {
   x[7].b;
   x[7].b = true;

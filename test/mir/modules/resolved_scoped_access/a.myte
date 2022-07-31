@@ -2,7 +2,7 @@ module a
 
 var global: Int = 1
 
-type Record1 { other: Int, foo: Long }
+type Record1 { other: Int, var foo: Long }
 
 type Record2 { other: Bool, bar: Record1 }
 

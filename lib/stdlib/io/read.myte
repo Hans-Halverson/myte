@@ -24,8 +24,8 @@ trait Reader {
 type BufferedReader<R: Reader> {
   reader: R,
   buffer: Vec<Byte>,
-  pos: Int,
-  size: Int,
+  var pos: Int,
+  var size: Int,
 }
 
 methods BufferedReader<R: Reader> {

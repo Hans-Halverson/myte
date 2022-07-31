@@ -19,7 +19,7 @@ type PrintNode =
 
 type Printer {
   builder: String,
-  indent: Int,
+  var indent: Int,
 }
 
 methods Printer {

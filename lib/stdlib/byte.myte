@@ -99,7 +99,7 @@ methods Byte {
 }
 
 type ByteRange {
-  current: Byte,
+  var current: Byte,
   end: Byte,
 }
 
@@ -119,7 +119,7 @@ methods ByteRange {
 }
 
 type ByteRangeInclusive {
-  current: Byte,
+  var current: Byte,
   end: Byte,
 }
 
@@ -139,7 +139,7 @@ methods ByteRangeInclusive {
 }
 
 type ByteRangeWithStep {
-  current: Byte,
+  var current: Byte,
   end: Byte,
   step: Byte,
 }
@@ -160,7 +160,7 @@ methods ByteRangeWithStep {
 }
 
 type ByteRangeWithStepDown {
-  current: Byte,
+  var current: Byte,
   end: Byte,
   step: Byte,
 }

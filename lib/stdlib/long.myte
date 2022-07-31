@@ -99,7 +99,7 @@ methods Long {
 }
 
 type LongRange {
-  current: Long,
+  var current: Long,
   end: Long,
 }
 
@@ -119,7 +119,7 @@ methods LongRange {
 }
 
 type LongRangeInclusive {
-  current: Long,
+  var current: Long,
   end: Long,
 }
 
@@ -139,7 +139,7 @@ methods LongRangeInclusive {
 }
 
 type LongRangeWithStep {
-  current: Long,
+  var current: Long,
   end: Long,
   step: Long,
 }
@@ -160,7 +160,7 @@ methods LongRangeWithStep {
 }
 
 type LongRangeWithStepDown {
-  current: Long,
+  var current: Long,
   end: Long,
   step: Long,
 }

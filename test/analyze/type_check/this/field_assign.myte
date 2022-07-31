@@ -1,6 +1,6 @@
 module test
 
-type Rec1<T> { foo: Int, bar: T }
+type Rec1<T> { var foo: Int, var bar: T }
 
 methods Rec1<T> {
   fun test(x: T) {

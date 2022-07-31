@@ -41,7 +41,7 @@ fun testAssignMapIndexing(x: Map<Bool, ZeroSize>) {
   x[true] = id(ZeroSize (getUnit()));
 }
 
-type RecWithZeroSizeField { foo: Int, bar: ZeroSize }
+type RecWithZeroSizeField { foo: Int, var bar: ZeroSize }
 
 fun testAssignAccessChainIndexing(
   rec: RecWithZeroSizeField,

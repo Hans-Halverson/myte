@@ -1,7 +1,7 @@
 module a1.a2
 
 type Rec { child: Int, child1: Rec2 }
-type Rec2 { child2: Int }
+type Rec2 { var child2: Int }
 
 val export: Rec = Rec { child: 1, child1: Rec2 { child2: 2 } }
 
