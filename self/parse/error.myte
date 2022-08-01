@@ -10,7 +10,7 @@ import myte.common.loc.Loc
 import myte.parse.token
 import myte.parse.token.Token
 
-type ParseError =
+pub type ParseError =
   | UnknownToken { raw: String }
   | UnexpectedToken { actual: Token, expected: Option<Token> }
   | UnexpectedTokens { actual: Token, expected: Vec<Token> }
@@ -36,7 +36,7 @@ type ParseError =
   | PublicMethodsBlock
   | CannotOpenFile { filename: String }
 
-fun fatal(error: ParseError, loc: Loc): Never {
+pub fun fatal(error: ParseError, loc: Loc): Never {
   print(formatErrorWithLoc(error.toString(), loc));
   exit(1);
 }

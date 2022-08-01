@@ -3,24 +3,24 @@ module std.io
 import std.io.file.File
 import std.string.String
 
-val STDIN: File = File (0)
-val STDOUT: File = File (1)
-val STDERR: File = File (2)
+pub val STDIN: File = File (0)
+pub val STDOUT: File = File (1)
+pub val STDERR: File = File (2)
 
-fun print(string: String) {
+pub fun print(string: String) {
   File.__builtin_write(STDOUT[0], string.data, 0, string.size);
 }
 
-fun println(string: String) {
+pub fun println(string: String) {
   print(string);
   print("\n");
 }
 
-fun eprint(string: String) {
+pub fun eprint(string: String) {
   File.__builtin_write(STDERR[0], string.data, 0, string.size);
 }
 
-fun eprintln(string: String) {
+pub fun eprintln(string: String) {
   eprint(string);
   eprint("\n");
 }

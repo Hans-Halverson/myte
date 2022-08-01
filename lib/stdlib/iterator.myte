@@ -2,7 +2,7 @@ module std.iterator
 
 import std.option.Option
 
-trait Iterator<T> {
+pub trait Iterator<T> {
   extends Iterable<T>
 
   fun next(): Option<T>
@@ -10,6 +10,6 @@ trait Iterator<T> {
   override fun toIterator(): This = this
 }
 
-trait Iterable<T> {
+pub trait Iterable<T> {
   fun toIterator(): Iterator<T>
 }

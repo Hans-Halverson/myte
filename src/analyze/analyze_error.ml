@@ -22,11 +22,13 @@ type t =
   | DuplicateMethodNames of string * string * string list
   | DuplicateRecordFieldNames of string
   | DuplicateRecordFieldAndMethodNames of string * string * string option
-  | ModuleAndExportDuplicateNames of string * string
+  | ModuleAndDeclDuplicateNames of string * string
   | ImportNonexist of string * string list
-  | ReferenceChildOfExport of string * string list
+  | ReferenceChildOfDecl of string * string list
   | ModuleInvalidPosition of string list * name_position_type
-  | NoExportInModule of string * string list * bool
+  | NoDeclInModule of string * string list * bool
+  | ImportPrivateDecl of string
+  | AccessPrivateDecl of string
   | NoModuleWithName of string list * bool
   | NoStaticMethod of string * string * trait_type
   | ReferenceChildOfStaticMethod of string * string * trait_type
@@ -256,18 +258,21 @@ let to_string error =
         method_name
         super_trait
         trait_name)
-  | ModuleAndExportDuplicateNames (name, module_) ->
-    Printf.sprintf "Module and export with same name `%s` in module `%s`" name module_
-  | ImportNonexist (name, []) -> Printf.sprintf "No toplevel module with name `%s` found" name
+  | ModuleAndDeclDuplicateNames (name, module_) ->
+    Printf.sprintf
+      "Module and top level declaration with same name `%s` in module `%s`"
+      name
+      module_
+  | ImportNonexist (name, []) -> Printf.sprintf "No top level module with name `%s` found" name
   | ImportNonexist (name, module_parts) ->
     Printf.sprintf
-      "No module or export with name `%s` found in module `%s`"
+      "No module or declaration with name `%s` found in module `%s`"
       name
       (String.concat "." module_parts)
-  | ReferenceChildOfExport (name, module_parts) ->
+  | ReferenceChildOfDecl (name, module_parts) ->
     let module_parts_string = String.concat "." module_parts in
     Printf.sprintf
-      "`%s` is an export of module `%s`, there are no items beneath `%s`"
+      "`%s` is a top level declaration of module `%s`, there are no items beneath `%s`"
       name
       module_parts_string
       (module_parts_string ^ "." ^ name)
@@ -276,18 +281,20 @@ let to_string error =
       "Module `%s` cannot be used as a %s"
       (String.concat "." module_parts)
       (string_of_name_position position)
-  | NoExportInModule (export, module_parts, is_value) ->
+  | NoDeclInModule (name, module_parts, is_value) ->
     let module_parts_string = String.concat "." module_parts in
     Printf.sprintf
-      "Could not resolve `%s.%s`. Module `%s` does not have exported %s with name `%s`."
+      "Could not resolve `%s.%s`. Module `%s` does not have a %s with name `%s`."
       module_parts_string
-      export
+      name
       module_parts_string
       (value_or_type is_value)
-      export
+      name
+  | ImportPrivateDecl name -> Printf.sprintf "Cannot import private `%s`" name
+  | AccessPrivateDecl name -> Printf.sprintf "Cannot access private `%s`" name
   | NoModuleWithName (module_parts, is_value) ->
     Printf.sprintf
-      "No module or exported %s with name `%s` found"
+      "No module or %s with name `%s` found"
       (value_or_type is_value)
       (String.concat "." module_parts)
   | NoStaticMethod (method_name, trait_name, trait_type) ->
@@ -345,9 +352,9 @@ let to_string error =
   | ImplicitTypeParamInAnonymousFunction ->
     "Implicit trait type parameters cannot appear in anonymous function parameter types"
   | TraitObjectExpectsTrait -> "Trait object expects trait"
-  | ToplevelVarWithoutAnnotation -> Printf.sprintf "Toplevel variables must have type annotations"
+  | ToplevelVarWithoutAnnotation -> Printf.sprintf "Top level variables must have type annotations"
   | ToplevelVarWithPattern ->
-    Printf.sprintf "Toplevel variable declarations cannot contain patterns"
+    Printf.sprintf "Top level variable declarations cannot contain patterns"
   | IncompatibleTypes (actual, expecteds) ->
     let type_strings = Types.pps (expecteds @ [actual]) |> List.map (fun str -> "`" ^ str ^ "`") in
     let expected_strings = List_utils.drop_last type_strings in

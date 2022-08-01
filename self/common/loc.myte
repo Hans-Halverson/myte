@@ -4,7 +4,7 @@ import std.ops.Equatable
 import std.string.ToString
 
 // A range of bytes in a source file.
-type Loc {
+pub type Loc {
   // Name of source file.
   source: String,
   // The starting position of the range.
@@ -15,14 +15,14 @@ type Loc {
 }
 
 // A single byte position in a source file.
-type Pos {
+pub type Pos {
   // The line number, starting at 1
   line: Int,
   // The column number within the given line, starting at 0
   column: Int,
 }
 
-val START_POS: Pos = Pos { line: 1, column: 0 }
+pub val START_POS: Pos = Pos { line: 1, column: 0 }
 
 methods Pos {
   implements Equatable

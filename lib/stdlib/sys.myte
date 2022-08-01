@@ -10,13 +10,13 @@ import std.string.String
 import std.vec.Vec
 import std.unit.Unit
 
-builtin fun exit(code: Int): Never
+pub builtin fun exit(code: Int): Never
 
-fun abort(): Never {
+pub fun abort(): Never {
   exit(1);
 }
 
-val args: Vec<String> = Vec.new()
+pub val args: Vec<String> = Vec.new()
 
 var envp: Array<Array<Byte>> = Array.new(0)
 
@@ -38,7 +38,7 @@ fun init(argc: Int, argv: Array<Array<Byte>>, env: Array<Array<Byte>>) {
  * Return the environment variable associated with a given variable, or None if no environment
  * variable with that key exists.
  */
-fun getEnv(key: String): Option<String> {
+pub fun getEnv(key: String): Option<String> {
   // If env cache has been filled, check it for key
   match (env) {
     | Some (env) -> return env[key]

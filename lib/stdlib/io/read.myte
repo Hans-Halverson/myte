@@ -11,7 +11,7 @@ import std.vec.Vec
 
 val BUFFER_SIZE: Int = 1024
 
-trait Reader {
+pub trait Reader {
   /**
    * Fill buffer with bytes from source, returning number of bytes that were successfully read, or
    * an error if bytes were not successfully read.
@@ -21,7 +21,7 @@ trait Reader {
   fun read(buffer: Vec<Byte>): Result<Int, IOError>
 }
 
-type BufferedReader<R: Reader> {
+pub type BufferedReader<R: Reader> {
   reader: R,
   buffer: Vec<Byte>,
   var pos: Int,

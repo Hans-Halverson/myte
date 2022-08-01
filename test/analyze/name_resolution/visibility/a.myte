@@ -1,0 +1,33 @@
+module a
+
+val privateGlobal: Int = 0
+
+pub val publicGlobal: Int = 0
+
+fun privateFun() {}
+
+pub fun publicFun() {}
+
+type PrivateType =
+  | PrivateEnum
+  | PrivateTuple (Int)
+
+pub type PublicType =
+  | PublicEnum
+  | PublicTuple (Int)
+
+trait PrivateTrait {
+  static fun method() {}
+}
+
+pub trait PublicTrait {
+  static fun method() {}
+}
+
+methods PrivateType {
+  static fun method() {}
+}
+
+methods PublicType {
+  static fun method() {}
+}

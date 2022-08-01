@@ -1,24 +1,24 @@
-Error: No module or export with name `a1` found in module `a`
+Error: No module or declaration with name `a1` found in module `a`
 test/analyze/name_resolution/import_nonexist/a.myte:3:9-11
  3 | import a.a1
    |          ^^
 
-Error: No toplevel module with name `b` found
+Error: No top level module with name `b` found
 test/analyze/name_resolution/import_nonexist/a.myte:4:7
  4 | import b
    |        ^
 
-Error: No toplevel module with name `c` found
+Error: No top level module with name `c` found
 test/analyze/name_resolution/import_nonexist/a.myte:5:7
  5 | import c.c1
    |        ^
 
-Error: No toplevel module with name `d` found
+Error: No top level module with name `d` found
 test/analyze/name_resolution/import_nonexist/a.myte:6:7
  6 | import d.d1.d2
    |        ^
 
-Error: No module or export with name `e1` found in module `e`
+Error: No module or declaration with name `e1` found in module `e`
 test/analyze/name_resolution/import_nonexist/a.myte:7:9-11
  7 | import e.e1.e2.e3
    |          ^^

@@ -1,6 +1,6 @@
 module a1.a2.a3
 
-type ExportedType (Int)
+pub type ExportedType (Int)
 methods ExportedType {
   static fun method() {}
 }

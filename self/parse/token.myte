@@ -6,7 +6,7 @@ import std.string.ToString
 import myte.parse.ast
 import myte.parse.ast.utils.escapeCharLiteralValue
 
-type Token =
+pub type Token =
   | Identifier (String)
   | IntLiteral { raw: String, base: ast.IntLiteralBase }
   | FloatLiteral { raw: String }

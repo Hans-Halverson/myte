@@ -394,7 +394,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             let open Module_tree in
             let name_parts = scopes @ [name] in
             match lookup name_parts module_tree with
-            | LookupResultExport { loc = decl_loc; _ } ->
+            | LookupResultDecl { name = { loc = decl_loc; _ }; is_public } ->
+              if not is_public then this#add_error name.loc (ImportPrivateDecl name.name);
+
               check_duplicate_toplevel_name local_name;
               if this#is_value_decl_loc decl_loc then
                 add_imported_value_to_scope local_name.name decl_loc;
@@ -820,23 +822,28 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         (* Only return an export node if there actually is a value/type exported *)
         let find_name ~is_value name module_tree =
           match SMap.find_opt name module_tree with
-          | Some (Export { loc = decl_loc; _ })
+          | Some (Decl { name = { loc = decl_loc; _ }; _ })
             when (is_value && not (this#is_value_decl_loc decl_loc))
                  || ((not is_value) && not (this#is_type_decl_loc decl_loc)) ->
             None
           | result -> result
         in
+        let error_if_private is_public =
+          if not is_public then this#add_error part.loc (AccessPrivateDecl part.name)
+        in
         (* If resolving a value we must check for static methods, which are under a type namespace *)
         let is_static_method =
           if is_value then
             match (find_name ~is_value:false name module_tree, rest_parts) with
-            | (Some (Export { loc = decl_loc; _ }), meth :: rest) ->
+            | (Some (Decl { name = { loc = decl_loc; _ }; is_public }), meth :: rest) ->
               (match this#get_type_binding decl_loc with
               | { TypeBinding.declaration = TraitDecl trait; _ } ->
+                error_if_private is_public;
                 if this#maybe_resolve_static_method part meth rest [trait] TraitTrait then
                   on_export rest;
                 true
               | { TypeBinding.declaration = TypeDecl type_decl; _ } ->
+                error_if_private is_public;
                 if this#maybe_resolve_static_method part meth rest type_decl.traits TraitType then
                   on_export rest;
                 true
@@ -846,20 +853,26 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             false
         in
         if not is_static_method then (
-          match (find_name ~is_value name module_tree, rest_parts) with
+          (* First check if the name is a private decl *)
+          let lookup_result = find_name ~is_value name module_tree in
+          (match lookup_result with
+          | Some (Decl { is_public; _ }) -> error_if_private is_public
+          | _ -> ());
+
+          match (lookup_result, rest_parts) with
           | (None, _)
           | (Some (Empty _), []) ->
             (* Error on no match - but check if parent module exists for better error message *)
             let full_loc = Loc.between (List.hd prev_parts).loc loc in
-            let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+            let prev_parts_names = List.map (fun { Ast.Identifier.name; _ } -> name) prev_parts in
             if prev_is_module then
-              this#add_error full_loc (NoExportInModule (name, prev_parts_names, is_value))
+              this#add_error full_loc (NoDeclInModule (name, prev_parts_names, is_value))
             else
               this#add_error full_loc (NoModuleWithName (prev_parts_names @ [name], is_value))
           | (Some (Module _), []) ->
             (* Error if resolved to module as modules are not types or values *)
             let full_loc = Loc.between (List.hd prev_parts).loc loc in
-            let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+            let prev_parts_names = List.map (fun { Ast.Identifier.name; _ } -> name) prev_parts in
             let position =
               if is_value then
                 NamePositionValue
@@ -867,7 +880,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 NamePositionType
             in
             this#add_error full_loc (ModuleInvalidPosition (prev_parts_names @ [name], position))
-          | (Some (Export { loc = decl_loc; _ }), rest_parts)
+          | (Some (Decl { name = { loc = decl_loc; _ }; _ }), rest_parts)
             when is_value
                  && this#is_value_decl_loc decl_loc
                  && ((not resolve_full) || rest_parts = []) ->
@@ -875,18 +888,18 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             let binding = this#get_value_binding decl_loc in
             this#add_value_use binding loc;
             on_export rest_parts
-          | (Some (Export _), _) when is_value ->
-            let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
-            this#add_error loc (ReferenceChildOfExport (name, prev_parts_names))
-          | (Some (Export { loc = decl_loc; _ }), []) ->
+          | (Some (Decl _), _) when is_value ->
+            let prev_parts_names = List.map (fun { Ast.Identifier.name; _ } -> name) prev_parts in
+            this#add_error loc (ReferenceChildOfDecl (name, prev_parts_names))
+          | (Some (Decl { name = { loc = decl_loc; _ }; _ }), []) ->
             (* Types are only fully resolved if all name parts have been matched *)
             let binding = this#get_type_binding decl_loc in
             this#add_type_use binding loc;
             on_export rest_parts
-          | (Some (Export ty_name), next_part :: _) ->
+          | (Some (Decl { name = ty_name; _ }), next_part :: _) ->
             (* Type was fully resolved, but there are still name parts to resolve *)
             let full_loc = Loc.between (List.hd prev_parts).loc next_part.loc in
-            let prev_parts_names = List.map (fun { name; _ } -> name) prev_parts in
+            let prev_parts_names = List.map (fun { Ast.Identifier.name; _ } -> name) prev_parts in
             this#add_error full_loc (TypeWithAccess (prev_parts_names @ [ty_name.name]))
           | (Some (Empty (_, module_tree)), rest_parts) ->
             this#match_module_parts

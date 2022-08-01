@@ -18,22 +18,22 @@ test/analyze/name_resolution/constructor_with_access_error/test.myte:19:6-17
  19 |     | Enum.method
     |       ^^^^^^^^^^^
 
-Error: `TupleA` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.TupleA`
+Error: `TupleA` is a top level declaration of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.TupleA`
 test/analyze/name_resolution/constructor_with_access_error/test.myte:20:15-21
  20 |     | a1.a2.a3.TupleA.nonexist _
     |                ^^^^^^
 
-Error: `TupleA` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.TupleA`
+Error: `TupleA` is a top level declaration of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.TupleA`
 test/analyze/name_resolution/constructor_with_access_error/test.myte:21:15-21
  21 |     | a1.a2.a3.TupleA.method _
     |                ^^^^^^
 
-Error: `TupleA` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.TupleA`
+Error: `TupleA` is a top level declaration of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.TupleA`
 test/analyze/name_resolution/constructor_with_access_error/test.myte:22:15-21
  22 |     | a1.a2.a3.TupleA.nonexist.another.another _
     |                ^^^^^^
 
-Error: `EnumA` is an export of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.EnumA`
+Error: `EnumA` is a top level declaration of module `a1.a2.a3`, there are no items beneath `a1.a2.a3.EnumA`
 test/analyze/name_resolution/constructor_with_access_error/test.myte:23:15-20
  23 |     | a1.a2.a3.EnumA.method -> ()
     |                ^^^^^

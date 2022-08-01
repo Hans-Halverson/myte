@@ -11,7 +11,7 @@ import std.string.String
 import std.unit.Unit
 import std.vec.Vec
 
-type File (Int)
+pub type File (Int)
 
 methods File {
   /**

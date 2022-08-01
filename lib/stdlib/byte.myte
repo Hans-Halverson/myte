@@ -10,11 +10,11 @@ import std.ops.Equatable
 import std.option.{None, Option, Some}
 import std.string.{String, ToString}
 
-builtin type Byte
+pub builtin type Byte
 
-val BYTE_MIN: Byte = -128
+pub val BYTE_MIN: Byte = -128
 
-val BYTE_MAX: Byte = 127
+pub val BYTE_MAX: Byte = 127
 
 methods Byte {
   implements Equatable

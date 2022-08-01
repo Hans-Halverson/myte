@@ -7,14 +7,14 @@ import myte.common.files.stripRoot
 import myte.common.loc.Loc
 import myte.common.style.{Red, styleBold, styleReset, styleText}
 
-fun formatErrorWithoutLoc(message: String): String {
+pub fun formatErrorWithoutLoc(message: String): String {
   val builder = ErrorBuilder.new();
   builder.addMessageLine(message);
 
   return builder.finish();
 }
 
-fun formatErrorWithLoc(message: String, loc: Loc): String {
+pub fun formatErrorWithLoc(message: String, loc: Loc): String {
   val snippet = getSnippet(loc);
   val builder = ErrorBuilder.new();
 

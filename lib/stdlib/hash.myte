@@ -2,12 +2,12 @@ module std.hash
 
 import std.int.Int
 
-trait Hashable {
+pub trait Hashable {
   fun hash(): Int
 }
 
 /**
  * Combine an existing hash value with a new number to create a new hash value.
  */
-fun combine(hash: Int, n: Int): Int =
+pub fun combine(hash: Int, n: Int): Int =
   hash ^ (n + -1183238242 + (hash << 6) + (hash >> 2))

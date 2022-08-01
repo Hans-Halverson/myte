@@ -109,7 +109,7 @@ fun optional<T>(x: Option<T>, f: (T) -> PrintNode): PrintNode =
     | Some (x) -> f(x)
   }
 
-fun printModule(mod: ast.Module): String {
+pub fun printModule(mod: ast.Module): String {
   val node = nodeOfModule(mod);
   val printer = Printer.new();
   printer.visitNode(node);

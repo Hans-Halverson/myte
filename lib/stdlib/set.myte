@@ -11,7 +11,7 @@ import std.unit.Unit
 /**
  * Set that supports membership operations. Implemented as a hash set.
  */
-type Set<T: Equatable & Hashable> (Map<T, Unit>)
+pub type Set<T: Equatable & Hashable> (Map<T, Unit>)
 
 methods Set<T: Equatable & Hashable> {
 

@@ -9,7 +9,7 @@ import myte.parse.token.Token
 
 import std.io.println
 
-type Lexer {
+pub type Lexer {
   // All bytes to tokenize
   bytes: String,
   // Name of source file that is being tokenized
@@ -26,12 +26,12 @@ type Lexer {
   var currentTokenStartPos: Pos,
 }
 
-type TokenResult {
+pub type TokenResult {
   loc: Loc,
   token: Token,
 }
 
-type ErrorResult {
+pub type ErrorResult {
   loc: Loc,
   error: ParseError,
 }

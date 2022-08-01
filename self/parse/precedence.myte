@@ -1,6 +1,6 @@
 module myte.parse.precedence
 
-type Precedence =
+pub type Precedence =
   // Binds tightest
   | Group
   | Call

@@ -9,7 +9,7 @@ type Options {
   var noPrettyPrint: Bool,
 }
 
-val options: Options = Options {
+pub val options: Options = Options {
   check: false,
   dumpAst: false,
   noPrettyPrint: false,
@@ -29,7 +29,7 @@ OPTIONS:
   exit(1);
 }
 
-fun parseCliArgs(): Vec<String> {
+pub fun parseCliArgs(): Vec<String> {
   val files: Vec<String> = [];
   for (i in 1.to(args.size)) {
     match (args[i]) {

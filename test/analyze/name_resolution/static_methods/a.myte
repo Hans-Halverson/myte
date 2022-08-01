@@ -1,15 +1,15 @@
 module a.b.c
 
-trait Trait {
+pub trait Trait {
   static fun foo() {}
 }
 
-type Type1 (Unit)
+pub type Type1 (Unit)
 methods Type1 {
   static fun foo() {}
 }
 
-type Type2 = Type2A | Type2B
+pub type Type2 = Type2A | Type2B
 methods Type2 {
   static fun foo() {}
 }

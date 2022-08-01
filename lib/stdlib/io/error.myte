@@ -1,6 +1,6 @@
 module std.io.error
 
-type IOError =
+pub type IOError =
   // The end of file has been reached
   | EOF
   // An unknown IO error

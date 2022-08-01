@@ -1,9 +1,9 @@
 module b1.b2.b3
 
-fun export() {}
+pub fun export() {}
 
-type alias ExportType = Int
+pub type alias ExportType = Int
 
-type Tup (Int)
+pub type Tup (Int)
 
-val tup: Tup = Tup (1)
+pub val tup: Tup = Tup (1)

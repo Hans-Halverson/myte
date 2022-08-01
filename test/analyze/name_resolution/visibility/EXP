@@ -1,0 +1,59 @@
+Error: Cannot import private `privateGlobal`
+test/analyze/name_resolution/visibility/test.myte:6:9-22
+ 6 | import a.privateGlobal
+   |          ^^^^^^^^^^^^^
+
+Error: Cannot import private `privateFun`
+test/analyze/name_resolution/visibility/test.myte:7:9-19
+ 7 | import a.privateFun
+   |          ^^^^^^^^^^
+
+Error: Cannot import private `PrivateType`
+test/analyze/name_resolution/visibility/test.myte:8:9-20
+ 8 | import a.PrivateType
+   |          ^^^^^^^^^^^
+
+Error: Cannot import private `PrivateEnum`
+test/analyze/name_resolution/visibility/test.myte:9:9-20
+ 9 | import a.PrivateEnum
+   |          ^^^^^^^^^^^
+
+Error: Cannot import private `PrivateTrait`
+test/analyze/name_resolution/visibility/test.myte:10:9-21
+ 10 | import a.PrivateTrait
+    |          ^^^^^^^^^^^^
+
+Error: Cannot access private `privateGlobal`
+test/analyze/name_resolution/visibility/test.myte:21:4-17
+ 21 |   a.privateGlobal;
+    |     ^^^^^^^^^^^^^
+
+Error: Cannot access private `privateFun`
+test/analyze/name_resolution/visibility/test.myte:22:4-14
+ 22 |   a.privateFun;
+    |     ^^^^^^^^^^
+
+Error: Cannot access private `PrivateType`
+test/analyze/name_resolution/visibility/test.myte:23:8-19
+ 23 |   (1: a.PrivateType);
+    |         ^^^^^^^^^^^
+
+Error: Cannot access private `PrivateEnum`
+test/analyze/name_resolution/visibility/test.myte:24:4-15
+ 24 |   a.PrivateEnum;
+    |     ^^^^^^^^^^^
+
+Error: Cannot access private `PrivateTrait`
+test/analyze/name_resolution/visibility/test.myte:25:8-20
+ 25 |   (1: a.PrivateTrait);
+    |         ^^^^^^^^^^^^
+
+Error: Cannot access private `PrivateTrait`
+test/analyze/name_resolution/visibility/test.myte:26:4-16
+ 26 |   a.PrivateTrait.method;
+    |     ^^^^^^^^^^^^
+
+Error: Cannot access private `PrivateType`
+test/analyze/name_resolution/visibility/test.myte:27:4-15
+ 27 |   a.PrivateType.method;
+    |     ^^^^^^^^^^^

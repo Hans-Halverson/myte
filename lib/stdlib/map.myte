@@ -11,7 +11,7 @@ import std.option.{None, Option, Some}
 /**
  * Map which associates keys with values. Implemented as a hash map which uses robin hood hashing.
  */
-type Map<K: Equatable & Hashable, V> {
+pub type Map<K: Equatable & Hashable, V> {
   // Entries in the hash table
   var data: Array<Option<Entry<K, V>>>,
   // Number of items inserted in map
@@ -242,7 +242,7 @@ methods Map<K: Equatable & Hashable, V> {
   }
 }
 
-type MapIterator<K: Equatable & Hashable, V> {
+pub type MapIterator<K: Equatable & Hashable, V> {
   data: Array<Option<Entry<K, V>>>,
   capacity: Int,
   var index: Int,
@@ -251,17 +251,17 @@ type MapIterator<K: Equatable & Hashable, V> {
 /*
  * An iterator over the entries of a map. Returns a tuple of the key and value of each entry.
  */
-type MapEntriesIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
+pub type MapEntriesIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
 
 /*
  * An iterator over the keys of a map.
  */
-type MapKeysIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
+pub type MapKeysIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
 
 /*
  * An iterator over the values of a map.
  */
-type MapValuesIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
+pub type MapValuesIterator<K: Equatable & Hashable, V> (MapIterator<K, V>)
 
 methods Map<K: Equatable & Hashable, V> {
   /**

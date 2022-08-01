@@ -2,6 +2,6 @@ module Test
 
 import A
 
-type alias rec_type2 = A.rec_type1
+pub type alias rec_type2 = A.rec_type1
 
 fun main() {}

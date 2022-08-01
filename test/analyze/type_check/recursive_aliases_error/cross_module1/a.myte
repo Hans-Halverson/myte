@@ -2,4 +2,4 @@ module A
 
 import Test
 
-type alias rec_type1 = Test.rec_type2
+pub type alias rec_type1 = Test.rec_type2

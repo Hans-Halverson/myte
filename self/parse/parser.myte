@@ -2164,7 +2164,7 @@ methods Parser {
   }
 }
 
-fun parseFile(filename: String): Result<ast.Module, ParseError> {
+pub fun parseFile(filename: String): Result<ast.Module, ParseError> {
   val contents = match (readFileContents(filename)) {
     | Ok (contents) -> contents
     | Error _ -> return Error (error.CannotOpenFile { filename })

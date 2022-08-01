@@ -10,14 +10,14 @@ import std.vec.Vec
 
 val BUFFER_SIZE: Int = 1024
 
-trait Writer {
+pub trait Writer {
   /**
    * Write all bytes in buffer to output, returning an error if bytes were not successfully written.
    */
   fun write(buffer: Vec<Byte>): Result<Unit, IOError>
 }
 
-type BufferedWriter<W: Writer> {
+pub type BufferedWriter<W: Writer> {
   writer: W,
   buffer: Vec<Byte>,
   var nextPos: Int,

@@ -1,9 +1,9 @@
 module a1.a2.a3
 
-val exportedValue: Int = 1
+pub val exportedValue: Int = 1
 
-type alias exportedType = Int
+pub type alias exportedType = Int
 
-type Tup (Int)
+pub type Tup (Int)
 
-fun exportedFun() {}
+pub fun exportedFun() {}

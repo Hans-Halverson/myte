@@ -14,7 +14,7 @@ import std.vec.Vec
 
 type alias Char = Byte
 
-type String {
+pub type String {
   var data: Array<Char>,
   var size: Int,
   var capacity: Int,
@@ -269,7 +269,7 @@ methods String {
 /**
  * A trait for anything that has a String representation.
  */
-trait ToString {
+pub trait ToString {
   fun toString(): String
 }
 

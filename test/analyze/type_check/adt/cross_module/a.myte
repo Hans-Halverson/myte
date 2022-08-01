@@ -1,10 +1,10 @@
 module a
 
-type TupleADT (String)
+pub type TupleADT (String)
 
-type RecordADT { field: String }
+pub type RecordADT { field: String }
 
-type VariantADT =
+pub type VariantADT =
   | EnumVariant
   | TupleVariant (Int)
   | RecordVariant { field: Int }

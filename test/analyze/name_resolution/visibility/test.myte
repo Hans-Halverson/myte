@@ -1,0 +1,37 @@
+module test
+
+import a
+
+// Cannot import private decls
+import a.privateGlobal
+import a.privateFun
+import a.PrivateType
+import a.PrivateEnum
+import a.PrivateTrait
+
+// Can import public decls
+import a.publicGlobal
+import a.publicFun
+import a.PublicType
+import a.PublicEnum
+import a.PublicTrait
+
+fun main() {
+  // Cannot reference private decls
+  a.privateGlobal;
+  a.privateFun;
+  (1: a.PrivateType);
+  a.PrivateEnum;
+  (1: a.PrivateTrait);
+  a.PrivateTrait.method;
+  a.PrivateType.method;
+
+  // Can reference public decls
+  a.publicGlobal;
+  a.publicFun;
+  (1: a.PublicType);
+  a.PublicEnum;
+  (1: a.PublicTrait);
+  a.PublicTrait.method;
+  a.PublicType.method;
+}

@@ -3,7 +3,7 @@ module std.result
 import std.bool.Bool
 import std.sys.abort
 
-type Result<T, U> =
+pub type Result<T, U> =
   | Ok (T)
   | Error (U)
 

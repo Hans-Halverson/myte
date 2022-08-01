@@ -2,7 +2,7 @@ module myte.parse.ast
 
 import myte.common.loc.Loc
 
-type Module {
+pub type Module {
   loc: Loc,
   name: ModuleName,
   imports: Vec<Import>,
@@ -10,39 +10,39 @@ type Module {
   source: String,
 }
 
-type ModuleName {
+pub type ModuleName {
   loc: Loc,
   name: ScopedIdentifier,
 }
 
-type Import =
+pub type Import =
   | ISimpleImport (ScopedIdentifier)
   | IComplexImport (ComplexImport)
 
-type ComplexImport {
+pub type ComplexImport {
   loc: Loc,
   scopes: Vec<Identifier>,
   aliases: Vec<ImportAlias>,
 }
 
-type ImportAlias {
+pub type ImportAlias {
   loc: Loc,
   name: Identifier,
   alias_: Option<Identifier>,
 }
 
-type Toplevel =
+pub type Toplevel =
   | TLFunction (FunctionDeclaration)
   | TLVariable (VariableDeclaration)
   | TLType (TypeDeclaration)
   | TLTrait (TraitDeclaration)
 
-type Identifier {
+pub type Identifier {
   loc: Loc,
   name: String,
 }
 
-type ScopedIdentifier {
+pub type ScopedIdentifier {
   loc: Loc,
   scopes: Vec<Identifier>,
   name: Identifier,
@@ -54,7 +54,7 @@ type ScopedIdentifier {
  * ============================
  */
 
-type FunctionDeclaration {
+pub type FunctionDeclaration {
   loc: Loc,
   name: Identifier,
   params: Vec<FunctionParam>,
@@ -67,24 +67,24 @@ type FunctionDeclaration {
   isOverride: Bool,
 }
 
-type FunctionParam {
+pub type FunctionParam {
   loc: Loc,
   name: Identifier,
   annot: Type,
 }
 
-type FunctionBody =
+pub type FunctionBody =
   | FBBlock (Block)
   | FBExpression (Expression)
   | FBSignature
 
-type TypeParameter {
+pub type TypeParameter {
   loc: Loc,
   name: Identifier,
   bounds: Vec<IdentifierType>,
 }
 
-type VariableDeclaration {
+pub type VariableDeclaration {
   loc: Loc,
   kind: VariableDeclarationKind,
   pattern: Pattern,
@@ -93,11 +93,11 @@ type VariableDeclaration {
   isPublic: Bool,
 }
 
-type VariableDeclarationKind =
+pub type VariableDeclarationKind =
   | Immutable
   | Mutable
 
-type TypeDeclaration {
+pub type TypeDeclaration {
   loc: Loc,
   name: Identifier,
   typeParams: Vec<TypeParameter>,
@@ -105,26 +105,26 @@ type TypeDeclaration {
   isPublic: Bool,
 }
 
-type TypeDecl =
+pub type TypeDecl =
   | TDAlias (Type)
   | TDTuple (TupleDeclaration)
   | TDRecord (RecordDeclaration)
   | TDVariant (Vec<VariantDeclaration>)
   | TDBuiltin
 
-type TupleDeclaration {
+pub type TupleDeclaration {
   loc: Loc,
   name: Identifier,
   elements: Vec<Type>,
 }
 
-type RecordDeclaration {
+pub type RecordDeclaration {
   loc: Loc,
   name: Identifier,
   fields: Vec<RecordDeclarationField>,
 }
 
-type RecordDeclarationField {
+pub type RecordDeclarationField {
   loc: Loc,
   name: Identifier,
   type_: Type,
@@ -132,12 +132,12 @@ type RecordDeclarationField {
   isMutable: Bool,
 }
 
-type VariantDeclaration =
+pub type VariantDeclaration =
   | TupleVariant (TupleDeclaration)
   | RecordVariant (RecordDeclaration)
   | EnumVariant (Identifier)
 
-type TraitDeclaration {
+pub type TraitDeclaration {
   loc: Loc,
   kind: TraitDeclarationKind,
   name: Identifier,
@@ -147,7 +147,7 @@ type TraitDeclaration {
   isPublic: Bool,
 }
 
-type TraitDeclarationKind =
+pub type TraitDeclarationKind =
   | TKMethods
   | TKTrait
 
@@ -157,7 +157,7 @@ type TraitDeclarationKind =
  * ============================
  */
 
-type Statement =
+pub type Statement =
   | SBlock (Block)
   | SExpression (ExpressionStatement)
   | SVariableDeclaration (VariableDeclaration)
@@ -170,64 +170,64 @@ type Statement =
   | SContinue (Continue)
   | SAssignment (Assignment)
 
-type Block {
+pub type Block {
   loc: Loc,
   statements: Vec<Statement>,
 }
 
-type ExpressionStatement {
+pub type ExpressionStatement {
   loc: Loc,
   expr: Expression,
   isValue: Bool,
 }
 
-type If {
+pub type If {
   loc: Loc,
   test: Test,
   conseq: Block,
   altern: IfAltern,
 }
 
-type IfAltern =
+pub type IfAltern =
   | Else (Block)
   | ElseIf (If)
   | NoAltern
 
-type Test =
+pub type Test =
   | TExpression (Expression)
   | TMatch (MatchTest)
 
-type MatchTest {
+pub type MatchTest {
   loc: Loc,
   expr: Expression,
   pattern: Pattern,
   guard: Option<Expression>,
 }
 
-type Match {
+pub type Match {
   loc: Loc,
   args: Vec<Expression>,
   cases: Vec<MatchCase>,
 }
 
-type MatchCase {
+pub type MatchCase {
   loc: Loc,
   pattern: Pattern,
   guard: Option<Expression>,
   body: MatchCaseBody,
 }
 
-type MatchCaseBody =
+pub type MatchCaseBody =
   | MCExpression (Expression)
   | MCStatement (Statement)
 
-type While {
+pub type While {
   loc: Loc,
   test: Test,
   body: Block,
 }
 
-type For {
+pub type For {
   loc: Loc,
   pattern: Pattern,
   annot: Option<Type>,
@@ -235,23 +235,23 @@ type For {
   body: Block,
 }
 
-type Return {
+pub type Return {
   loc: Loc,
   arg: Option<Expression>,
 }
 
-type Break { loc: Loc }
+pub type Break { loc: Loc }
 
-type Continue { loc: Loc }
+pub type Continue { loc: Loc }
 
-type Assignment {
+pub type Assignment {
   loc: Loc,
   op: Option<AssignmentOperation>,
   lvalue: AssignmentLvalue,
   expr: Expression,
 }
 
-type AssignmentOperation =
+pub type AssignmentOperation =
   | AssignAdd
   | AssignSubtract
   | AssignMultiply
@@ -264,7 +264,7 @@ type AssignmentOperation =
   | AssignArithmeticRightShift
   | AssignLogicalRightShift
 
-type AssignmentLvalue =
+pub type AssignmentLvalue =
   | ALPattern (Pattern)
   | ALExpression (Expression)
 
@@ -274,7 +274,7 @@ type AssignmentLvalue =
  * ============================
  */
 
-type Expression =
+pub type Expression =
   | EUnitLiteral (UnitLiteral)
   | EIntLiteral (IntLiteral)
   | EFloatLiteral (FloatLiteral)
@@ -302,54 +302,54 @@ type Expression =
   | ESetLiteral (SetLiteral)
   | EAnonymousFunction (AnonymousFunction)
 
-type UnitLiteral { loc: Loc }
+pub type UnitLiteral { loc: Loc }
 
-type IntLiteral {
+pub type IntLiteral {
   loc: Loc,
   raw: String,
   base: IntLiteralBase,
 }
 
-type FloatLiteral {
+pub type FloatLiteral {
   loc: Loc,
   raw: String,
 }
 
-type IntLiteralBase =
+pub type IntLiteralBase =
   | Dec
   | Bin
   | Hex
 
-type BoolLiteral {
+pub type BoolLiteral {
   loc: Loc,
   value: Bool,
 }
 
-type StringLiteral {
+pub type StringLiteral {
   loc: Loc,
   value: String,
 }
 
-type CharLiteral {
+pub type CharLiteral {
   loc: Loc,
   value: Byte,
 }
 
-type InterpolatedString {
+pub type InterpolatedString {
   loc: Loc,
   parts: Vec<InterpolatedStringPart>,
 }
 
-type InterpolatedStringPart =
+pub type InterpolatedStringPart =
   | IPString (StringLiteral)
   | IPExpression (Expression)
 
-type TupleExpression {
+pub type TupleExpression {
   loc: Loc,
   elements: Vec<Expression>,
 }
 
-type RecordExpression {
+pub type RecordExpression {
   loc: Loc,
   name: Expression,
   fields: Vec<RecordExpressionField>,
@@ -357,43 +357,43 @@ type RecordExpression {
   rest: Option<Loc>,
 }
 
-type RecordExpressionField {
+pub type RecordExpressionField {
   loc: Loc,
   name: Identifier,
   value: Option<Expression>,
 }
 
-type TypeCast {
+pub type TypeCast {
   loc: Loc,
   expr: Expression,
   type_: Type,
 }
 
-type Call {
+pub type Call {
   loc: Loc,
   func: Expression,
   args: Vec<Expression>,
 }
 
-type UnaryOperation {
+pub type UnaryOperation {
   loc: Loc,
   op: UnaryOperator,
   operand: Expression,
 }
 
-type UnaryOperator =
+pub type UnaryOperator =
   | UnaryPlus
   | UnaryMinus
   | UnaryNot
 
-type BinaryOperation {
+pub type BinaryOperation {
   loc: Loc,
   op: BinaryOperator,
   left: Expression,
   right: Expression,
 }
 
-type BinaryOperator =
+pub type BinaryOperator =
   | BinaryAdd
   | BinarySubtract
   | BinaryMultiply
@@ -412,70 +412,70 @@ type BinaryOperator =
   | BinaryArithmeticRightShift
   | BinaryLogicalRightShift
 
-type LogicalAnd {
+pub type LogicalAnd {
   loc: Loc,
   left: Expression,
   right: Expression,
 }
 
-type LogicalOr {
+pub type LogicalOr {
   loc: Loc,
   left: Expression,
   right: Expression,
 }
 
-type NamedAccess {
+pub type NamedAccess {
   loc: Loc,
   target: Expression,
   name: Identifier,
 }
 
-type IndexedAccess {
+pub type IndexedAccess {
   loc: Loc,
   target: Expression,
   index: Expression,
 }
 
-type Unwrap {
+pub type Unwrap {
   loc: Loc,
   operand: Expression,
 }
 
-type VecLiteral {
+pub type VecLiteral {
   loc: Loc,
   elements: Vec<Expression>,
 }
 
-type MapLiteral {
+pub type MapLiteral {
   loc: Loc,
   entries: Vec<MapLiteralEntry>,
 }
 
-type MapLiteralEntry {
+pub type MapLiteralEntry {
   loc: Loc,
   key: Expression,
   value: Expression,
 }
 
-type SetLiteral {
+pub type SetLiteral {
   loc: Loc,
   elements: Vec<Expression>,
 }
 
-type AnonymousFunction {
+pub type AnonymousFunction {
   loc: Loc,
   params: Vec<AnonymousFunctionParam>,
   return_: Option<Type>,
   body: AnonymousFunctionBody,
 }
 
-type AnonymousFunctionParam {
+pub type AnonymousFunctionParam {
   loc: Loc,
   name: Identifier,
   annot: Option<Type>,
 }
 
-type AnonymousFunctionBody =
+pub type AnonymousFunctionBody =
   | ABBlock (Block)
   | ABExpression (Expression)
 
@@ -485,30 +485,30 @@ type AnonymousFunctionBody =
  * ============================
  */
 
-type Type =
+pub type Type =
   | TIdentifier (IdentifierType)
   | TTuple (TupleType)
   | TFunction (FunctionType)
   | TTrait (TraitType)
 
-type IdentifierType {
+pub type IdentifierType {
   loc: Loc,
   name: ScopedIdentifier,
   typeArgs: Vec<Type>,
 }
 
-type TupleType {
+pub type TupleType {
   loc: Loc,
   elements: Vec<Type>,
 }
 
-type FunctionType {
+pub type FunctionType {
   loc: Loc,
   params: Vec<Type>,
   return_: Type,
 }
 
-type TraitType {
+pub type TraitType {
   loc: Loc,
   trait_: IdentifierType,
 }
@@ -519,7 +519,7 @@ type TraitType {
  * ============================
  */
 
-type Pattern =
+pub type Pattern =
   | PIdentifier (ScopedIdentifier)
   | PWildcard (Loc)
   | PNamedWildcard (NamedWildcard)
@@ -529,44 +529,44 @@ type Pattern =
   | PRecord (RecordPattern)
   | PLiteral (LiteralPattern)
 
-type LiteralPattern =
+pub type LiteralPattern =
   | PUnit (UnitLiteral)
   | PBool (BoolLiteral)
   | PInt (IntLiteral)
   | PChar (CharLiteral)
   | PString (StringLiteral)
 
-type NamedWildcard {
+pub type NamedWildcard {
   loc: Loc,
   name: ScopedIdentifier,
 }
 
-type OrPattern {
+pub type OrPattern {
   loc: Loc,
   left: Pattern,
   right: Pattern,
 }
 
-type TuplePattern {
+pub type TuplePattern {
   loc: Loc,
   name: Option<ScopedIdentifier>,
   elements: Vec<Pattern>,
 }
 
-type RecordPattern {
+pub type RecordPattern {
   loc: Loc,
   name: ScopedIdentifier,
   fields: Vec<RecordPatternField>,
   rest: Bool,
 }
 
-type RecordPatternField {
+pub type RecordPatternField {
   loc: Loc,
   name: Option<Identifier>,
   value: Pattern,
 }
 
-type BindingPattern {
+pub type BindingPattern {
   loc: Loc,
   pattern: Pattern,
   name: Identifier,

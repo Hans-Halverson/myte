@@ -2,7 +2,7 @@ module myte.common.style
 
 import myte.common.options.options
 
-type Color =
+pub type Color =
   | Black
   | Red
   | Green
@@ -32,7 +32,7 @@ fun textColor(color: Color): String =
     | Default -> TEXT_DEFAULT
   }
 
-fun styleReset(): String {
+pub fun styleReset(): String {
   if (options.noPrettyPrint) {
     return "";
   }
@@ -40,7 +40,7 @@ fun styleReset(): String {
   return RESET;
 }
 
-fun styleBold(): String {
+pub fun styleBold(): String {
   if (options.noPrettyPrint) {
     return "";
   }
@@ -48,7 +48,7 @@ fun styleBold(): String {
   return BOLD;
 }
 
-fun styleText(color: Color): String {
+pub fun styleText(color: Color): String {
   if (options.noPrettyPrint) {
     return "";
   }

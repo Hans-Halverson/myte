@@ -21,7 +21,7 @@ fun getCurrentDirectory(): String {
   return currentDirectory;
 }
 
-fun stripRoot(path: String): String {
+pub fun stripRoot(path: String): String {
   val root = getCurrentDirectory();
 
   if (path.size < root.size + 1 ||
@@ -33,7 +33,7 @@ fun stripRoot(path: String): String {
   return path.substring(root.size + 1, path.size);
 }
 
-fun readFileContents(filename: String): Result<String, IOError> {
+pub fun readFileContents(filename: String): Result<String, IOError> {
   val file = File.open(filename)?;
   val reader = BufferedReader.new(file);
   val contents = reader.readToString()?;

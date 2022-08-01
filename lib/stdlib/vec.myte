@@ -10,7 +10,7 @@ import std.sys.abort
 /*
  * A resizable container of elements.
  */
-type Vec<T> {
+pub type Vec<T> {
   var data: Array<T>,
   var size: Int,
   var capacity: Int,

@@ -1,3 +1,3 @@
 module a
 
-type Foo (Int)
+pub type Foo (Int)

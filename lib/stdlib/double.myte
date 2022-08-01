@@ -6,11 +6,11 @@ import std.int.Int
 import std.long.Long
 import std.ops.Equatable
 
-builtin type Double
+pub builtin type Double
 
-val NaN: Double = 0.0 / 0.0
-val POSITIVE_INFINITY: Double = 1.0 / 0.0
-val NEGATIVE_INFINITY: Double = -1.0 / 0.0
+pub val NaN: Double = 0.0 / 0.0
+pub val POSITIVE_INFINITY: Double = 1.0 / 0.0
+pub val NEGATIVE_INFINITY: Double = -1.0 / 0.0
 
 methods Double {
   implements Equatable

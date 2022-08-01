@@ -1,9 +1,9 @@
 module d1.d2
 
-type Rec { child: Int }
+pub type Rec { child: Int }
 
-val export: Rec = Rec { child: 1 }
+pub val export: Rec = Rec { child: 1 }
 
-type alias ExportType = Int
+pub type alias ExportType = Int
 
-val rec: Rec = Rec { child: 1 }
+pub val rec: Rec = Rec { child: 1 }

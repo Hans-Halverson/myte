@@ -2,11 +2,11 @@ module a
 
 import b
 
-type TupA<T> (T)
+pub type TupA<T> (T)
 
-val varA: Int = 1
+pub val varA: Int = 1
 
-fun funcA() {}
+pub fun funcA() {}
 
 fun useFromB(x: b.RecB<Byte>) {
   b.varB;

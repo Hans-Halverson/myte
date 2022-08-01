@@ -2,7 +2,7 @@ module std.option
 
 import std.bool.Bool
 
-type Option<T> =
+pub type Option<T> =
   | None
   | Some (T)
 

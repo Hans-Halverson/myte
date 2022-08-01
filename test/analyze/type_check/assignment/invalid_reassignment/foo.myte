@@ -1,6 +1,6 @@
 module foo
 
-val importedImmutableVar: Int = 0
-var importedMutableVar: Int = 0
+pub val importedImmutableVar: Int = 0
+pub var importedMutableVar: Int = 0
 
-fun importedFunc() {}
+pub fun importedFunc() {}

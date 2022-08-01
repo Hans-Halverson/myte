@@ -6,11 +6,11 @@ import myte.common.loc.Loc
 import myte.common.error.formatErrorWithLoc
 import myte.parse.ast
 
-type AnalyzeErrorData =
+pub type AnalyzeErrorData =
   | DuplicateModuleNames { name: Vec<ast.Identifier> }
   | ModuleAndExportDuplicateNames { name: ast.Identifier, parentScopes: Vec<ast.Identifier> }
 
-type AnalyzeError {
+pub type AnalyzeError {
   error: AnalyzeErrorData,
   loc: Loc,
 }

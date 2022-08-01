@@ -1,14 +1,14 @@
-Error: Toplevel variables must have type annotations
+Error: Top level variables must have type annotations
 test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:3:0-9
  3 | val x = 1
    | ^^^^^^^^^
 
-Error: Toplevel variables must have type annotations
+Error: Top level variables must have type annotations
 test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:5:0-10
  5 | var y = ()
    | ^^^^^^^^^^
 
-Error: Toplevel variables must have type annotations
+Error: Top level variables must have type annotations
 test/analyze/type_check/variable_declaration/toplevel_missing_annotation.myte:7:0-17
  7 | val a = (1, true)
    | ^^^^^^^^^^^^^^^^^

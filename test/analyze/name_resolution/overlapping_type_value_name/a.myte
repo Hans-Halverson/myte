@@ -1,10 +1,10 @@
 module a
 
-type typeAndValue (Unit)
+pub type typeAndValue (Unit)
 
-type alias ty = Unit
+pub type alias ty = Unit
 
-fun value() {}
+pub fun value() {}
 
 fun test() {
   (typeAndValue: typeAndValue);

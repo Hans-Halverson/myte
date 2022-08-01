@@ -3,11 +3,11 @@ module std.gc
 import std.long.Long
 import std.string.String
 
-builtin fun collect()
+pub builtin fun collect()
 
-builtin fun getHeapSize(): Long
+pub builtin fun getHeapSize(): Long
 
-fun report(): String {
+pub fun report(): String {
   val heapSize = getHeapSize();
   return `Heap is ${heapSize} bytes`;
 }

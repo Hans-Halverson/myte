@@ -6,7 +6,7 @@ import std.int.Int
 import std.ops.Equatable
 import std.string.{String, ToString}
 
-builtin type Unit
+pub builtin type Unit
 
 methods Unit {
   implements Equatable

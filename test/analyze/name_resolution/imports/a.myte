@@ -1,9 +1,9 @@
 module A
 
-fun B() {}
+pub fun B() {}
 
-fun D() {}
+pub fun D() {}
 
-fun remote() {}
+pub fun remote() {}
 
-type alias ty = Unit
+pub type alias ty = Unit

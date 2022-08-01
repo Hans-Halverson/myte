@@ -11,35 +11,35 @@ import std.set.Set
 import std.sys.exit
 import std.vec.Vec
 
-fun fail(): Never {
+pub fun fail(): Never {
   exit(1);
 }
 
-fun assertEqual<T: Equatable>(actual: T, expected: T) {
+pub fun assertEqual<T: Equatable>(actual: T, expected: T) {
   if (actual != expected) {
     fail();
   }
 }
 
-fun assertNotEqual<T: Equatable>(actual: T, expected: T) {
+pub fun assertNotEqual<T: Equatable>(actual: T, expected: T) {
   if (actual == expected) {
     fail();
   }
 }
 
-fun assertTrue(expr: Bool) {
+pub fun assertTrue(expr: Bool) {
   if (!expr) {
     fail();
   }
 }
 
-fun assertFalse(expr: Bool) {
+pub fun assertFalse(expr: Bool) {
   if (expr) {
     fail();
   }
 }
 
-fun assertSome<T: Equatable>(actual: Option<T>, expected: T) {
+pub fun assertSome<T: Equatable>(actual: Option<T>, expected: T) {
   match (actual) {
     | None -> fail()
     | Some (actual) ->
@@ -49,13 +49,13 @@ fun assertSome<T: Equatable>(actual: Option<T>, expected: T) {
   }
 }
 
-fun assertNone<T>(actual: Option<T>) {
+pub fun assertNone<T>(actual: Option<T>) {
   if (actual.isSome()) {
     fail();
   }
 }
 
-fun assertOk<T: Equatable, E>(actual: Result<T, E>, expected: T) {
+pub fun assertOk<T: Equatable, E>(actual: Result<T, E>, expected: T) {
   match (actual) {
     | Error _ -> fail()
     | Ok (actual) ->
@@ -65,7 +65,7 @@ fun assertOk<T: Equatable, E>(actual: Result<T, E>, expected: T) {
   }
 }
 
-fun assertError<T, E: Equatable>(actual: Result<T, E>, expected: E) {
+pub fun assertError<T, E: Equatable>(actual: Result<T, E>, expected: E) {
   match (actual) {
     | Ok _ -> fail()
     | Error (actual) ->
@@ -75,7 +75,7 @@ fun assertError<T, E: Equatable>(actual: Result<T, E>, expected: E) {
   }
 }
 
-fun assertVecEqual<T: Equatable>(actual: Vec<T>, expected: Vec<T>) {
+pub fun assertVecEqual<T: Equatable>(actual: Vec<T>, expected: Vec<T>) {
   assertEqual(actual.size, expected.size);
 
   for (i in 0.to(actual.size)) {
@@ -83,7 +83,7 @@ fun assertVecEqual<T: Equatable>(actual: Vec<T>, expected: Vec<T>) {
   }
 }
 
-fun assertMapEqual<K: Equatable & Hashable, V: Equatable>(actual: Map<K, V>, expected: Map<K, V>) {
+pub fun assertMapEqual<K: Equatable & Hashable, V: Equatable>(actual: Map<K, V>, expected: Map<K, V>) {
   assertEqual(actual.size, expected.size);
 
   for ((key, expectedValue) in expected.entries()) {
@@ -94,7 +94,7 @@ fun assertMapEqual<K: Equatable & Hashable, V: Equatable>(actual: Map<K, V>, exp
   }
 }
 
-fun assertSetEqual<T: Equatable & Hashable>(actual: Set<T>, expected: Set<T>) {
+pub fun assertSetEqual<T: Equatable & Hashable>(actual: Set<T>, expected: Set<T>) {
   assertEqual(actual.size(), expected.size());
 
   for (element in expected) {

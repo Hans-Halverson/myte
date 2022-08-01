@@ -1,3 +1,3 @@
 module z.y.x
 
-type alias export = Unit
+pub type alias export = Unit

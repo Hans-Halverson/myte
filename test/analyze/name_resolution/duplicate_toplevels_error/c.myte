@@ -1,6 +1,6 @@
 module C
 
-fun A() {}
-fun B() {}
+pub fun A() {}
+pub fun B() {}
 
-var C: Int = 0
+pub var C: Int = 0
