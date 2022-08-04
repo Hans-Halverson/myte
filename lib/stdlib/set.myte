@@ -18,40 +18,40 @@ methods Set<T: Equatable & Hashable> {
   /**
    * Create a new, empty set.
    */
-  static fun new<T: Equatable & Hashable>(): Set<T> = Set (Map.new())
+  pub static fun new<T: Equatable & Hashable>(): Set<T> = Set (Map.new())
 
   /**
    * Return the number of items in the set.
    */
-  fun size(): Int = this[0].size
+  pub fun size(): Int = this[0].size
 
   /**
    * Return whether the set contains the specified item.
    */
-  fun contains(item: T): Bool = this[0].containsKey(item)
+  pub fun contains(item: T): Bool = this[0].containsKey(item)
 
   /**
    * Add an item to the set.
    */
-  fun add(item: T) = this[0].add(item, ())
+  pub fun add(item: T) = this[0].add(item, ())
 
   /**
    * Remove an item from the set, if such an item exists. Return whether the item was present in
    * the map.
    */
-  fun remove(item: T): Bool = this[0].remove(item)
+  pub fun remove(item: T): Bool = this[0].remove(item)
 
   /**
    * Reserve space in the set for at least a given number of elements. This may force the set to be
    * resized.
    */
-  fun reserve(capacity: Int) = this[0].reserve(capacity)
+  pub fun reserve(capacity: Int) = this[0].reserve(capacity)
 }
 
 methods Set<T: Equatable & Hashable> {
   implements Iterable<T>
 
-  override fun toIterator(): MapKeysIterator<T, Unit> {
+  pub override fun toIterator(): MapKeysIterator<T, Unit> {
     val Map { data, capacity, ... } = this[0];
     return MapKeysIterator (MapIterator { data, capacity, index: 0 });
   }

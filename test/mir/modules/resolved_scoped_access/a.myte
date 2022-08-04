@@ -2,9 +2,9 @@ module a
 
 pub var global: Int = 1
 
-pub type Record1 { other: Int, var foo: Long }
+pub type Record1 { other: Int, pub var foo: Long }
 
-pub type Record2 { other: Bool, bar: Record1 }
+pub type Record2 { other: Bool, pub bar: Record1 }
 
 pub var rec1: Record1 = Record1 { other: 1, foo: 2 }
 

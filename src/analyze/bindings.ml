@@ -1,3 +1,4 @@
+module ModuleDef = Module
 open Ast
 open Basic_collections
 open Types
@@ -33,6 +34,7 @@ module FunctionDeclaration = struct
   type t = {
     name: string;
     loc: Loc.t;
+    is_public: bool;
     is_builtin: bool;
     is_static: bool;
     is_override: bool;
@@ -51,10 +53,11 @@ module FunctionDeclaration = struct
     mutable captures: LocSet.t;
   }
 
-  let mk ~name ~loc ~is_builtin ~is_static ~is_override ~is_signature =
+  let mk ~name ~loc ~is_public ~is_builtin ~is_static ~is_override ~is_signature =
     {
       name;
       loc;
+      is_public;
       is_builtin;
       is_static;
       is_override;
@@ -98,9 +101,9 @@ module TraitDeclaration = struct
     mutable implemented: t LocMap.t;
   }
 
-  let mk ~name ~loc =
+  let mk ~name ~loc ~module_ =
     {
-      trait_sig = TraitSig.mk ~name ~loc;
+      trait_sig = TraitSig.mk ~name ~loc ~module_;
       name;
       loc;
       methods = SMap.empty;
@@ -114,7 +117,7 @@ module TypeDeclaration = struct
     mutable traits: TraitDeclaration.t list;
   }
 
-  let mk ~name ~loc = { adt_sig = AdtSig.mk ~name ~loc; traits = [] }
+  let mk ~name ~loc ~module_ = { adt_sig = AdtSig.mk ~name ~loc ~module_; traits = [] }
 
   let add_trait decl trait = decl.traits <- trait :: decl.traits
 end
@@ -142,7 +145,7 @@ module ValueBinding = struct
     mutable uses: LocSet.t;
     mutable is_captured: bool;
     context: context;
-    module_: string list;
+    module_: ModuleDef.t;
   }
 
   and id = int
@@ -184,7 +187,7 @@ module TypeBinding = struct
     loc: Loc.t;
     declaration: type_declaration;
     mutable uses: LocSet.t;
-    module_: string list;
+    module_: ModuleDef.t;
   }
 
   and id = int
@@ -275,7 +278,7 @@ let get_decl_loc_from_value_use bindings use_loc =
 
 let is_module_decl binding = binding.ValueBinding.context = ValueBinding.Module
 
-let is_std_lib_value binding = List.hd binding.ValueBinding.module_ = "std"
+let is_std_lib_value binding = List.hd binding.ValueBinding.module_.name = "std"
 
 let is_mutable_variable binding =
   match binding.ValueBinding.declaration with

@@ -7,37 +7,37 @@ pub type Option<T> =
   | Some (T)
 
 methods Option<T> {
-  fun isNone(): Bool =
+  pub fun isNone(): Bool =
     match (this) {
       | None -> true
       | Some _ -> false
     }
 
-  fun isSome(): Bool =
+  pub fun isSome(): Bool =
     match (this) {
       | None -> false
       | Some _ -> true
     }
   
-  fun getOrDefault(default: T): T =
+  pub fun getOrDefault(default: T): T =
     match (this) {
       | None -> default
       | Some (x) -> x
     }
 
-  fun map<U>(f: (T) -> U): Option<U> =
+  pub fun map<U>(f: (T) -> U): Option<U> =
     match (this) {
       | None -> None
       | Some (x) -> Some (f(x))
     }
   
-  fun flatMap<U>(f: (T) -> Option<U>): Option<U> =
+  pub fun flatMap<U>(f: (T) -> Option<U>): Option<U> =
     match (this) {
       | None -> None
       | Some (x) -> f(x)
     }
   
-  fun filter(predicate: (T) -> Bool): Option<T> =
+  pub fun filter(predicate: (T) -> Bool): Option<T> =
     match (this) {
       | None -> this
       | Some (x) ->

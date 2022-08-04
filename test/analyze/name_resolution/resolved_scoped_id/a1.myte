@@ -1,7 +1,7 @@
 module a1
 
-pub type Rec { child: Int, child1: Rec2 }
-pub type Rec2 { child2: Int }
+pub type Rec { pub child: Int, pub child1: Rec2 }
+pub type Rec2 { pub child2: Int }
 
 pub val export: Rec = Rec { child: 1, child1: Rec2 { child2: 2 } }
 

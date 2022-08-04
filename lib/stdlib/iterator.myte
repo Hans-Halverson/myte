@@ -5,11 +5,11 @@ import std.option.Option
 pub trait Iterator<T> {
   extends Iterable<T>
 
-  fun next(): Option<T>
+  pub fun next(): Option<T>
 
-  override fun toIterator(): This = this
+  pub override fun toIterator(): This = this
 }
 
 pub trait Iterable<T> {
-  fun toIterator(): Iterator<T>
+  pub fun toIterator(): Iterator<T>
 }

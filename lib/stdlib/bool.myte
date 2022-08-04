@@ -10,13 +10,13 @@ pub builtin type Bool
 methods Bool {
   implements Equatable
 
-  builtin override fun equals(other: Bool): Bool
+  pub builtin override fun equals(other: Bool): Bool
 }
 
 methods Bool {
   implements Hashable
 
-  override fun hash(): Int =
+  pub override fun hash(): Int =
     if (this) {
       1
     } else {
@@ -27,7 +27,7 @@ methods Bool {
 methods Bool {
   implements ToString
 
-  override fun toString(): String =
+  pub override fun toString(): String =
     if (this) {
       "true"
     } else {

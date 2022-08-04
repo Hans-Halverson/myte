@@ -90,7 +90,7 @@ pub type Token =
 methods Token {
   implements ToString
 
-  override fun toString(): String =
+  pub override fun toString(): String =
     match (this) {
       | Identifier (name) -> name
       | BoolLiteral (bool) -> bool.toString()
@@ -177,7 +177,7 @@ methods Token {
 methods Token {
   implements Equatable
 
-  override fun equals(other: Token): Bool =
+  pub override fun equals(other: Token): Bool =
     match (this, other) {
       | (Identifier _, Identifier _)
       | (IntLiteral _, IntLiteral _)

@@ -18,7 +18,7 @@ pub trait Reader {
    *
    * On success between 0 and buffer.size bytes will be read into buffer.
    */
-  fun read(buffer: Vec<Byte>): Result<Int, IOError>
+  pub fun read(buffer: Vec<Byte>): Result<Int, IOError>
 }
 
 pub type BufferedReader<R: Reader> {
@@ -29,7 +29,7 @@ pub type BufferedReader<R: Reader> {
 }
 
 methods BufferedReader<R: Reader> {
-  static fun new<R: Reader>(reader: R): BufferedReader<R> {
+  pub static fun new<R: Reader>(reader: R): BufferedReader<R> {
     val buffer: Vec<Byte> = Vec.newUninitialized(BUFFER_SIZE);
 
     return BufferedReader { reader, buffer, pos: 0, size: 0 };
@@ -54,7 +54,7 @@ methods BufferedReader<R: Reader> {
   /**
    * Read all bytes from source into string, stopping once EOF is reached.
    */
-  fun readToString(): Result<String, IOError> {
+  pub fun readToString(): Result<String, IOError> {
     val buffer = this.buffer;
     val string = "";
 
@@ -82,7 +82,7 @@ methods BufferedReader<R: Reader> {
    *
    * Returns the error `EOF` if the end of file has been reached and there is no next line to return.
    */
-  fun readLine(): Result<String, IOError> {
+  pub fun readLine(): Result<String, IOError> {
     val buffer = this.buffer;
     val string = "";
     var hasRead = false;
@@ -125,7 +125,7 @@ methods BufferedReader<R: Reader> {
   /**
    * Return an iterator over the lines in the source.
    */
-  fun lines(): Lines<R> = Lines (this)
+  pub fun lines(): Lines<R> = Lines (this)
 }
 
 type Lines<R: Reader> (BufferedReader<R>)
@@ -133,7 +133,7 @@ type Lines<R: Reader> (BufferedReader<R>)
 methods Lines<R: Reader> {
   implements Iterator<String>
 
-  override fun next(): Option<String> =
+  pub override fun next(): Option<String> =
     match (this[0].readLine()) {
       | Ok (line) -> Some (line)
       | Error _ -> None

@@ -11,17 +11,17 @@ pub builtin type Unit
 methods Unit {
   implements Equatable
 
-  override fun equals(other: Unit): Bool = true
+  pub override fun equals(other: Unit): Bool = true
 }
 
 methods Unit {
   implements Hashable
 
-  override fun hash(): Int = 0
+  pub override fun hash(): Int = 0
 }
 
 methods Unit {
   implements ToString
 
-  override fun toString(): String = "()"
+  pub override fun toString(): String = "()"
 }

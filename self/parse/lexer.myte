@@ -13,7 +13,7 @@ pub type Lexer {
   // All bytes to tokenize
   bytes: String,
   // Name of source file that is being tokenized
-  source: String,
+  pub source: String,
   // Current byte
   var current: LexByte,
   // Offset of current byte in bytes
@@ -43,7 +43,7 @@ type alias LexByte = Int
 val EOF: LexByte = 128
 
 methods Lexer {
-  static fun new(source: String, bytes: String): Lexer {
+  pub static fun new(source: String, bytes: String): Lexer {
     val current = if (bytes.size > 0) {
       bytes.get(0).toInt()
     } else {
@@ -64,7 +64,7 @@ methods Lexer {
     };
   }
 
-  fun clone(): Lexer {
+  pub fun clone(): Lexer {
     return Lexer {
       bytes: this.bytes,
       source: this.source,
@@ -207,7 +207,7 @@ methods Lexer {
   /*
    * Return the next token in the source, or an error if an error was encountered.
    */
-  fun next(): Result<TokenResult, ErrorResult> {
+  pub fun next(): Result<TokenResult, ErrorResult> {
     // Skip over all whitespace before token
     while (true) {
       match (this.current) {
@@ -536,7 +536,7 @@ methods Lexer {
     };
   }
 
-  fun nextInInterpolatedString(): Result<TokenResult, ErrorResult> {
+  pub fun nextInInterpolatedString(): Result<TokenResult, ErrorResult> {
     // Adjust pos to start at '}' which must precede this call
     val currentPos = this.getCurrentPos();
     val adjustedStartPos = Pos { line: currentPos.line, column: currentPos.column - 1 };

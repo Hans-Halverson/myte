@@ -1,0 +1,53 @@
+module test
+
+import a
+
+fun test(record: a.Record, trait1: a.PublicTrait, inherits: InheritsType) {
+  // Cannot reference private fields
+  record.privateField;
+
+  // Can reference public fields
+  record.publicField;
+
+  // Cannot reference private methods
+  record.privateMethod();
+  trait1.privateMethod();
+
+  // Can reference public methods
+  record.publicMethod();
+  trait1.publicMethod();
+
+  // Can reference inherited public methods
+  inherits.publicMethod();
+
+  // Cannot reference inhereted private ethods
+  inherits.privateMethod();
+}
+
+trait InheritsTrait {
+  extends a.PublicTrait
+
+  pub override fun publicMethod() {}
+  override fun privateMethod() {}
+
+  fun test() {
+    // Cannot access private super methods
+    super.privateMethod();
+    this.privateMethodToInherit();
+
+    // Can access public super methods
+    this.publicMethod();
+    super.publicMethod();
+    this.publicMethodToInherit();
+
+    // Can access overriden private methods
+    this.privateMethod();
+  }
+}
+
+type InheritsType (Int)
+methods InheritsType {
+  implements a.PublicTrait
+}
+
+fun main() {}

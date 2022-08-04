@@ -21,7 +21,7 @@ pub type Precedence =
   | Toplevel
 
 methods Precedence {
-  fun level(): Int =
+  pub fun level(): Int =
     match (this) {
       | Group -> 14
       | Call -> 13
@@ -41,5 +41,5 @@ methods Precedence {
       | Toplevel -> 0
     }
   
-  fun isWeakerThan(other: Precedence): Bool = this.level() < other.level()
+  pub fun isWeakerThan(other: Precedence): Bool = this.level() < other.level()
 }

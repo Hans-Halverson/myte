@@ -15,17 +15,17 @@ pub val NEGATIVE_INFINITY: Double = -1.0 / 0.0
 methods Double {
   implements Equatable
 
-  builtin override fun equals(other: Double): Bool
+  pub builtin override fun equals(other: Double): Bool
 }
 
 methods Double {
-  builtin fun toByte(): Byte
+  pub builtin fun toByte(): Byte
 
-  builtin fun toInt(): Int
+  pub builtin fun toInt(): Int
 
-  builtin fun toLong(): Long
+  pub builtin fun toLong(): Long
 
-  fun isNaN(): Bool = this != this
+  pub fun isNaN(): Bool = this != this
 
-  fun isInfinite(): Bool = this == POSITIVE_INFINITY || this == NEGATIVE_INFINITY
+  pub fun isInfinite(): Bool = this == POSITIVE_INFINITY || this == NEGATIVE_INFINITY
 }

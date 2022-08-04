@@ -9,7 +9,7 @@ type alias ModuleScope = Map<String, ModuleTreeNode>
 
 pub type ModuleTree {
   rootScope: ModuleScope,
-  errors: Vec<AnalyzeError>,
+  pub errors: Vec<AnalyzeError>,
 }
 
 type ModuleType { var exists: Bool }
@@ -26,7 +26,7 @@ methods ModuleTree {
     };
   }
 
-  static fun buildFromAsts(modules: Vec<ast.Module>): ModuleTree {
+  pub static fun buildFromAsts(modules: Vec<ast.Module>): ModuleTree {
     val moduleTree = ModuleTree.new();
     for (module_ in modules) {
       moduleTree.addModule(module_);

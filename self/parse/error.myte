@@ -44,7 +44,7 @@ pub fun fatal(error: ParseError, loc: Loc): Never {
 methods ParseError {
   implements ToString
 
-  override fun toString(): String =
+  pub override fun toString(): String =
     match (this) {
       | UnknownToken { raw } -> `Unexpected token \`${raw}\``
       | UnexpectedToken { actual: token.Eof, expected: None } -> "Unexpected <EOF>"

@@ -355,7 +355,7 @@ and build_implemented_traits ~cx trait_decl implemented_trait this_type =
 
   (* Build type args for implemented trait, and check arity of type args *)
   let type_args = List.map (build_type ~cx ~check_type_param_bounds:false) type_args in
-  let trait_sig = (LocMap.find name.loc trait_decl.implemented).trait_sig in
+  let trait_sig = (LocMap.find name.name.loc trait_decl.implemented).trait_sig in
   let num_type_args = List.length type_args in
   let num_type_params = List.length trait_sig.type_params in
   if num_type_args <> num_type_params then
@@ -426,9 +426,11 @@ and build_type_declaration ~cx decl =
   let build_field_sigs ~cx fields =
     List.fold_left
       (fun field_sigs field ->
-        let { Record.Field.name = { Ast.Identifier.name; _ }; ty; is_mutable; _ } = field in
+        let { Record.Field.name = { Ast.Identifier.name; _ }; ty; is_public; is_mutable; _ } =
+          field
+        in
         let field_type = build_type ~cx ty in
-        let field_sig = { AdtSig.Variant.type_ = field_type; is_mutable } in
+        let field_sig = { AdtSig.Variant.type_ = field_type; is_public; is_mutable } in
         SMap.add name field_sig field_sigs)
       SMap.empty
       fields
@@ -554,13 +556,14 @@ and check_trait_implementations ~cx modules =
     in
     let open Bindings.FunctionDeclaration in
     SMap.iter
-      (fun name { loc; type_params; params; return; is_static; is_signature; _ } ->
+      (fun name { loc; type_params; params; return; is_public; is_static; is_signature; _ } ->
         if not is_static then
           let method_sig =
             {
               MethodSig.loc;
               trait_sig;
               source_trait_instance = this_instance;
+              is_public;
               is_signature;
               type_params;
               params;
@@ -691,6 +694,7 @@ and check_implemented_methods
                 MethodSig.loc = super_method.loc;
                 trait_sig;
                 source_trait_instance = implemented;
+                is_public = super_method.is_public;
                 is_signature = super_method.is_signature;
                 type_params = super_method.type_params;
                 params;
@@ -794,7 +798,9 @@ and check_implemented_methods
 
 and check_module ~cx module_ =
   let open Ast.Module in
-  let { toplevels; _ } = module_ in
+  let { loc; toplevels; _ } = module_ in
+  Type_context.set_current_module ~cx (Module.get_module_for_module_loc loc);
+
   List.iter
     (fun toplevel ->
       match toplevel with
@@ -1815,6 +1821,15 @@ and check_named_access ~cx named_access =
     in
     let target_rep_ty = Type_context.find_rep_type ~cx (TVar target_tvar_id) in
 
+    let check_method_visibility (method_sig : MethodSig.t) =
+      let method_module = method_sig.source_trait_instance.trait_sig.module_ in
+      if
+        (not method_sig.is_public)
+        && not (Module.equal (Type_context.get_current_module ~cx) method_module)
+      then
+        Type_context.add_error ~cx name.loc (AccessPrivateDecl name.name)
+    in
+
     (* Try to find a method with the given name in a set of trait sigs *)
     let try_resolve_method trait_sigs type_args =
       List.exists
@@ -1830,6 +1845,7 @@ and check_named_access ~cx named_access =
                   ( ({ MethodSig.type_params; _ } as super_method_sig),
                     { Function.params; return; _ } )
                 when is_super_access ->
+                check_method_visibility super_method_sig;
                 let method_use = { method_sig = super_method_sig; is_super_call = true } in
                 (type_params, params, return, method_use)
               | _ ->
@@ -1838,6 +1854,7 @@ and check_named_access ~cx named_access =
                     Type_context.add_error ~cx loc (SuperNonOverridenMethod name.name)
                   else
                     Type_context.add_error ~cx loc (NoImplementedSuperMethod name.name);
+                check_method_visibility method_sig;
                 let method_use = { method_sig; is_super_call = false } in
                 (type_params, params, return, method_use)
             in
@@ -1902,7 +1919,7 @@ and check_named_access ~cx named_access =
       else
         match target_rep_ty with
         (* Can only index into ADTs with a single record variant *)
-        | ADT { adt_sig = { variants; _ }; _ } ->
+        | ADT { adt_sig = { variants; module_ = adt_sig_module; _ }; _ } ->
           (match SMap.choose_opt variants with
           | Some (_, { kind = Record field_sigs; _ }) when SMap.cardinal variants = 1 ->
             (match SMap.find_opt name.name field_sigs with
@@ -1913,6 +1930,14 @@ and check_named_access ~cx named_access =
               let type_param_bindings = Types.get_adt_type_param_bindings target_rep_ty in
               let field_type = Types.substitute_type_params type_param_bindings field_sig.type_ in
               ignore (Type_context.unify ~cx field_type (TVar tvar_id));
+
+              (* Check field visibility *)
+              if
+                (not field_sig.is_public)
+                && not (Module.equal (Type_context.get_current_module ~cx) adt_sig_module)
+              then
+                Type_context.add_error ~cx name.loc (AccessPrivateDecl name.name);
+
               (true, not field_sig.is_mutable))
           | _ -> (false, false))
         | _ -> (false, false)

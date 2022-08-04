@@ -19,25 +19,25 @@ pub val LONG_MAX: Long = 9223372036854775807
 methods Long {
   implements Equatable
 
-  builtin override fun equals(other: Long): Bool
+  pub builtin override fun equals(other: Long): Bool
 }
 
 methods Long {
   implements Hashable
 
-  override fun hash(): Int = this.toInt() ^ (this >>> 32).toInt()
+  pub override fun hash(): Int = this.toInt() ^ (this >>> 32).toInt()
 }
 
 methods Long {
   implements ToString
 
-  builtin fun toByte(): Byte
+  pub builtin fun toByte(): Byte
 
-  builtin fun toInt(): Int
+  pub builtin fun toInt(): Int
 
-  builtin fun toDouble(): Double
+  pub builtin fun toDouble(): Double
 
-  override fun toString(): String {
+  pub override fun toString(): String {
     var n = this;
     // Special case max long, as it cannot be negated
     if (n == LONG_MIN) {
@@ -74,18 +74,18 @@ methods Long {
   /**
    * Create an iterator starting at this number and ending at the end number, exclusive.
    */
-  fun to(end: Long): LongRange = LongRange { current: this, end }
+  pub fun to(end: Long): LongRange = LongRange { current: this, end }
 
   /**
    * Create an iterator starting at this number and ending at the end number, inclusive.
    */
-  fun toInclusive(end: Long): LongRangeInclusive = LongRangeInclusive { current: this, end }
+  pub fun toInclusive(end: Long): LongRangeInclusive = LongRangeInclusive { current: this, end }
 
   /**
    * Create an iterator starting at this number and ending at the end number, exclusive,
    * stepping by the given amount each iteration.
    */
-  fun stepTo(end: Long, step: Long): LongRangeWithStep {
+  pub fun stepTo(end: Long, step: Long): LongRangeWithStep {
     return LongRangeWithStep { current: this, end, step };
   }
 
@@ -93,7 +93,7 @@ methods Long {
    * Create an iterator starting at this number and ending at the end number, exclusive,
    * stepping down by the given amount each iteration.
    */
-  fun stepDownTo(end: Long, step: Long): LongRangeWithStepDown {
+  pub fun stepDownTo(end: Long, step: Long): LongRangeWithStepDown {
     return LongRangeWithStepDown { current: this, end, step };
   }
 }
@@ -106,7 +106,7 @@ type LongRange {
 methods LongRange {
   implements Iterator<Long>
 
-  override fun next(): Option<Long> {
+  pub override fun next(): Option<Long> {
     val current = this.current;
     if (current >= this.end) {
       return None;
@@ -126,7 +126,7 @@ type LongRangeInclusive {
 methods LongRangeInclusive {
   implements Iterator<Long>
 
-  override fun next(): Option<Long> {
+  pub override fun next(): Option<Long> {
     val current = this.current;
     if (current > this.end) {
       return None;
@@ -147,7 +147,7 @@ type LongRangeWithStep {
 methods LongRangeWithStep {
   implements Iterator<Long>
 
-  override fun next(): Option<Long> {
+  pub override fun next(): Option<Long> {
     val current = this.current;
     if (current >= this.end) {
       return None;
@@ -168,7 +168,7 @@ type LongRangeWithStepDown {
 methods LongRangeWithStepDown {
   implements Iterator<Long>
 
-  override fun next(): Option<Long> {
+  pub override fun next(): Option<Long> {
     val current = this.current;
     if (current <= this.end) {
       return None;

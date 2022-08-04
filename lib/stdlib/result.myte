@@ -8,19 +8,19 @@ pub type Result<T, U> =
   | Error (U)
 
 methods Result<T, U> {
-  fun isOk(): Bool =
+  pub fun isOk(): Bool =
     match (this) {
       | Ok _ -> true
       | Error _ -> false
     }
 
-  fun isError(): Bool =
+  pub fun isError(): Bool =
     match (this) {
       | Ok _ -> false
       | Error _ -> true
     }
   
-  fun unwrap(): T =
+  pub fun unwrap(): T =
     match (this) {
       | Ok (ok) -> ok
       | Error _ -> abort()

@@ -17,7 +17,7 @@ methods File {
   /**
    * Open the file with the given filename. File is opened in read only mode.
    */
-  static fun open(name: String): Result<File, IOError> {
+  pub static fun open(name: String): Result<File, IOError> {
     val cName = name.toCString();
     val ret = File.__builtin_open(cName.data, 0, 0);
     if (ret < 0) {
@@ -31,7 +31,7 @@ methods File {
    * Create a file with the given filename. If a file with that name already exists it will be
    * truncated. File is opened in write only mode.
    */
-  static fun create(name: String): Result<File, IOError> {
+  pub static fun create(name: String): Result<File, IOError> {
     val cName = name.toCString();
     val ret = File.__builtin_open(
       cName.data,
@@ -48,7 +48,7 @@ methods File {
   /**
    * Close file.
    */
-  fun close(): Result<Unit, IOError> {
+  pub fun close(): Result<Unit, IOError> {
     val ret = File.__builtin_close(this[0]);
     if (ret < 0) {
       return Error (Unknown);
@@ -60,7 +60,7 @@ methods File {
   /**
    * Removes a file from the filesystem.
    */
-  static fun remove(name: String): Result<Unit, IOError> {
+  pub static fun remove(name: String): Result<Unit, IOError> {
     val ret = File.__builtin_unlink(name.toCString().data);
     if (ret < 0) {
       return Error (Unknown);
@@ -71,7 +71,12 @@ methods File {
 
   builtin static fun __builtin_read(file: Int, buffer: Array<Byte>, size: Int): Int
 
-  builtin static fun __builtin_write(file: Int, buffer: Array<Byte>, offset: Int, size: Int): Int
+  pub builtin static fun __builtin_write(
+    file: Int,
+    buffer: Array<Byte>,
+    offset: Int,
+    size: Int,
+  ): Int
 
   builtin static fun __builtin_open(file: Array<Byte>, flags: Int, mode: Int): Int
 
@@ -84,7 +89,7 @@ methods File {
   implements Reader
   implements Writer
 
-  override fun read(buffer: Vec<Byte>): Result<Int, IOError> {
+  pub override fun read(buffer: Vec<Byte>): Result<Int, IOError> {
     val ret = File.__builtin_read(this[0], buffer.data, buffer.size);
     if (ret < 0) {
       return Error (Unknown);
@@ -93,7 +98,7 @@ methods File {
     return Ok (ret);
   }
 
-  override fun write(buffer: Vec<Byte>): Result<Unit, IOError> {
+  pub override fun write(buffer: Vec<Byte>): Result<Unit, IOError> {
     var bytesWritten = 0;
     var bytesToWrite = buffer.size;
 

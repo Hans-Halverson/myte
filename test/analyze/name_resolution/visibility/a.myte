@@ -21,7 +21,9 @@ trait PrivateTrait {
 }
 
 pub trait PublicTrait {
-  static fun method() {}
+  pub static fun method() {}
+
+  static fun privateMethod() {}
 }
 
 methods PrivateType {
@@ -29,5 +31,15 @@ methods PrivateType {
 }
 
 methods PublicType {
-  static fun method() {}
+  pub static fun method() {}
+
+  static fun privateMethod() {}
+}
+
+fun testAccessStaticMethodsWithinModule() {
+  // Can successfully access within module
+  PrivateTrait.method;
+  PublicTrait.method;
+  PrivateType.method;
+  PublicType.method;
 }

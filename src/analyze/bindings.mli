@@ -31,6 +31,7 @@ module FunctionDeclaration : sig
   type t = {
     name: string;
     loc: Loc.t;
+    is_public: bool;
     is_builtin: bool;
     is_static: bool;
     is_override: bool;
@@ -45,6 +46,7 @@ module FunctionDeclaration : sig
   val mk :
     name:string ->
     loc:Loc.t ->
+    is_public:bool ->
     is_builtin:bool ->
     is_static:bool ->
     is_override:bool ->
@@ -80,7 +82,7 @@ module TraitDeclaration : sig
     mutable implemented: t LocMap.t;
   }
 
-  val mk : name:string -> loc:Loc.t -> t
+  val mk : name:string -> loc:Loc.t -> module_:Module.t -> t
 end
 
 module TypeDeclaration : sig
@@ -89,7 +91,7 @@ module TypeDeclaration : sig
     mutable traits: TraitDeclaration.t list;
   }
 
-  val mk : name:string -> loc:Loc.t -> t
+  val mk : name:string -> loc:Loc.t -> module_:Module.t -> t
 
   val add_trait : t -> TraitDeclaration.t -> unit
 end
@@ -117,7 +119,7 @@ module ValueBinding : sig
     mutable uses: LocSet.t;
     mutable is_captured: bool;
     context: context;
-    module_: string list;
+    module_: Module.t;
   }
 
   and id = int
@@ -133,7 +135,7 @@ module ValueBinding : sig
     loc:Loc.t ->
     declaration:value_declaration ->
     context:context ->
-    module_:string list ->
+    module_:Module.t ->
     t
 end
 
@@ -144,12 +146,12 @@ module TypeBinding : sig
     loc: Loc.t;
     declaration: type_declaration;
     mutable uses: LocSet.t;
-    module_: string list;
+    module_: Module.t;
   }
 
   and id = int
 
-  val mk : name:string -> loc:Loc.t -> declaration:type_declaration -> module_:string list -> t
+  val mk : name:string -> loc:Loc.t -> declaration:type_declaration -> module_:Module.t -> t
 end
 
 module Bindings : sig

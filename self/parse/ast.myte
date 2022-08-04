@@ -3,16 +3,16 @@ module myte.parse.ast
 import myte.common.loc.Loc
 
 pub type Module {
-  loc: Loc,
-  name: ModuleName,
-  imports: Vec<Import>,
-  toplevels: Vec<Toplevel>,
-  source: String,
+  pub loc: Loc,
+  pub name: ModuleName,
+  pub imports: Vec<Import>,
+  pub toplevels: Vec<Toplevel>,
+  pub source: String,
 }
 
 pub type ModuleName {
-  loc: Loc,
-  name: ScopedIdentifier,
+  pub loc: Loc,
+  pub name: ScopedIdentifier,
 }
 
 pub type Import =
@@ -20,15 +20,15 @@ pub type Import =
   | IComplexImport (ComplexImport)
 
 pub type ComplexImport {
-  loc: Loc,
-  scopes: Vec<Identifier>,
-  aliases: Vec<ImportAlias>,
+  pub loc: Loc,
+  pub scopes: Vec<Identifier>,
+  pub aliases: Vec<ImportAlias>,
 }
 
 pub type ImportAlias {
-  loc: Loc,
-  name: Identifier,
-  alias_: Option<Identifier>,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub alias_: Option<Identifier>,
 }
 
 pub type Toplevel =
@@ -38,14 +38,14 @@ pub type Toplevel =
   | TLTrait (TraitDeclaration)
 
 pub type Identifier {
-  loc: Loc,
-  name: String,
+  pub loc: Loc,
+  pub name: String,
 }
 
 pub type ScopedIdentifier {
-  loc: Loc,
-  scopes: Vec<Identifier>,
-  name: Identifier,
+  pub loc: Loc,
+  pub scopes: Vec<Identifier>,
+  pub name: Identifier,
 }
 
 /* 
@@ -55,22 +55,22 @@ pub type ScopedIdentifier {
  */
 
 pub type FunctionDeclaration {
-  loc: Loc,
-  name: Identifier,
-  params: Vec<FunctionParam>,
-  body: FunctionBody,
-  return_: Option<Type>,
-  typeParams: Vec<TypeParameter>,
-  isPublic: Bool,
-  isBuiltin: Bool,
-  isStatic: Bool,
-  isOverride: Bool,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub params: Vec<FunctionParam>,
+  pub body: FunctionBody,
+  pub return_: Option<Type>,
+  pub typeParams: Vec<TypeParameter>,
+  pub isPublic: Bool,
+  pub isBuiltin: Bool,
+  pub isStatic: Bool,
+  pub isOverride: Bool,
 }
 
 pub type FunctionParam {
-  loc: Loc,
-  name: Identifier,
-  annot: Type,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub annot: Type,
 }
 
 pub type FunctionBody =
@@ -79,18 +79,18 @@ pub type FunctionBody =
   | FBSignature
 
 pub type TypeParameter {
-  loc: Loc,
-  name: Identifier,
-  bounds: Vec<IdentifierType>,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub bounds: Vec<IdentifierType>,
 }
 
 pub type VariableDeclaration {
-  loc: Loc,
-  kind: VariableDeclarationKind,
-  pattern: Pattern,
-  init: Expression,
-  annot: Option<Type>,
-  isPublic: Bool,
+  pub loc: Loc,
+  pub kind: VariableDeclarationKind,
+  pub pattern: Pattern,
+  pub init: Expression,
+  pub annot: Option<Type>,
+  pub isPublic: Bool,
 }
 
 pub type VariableDeclarationKind =
@@ -98,11 +98,11 @@ pub type VariableDeclarationKind =
   | Mutable
 
 pub type TypeDeclaration {
-  loc: Loc,
-  name: Identifier,
-  typeParams: Vec<TypeParameter>,
-  decl: TypeDecl,
-  isPublic: Bool,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub typeParams: Vec<TypeParameter>,
+  pub decl: TypeDecl,
+  pub isPublic: Bool,
 }
 
 pub type TypeDecl =
@@ -113,23 +113,23 @@ pub type TypeDecl =
   | TDBuiltin
 
 pub type TupleDeclaration {
-  loc: Loc,
-  name: Identifier,
-  elements: Vec<Type>,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub elements: Vec<Type>,
 }
 
 pub type RecordDeclaration {
-  loc: Loc,
-  name: Identifier,
-  fields: Vec<RecordDeclarationField>,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub fields: Vec<RecordDeclarationField>,
 }
 
 pub type RecordDeclarationField {
-  loc: Loc,
-  name: Identifier,
-  type_: Type,
-  isPublic: Bool,
-  isMutable: Bool,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub type_: Type,
+  pub isPublic: Bool,
+  pub isMutable: Bool,
 }
 
 pub type VariantDeclaration =
@@ -138,13 +138,13 @@ pub type VariantDeclaration =
   | EnumVariant (Identifier)
 
 pub type TraitDeclaration {
-  loc: Loc,
-  kind: TraitDeclarationKind,
-  name: Identifier,
-  typeParams: Vec<TypeParameter>,
-  implemented: Vec<IdentifierType>,
-  methods_: Vec<FunctionDeclaration>,
-  isPublic: Bool,
+  pub loc: Loc,
+  pub kind: TraitDeclarationKind,
+  pub name: Identifier,
+  pub typeParams: Vec<TypeParameter>,
+  pub implemented: Vec<IdentifierType>,
+  pub methods_: Vec<FunctionDeclaration>,
+  pub isPublic: Bool,
 }
 
 pub type TraitDeclarationKind =
@@ -171,21 +171,21 @@ pub type Statement =
   | SAssignment (Assignment)
 
 pub type Block {
-  loc: Loc,
-  statements: Vec<Statement>,
+  pub loc: Loc,
+  pub statements: Vec<Statement>,
 }
 
 pub type ExpressionStatement {
-  loc: Loc,
-  expr: Expression,
-  isValue: Bool,
+  pub loc: Loc,
+  pub expr: Expression,
+  pub isValue: Bool,
 }
 
 pub type If {
-  loc: Loc,
-  test: Test,
-  conseq: Block,
-  altern: IfAltern,
+  pub loc: Loc,
+  pub test: Test,
+  pub conseq: Block,
+  pub altern: IfAltern,
 }
 
 pub type IfAltern =
@@ -198,23 +198,23 @@ pub type Test =
   | TMatch (MatchTest)
 
 pub type MatchTest {
-  loc: Loc,
-  expr: Expression,
-  pattern: Pattern,
-  guard: Option<Expression>,
+  pub loc: Loc,
+  pub expr: Expression,
+  pub pattern: Pattern,
+  pub guard: Option<Expression>,
 }
 
 pub type Match {
-  loc: Loc,
-  args: Vec<Expression>,
-  cases: Vec<MatchCase>,
+  pub loc: Loc,
+  pub args: Vec<Expression>,
+  pub cases: Vec<MatchCase>,
 }
 
 pub type MatchCase {
-  loc: Loc,
-  pattern: Pattern,
-  guard: Option<Expression>,
-  body: MatchCaseBody,
+  pub loc: Loc,
+  pub pattern: Pattern,
+  pub guard: Option<Expression>,
+  pub body: MatchCaseBody,
 }
 
 pub type MatchCaseBody =
@@ -222,22 +222,22 @@ pub type MatchCaseBody =
   | MCStatement (Statement)
 
 pub type While {
-  loc: Loc,
-  test: Test,
-  body: Block,
+  pub loc: Loc,
+  pub test: Test,
+  pub body: Block,
 }
 
 pub type For {
-  loc: Loc,
-  pattern: Pattern,
-  annot: Option<Type>,
-  iterator: Expression,
-  body: Block,
+  pub loc: Loc,
+  pub pattern: Pattern,
+  pub annot: Option<Type>,
+  pub iterator: Expression,
+  pub body: Block,
 }
 
 pub type Return {
-  loc: Loc,
-  arg: Option<Expression>,
+  pub loc: Loc,
+  pub arg: Option<Expression>,
 }
 
 pub type Break { loc: Loc }
@@ -245,10 +245,10 @@ pub type Break { loc: Loc }
 pub type Continue { loc: Loc }
 
 pub type Assignment {
-  loc: Loc,
-  op: Option<AssignmentOperation>,
-  lvalue: AssignmentLvalue,
-  expr: Expression,
+  pub loc: Loc,
+  pub op: Option<AssignmentOperation>,
+  pub lvalue: AssignmentLvalue,
+  pub expr: Expression,
 }
 
 pub type AssignmentOperation =
@@ -305,14 +305,14 @@ pub type Expression =
 pub type UnitLiteral { loc: Loc }
 
 pub type IntLiteral {
-  loc: Loc,
-  raw: String,
-  base: IntLiteralBase,
+  pub loc: Loc,
+  pub raw: String,
+  pub base: IntLiteralBase,
 }
 
 pub type FloatLiteral {
-  loc: Loc,
-  raw: String,
+  pub loc: Loc,
+  pub raw: String,
 }
 
 pub type IntLiteralBase =
@@ -321,23 +321,23 @@ pub type IntLiteralBase =
   | Hex
 
 pub type BoolLiteral {
-  loc: Loc,
-  value: Bool,
+  pub loc: Loc,
+  pub value: Bool,
 }
 
 pub type StringLiteral {
-  loc: Loc,
-  value: String,
+  pub loc: Loc,
+  pub value: String,
 }
 
 pub type CharLiteral {
-  loc: Loc,
-  value: Byte,
+  pub loc: Loc,
+  pub value: Byte,
 }
 
 pub type InterpolatedString {
-  loc: Loc,
-  parts: Vec<InterpolatedStringPart>,
+  pub loc: Loc,
+  pub parts: Vec<InterpolatedStringPart>,
 }
 
 pub type InterpolatedStringPart =
@@ -345,40 +345,40 @@ pub type InterpolatedStringPart =
   | IPExpression (Expression)
 
 pub type TupleExpression {
-  loc: Loc,
-  elements: Vec<Expression>,
+  pub loc: Loc,
+  pub elements: Vec<Expression>,
 }
 
 pub type RecordExpression {
-  loc: Loc,
-  name: Expression,
-  fields: Vec<RecordExpressionField>,
+  pub loc: Loc,
+  pub name: Expression,
+  pub fields: Vec<RecordExpressionField>,
   // Needed for reparsing expressions as patterns. Record expressions cannot have a `...`.
-  rest: Option<Loc>,
+  pub rest: Option<Loc>,
 }
 
 pub type RecordExpressionField {
-  loc: Loc,
-  name: Identifier,
-  value: Option<Expression>,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub value: Option<Expression>,
 }
 
 pub type TypeCast {
-  loc: Loc,
-  expr: Expression,
-  type_: Type,
+  pub loc: Loc,
+  pub expr: Expression,
+  pub type_: Type,
 }
 
 pub type Call {
-  loc: Loc,
-  func: Expression,
-  args: Vec<Expression>,
+  pub loc: Loc,
+  pub func: Expression,
+  pub args: Vec<Expression>,
 }
 
 pub type UnaryOperation {
-  loc: Loc,
-  op: UnaryOperator,
-  operand: Expression,
+  pub loc: Loc,
+  pub op: UnaryOperator,
+  pub operand: Expression,
 }
 
 pub type UnaryOperator =
@@ -387,10 +387,10 @@ pub type UnaryOperator =
   | UnaryNot
 
 pub type BinaryOperation {
-  loc: Loc,
-  op: BinaryOperator,
-  left: Expression,
-  right: Expression,
+  pub loc: Loc,
+  pub op: BinaryOperator,
+  pub left: Expression,
+  pub right: Expression,
 }
 
 pub type BinaryOperator =
@@ -413,66 +413,66 @@ pub type BinaryOperator =
   | BinaryLogicalRightShift
 
 pub type LogicalAnd {
-  loc: Loc,
-  left: Expression,
-  right: Expression,
+  pub loc: Loc,
+  pub left: Expression,
+  pub right: Expression,
 }
 
 pub type LogicalOr {
-  loc: Loc,
-  left: Expression,
-  right: Expression,
+  pub loc: Loc,
+  pub left: Expression,
+  pub right: Expression,
 }
 
 pub type NamedAccess {
-  loc: Loc,
-  target: Expression,
-  name: Identifier,
+  pub loc: Loc,
+  pub target: Expression,
+  pub name: Identifier,
 }
 
 pub type IndexedAccess {
-  loc: Loc,
-  target: Expression,
-  index: Expression,
+  pub loc: Loc,
+  pub target: Expression,
+  pub index: Expression,
 }
 
 pub type Unwrap {
-  loc: Loc,
-  operand: Expression,
+  pub loc: Loc,
+  pub operand: Expression,
 }
 
 pub type VecLiteral {
-  loc: Loc,
-  elements: Vec<Expression>,
+  pub loc: Loc,
+  pub elements: Vec<Expression>,
 }
 
 pub type MapLiteral {
-  loc: Loc,
-  entries: Vec<MapLiteralEntry>,
+  pub loc: Loc,
+  pub entries: Vec<MapLiteralEntry>,
 }
 
 pub type MapLiteralEntry {
-  loc: Loc,
-  key: Expression,
-  value: Expression,
+  pub loc: Loc,
+  pub key: Expression,
+  pub value: Expression,
 }
 
 pub type SetLiteral {
-  loc: Loc,
-  elements: Vec<Expression>,
+  pub loc: Loc,
+  pub elements: Vec<Expression>,
 }
 
 pub type AnonymousFunction {
-  loc: Loc,
-  params: Vec<AnonymousFunctionParam>,
-  return_: Option<Type>,
-  body: AnonymousFunctionBody,
+  pub loc: Loc,
+  pub params: Vec<AnonymousFunctionParam>,
+  pub return_: Option<Type>,
+  pub body: AnonymousFunctionBody,
 }
 
 pub type AnonymousFunctionParam {
-  loc: Loc,
-  name: Identifier,
-  annot: Option<Type>,
+  pub loc: Loc,
+  pub name: Identifier,
+  pub annot: Option<Type>,
 }
 
 pub type AnonymousFunctionBody =
@@ -492,25 +492,25 @@ pub type Type =
   | TTrait (TraitType)
 
 pub type IdentifierType {
-  loc: Loc,
-  name: ScopedIdentifier,
-  typeArgs: Vec<Type>,
+  pub loc: Loc,
+  pub name: ScopedIdentifier,
+  pub typeArgs: Vec<Type>,
 }
 
 pub type TupleType {
-  loc: Loc,
-  elements: Vec<Type>,
+  pub loc: Loc,
+  pub elements: Vec<Type>,
 }
 
 pub type FunctionType {
-  loc: Loc,
-  params: Vec<Type>,
-  return_: Type,
+  pub loc: Loc,
+  pub params: Vec<Type>,
+  pub return_: Type,
 }
 
 pub type TraitType {
-  loc: Loc,
-  trait_: IdentifierType,
+  pub loc: Loc,
+  pub trait_: IdentifierType,
 }
 
 /* 
@@ -537,37 +537,37 @@ pub type LiteralPattern =
   | PString (StringLiteral)
 
 pub type NamedWildcard {
-  loc: Loc,
-  name: ScopedIdentifier,
+  pub loc: Loc,
+  pub name: ScopedIdentifier,
 }
 
 pub type OrPattern {
-  loc: Loc,
-  left: Pattern,
-  right: Pattern,
+  pub loc: Loc,
+  pub left: Pattern,
+  pub right: Pattern,
 }
 
 pub type TuplePattern {
-  loc: Loc,
-  name: Option<ScopedIdentifier>,
-  elements: Vec<Pattern>,
+  pub loc: Loc,
+  pub name: Option<ScopedIdentifier>,
+  pub elements: Vec<Pattern>,
 }
 
 pub type RecordPattern {
-  loc: Loc,
-  name: ScopedIdentifier,
-  fields: Vec<RecordPatternField>,
-  rest: Bool,
+  pub loc: Loc,
+  pub name: ScopedIdentifier,
+  pub fields: Vec<RecordPatternField>,
+  pub rest: Bool,
 }
 
 pub type RecordPatternField {
-  loc: Loc,
-  name: Option<Identifier>,
-  value: Pattern,
+  pub loc: Loc,
+  pub name: Option<Identifier>,
+  pub value: Pattern,
 }
 
 pub type BindingPattern {
-  loc: Loc,
-  pattern: Pattern,
-  name: Identifier,
+  pub loc: Loc,
+  pub pattern: Pattern,
+  pub name: Identifier,
 }

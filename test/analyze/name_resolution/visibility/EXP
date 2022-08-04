@@ -57,3 +57,13 @@ Error: Cannot access private `PrivateType`
 test/analyze/name_resolution/visibility/test.myte:27:4-15
  27 |   a.PrivateType.method;
     |     ^^^^^^^^^^^
+
+Error: Cannot access private `privateMethod`
+test/analyze/name_resolution/visibility/test.myte:28:16-29
+ 28 |   a.PublicTrait.privateMethod;
+    |                 ^^^^^^^^^^^^^
+
+Error: Cannot access private `privateMethod`
+test/analyze/name_resolution/visibility/test.myte:29:15-28
+ 29 |   a.PublicType.privateMethod;
+    |                ^^^^^^^^^^^^^

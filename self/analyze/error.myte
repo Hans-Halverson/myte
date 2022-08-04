@@ -32,11 +32,11 @@ fun formatNameParts(scopes: Vec<ast.Identifier>): String {
 methods AnalyzeError {
   implements ToString
 
-  static fun new(loc: Loc, error: AnalyzeErrorData): AnalyzeError {
+  pub static fun new(loc: Loc, error: AnalyzeErrorData): AnalyzeError {
     return AnalyzeError { loc, error };
   }
 
-  override fun toString(): String {
+  pub override fun toString(): String {
     return formatErrorWithLoc(this.formatErrorData(), this.loc);
   }
 

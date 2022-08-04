@@ -3,5 +3,5 @@ module std.ops
 import std.bool.Bool
 
 pub trait Equatable {
-  fun equals(other: This): Bool
+  pub fun equals(other: This): Bool
 }

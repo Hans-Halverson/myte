@@ -25,6 +25,8 @@ fun main() {
   (1: a.PrivateTrait);
   a.PrivateTrait.method;
   a.PrivateType.method;
+  a.PublicTrait.privateMethod;
+  a.PublicType.privateMethod;
 
   // Can reference public decls
   a.publicGlobal;

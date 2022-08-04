@@ -11,13 +11,13 @@ import std.sys.abort
  * A resizable container of elements.
  */
 pub type Vec<T> {
-  var data: Array<T>,
-  var size: Int,
-  var capacity: Int,
+  pub var data: Array<T>,
+  pub var size: Int,
+  pub var capacity: Int,
 }
 
 methods Vec<T> {
-  static fun new<T>(): Vec<T> {
+  pub static fun new<T>(): Vec<T> {
     return Vec {
       data: Array.new(0),
       size: 0,
@@ -25,7 +25,7 @@ methods Vec<T> {
     };
   }
 
-  static fun newUninitialized<T>(size: Int): Vec<T> {
+  pub static fun newUninitialized<T>(size: Int): Vec<T> {
     return Vec {
       data: Array.new(size),
       size,
@@ -33,7 +33,7 @@ methods Vec<T> {
     };
   }
 
-  fun get(index: Int): T {
+  pub fun get(index: Int): T {
     if (index < 0 || index >= this.size) {
       abort();
     }
@@ -41,7 +41,7 @@ methods Vec<T> {
     return this.data[index];
   }
 
-  fun set(index: Int, item: T) {
+  pub fun set(index: Int, item: T) {
     if (index < 0 || index >= this.size) {
       abort();
     }
@@ -49,7 +49,7 @@ methods Vec<T> {
     this.data[index] = item;
   }
 
-  fun push(x: T) {
+  pub fun push(x: T) {
     val capacity = this.capacity;
     if (this.size == capacity) {
       val newCapacity = if (capacity == 0) {
@@ -65,7 +65,7 @@ methods Vec<T> {
     this.size += 1;
   }
 
-  fun pop(): Option<T> {
+  pub fun pop(): Option<T> {
     if (this.size == 0) {
       return None;
     }
@@ -76,7 +76,7 @@ methods Vec<T> {
     return Some (toReturn);
   }
   
-  fun map<U>(func: (T) -> U): Vec<U> {
+  pub fun map<U>(func: (T) -> U): Vec<U> {
     val vec: Vec<U> = Vec.newUninitialized(this.size);
     for (i in 0.to(this.size)) {
       vec[i] = func(this[i]);
@@ -85,7 +85,7 @@ methods Vec<T> {
     return vec;
   }
 
-  fun reserve(capacity: Int) {
+  pub fun reserve(capacity: Int) {
     if (capacity <= this.capacity) {
       return;
     }
@@ -96,7 +96,7 @@ methods Vec<T> {
     this.capacity = capacity;
   }
 
-  fun resize(size: Int, value: T) {
+  pub fun resize(size: Int, value: T) {
     if (size > this.capacity) {
       this.reserve(size);
     }
@@ -110,9 +110,9 @@ methods Vec<T> {
     this.size = size;
   }
 
-  fun isEmpty(): Bool = this.size == 0
+  pub fun isEmpty(): Bool = this.size == 0
 
-  fun clone(): Vec<T> {
+  pub fun clone(): Vec<T> {
     val capacity = this.capacity;
     val data: Array<T> = Array.new(capacity);
     val size = this.size;
@@ -122,7 +122,7 @@ methods Vec<T> {
     return Vec { data, size, capacity };
   }
 
-  fun slice(start: Int, end: Int): Vec<T> {
+  pub fun slice(start: Int, end: Int): Vec<T> {
     if (start < 0 || end > this.size || end < start) {
       abort();
     }
@@ -134,7 +134,7 @@ methods Vec<T> {
     return slice;
   }
 
-  static fun copyRange<T>(src: Vec<T>, srcIndex: Int, dest: Vec<T>, destIndex: Int, count: Int) {
+  pub static fun copyRange<T>(src: Vec<T>, srcIndex: Int, dest: Vec<T>, destIndex: Int, count: Int) {
     if (count < 0 || srcIndex < 0 || destIndex < 0 ||
         srcIndex + count > src.size ||
         destIndex + count > dest.size) {
@@ -153,7 +153,7 @@ type VecIterator<T> { data: Array<T>, size: Int, var index: Int }
 methods Vec<T> {
   implements Iterable<T>
 
-  override fun toIterator(): VecIterator<T> {
+  pub override fun toIterator(): VecIterator<T> {
     val Vec { data, size, ... } = this;
     return VecIterator { data, size, index: 0 };
   }
@@ -162,7 +162,7 @@ methods Vec<T> {
 methods VecIterator<T> {
   implements Iterator<T>
 
-  override fun next(): Option<T> {
+  pub override fun next(): Option<T> {
     if (this.index >= this.size) {
       return None;
     }

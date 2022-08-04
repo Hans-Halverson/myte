@@ -19,25 +19,25 @@ pub val BYTE_MAX: Byte = 127
 methods Byte {
   implements Equatable
 
-  builtin override fun equals(other: Byte): Bool
+  pub builtin override fun equals(other: Byte): Bool
 }
 
 methods Byte {
   implements Hashable
 
-  override fun hash(): Int = this.toInt()
+  pub override fun hash(): Int = this.toInt()
 }
 
 methods Byte {
   implements ToString
 
-  builtin fun toInt(): Int
+  pub builtin fun toInt(): Int
 
-  builtin fun toLong(): Long
+  pub builtin fun toLong(): Long
 
-  builtin fun toDouble(): Double
+  pub builtin fun toDouble(): Double
 
-  override fun toString(): String {
+  pub override fun toString(): String {
     var n = this;
     // Special case min byte, as it cannot be negated
     if (n == BYTE_MIN) {
@@ -74,18 +74,18 @@ methods Byte {
   /**
    * Create an iterator starting at this number and ending at the end number, exclusive.
    */
-  fun to(end: Byte): ByteRange = ByteRange { current: this, end }
+  pub fun to(end: Byte): ByteRange = ByteRange { current: this, end }
 
   /**
    * Create an iterator starting at this number and ending at the end number, inclusive.
    */
-  fun toInclusive(end: Byte): ByteRangeInclusive = ByteRangeInclusive { current: this, end }
+  pub fun toInclusive(end: Byte): ByteRangeInclusive = ByteRangeInclusive { current: this, end }
 
   /**
    * Create an iterator starting at this number and ending at the end number, exclusive,
    * stepping by the given amount each iteration.
    */
-  fun stepTo(end: Byte, step: Byte): ByteRangeWithStep {
+  pub fun stepTo(end: Byte, step: Byte): ByteRangeWithStep {
     return ByteRangeWithStep { current: this, end, step };
   }
 
@@ -93,7 +93,7 @@ methods Byte {
    * Create an iterator starting at this number and ending at the end number, exclusive,
    * stepping down by the given amount each iteration.
    */
-  fun stepDownTo(end: Byte, step: Byte): ByteRangeWithStepDown {
+  pub fun stepDownTo(end: Byte, step: Byte): ByteRangeWithStepDown {
     return ByteRangeWithStepDown { current: this, end, step };
   }
 }
@@ -106,7 +106,7 @@ type ByteRange {
 methods ByteRange {
   implements Iterator<Byte>
 
-  override fun next(): Option<Byte> {
+  pub override fun next(): Option<Byte> {
     val current = this.current;
     if (current >= this.end) {
       return None;
@@ -126,7 +126,7 @@ type ByteRangeInclusive {
 methods ByteRangeInclusive {
   implements Iterator<Byte>
 
-  override fun next(): Option<Byte> {
+  pub override fun next(): Option<Byte> {
     val current = this.current;
     if (current > this.end) {
       return None;
@@ -147,7 +147,7 @@ type ByteRangeWithStep {
 methods ByteRangeWithStep {
   implements Iterator<Byte>
 
-  override fun next(): Option<Byte> {
+  pub override fun next(): Option<Byte> {
     val current = this.current;
     if (current >= this.end) {
       return None;
@@ -168,7 +168,7 @@ type ByteRangeWithStepDown {
 methods ByteRangeWithStepDown {
   implements Iterator<Byte>
 
-  override fun next(): Option<Byte> {
+  pub override fun next(): Option<Byte> {
     val current = this.current;
     if (current <= this.end) {
       return None;

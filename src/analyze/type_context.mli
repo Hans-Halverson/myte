@@ -74,6 +74,10 @@ val add_anonymous_function_capture : cx:t -> Loc.t -> ValueBinding.t -> unit
 
 val get_anonymous_function_captures : cx:t -> Loc.t -> LBVMMap.VSet.t
 
+val set_current_module : cx:t -> Module.t -> unit
+
+val get_current_module : cx:t -> Module.t
+
 (* Binding getters *)
 
 val get_value_binding : cx:t -> Loc.t -> ValueBinding.t

@@ -103,6 +103,7 @@ and AdtSig : sig
 
     and record_field = {
       type_: Type.t;
+      is_public: bool;
       is_mutable: bool;
     }
   end
@@ -113,6 +114,7 @@ and AdtSig : sig
     id: id;
     name: string;
     loc: Loc.t;
+    module_: Module.t;
     mutable type_params: TypeParam.t list;
     mutable variants: Variant.t SMap.t;
     mutable traits: TraitSig.t list;
@@ -123,7 +125,7 @@ and AdtSig : sig
     type_args: Type.t list;
   }
 
-  val mk : name:string -> loc:Loc.t -> t
+  val mk : name:string -> loc:Loc.t -> module_:Module.t -> t
 
   val empty : t
 
@@ -143,6 +145,7 @@ end = struct
 
     and record_field = {
       type_: Type.t;
+      is_public: bool;
       is_mutable: bool;
     }
   end
@@ -153,6 +156,7 @@ end = struct
     id: id;
     name: string;
     loc: Loc.t;
+    module_: Module.t;
     mutable type_params: TypeParam.t list;
     mutable variants: Variant.t SMap.t;
     mutable traits: TraitSig.t list;
@@ -170,11 +174,19 @@ end = struct
     max_id := id + 1;
     id
 
-  let mk ~name ~loc =
-    { id = mk_id (); name; loc; type_params = []; variants = SMap.empty; traits = [] }
+  let mk ~name ~loc ~module_ =
+    { id = mk_id (); name; loc; module_; type_params = []; variants = SMap.empty; traits = [] }
 
   let empty =
-    { id = 0; name = ""; loc = Loc.none; type_params = []; variants = SMap.empty; traits = [] }
+    {
+      id = 0;
+      name = "";
+      loc = Loc.none;
+      module_ = Module.none;
+      type_params = [];
+      variants = SMap.empty;
+      traits = [];
+    }
 
   let lookup_method adt_sig method_name =
     List.fold_left
@@ -204,6 +216,7 @@ and MethodSig : sig
     (* Super method signature if one exists, along with the type of the super method in terms
        of the trait this MethodSig is for. *)
     mutable super_method_sig: (MethodSig.t * Function.t) option;
+    is_public: bool;
     is_signature: bool;
     type_params: TypeParam.t list;
     params: Type.t list;
@@ -219,6 +232,7 @@ end = struct
     trait_sig: TraitSig.t;
     source_trait_instance: TraitSig.instance;
     mutable super_method_sig: (MethodSig.t * Function.t) option;
+    is_public: bool;
     is_signature: bool;
     type_params: TypeParam.t list;
     params: Type.t list;
@@ -237,6 +251,7 @@ and TraitSig : sig
     id: id;
     name: string;
     loc: Loc.t;
+    module_: Module.t;
     mutable type_params: TypeParam.t list;
     mutable methods: MethodSig.t SMap.t;
     (* Implemented traits, along with the loc of the TraitDeclaration.ImplementedTrait node that
@@ -255,7 +270,7 @@ and TraitSig : sig
     type_args: Type.t list;
   }
 
-  val mk : name:string -> loc:Loc.t -> t
+  val mk : name:string -> loc:Loc.t -> module_:Module.t -> t
 
   val empty : t
 
@@ -273,6 +288,7 @@ end = struct
     id: id;
     name: string;
     loc: Loc.t;
+    module_: Module.t;
     mutable type_params: TypeParam.t list;
     mutable methods: MethodSig.t SMap.t;
     mutable implemented: (Loc.t * instance) list;
@@ -293,11 +309,12 @@ end = struct
     max_id := id + 1;
     id
 
-  let mk ~name ~loc =
+  let mk ~name ~loc ~module_ =
     {
       id = mk_id ();
       name;
       loc;
+      module_;
       type_params = [];
       methods = SMap.empty;
       implemented = [];
@@ -311,6 +328,7 @@ end = struct
       id = 0;
       name = "";
       loc = Loc.none;
+      module_ = Module.none;
       type_params = [];
       methods = SMap.empty;
       implemented = [];

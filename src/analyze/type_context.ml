@@ -44,6 +44,7 @@ type t = {
   mutable num_loops: int;
   (* Anonymous function node's loc to the bindings it captures *)
   mutable anonymous_function_captures: LBVMMap.t;
+  mutable current_module: Module.t;
 }
 
 and union_forest_node =
@@ -68,6 +69,7 @@ let mk ~bindings =
     unchecked_trait_object_uses = TraitSigMap.empty;
     num_loops = 0;
     anonymous_function_captures = LBVMMap.empty;
+    current_module = Module.none;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -140,6 +142,10 @@ let add_anonymous_function_capture ~cx anon_loc captured_binding =
 
 let get_anonymous_function_captures ~cx anon_loc =
   LBVMMap.find_all anon_loc cx.anonymous_function_captures
+
+let set_current_module ~cx module_ = cx.current_module <- module_
+
+let get_current_module ~cx = cx.current_module
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 

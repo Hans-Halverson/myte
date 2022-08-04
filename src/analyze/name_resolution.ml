@@ -1,3 +1,4 @@
+module ModuleDef = Module
 open Analyze_error
 open Ast
 open Basic_collections
@@ -123,7 +124,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
        in nested contexts, e.g. nested functions, and top of stack is current context. *)
     val mutable context_stack : ValueBinding.context list = []
 
-    val mutable module_name : string list = []
+    val mutable current_module : ModuleDef.t = ModuleDef.none
 
     (* Whether the resolver is currently in a method *)
     val mutable in_method : bool = false
@@ -141,9 +142,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method errors () = List.rev errors
 
-    method set_current_module name =
-      let open Module.Name in
-      module_name <- Ast_utils.name_parts_of_scoped_ident name.name
+    method set_current_module module_ = current_module <- module_
 
     method save_toplevel_scope loc = toplevel_scopes <- LocMap.add loc scopes toplevel_scopes
 
@@ -172,12 +171,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         scopes <- { local_types = SMap.add name local_decl local_types; local_values } :: rest
 
     method add_value_declaration loc name context declaration =
-      let binding = ValueBinding.mk ~name ~loc ~declaration ~context ~module_:module_name in
+      let binding = ValueBinding.mk ~name ~loc ~declaration ~context ~module_:current_module in
       Bindings.add_value_use bindings binding.loc binding;
       binding
 
     method add_type_declaration loc name declaration =
-      let binding = TypeBinding.mk ~name ~loc ~declaration ~module_:module_name in
+      let binding = TypeBinding.mk ~name ~loc ~declaration ~module_:current_module in
       Bindings.add_type_use bindings binding.loc binding;
       binding
 
@@ -188,7 +187,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           ~loc:Loc.none
           ~context:(this#get_current_context ())
           ~declaration:(ThisDecl (ThisDeclaration.mk ()))
-          ~module_:module_name
+          ~module_:current_module
       in
       Bindings.add_this_binding bindings binding;
       let func_decl = get_func_decl func_binding in
@@ -215,7 +214,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     method add_type_use binding use_loc = Bindings.add_type_use bindings use_loc binding
 
-    method is_current_module name_parts = List.for_all2 ( = ) name_parts module_name
+    method is_current_module module_ = ModuleDef.equal module_ current_module
 
     method enter_scope () =
       scopes <- { local_values = SMap.empty; local_types = SMap.empty } :: scopes
@@ -240,9 +239,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
 
     (* Visit all toplevel declarations in a module, creating bindings for each *)
     method add_toplevel_declarations mod_ =
+      let { Ast.Module.loc; name; toplevels; _ } = mod_ in
+      let module_ = ModuleDef.mk ~name:(Ast_utils.name_parts_of_scoped_ident name.name) in
+      ModuleDef.set_module_for_module_loc loc module_;
+      this#set_current_module module_;
+
       let open Ast.Module in
-      let { name; toplevels; _ } = mod_ in
-      this#set_current_module name;
       let module_name_prefix =
         String.concat "." (Ast_utils.name_parts_of_scoped_ident name.name) ^ "."
       in
@@ -278,8 +280,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; _ } ->
             let ids = Ast_utils.ids_of_pattern pattern in
             List.iter (fun id -> add_value_binding id (VarDecl (VariableDeclaration.mk kind))) ids
-          | FunctionDeclaration { Ast.Function.name; is_builtin; is_static; is_override; body; _ }
-            ->
+          | FunctionDeclaration
+              { Ast.Function.name; is_public; is_builtin; is_static; is_override; body; _ } ->
             register_stdlib_decl name;
             add_value_binding
               name
@@ -287,6 +289,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                  (FunctionDeclaration.mk
                     ~name:name.name
                     ~loc:name.loc
+                    ~is_public
                     ~is_builtin
                     ~is_static
                     ~is_override
@@ -300,12 +303,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               | Alias _ -> add_type_binding name (TypeAlias (TypeAliasDeclaration.mk ()))
               | Tuple { name; _ }
               | Record { name; _ } ->
-                let type_decl = TypeDeclaration.mk ~name:name.name ~loc:name.loc in
+                let type_decl =
+                  TypeDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module
+                in
                 add_value_binding name (CtorDecl type_decl);
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig
               | Variant variants ->
-                let type_decl = TypeDeclaration.mk ~name:name.name ~loc:name.loc in
+                let type_decl =
+                  TypeDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module
+                in
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig;
                 List.iter
@@ -319,7 +326,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                       add_value_binding name (CtorDecl type_decl))
                   variants
               | Builtin ->
-                let type_decl = TypeDeclaration.mk ~name:name.name ~loc:name.loc in
+                let type_decl =
+                  TypeDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module
+                in
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig);
             (* Check record fields for duplicates and save to compare against methods *)
@@ -341,12 +350,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | TraitDeclaration ({ kind = Methods; name; _ } as trait_decl) ->
             register_stdlib_decl name;
             register_stdlib_method_decls trait_decl;
-            add_type_binding name (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc))
+            add_type_binding
+              name
+              (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module))
           | TraitDeclaration ({ kind = Trait; name; _ } as trait_decl) ->
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
-              let decl = TraitDeclaration.mk ~name:name.name ~loc:name.loc in
+              let decl =
+                TraitDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module
+              in
               register_stdlib_decl name;
               Std_lib.register_stdlib_trait name.loc decl.trait_sig;
               register_stdlib_method_decls trait_decl;
@@ -357,8 +370,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Setup and save the toplevel scope for this module, consisting of all imports and declarations *)
     method setup_toplevel_scope mod_ =
       let open Ast.Module in
-      let { loc; name; toplevels; imports; _ } = mod_ in
-      this#set_current_module name;
+      let { loc; toplevels; imports; _ } = mod_ in
+      this#set_current_module (ModuleDef.get_module_for_module_loc loc);
       let check_duplicate_toplevel_name name =
         let { Ast.Identifier.loc; name } = name in
         if SMap.mem name (List.hd scopes).local_values || SMap.mem name (List.hd scopes).local_types
@@ -467,11 +480,20 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         let methods =
           List.fold_left
             (fun methods
-                 { Function.name = { name; loc }; is_builtin; is_static; is_override; body; _ } ->
+                 {
+                   Function.name = { name; loc };
+                   is_public;
+                   is_builtin;
+                   is_static;
+                   is_override;
+                   body;
+                   _;
+                 } ->
               let method_ =
                 FunctionDeclaration.mk
                   ~name
                   ~loc
+                  ~is_public
                   ~is_builtin
                   ~is_static
                   ~is_override
@@ -520,8 +542,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         trait.TraitDeclaration.implemented <- implemented
       in
 
-      let { Module.loc; name; toplevels; _ } = mod_ in
-      this#set_current_module name;
+      let { Module.loc; toplevels; _ } = mod_ in
+      this#set_current_module (ModuleDef.get_module_for_module_loc loc);
       this#restore_toplevel_scope loc;
       List.iter
         (fun toplevel ->
@@ -539,7 +561,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               this#add_error loc (ModuleInvalidPosition ([name], NamePositionType))
             | Some (Decl type_binding) ->
               if not (this#is_current_module type_binding.module_) then
-                this#add_error loc (MethodDeclarationsInSameModule (name, module_name));
+                this#add_error loc (MethodDeclarationsInSameModule (name, current_module.name));
               let trait_binding = this#get_type_binding loc in
               let trait_decl = get_trait_decl trait_binding in
               let type_decl = get_type_decl type_binding in
@@ -555,8 +577,8 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Resolve all names in module to their declarations *)
     method resolve mod_ =
       let open Ast.Module in
-      let { loc; name; toplevels; _ } = mod_ in
-      this#set_current_module name;
+      let { loc; toplevels; _ } = mod_ in
+      this#set_current_module (ModuleDef.get_module_for_module_loc loc);
       this#restore_toplevel_scope loc;
       (* Then visit child nodes once toplevel scope is complete *)
       List.iter
@@ -675,6 +697,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                  (FunctionDeclaration.mk
                     ~name:func_name
                     ~loc
+                    ~is_public:false
                     ~is_builtin
                     ~is_static
                     ~is_override
@@ -829,7 +852,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | result -> result
         in
         let error_if_private is_public =
-          if not is_public then this#add_error part.loc (AccessPrivateDecl part.name)
+          let cannot_access = not is_public in
+          if not is_public then this#add_error part.loc (AccessPrivateDecl part.name);
+          cannot_access
         in
         (* If resolving a value we must check for static methods, which are under a type namespace *)
         let is_static_method =
@@ -837,16 +862,13 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             match (find_name ~is_value:false name module_tree, rest_parts) with
             | (Some (Decl { name = { loc = decl_loc; _ }; is_public }), meth :: rest) ->
               (match this#get_type_binding decl_loc with
-              | { TypeBinding.declaration = TraitDecl trait; _ } ->
-                error_if_private is_public;
-                if this#maybe_resolve_static_method part meth rest [trait] TraitTrait then
-                  on_export rest;
-                true
-              | { TypeBinding.declaration = TypeDecl type_decl; _ } ->
-                error_if_private is_public;
-                if this#maybe_resolve_static_method part meth rest type_decl.traits TraitType then
-                  on_export rest;
-                true
+              | { TypeBinding.declaration = TraitDecl _ | TypeDecl _; _ } as target_binding ->
+                if not (error_if_private is_public) then (
+                  if this#maybe_resolve_static_method part meth rest target_binding then
+                    on_export rest;
+                  true
+                ) else
+                  true
               | _ -> false)
             | _ -> false
           else
@@ -856,7 +878,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           (* First check if the name is a private decl *)
           let lookup_result = find_name ~is_value name module_tree in
           (match lookup_result with
-          | Some (Decl { is_public; _ }) -> error_if_private is_public
+          | Some (Decl { is_public; _ }) -> ignore (error_if_private is_public)
           | _ -> ());
 
           match (lookup_result, rest_parts) with
@@ -996,11 +1018,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           let (first_part, rest_parts) = List_utils.split_first parts in
           (* Name may be a static method on a type or trait as long as it has additional parts *)
           (match (this#lookup_type_in_scope first_part.name scopes, rest_parts) with
-          | (Some (Decl { TypeBinding.declaration = TraitDecl trait; _ }), meth :: rest) ->
-            if this#maybe_resolve_static_method first_part meth rest [trait] TraitTrait then
-              this#add_scope_named_access loc
-          | (Some (Decl { TypeBinding.declaration = TypeDecl type_decl; _ }), meth :: rest) ->
-            if this#maybe_resolve_static_method first_part meth rest type_decl.traits TraitType then
+          | ( Some
+                (Decl ({ TypeBinding.declaration = TraitDecl _ | TypeDecl _; _ } as target_binding)),
+              meth :: rest ) ->
+            if this#maybe_resolve_static_method first_part meth rest target_binding then
               this#add_scope_named_access loc
           | _ ->
             (match this#lookup_value_in_scope first_part.name scopes with
@@ -1017,10 +1038,19 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
     (* Try to resolve the current `type_part.method_part.rest_parts` chain to a static method given
        a collection of traits. Return whether the chain can be resolved to a static method, and on
        success mark a use. *)
-    method maybe_resolve_static_method type_part method_part rest_parts traits trait_or_type =
+    method maybe_resolve_static_method type_part method_part rest_parts target_binding =
+      let { Identifier.loc = name_loc; name } = method_part in
+
+      (* Check all methods declarations for type traits *)
+      let (traits, trait_or_type) =
+        match target_binding.declaration with
+        | TraitDecl trait_decl -> ([trait_decl], TraitTrait)
+        | TypeDecl type_decl -> (type_decl.traits, TraitType)
+        | _ -> failwith "Only trait and type declarations can have static methods"
+      in
+
       (* Check traits to determine if a static method with the given name is present for this trait
          or type, and mark a use if one is found. *)
-      let { Identifier.loc = name_loc; name } = method_part in
       let has_method =
         List.fold_left
           (fun is_resolved trait ->
@@ -1028,9 +1058,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               true
             else
               match SMap.find_opt name trait.TraitDeclaration.methods with
-              | Some { FunctionDeclaration.loc; is_static; _ } when is_static ->
+              | Some { FunctionDeclaration.loc; is_static; is_public; _ } when is_static ->
                 let binding = this#get_value_binding loc in
                 this#add_value_use binding name_loc;
+
+                (* Check that static method is visible in current module *)
+                if (not is_public) && not (ModuleDef.equal binding.module_ current_module) then
+                  this#add_error method_part.loc (AccessPrivateDecl method_part.name);
+
                 true
               | _ -> false)
           false

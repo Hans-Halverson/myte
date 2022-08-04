@@ -6,10 +6,10 @@ pub trait Trait {
 
 pub type Type1 (Unit)
 methods Type1 {
-  static fun foo() {}
+  pub static fun foo() {}
 }
 
 pub type Type2 = Type2A | Type2B
 methods Type2 {
-  static fun foo() {}
+  pub static fun foo() {}
 }

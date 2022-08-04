@@ -1,0 +1,29 @@
+Error: Cannot access private `privateField`
+test/analyze/type_check/visibility/test.myte:7:9-21
+ 7 |   record.privateField;
+   |          ^^^^^^^^^^^^
+
+Error: Cannot access private `privateMethod`
+test/analyze/type_check/visibility/test.myte:13:9-22
+ 13 |   record.privateMethod();
+    |          ^^^^^^^^^^^^^
+
+Error: Cannot access private `privateMethod`
+test/analyze/type_check/visibility/test.myte:14:9-22
+ 14 |   trait1.privateMethod();
+    |          ^^^^^^^^^^^^^
+
+Error: Cannot access private `privateMethod`
+test/analyze/type_check/visibility/test.myte:24:11-24
+ 24 |   inherits.privateMethod();
+    |            ^^^^^^^^^^^^^
+
+Error: Cannot access private `privateMethod`
+test/analyze/type_check/visibility/test.myte:35:10-23
+ 35 |     super.privateMethod();
+    |           ^^^^^^^^^^^^^
+
+Error: Cannot access private `privateMethodToInherit`
+test/analyze/type_check/visibility/test.myte:36:9-31
+ 36 |     this.privateMethodToInherit();
+    |          ^^^^^^^^^^^^^^^^^^^^^^

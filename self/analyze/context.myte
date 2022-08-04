@@ -9,13 +9,13 @@ pub type AnalyzeContext {
 }
 
 methods AnalyzeContext {
-  static fun analyze(asts: Vec<ast.Module>): AnalyzeContext {
+  pub static fun analyze(asts: Vec<ast.Module>): AnalyzeContext {
     val moduleTree = ModuleTree.buildFromAsts(asts);
 
     return AnalyzeContext { moduleTree };
   }
 
-  fun getErrors(): Vec<AnalyzeError> {
+  pub fun getErrors(): Vec<AnalyzeError> {
     return this.moduleTree.errors;
   }
 }

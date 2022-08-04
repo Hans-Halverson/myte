@@ -25,7 +25,7 @@ pub type BufferedWriter<W: Writer> {
  }
 
 methods BufferedWriter<W: Writer> {
-  static fun new<W: Writer>(writer: W): BufferedWriter<W> {
+  pub static fun new<W: Writer>(writer: W): BufferedWriter<W> {
     return BufferedWriter {
       writer,
       buffer: Vec.newUninitialized(BUFFER_SIZE),
@@ -34,7 +34,7 @@ methods BufferedWriter<W: Writer> {
     };
   }
 
-  static fun newWithSize<W: Writer>(writer: W, size: Int): BufferedWriter<W> {
+  pub static fun newWithSize<W: Writer>(writer: W, size: Int): BufferedWriter<W> {
     return BufferedWriter {
       writer,
       buffer: Vec.newUninitialized(size),
@@ -46,7 +46,7 @@ methods BufferedWriter<W: Writer> {
   /**
    * Write a single byte, returning error if write failed.
    */
-  fun writeByte(byte: Byte): Result<Unit, IOError> {
+  pub fun writeByte(byte: Byte): Result<Unit, IOError> {
     if (this.nextPos >= this.bufferSize) {
       this.flush()?;
     }
@@ -60,7 +60,7 @@ methods BufferedWriter<W: Writer> {
   /**
    * Write a sequence of bytes, returning error if write failed.
    */
-  fun writeBytes(bytes: Vec<Byte>): Result<Unit, IOError> {
+  pub fun writeBytes(bytes: Vec<Byte>): Result<Unit, IOError> {
     // If written data is too large for buffer, flush buffer and write new data directly to output,
     // bypassing buffer.
     if (bytes.size > this.bufferSize) {
@@ -97,7 +97,7 @@ methods BufferedWriter<W: Writer> {
   /**
    * Write a string, returning error if write failed.
    */
-  fun writeString(string: String): Result<Unit, IOError> {
+  pub fun writeString(string: String): Result<Unit, IOError> {
     val vec = Vec { data: string.data, size: string.size, capacity: string.capacity };
     return this.writeBytes(vec);
   }
@@ -106,7 +106,7 @@ methods BufferedWriter<W: Writer> {
    * Ensure all bytes written into this writer are written to the output stream. Bytes may have only
    * been written to an immediate buffer, flush ensures they are truly written to the output.
    */
-  fun flush(): Result<Unit, IOError> {
+  pub fun flush(): Result<Unit, IOError> {
     if (this.nextPos == 0) {
       return Ok (());
     }

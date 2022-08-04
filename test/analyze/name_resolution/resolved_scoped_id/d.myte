@@ -1,6 +1,6 @@
 module d1.d2
 
-pub type Rec { child: Int }
+pub type Rec { pub child: Int }
 
 pub val export: Rec = Rec { child: 1 }
 

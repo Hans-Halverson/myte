@@ -1,0 +1,32 @@
+module a
+
+pub type Record {
+  pub publicField: Int,
+  privateField: Int,
+}
+
+fun testAccessFieldsWithinModule(x: Record) {
+  // Can successfully access fields module
+  x.publicField;
+  x.privateField;
+}
+
+pub trait PublicTrait {
+  pub fun publicMethod() {}
+  fun privateMethod() {}
+
+  pub fun publicMethodToInherit() {}
+  fun privateMethodToInherit() {}
+}
+
+methods Record {
+  pub fun publicMethod() {}
+  fun privateMethod() {}
+}
+
+fun testAccessMethodsWithinModule(x: PublicTrait, y: Record) {
+  x.publicMethod();
+  x.privateMethod();
+  y.publicMethod();
+  y.privateMethod();
+}

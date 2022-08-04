@@ -3,7 +3,7 @@ module std.hash
 import std.int.Int
 
 pub trait Hashable {
-  fun hash(): Int
+  pub fun hash(): Int
 }
 
 /**

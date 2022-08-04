@@ -19,27 +19,27 @@ pub val INT_MAX: Int = 2147483647
 methods Int {
   implements Equatable
 
-  builtin override fun equals(other: Int): Bool
+  pub builtin override fun equals(other: Int): Bool
 }
 
 methods Int {
   implements Hashable
 
-  override fun hash(): Int = this
+  pub override fun hash(): Int = this
 }
 
 methods Int {
-  builtin fun toByte(): Byte
+  pub builtin fun toByte(): Byte
 
-  builtin fun toLong(): Long
+  pub builtin fun toLong(): Long
 
-  builtin fun toDouble(): Double
+  pub builtin fun toDouble(): Double
 }
 
 methods Int {
   implements ToString
 
-  override fun toString(): String {
+  pub override fun toString(): String {
     var n = this;
     // Special case max int, as it cannot be negated
     if (n == INT_MIN) {
@@ -76,18 +76,18 @@ methods Int {
   /**
    * Create an iterator starting at this number and ending at the end number, exclusive.
    */
-  fun to(end: Int): IntRange = IntRange { current: this, end }
+  pub fun to(end: Int): IntRange = IntRange { current: this, end }
 
   /**
    * Create an iterator starting at this number and ending at the end number, inclusive.
    */
-  fun toInclusive(end: Int): IntRangeInclusive = IntRangeInclusive { current: this, end }
+  pub fun toInclusive(end: Int): IntRangeInclusive = IntRangeInclusive { current: this, end }
 
   /**
    * Create an iterator starting at this number and ending at the end number, exclusive,
    * stepping by the given amount each iteration.
    */
-  fun stepTo(end: Int, step: Int): IntRangeWithStep {
+  pub fun stepTo(end: Int, step: Int): IntRangeWithStep {
     return IntRangeWithStep { current: this, end, step };
   }
 
@@ -95,7 +95,7 @@ methods Int {
    * Create an iterator starting at this number and ending at the end number, exclusive,
    * stepping down by the given amount each iteration.
    */
-  fun stepDownTo(end: Int, step: Int): IntRangeWithStepDown {
+  pub fun stepDownTo(end: Int, step: Int): IntRangeWithStepDown {
     return IntRangeWithStepDown { current: this, end, step };
   }
 }
@@ -108,7 +108,7 @@ type IntRange {
 methods IntRange {
   implements Iterator<Int>
 
-  override fun next(): Option<Int> {
+  pub override fun next(): Option<Int> {
     val current = this.current;
     if (current >= this.end) {
       return None;
@@ -128,7 +128,7 @@ type IntRangeInclusive {
 methods IntRangeInclusive {
   implements Iterator<Int>
 
-  override fun next(): Option<Int> {
+  pub override fun next(): Option<Int> {
     val current = this.current;
     if (current > this.end) {
       return None;
@@ -149,7 +149,7 @@ type IntRangeWithStep {
 methods IntRangeWithStep {
   implements Iterator<Int>
 
-  override fun next(): Option<Int> {
+  pub override fun next(): Option<Int> {
     val current = this.current;
     if (current >= this.end) {
       return None;
@@ -170,7 +170,7 @@ type IntRangeWithStepDown {
 methods IntRangeWithStepDown {
   implements Iterator<Int>
 
-  override fun next(): Option<Int> {
+  pub override fun next(): Option<Int> {
     val current = this.current;
     if (current <= this.end) {
       return None;

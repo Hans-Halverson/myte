@@ -15,7 +15,7 @@ pub type Map<K: Equatable & Hashable, V> {
   // Entries in the hash table
   var data: Array<Option<Entry<K, V>>>,
   // Number of items inserted in map
-  var size: Int,
+  pub var size: Int,
   // Number of slots for entries in data array. Always a power of two.
   var capacity: Int,
   // Bit mask to apply to a hash value to mod it to range [0, capacity)
@@ -34,7 +34,7 @@ methods Map<K: Equatable & Hashable, V> {
   /**
    * Create a new, empty map.
    */
-  static fun new<K: Equatable & Hashable, V>(): Map<K, V> {
+  pub static fun new<K: Equatable & Hashable, V>(): Map<K, V> {
     return Map {
       data: Array.new(0),
       size: 0,
@@ -46,13 +46,13 @@ methods Map<K: Equatable & Hashable, V> {
   /**
    * Return whether the map contains an entry with the specified key.
    */
-  fun containsKey(key: K): Bool = this.findEntry(key).isSome()
+  pub fun containsKey(key: K): Bool = this.findEntry(key).isSome()
 
   /**
    * Return the value associated with a key if the key is present in the map. Return `None` if key
    * is not present in map.
    */
-  fun get(key: K): Option<V> =
+  pub fun get(key: K): Option<V> =
     match (this.findEntry(key)) {
       | None -> None
       | Some (Entry { value, ... }) -> Some (value)
@@ -61,7 +61,7 @@ methods Map<K: Equatable & Hashable, V> {
   /**
    * Add a key value pair to the map.
    */
-  fun add(key: K, value: V) {
+  pub fun add(key: K, value: V) {
     if (this.size >= this.capacity / 2) {
       // Double capacity to next power of two (starting at two)
       val oldCapacity = this.capacity;
@@ -80,7 +80,7 @@ methods Map<K: Equatable & Hashable, V> {
    * Remove the entry with the specified key from the map, if such an entry exists. Return whether
    * the key was present in the map.
    */
-  fun remove(key: K): Bool {
+  pub fun remove(key: K): Bool {
     match (this.findEntry(key)) {
       | None -> return false
       | Some (entry) -> {
@@ -95,7 +95,7 @@ methods Map<K: Equatable & Hashable, V> {
    * Reserve space in the map for at least a given number of entries. This may force the map to be
    * resized.
    */
-  fun reserve(capacity: Int) {
+  pub fun reserve(capacity: Int) {
     // Round (capacity * 2) up to nearest power of two
     var newCapacity = (capacity * 2) - 1;
 
@@ -268,7 +268,7 @@ methods Map<K: Equatable & Hashable, V> {
    * Return an iterator over the entries of a map. Entries are returned as a tuple containing a
    * key and value.
    */
-  fun entries(): MapEntriesIterator<K, V> {
+  pub fun entries(): MapEntriesIterator<K, V> {
     val Map { data, capacity, ... } = this;
     return MapEntriesIterator (MapIterator { data, capacity, index: 0 });
   }
@@ -276,7 +276,7 @@ methods Map<K: Equatable & Hashable, V> {
   /**
    * Return an iterator over the keys of a map.
    */
-  fun keys(): MapKeysIterator<K, V> {
+  pub fun keys(): MapKeysIterator<K, V> {
     val Map { data, capacity, ... } = this;
     return MapKeysIterator (MapIterator { data, capacity, index: 0 });
   }
@@ -284,7 +284,7 @@ methods Map<K: Equatable & Hashable, V> {
   /**
    * Return an iterator over the values of a map.
    */
-  fun values(): MapValuesIterator<K, V> {
+  pub fun values(): MapValuesIterator<K, V> {
     val Map { data, capacity, ... } = this;
     return MapValuesIterator (MapIterator { data, capacity, index: 0 });
   }
@@ -293,7 +293,7 @@ methods Map<K: Equatable & Hashable, V> {
 methods MapEntriesIterator<K: Equatable & Hashable, V> {
   implements Iterator<(K, V)>
 
-  override fun next(): Option<(K, V)> {
+  pub override fun next(): Option<(K, V)> {
     while (this[0].index < this[0].capacity) {
       val entry = this[0].data[this[0].index];
       this[0].index += 1;
@@ -311,7 +311,7 @@ methods MapEntriesIterator<K: Equatable & Hashable, V> {
 methods MapKeysIterator<K: Equatable & Hashable, V> {
   implements Iterator<K>
 
-  override fun next(): Option<K> {
+  pub override fun next(): Option<K> {
     while (this[0].index < this[0].capacity) {
       val entry = this[0].data[this[0].index];
       this[0].index += 1;
@@ -329,7 +329,7 @@ methods MapKeysIterator<K: Equatable & Hashable, V> {
 methods MapValuesIterator<K: Equatable & Hashable, V> {
   implements Iterator<V>
 
-  override fun next(): Option<V> {
+  pub override fun next(): Option<V> {
     while (this[0].index < this[0].capacity) {
       val entry = this[0].data[this[0].index];
       this[0].index += 1;
