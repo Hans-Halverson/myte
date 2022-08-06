@@ -594,15 +594,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
             | Some (Decl type_binding) ->
               if not (this#is_current_module type_binding.module_) then
                 this#add_error loc (MethodDeclarationsInSameModule (name, current_module.name));
-              let trait_binding = this#get_type_binding loc in
-              let trait_decl = get_trait_decl trait_binding in
-              let type_decl = get_type_decl type_binding in
-              check_methods_visibility decl type_decl.is_public;
-              (* Fill in trait for this method block *)
-              fill_trait_from_decl trait_decl decl;
-              TypeDeclaration.add_trait type_decl trait_decl;
-              type_decl.adt_sig.traits <- trait_decl.trait_sig :: type_decl.adt_sig.traits;
-              trait_decl.trait_sig.adt_sig <- Some type_decl.adt_sig)
+              (match type_binding.declaration with
+              | TypeDecl type_decl ->
+                let trait_binding = this#get_type_binding loc in
+                let trait_decl = get_trait_decl trait_binding in
+                check_methods_visibility decl type_decl.is_public;
+                (* Fill in trait for this method block *)
+                fill_trait_from_decl trait_decl decl;
+                TypeDeclaration.add_trait type_decl trait_decl;
+                type_decl.adt_sig.traits <- trait_decl.trait_sig :: type_decl.adt_sig.traits;
+                trait_decl.trait_sig.adt_sig <- Some type_decl.adt_sig
+              | _ -> this#add_error loc (UnresolvedName (name, NamePositionType))))
           | _ -> ())
         toplevels;
       this#exit_scope ()

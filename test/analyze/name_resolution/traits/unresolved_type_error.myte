@@ -8,4 +8,13 @@ methods Foo {}
 // Does not exist
 methods Bar {}
 
+trait Trait {}
+methods Trait {}
+
+type alias Alias = Int
+methods Alias {}
+
+val x: Int = 1
+methods x {}
+
 fun main() {}

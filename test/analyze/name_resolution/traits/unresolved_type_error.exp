@@ -2,3 +2,18 @@ Error: Could not resolve name `Bar` to type
 test/analyze/name_resolution/traits/unresolved_type_error.myte:9:8-11
  9 | methods Bar {}
    |         ^^^
+
+Error: Could not resolve name `Trait` to type
+test/analyze/name_resolution/traits/unresolved_type_error.myte:12:8-13
+ 12 | methods Trait {}
+    |         ^^^^^
+
+Error: Could not resolve name `Alias` to type
+test/analyze/name_resolution/traits/unresolved_type_error.myte:15:8-13
+ 15 | methods Alias {}
+    |         ^^^^^
+
+Error: Could not resolve name `x` to type
+test/analyze/name_resolution/traits/unresolved_type_error.myte:18:8
+ 18 | methods x {}
+    |         ^
