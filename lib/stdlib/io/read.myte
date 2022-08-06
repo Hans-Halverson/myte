@@ -133,7 +133,7 @@ type Lines<R: Reader> (BufferedReader<R>)
 methods Lines<R: Reader> {
   implements Iterator<String>
 
-  pub override fun next(): Option<String> =
+  override fun next(): Option<String> =
     match (this[0].readLine()) {
       | Ok (line) -> Some (line)
       | Error _ -> None

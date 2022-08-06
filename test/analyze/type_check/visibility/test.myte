@@ -24,7 +24,7 @@ fun test(record: a.Record, trait1: a.PublicTrait, inherits: InheritsType) {
   inherits.privateMethod();
 }
 
-trait InheritsTrait {
+pub trait InheritsTrait {
   extends a.PublicTrait
 
   pub override fun publicMethod() {}

@@ -300,7 +300,7 @@ type StringByteIterator { data: Array<Byte>, size: Int, var index: Int }
 methods StringByteIterator {
   implements Iterator<Byte>
 
-  pub override fun next(): Option<Byte> {
+  override fun next(): Option<Byte> {
     if (this.index >= this.size) {
       return None;
     }

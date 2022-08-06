@@ -98,7 +98,7 @@ methods Byte {
   }
 }
 
-type ByteRange {
+pub type ByteRange {
   var current: Byte,
   end: Byte,
 }
@@ -118,7 +118,7 @@ methods ByteRange {
   }
 }
 
-type ByteRangeInclusive {
+pub type ByteRangeInclusive {
   var current: Byte,
   end: Byte,
 }
@@ -138,7 +138,7 @@ methods ByteRangeInclusive {
   }
 }
 
-type ByteRangeWithStep {
+pub type ByteRangeWithStep {
   var current: Byte,
   end: Byte,
   step: Byte,
@@ -159,7 +159,7 @@ methods ByteRangeWithStep {
   }
 }
 
-type ByteRangeWithStepDown {
+pub type ByteRangeWithStepDown {
   var current: Byte,
   end: Byte,
   step: Byte,

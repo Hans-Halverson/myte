@@ -294,7 +294,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     ~is_static
                     ~is_override
                     ~is_signature:(body = Signature)))
-          | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
+          | TypeDeclaration { Ast.TypeDeclaration.name; decl; is_public; _ } ->
             register_stdlib_decl name;
             (if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
@@ -304,14 +304,22 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               | Tuple { name; _ }
               | Record { name; _ } ->
                 let type_decl =
-                  TypeDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module
+                  TypeDeclaration.mk
+                    ~name:name.name
+                    ~loc:name.loc
+                    ~module_:current_module
+                    ~is_public
                 in
                 add_value_binding name (CtorDecl type_decl);
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig
               | Variant variants ->
                 let type_decl =
-                  TypeDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module
+                  TypeDeclaration.mk
+                    ~name:name.name
+                    ~loc:name.loc
+                    ~module_:current_module
+                    ~is_public
                 in
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig;
@@ -327,7 +335,11 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                   variants
               | Builtin ->
                 let type_decl =
-                  TypeDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module
+                  TypeDeclaration.mk
+                    ~name:name.name
+                    ~loc:name.loc
+                    ~module_:current_module
+                    ~is_public
                 in
                 add_type_binding name (TypeDecl type_decl);
                 Std_lib.register_stdlib_type name.loc type_decl.adt_sig);
@@ -347,18 +359,23 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               in
               this#set_record_fields loc names
             | _ -> ())
-          | TraitDeclaration ({ kind = Methods; name; _ } as trait_decl) ->
+          | TraitDeclaration ({ kind = Methods; name; is_public; _ } as trait_decl) ->
             register_stdlib_decl name;
             register_stdlib_method_decls trait_decl;
             add_type_binding
               name
-              (TraitDecl (TraitDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module))
-          | TraitDeclaration ({ kind = Trait; name; _ } as trait_decl) ->
+              (TraitDecl
+                 (TraitDeclaration.mk
+                    ~name:name.name
+                    ~loc:name.loc
+                    ~module_:current_module
+                    ~is_public))
+          | TraitDeclaration ({ kind = Trait; name; is_public; _ } as trait_decl) ->
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
               let decl =
-                TraitDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module
+                TraitDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module ~is_public
               in
               register_stdlib_decl name;
               Std_lib.register_stdlib_trait name.loc decl.trait_sig;
@@ -542,16 +559,31 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         trait.TraitDeclaration.implemented <- implemented
       in
 
+      let check_methods_visibility trait trait_is_public =
+        List.iter
+          (fun { Ast.Function.name = { loc; _ }; is_public; _ } ->
+            if is_public && not trait_is_public then
+              let trait_type =
+                if trait.Ast.TraitDeclaration.kind == Methods then
+                  TraitType
+                else
+                  TraitTrait
+              in
+              this#add_error loc (PublicMethodInPrivateTrait trait_type))
+          trait.methods
+      in
+
       let { Module.loc; toplevels; _ } = mod_ in
       this#set_current_module (ModuleDef.get_module_for_module_loc loc);
       this#restore_toplevel_scope loc;
       List.iter
         (fun toplevel ->
           match toplevel with
-          | Module.TraitDeclaration ({ kind = Trait; name; _ } as decl) ->
+          | Module.TraitDeclaration ({ kind = Trait; name; is_public; _ } as decl) ->
             let binding = this#get_type_binding name.loc in
             let trait = get_trait_decl binding in
             LocGraph.add_node ~graph:trait_graph name.loc;
+            check_methods_visibility decl is_public;
             fill_trait_from_decl trait decl
           | TraitDeclaration ({ kind = Methods; name = { name; loc }; _ } as decl) ->
             (* Check that method declarations appear in same module as type declaration *)
@@ -565,6 +597,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               let trait_binding = this#get_type_binding loc in
               let trait_decl = get_trait_decl trait_binding in
               let type_decl = get_type_decl type_binding in
+              check_methods_visibility decl type_decl.is_public;
               (* Fill in trait for this method block *)
               fill_trait_from_decl trait_decl decl;
               TypeDeclaration.add_trait type_decl trait_decl;
@@ -597,6 +630,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
           | TraitDeclaration decl -> this#visit_trait_declaration decl)
         toplevels;
       this#exit_scope ()
+
+    method! type_declaration decl =
+      (* Public fields cannot appear in private types *)
+      (match decl.decl with
+      | Record { fields; _ } when not decl.is_public ->
+        List.iter
+          (fun { Ast.TypeDeclaration.Record.Field.name; is_public; _ } ->
+            if is_public then this#add_error name.loc PublicFieldInPrivateType)
+          fields
+      | _ -> ());
+      super#type_declaration decl
 
     method! statement stmt =
       let open Ast.Statement in

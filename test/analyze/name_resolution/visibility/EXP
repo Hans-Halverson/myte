@@ -1,3 +1,18 @@
+Error: Public field cannot appear in private type
+test/analyze/name_resolution/visibility/public_in_private.myte:9:6-17
+ 9 |   pub publicField: Int,
+   |       ^^^^^^^^^^^
+
+Error: Public method cannot appear in private type
+test/analyze/name_resolution/visibility/public_in_private.myte:19:10-22
+ 19 |   pub fun publicMethod() {}
+    |           ^^^^^^^^^^^^
+
+Error: Public method cannot appear in private trait
+test/analyze/name_resolution/visibility/public_in_private.myte:29:10-22
+ 29 |   pub fun publicMethod() {}
+    |           ^^^^^^^^^^^^
+
 Error: Cannot import private `privateGlobal`
 test/analyze/name_resolution/visibility/test.myte:6:9-22
  6 | import a.privateGlobal

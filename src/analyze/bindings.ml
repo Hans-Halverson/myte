@@ -97,15 +97,17 @@ module TraitDeclaration = struct
     trait_sig: TraitSig.t;
     name: string;
     loc: Loc.t;
+    is_public: bool;
     mutable methods: FunctionDeclaration.t SMap.t;
     mutable implemented: t LocMap.t;
   }
 
-  let mk ~name ~loc ~module_ =
+  let mk ~name ~loc ~module_ ~is_public =
     {
       trait_sig = TraitSig.mk ~name ~loc ~module_;
       name;
       loc;
+      is_public;
       methods = SMap.empty;
       implemented = LocMap.empty;
     }
@@ -114,10 +116,12 @@ end
 module TypeDeclaration = struct
   type t = {
     adt_sig: AdtSig.t;
+    is_public: bool;
     mutable traits: TraitDeclaration.t list;
   }
 
-  let mk ~name ~loc ~module_ = { adt_sig = AdtSig.mk ~name ~loc ~module_; traits = [] }
+  let mk ~name ~loc ~module_ ~is_public =
+    { adt_sig = AdtSig.mk ~name ~loc ~module_; is_public; traits = [] }
 
   let add_trait decl trait = decl.traits <- trait :: decl.traits
 end

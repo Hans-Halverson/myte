@@ -78,20 +78,22 @@ module TraitDeclaration : sig
     trait_sig: Types.TraitSig.t;
     name: string;
     loc: Loc.t;
+    is_public: bool;
     mutable methods: FunctionDeclaration.t SMap.t;
     mutable implemented: t LocMap.t;
   }
 
-  val mk : name:string -> loc:Loc.t -> module_:Module.t -> t
+  val mk : name:string -> loc:Loc.t -> module_:Module.t -> is_public:bool -> t
 end
 
 module TypeDeclaration : sig
   type t = {
     adt_sig: Types.AdtSig.t;
+    is_public: bool;
     mutable traits: TraitDeclaration.t list;
   }
 
-  val mk : name:string -> loc:Loc.t -> module_:Module.t -> t
+  val mk : name:string -> loc:Loc.t -> module_:Module.t -> is_public:bool -> t
 
   val add_trait : t -> TraitDeclaration.t -> unit
 end

@@ -3,7 +3,7 @@ module myte.common.options
 import std.io.println
 import std.sys.{args, exit}
 
-type Options {
+pub type Options {
   pub var check: Bool,
   pub var dumpAst: Bool,
   pub var noPrettyPrint: Bool,

@@ -162,7 +162,7 @@ methods Vec<T> {
 methods VecIterator<T> {
   implements Iterator<T>
 
-  pub override fun next(): Option<T> {
+  override fun next(): Option<T> {
     if (this.index >= this.size) {
       return None;
     }

@@ -1,0 +1,31 @@
+module public_in_private
+
+pub type PublicType {
+  pub publicField: Int,
+  privateField: Int,
+}
+
+type PrivateType {
+  pub publicField: Int,
+  privateField: Int,
+}
+
+methods PublicType {
+  pub fun publicMethod() {}
+  fun privateMethod() {}
+}
+
+methods PrivateType {
+  pub fun publicMethod() {}
+  fun privateMethod() {}
+}
+
+pub trait PublicTrait {
+  pub fun publicMethod() {}
+  fun privateMethod() {}
+}
+
+trait PrivateTrait {
+  pub fun publicMethod() {}
+  fun privateMethod() {}
+}

@@ -100,7 +100,8 @@ methods Int {
   }
 }
 
-type IntRange {
+// TODO: Make these types private once return type of function can be a trait to hide type
+pub type IntRange {
   var current: Int,
   end: Int,
 }
@@ -120,7 +121,7 @@ methods IntRange {
   }
 }
 
-type IntRangeInclusive {
+pub type IntRangeInclusive {
   var current: Int,
   end: Int,
 }
@@ -140,7 +141,7 @@ methods IntRangeInclusive {
   }
 }
 
-type IntRangeWithStep {
+pub type IntRangeWithStep {
   var current: Int,
   end: Int,
   step: Int,
@@ -161,7 +162,7 @@ methods IntRangeWithStep {
   }
 }
 
-type IntRangeWithStepDown {
+pub type IntRangeWithStepDown {
   var current: Int,
   end: Int,
   step: Int,
