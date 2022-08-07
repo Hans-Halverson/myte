@@ -1306,6 +1306,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         this#add_error loc (CyclicTrait trait.name.name);
         None
 
+    method order_type_aliases (modules : (string * Ast.Module.t) list) =
+      let modules = List.map snd modules in
+      match Type_alias.order_type_aliases ~bindings modules with
+      | Ok ordered_type_aliases -> Some ordered_type_aliases
+      | Error { loc; name; _ } ->
+        this#add_error loc (CyclicTypeAlias name.name);
+        None
+
     method check_method_names () =
       let errors = ref [] in
       let add_error loc err = errors := (loc, err) :: !errors in
@@ -1525,6 +1533,122 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       List.rev !errors
   end
 
+(* Find all private types that are leaked through public declarations. Handle descending into
+   type alias bodies when necessary. *)
+class leaked_private_types_visitor ~bindings =
+  object (this)
+    inherit Ast_visitor.visitor as super
+
+    val mutable current_module : ModuleDef.t = ModuleDef.none
+
+    val mutable errors : Analyze_error.error list = []
+
+    (* Type aliases bodies that should be descended into when checking for leaked types *)
+    val mutable type_aliases_to_check : Ast.Type.t LocMap.t = LocMap.empty
+
+    (* Name of the root declaration that is being checked *)
+    val mutable current_declaration_name : string = ""
+
+    (* Stack of alias uses that caused visitor to descend into alias body. If nonempty, use the
+       first added loc when erroring as this is the alias use in root declaration. *)
+    val mutable alias_root_loc_stack : Loc.t list = []
+
+    method set_current_module module_ = current_module <- module_
+
+    method set_current_declaration_name name = current_declaration_name <- name
+
+    method errors = errors
+
+    method add_error loc leakee =
+      let loc =
+        if alias_root_loc_stack == [] then
+          loc
+        else
+          List_utils.last alias_root_loc_stack
+      in
+      errors <- (loc, PrivateTypeInPublicDeclaration (leakee, current_declaration_name)) :: errors
+
+    method init_type_aliases (modules : (string * Ast.Module.t) list) =
+      List.iter
+        (fun (_, { Ast.Module.toplevels; _ }) ->
+          List.iter
+            (fun toplevel ->
+              match toplevel with
+              (* All private aliases will need to be descended into to check for leaked types. No
+                 need to descend into public aliases as they will be checked themselves. *)
+              | Ast.Module.TypeDeclaration { decl = Alias type_; name; is_public; _ }
+                when not is_public ->
+                type_aliases_to_check <- LocMap.add name.loc type_ type_aliases_to_check
+              | _ -> ())
+            toplevels)
+        modules
+
+    method! identifier_type id =
+      let id_loc = id.name.name.loc in
+      (match LocMap.find_opt id_loc bindings.Bindings.type_use_to_binding with
+      | Some { loc; declaration; module_; _ } when ModuleDef.equal module_ current_module ->
+        (match declaration with
+        | TypeDecl { is_public; _ }
+        | TraitDecl { is_public; _ }
+          when not is_public ->
+          this#add_error id_loc id.name.name.name
+        | TypeAlias _ ->
+          (* The aliases in same module must be checked to see if substitution would leak types *)
+          (match LocMap.find_opt loc type_aliases_to_check with
+          | Some type_alias_body ->
+            alias_root_loc_stack <- id_loc :: alias_root_loc_stack;
+            this#type_ type_alias_body;
+            alias_root_loc_stack <- List.tl alias_root_loc_stack
+          | _ -> ())
+        | _ -> ())
+      | _ -> ());
+      super#identifier_type id
+  end
+
+let check_leaked_private_types ~bindings modules =
+  let visitor = new leaked_private_types_visitor ~bindings in
+  visitor#init_type_aliases modules;
+  let visit_function_declaration { Ast.Function.name; params; return; type_params; is_public; _ } =
+    if is_public then (
+      visitor#set_current_declaration_name name.name;
+      List.iter visitor#type_parameter type_params;
+      List.iter visitor#function_param params;
+      Option.iter visitor#type_ return
+    )
+  in
+  List.iter
+    (fun (_, { Ast.Module.loc; toplevels; _ }) ->
+      visitor#set_current_module (ModuleDef.get_module_for_module_loc loc);
+      List.iter
+        (fun toplevel ->
+          match toplevel with
+          | Ast.Module.VariableDeclaration { pattern; annot; is_public; _ } when is_public ->
+            let id = List.hd (Ast_utils.ids_of_pattern pattern) in
+            visitor#set_current_declaration_name id.name;
+            Option.iter visitor#type_ annot
+          | FunctionDeclaration func_decl when func_decl.is_public ->
+            visit_function_declaration func_decl
+          | TraitDeclaration { kind; type_params; methods; is_public; _ } ->
+            if kind == Trait && is_public then List.iter visitor#type_parameter type_params;
+            List.iter visit_function_declaration methods
+          | TypeDeclaration { name; type_params; decl; is_public; _ } when is_public ->
+            visitor#set_current_declaration_name name.name;
+            List.iter visitor#type_parameter type_params;
+            (match decl with
+            (* Only public fields of record need to be checked *)
+            | Record { fields; _ } ->
+              List.iter
+                (fun field ->
+                  if field.Ast.TypeDeclaration.Record.Field.is_public then visitor#type_ field.ty)
+                fields
+            (* All other decls must be fully checked *)
+            | _ -> visitor#type_declaration_declaration decl)
+          | _ -> ())
+        toplevels)
+    modules;
+
+  visitor#errors
+
 let assert_stdlib_builtins_found mods =
   let open Std_lib in
   SSet.fold
@@ -1549,7 +1673,7 @@ let analyze ~is_stdlib bindings module_tree modules =
   (* Then add methods to all traits and types *)
   List.iter (fun (_, mod_) -> bindings_builder#add_methods_and_implemented mod_) modules;
   (* Then check for trait cycles, only proceeding if there are no trait cycles *)
-  let (ordered_traits, errors) =
+  let (ordered_traits, method_field_errors) =
     match bindings_builder#order_traits () with
     | Some ordered_traits ->
       (* Then get errors for method declarations in traits and types *)
@@ -1559,11 +1683,20 @@ let analyze ~is_stdlib bindings module_tree modules =
       (ordered_traits, method_field_errors)
     | None -> ([], [])
   in
-  let errors = errors @ bindings_builder#errors () in
+  (* Order type aliases, only proceeding if there are no type alias cycles *)
+  let (ordered_type_aliases, leaked_type_errors) =
+    match bindings_builder#order_type_aliases modules with
+    | Some ordered_type_aliases ->
+      let leaked_type_errors = check_leaked_private_types ~bindings modules in
+
+      (ordered_type_aliases, leaked_type_errors)
+    | None -> ([], [])
+  in
+  let errors = method_field_errors @ leaked_type_errors @ bindings_builder#errors () in
   let builtin_errors =
     if is_stdlib then
       assert_stdlib_builtins_found modules
     else
       []
   in
-  (ordered_traits, builtin_errors @ errors)
+  (ordered_traits, ordered_type_aliases, builtin_errors @ errors)

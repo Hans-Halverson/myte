@@ -1,0 +1,5 @@
+module a
+
+type PrivateType (Int)
+
+pub type alias Type1 = PrivateType

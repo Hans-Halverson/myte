@@ -3,4 +3,4 @@ val analyze :
   Bindings.Bindings.t ->
   Module_tree.t ->
   (string * Ast.Module.t) list ->
-  Ast.TraitDeclaration.t list * Analyze_error.errors
+  Ast.TraitDeclaration.t list * Ast.TypeDeclaration.t list * Analyze_error.errors

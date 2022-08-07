@@ -35,6 +35,8 @@ type t = {
   mutable main_loc: Loc.t;
   (* Order of (non-type) trait declarations in current compilation unit *)
   mutable ordered_traits: Ast.TraitDeclaration.t list;
+  (* Order of type alias declarations in current compilation unit *)
+  mutable ordered_type_aliases: Ast.TypeDeclaration.t list;
   (* Map of expression loc to the trait object type it is promoted to *)
   mutable trait_object_promotions: TraitSig.instance LocMap.t;
   (* Map from trait signature to locs where trait is used as a trait object, for traits that have
@@ -65,6 +67,7 @@ let mk ~bindings =
     method_uses = LocMap.empty;
     main_loc = Loc.none;
     ordered_traits = [];
+    ordered_type_aliases = [];
     trait_object_promotions = LocMap.empty;
     unchecked_trait_object_uses = TraitSigMap.empty;
     num_loops = 0;
@@ -105,6 +108,11 @@ let is_main_loc ~cx loc = cx.main_loc == loc
 let get_ordered_traits ~cx = cx.ordered_traits
 
 let set_ordered_traits ~cx ordered_traits = cx.ordered_traits <- ordered_traits
+
+let get_ordered_type_aliases ~cx = cx.ordered_type_aliases
+
+let set_ordered_type_aliases ~cx ordered_type_aliases =
+  cx.ordered_type_aliases <- ordered_type_aliases
 
 let get_trait_object_promotion ~cx expr_loc = LocMap.find_opt expr_loc cx.trait_object_promotions
 

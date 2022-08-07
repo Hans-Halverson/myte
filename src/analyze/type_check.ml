@@ -254,21 +254,18 @@ and build_type_parameter_bounds ~cx ~check_type_param_bounds param_nodes type_pa
     param_nodes
     type_params
 
-and build_type_aliases ~cx modules =
+and build_type_aliases ~cx =
   let open Ast.TypeDeclaration in
-  let modules = List.map snd modules in
-  match Type_alias.order_type_aliases ~cx modules with
-  | Ok aliases_in_topological_order ->
-    List.iter
-      (fun alias ->
-        match alias with
-        | { name; decl = Alias alias; _ } ->
-          let binding = Type_context.get_type_binding ~cx name.loc in
-          let alias_decl = Bindings.get_type_alias_decl binding in
-          alias_decl.body <- build_type ~cx ~check_type_param_bounds:false alias
-        | _ -> ())
-      aliases_in_topological_order
-  | Error { loc; name; _ } -> Type_context.add_error ~cx loc (CyclicTypeAlias name.name)
+  let ordered_aliases = Type_context.get_ordered_type_aliases ~cx in
+  List.iter
+    (fun alias ->
+      match alias with
+      | { name; decl = Alias alias; _ } ->
+        let binding = Type_context.get_type_binding ~cx name.loc in
+        let alias_decl = Bindings.get_type_alias_decl binding in
+        alias_decl.body <- build_type ~cx ~check_type_param_bounds:false alias
+      | _ -> ())
+    ordered_aliases
 
 (* Build the trait hierarchy for the program, determining which super traits are implemented by
    each trait and type. *)
@@ -2763,7 +2760,7 @@ let analyze ~cx modules =
   List.iter (fun (_, module_) -> build_type_and_trait_parameters ~cx module_) modules;
   (* Build all type aliases in program (in topological order). This must be done before any other
      types are built, so that type aliases can be substituted when building types. *)
-  build_type_aliases ~cx modules;
+  build_type_aliases ~cx;
   (* Build trait hierarchy for program *)
   build_trait_hierarchy ~cx modules;
   (* With trait hierarchy built, recheck types already built to verify that trait bounds are

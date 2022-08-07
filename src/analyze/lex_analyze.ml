@@ -20,10 +20,11 @@ let analyze_modules ~is_stdlib ~pcx mods_and_files =
 
   (* Resolve symbols in this compilation unit. Updates the set of all bindings and store
      the newly resolved ASTs *)
-  let (ordered_traits, resolution_errors) =
+  let (ordered_traits, ordered_type_aliases, resolution_errors) =
     Name_resolution.analyze ~is_stdlib pcx.bindings pcx.module_tree mods_and_files
   in
   Type_context.set_ordered_traits ~cx:pcx.type_ctx ordered_traits;
+  Type_context.set_ordered_type_aliases ~cx:pcx.type_ctx ordered_type_aliases;
 
   (* Only proceed to type checking if there are no pre-typechecking errors *)
   let pre_typecheck_errors = List.concat [module_tree_errors; main_errors; resolution_errors] in

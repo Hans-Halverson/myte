@@ -1,0 +1,53 @@
+module test
+
+import a
+
+type PrivateType (Int)
+type PrivateType2 (Int)
+
+// Globals
+pub val global1: PrivateType = 1
+val global2: PrivateType = 1
+
+// Toplevel functions
+pub fun func1<T: PrivateType>(x: PrivateType): PrivateType = 1
+fun func2<T: PrivateType>(x: PrivateType): PrivateType = 1
+
+// Traits
+pub trait Trait1<T: PrivateType> {}
+trait Trait2<T: PrivateType> {}
+
+// Methods
+pub trait Trait3 {
+  pub fun method1<T: PrivateType>(x: PrivateType): PrivateType = 1
+  fun method2<T: PrivateType>(x: PrivateType): PrivateType = 1
+}
+
+// Types
+pub type Type1<T: PrivateType> (PrivateType)
+type Type2<T: PrivateType> (PrivateType)
+pub type alias Type3 = PrivateType
+pub type Type4 {
+  pub field1: PrivateType,
+  field2: PrivateType,
+}
+pub type Type5 =
+  | Tuple1 (PrivateType)
+  | Record1 { field1: PrivateType }
+
+// Nested private type
+pub type Type6 (Int, Int, (Int, Int, (Int, PrivateType)))
+pub type Type7 (Int, Type1<PrivateType>)
+
+// Descend into aliases
+type alias Alias1 = (Int, PrivateType2)
+type alias Alias2 = (PrivateType, Alias1)
+pub type Type8 (Int, Alias2)
+
+// Do not descend into aliases on another module, even if they error
+pub type Type9 (a.Type1)
+
+// Do not descend into public aliases, even if they error
+pub type Type10 (Type3)
+
+fun main() {}

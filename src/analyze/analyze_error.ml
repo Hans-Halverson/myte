@@ -31,6 +31,7 @@ type t =
   | AccessPrivateDecl of string
   | PublicMethodInPrivateTrait of trait_type
   | PublicFieldInPrivateType
+  | PrivateTypeInPublicDeclaration of string * string
   | NoModuleWithName of string list * bool
   | NoStaticMethod of string * string * trait_type
   | ReferenceChildOfStaticMethod of string * string * trait_type
@@ -297,6 +298,8 @@ let to_string error =
   | PublicMethodInPrivateTrait trait_type ->
     Printf.sprintf "Public method cannot appear in private %s" (string_of_trait_type trait_type)
   | PublicFieldInPrivateType -> Printf.sprintf "Public field cannot appear in private type"
+  | PrivateTypeInPublicDeclaration (leakee, leaker) ->
+    Printf.sprintf "Private type `%s` leaked in public interface of `%s`" leakee leaker
   | NoModuleWithName (module_parts, is_value) ->
     Printf.sprintf
       "No module or %s with name `%s` found"

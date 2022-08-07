@@ -148,7 +148,7 @@ methods Vec<T> {
 /*
  * An iterator over a Vec. Contains both the Vec and the index of the next item to visit.
  */
-type VecIterator<T> { data: Array<T>, size: Int, var index: Int }
+pub type VecIterator<T> { data: Array<T>, size: Int, var index: Int }
 
 methods Vec<T> {
   implements Iterable<T>
@@ -162,7 +162,7 @@ methods Vec<T> {
 methods VecIterator<T> {
   implements Iterator<T>
 
-  override fun next(): Option<T> {
+  pub override fun next(): Option<T> {
     if (this.index >= this.size) {
       return None;
     }

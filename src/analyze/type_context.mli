@@ -58,6 +58,10 @@ val get_ordered_traits : cx:t -> Ast.TraitDeclaration.t list
 
 val set_ordered_traits : cx:t -> Ast.TraitDeclaration.t list -> unit
 
+val get_ordered_type_aliases : cx:t -> Ast.TypeDeclaration.t list
+
+val set_ordered_type_aliases : cx:t -> Ast.TypeDeclaration.t list -> unit
+
 val get_trait_object_promotion : cx:t -> Loc.t -> Types.TraitSig.instance option
 
 val add_unchecked_trait_object_use : cx:t -> Types.TraitSig.t -> Loc.t -> unit

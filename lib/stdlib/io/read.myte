@@ -128,12 +128,12 @@ methods BufferedReader<R: Reader> {
   pub fun lines(): Lines<R> = Lines (this)
 }
 
-type Lines<R: Reader> (BufferedReader<R>)
+pub type Lines<R: Reader> (BufferedReader<R>)
 
 methods Lines<R: Reader> {
   implements Iterator<String>
 
-  override fun next(): Option<String> =
+  pub override fun next(): Option<String> =
     match (this[0].readLine()) {
       | Ok (line) -> Some (line)
       | Error _ -> None

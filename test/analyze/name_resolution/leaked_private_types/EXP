@@ -1,0 +1,94 @@
+Error: Private type `PrivateType` leaked in public interface of `Type1`
+test/analyze/name_resolution/leaked_private_types/a.myte:5:23-34
+ 5 | pub type alias Type1 = PrivateType
+   |                        ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `global1`
+test/analyze/name_resolution/leaked_private_types/test.myte:9:17-28
+ 9 | pub val global1: PrivateType = 1
+   |                  ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `func1`
+test/analyze/name_resolution/leaked_private_types/test.myte:13:17-28
+ 13 | pub fun func1<T: PrivateType>(x: PrivateType): PrivateType = 1
+    |                  ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `func1`
+test/analyze/name_resolution/leaked_private_types/test.myte:13:33-44
+ 13 | pub fun func1<T: PrivateType>(x: PrivateType): PrivateType = 1
+    |                                  ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `func1`
+test/analyze/name_resolution/leaked_private_types/test.myte:13:47-58
+ 13 | pub fun func1<T: PrivateType>(x: PrivateType): PrivateType = 1
+    |                                                ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `func1`
+test/analyze/name_resolution/leaked_private_types/test.myte:17:20-31
+ 17 | pub trait Trait1<T: PrivateType> {}
+    |                     ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `method1`
+test/analyze/name_resolution/leaked_private_types/test.myte:22:21-32
+ 22 |   pub fun method1<T: PrivateType>(x: PrivateType): PrivateType = 1
+    |                      ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `method1`
+test/analyze/name_resolution/leaked_private_types/test.myte:22:37-48
+ 22 |   pub fun method1<T: PrivateType>(x: PrivateType): PrivateType = 1
+    |                                      ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `method1`
+test/analyze/name_resolution/leaked_private_types/test.myte:22:51-62
+ 22 |   pub fun method1<T: PrivateType>(x: PrivateType): PrivateType = 1
+    |                                                    ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type1`
+test/analyze/name_resolution/leaked_private_types/test.myte:27:18-29
+ 27 | pub type Type1<T: PrivateType> (PrivateType)
+    |                   ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type1`
+test/analyze/name_resolution/leaked_private_types/test.myte:27:32-43
+ 27 | pub type Type1<T: PrivateType> (PrivateType)
+    |                                 ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type3`
+test/analyze/name_resolution/leaked_private_types/test.myte:29:23-34
+ 29 | pub type alias Type3 = PrivateType
+    |                        ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type4`
+test/analyze/name_resolution/leaked_private_types/test.myte:31:14-25
+ 31 |   pub field1: PrivateType,
+    |               ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type5`
+test/analyze/name_resolution/leaked_private_types/test.myte:35:12-23
+ 35 |   | Tuple1 (PrivateType)
+    |             ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type5`
+test/analyze/name_resolution/leaked_private_types/test.myte:36:22-33
+ 36 |   | Record1 { field1: PrivateType }
+    |                       ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type6`
+test/analyze/name_resolution/leaked_private_types/test.myte:39:43-54
+ 39 | pub type Type6 (Int, Int, (Int, Int, (Int, PrivateType)))
+    |                                            ^^^^^^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type7`
+test/analyze/name_resolution/leaked_private_types/test.myte:40:27-38
+ 40 | pub type Type7 (Int, Type1<PrivateType>)
+    |                            ^^^^^^^^^^^
+
+Error: Private type `PrivateType2` leaked in public interface of `Type8`
+test/analyze/name_resolution/leaked_private_types/test.myte:45:21-27
+ 45 | pub type Type8 (Int, Alias2)
+    |                      ^^^^^^
+
+Error: Private type `PrivateType` leaked in public interface of `Type8`
+test/analyze/name_resolution/leaked_private_types/test.myte:45:21-27
+ 45 | pub type Type8 (Int, Alias2)
+    |                      ^^^^^^

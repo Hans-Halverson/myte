@@ -295,12 +295,12 @@ methods String {
 /**
  * An iterator over the bytes of a String.
  */
-type StringByteIterator { data: Array<Byte>, size: Int, var index: Int }
+pub type StringByteIterator { data: Array<Byte>, size: Int, var index: Int }
 
 methods StringByteIterator {
   implements Iterator<Byte>
 
-  override fun next(): Option<Byte> {
+  pub override fun next(): Option<Byte> {
     if (this.index >= this.size) {
       return None;
     }
