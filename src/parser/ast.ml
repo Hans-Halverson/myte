@@ -129,6 +129,7 @@ and Statement : sig
       pattern: Pattern.t;
       init: Expression.t;
       annot: Type.t option;
+      attributes: Attribute.t list;
       is_public: bool;
     }
   end
@@ -540,6 +541,7 @@ and Function : sig
     body: body;
     return: Type.t option;
     type_params: TypeParameter.t list;
+    attributes: Attribute.t list;
     is_public: bool;
     is_builtin: bool;
     is_static: bool;
@@ -592,6 +594,7 @@ and TypeDeclaration : sig
     name: Identifier.t;
     type_params: TypeParameter.t list;
     decl: decl;
+    attributes: Attribute.t list;
     is_public: bool;
   }
 end =
@@ -609,6 +612,7 @@ and TraitDeclaration : sig
     type_params: TypeParameter.t list;
     implemented: Type.Identifier.t list;
     methods: Function.t list;
+    attributes: Attribute.t list;
     is_public: bool;
   }
 end =
@@ -683,3 +687,13 @@ and ScopedIdentifier : sig
   }
 end =
   ScopedIdentifier
+
+and Attribute : sig
+  type t = {
+    loc: Loc.t;
+    items: item list;
+  }
+
+  and item = Identifier of Identifier.t
+end =
+  Attribute

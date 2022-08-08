@@ -6,6 +6,7 @@ import myte.parse.ast.utils.escapeCharLiteralValue
 
 type PrintNode =
   | Empty
+  | Skip
   | Int (Int)
   | String (String)
   | Bool (Bool)
@@ -44,6 +45,7 @@ methods Printer {
   fun visitNode(node: PrintNode) {
     match (node) {
       | Empty -> this.addString("None")
+      | Skip -> ()
       | Int (int) -> this.addString(int.toString())
       | String (string) -> {
         this.addChar('"');
@@ -60,6 +62,10 @@ methods Printer {
           this.indent += 1;
 
           for (node in nodes) {
+            if (node match Skip) {
+              continue;
+            }
+
             this.addIndent();
             this.visitNode(node);
             this.addString(",\n");
@@ -88,6 +94,10 @@ methods Printer {
 
         // Add fields
         for ((name, node) in fields) {
+          if (node match Skip) {
+              continue;
+          }
+
           this.addIndent();
           this.addString(name);
           this.addString(": ");
@@ -178,6 +188,7 @@ fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
     body,
     return_,
     typeParams,
+    attributes,
     isPublic,
     isBuiltin,
     isStatic,
@@ -199,6 +210,7 @@ fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
       ("body", body),
       ("return", optional(return_, nodeOfType)),
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
+      ("attributes", nodeOfAttributes(attributes)),
       ("is_public", Bool (isPublic)),
       ("is_builtin", Bool (isBuiltin)),
       ("is_static", Bool (isStatic)),
@@ -226,7 +238,7 @@ fun nodeOfTypeParameter(param: ast.TypeParameter): PrintNode {
 }
 
 fun nodeOfVariableDeclaration(decl: ast.VariableDeclaration): PrintNode {
-  val ast.VariableDeclaration { loc, kind, pattern, init, annot, isPublic } = decl;
+  val ast.VariableDeclaration { loc, kind, pattern, init, annot, attributes, isPublic } = decl;
   val kind = match (kind) {
     | ast.Immutable -> "Immutable"
     | ast.Mutable -> "Mutable"
@@ -240,13 +252,14 @@ fun nodeOfVariableDeclaration(decl: ast.VariableDeclaration): PrintNode {
       ("pattern", nodeOfPattern(pattern)),
       ("init", nodeOfExpression(init)),
       ("annot", optional(annot, nodeOfType)),
+      ("attributes", nodeOfAttributes(attributes)),
       ("is_public", Bool (isPublic)),
     ],
  };
 }
 
 fun nodeOfTypeDeclaration(decl: ast.TypeDeclaration): PrintNode {
-  val ast.TypeDeclaration { loc, name, typeParams, decl, isPublic } = decl;
+  val ast.TypeDeclaration { loc, name, typeParams, decl, attributes, isPublic } = decl;
   val decl = match (decl) {
     | ast.TDAlias (typeAlias) -> ("alias", nodeOfType(typeAlias))
     | ast.TDTuple (tuple) -> ("tuple", nodeOfTupleDeclaration(tuple))
@@ -262,6 +275,7 @@ fun nodeOfTypeDeclaration(decl: ast.TypeDeclaration): PrintNode {
       ("name", nodeOfIdentifier(name)),
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
       decl,
+      ("attributes", nodeOfAttributes(attributes)),
       ("is_public", Bool (isPublic)),
     ],
   };
@@ -310,7 +324,17 @@ fun nodeOfVariantDeclaration(decl: ast.VariantDeclaration): PrintNode =
   }
 
 fun nodeOfTraitDeclaration(decl: ast.TraitDeclaration): PrintNode {
-  val ast.TraitDeclaration { loc, kind, name, typeParams, implemented, methods_, isPublic } = decl;
+  val ast.TraitDeclaration {
+    loc,
+    kind,
+    name,
+    typeParams,
+    implemented,
+    methods_,
+    attributes,
+    isPublic,
+  } = decl;
+
   val kind = match (kind) {
     | ast.TKMethods -> "Methods"
     | ast.TKTrait -> "Trait"
@@ -325,6 +349,7 @@ fun nodeOfTraitDeclaration(decl: ast.TraitDeclaration): PrintNode {
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
       ("implemented", List (implemented.map(nodeOfIdentifierType))),
       ("methods", List (methods_.map(nodeOfFunctionDeclaration))),
+      ("attributes", nodeOfAttributes(attributes)),
       ("is_public", Bool (isPublic)),
     ],
  };
@@ -342,6 +367,23 @@ fun nodeOfScopedIdentifier(ident: ast.ScopedIdentifier): PrintNode {
     loc,
     fields: [("scopes", List (scopes.map(nodeOfIdentifier))), ("name", nodeOfIdentifier(name))],
   };
+}
+
+fun nodeOfAttributes(attributes: Vec<ast.Attribute>): PrintNode {
+  return if (attributes.isEmpty()) {
+    Skip
+  } else {
+    List (attributes.map(nodeOfAttribute))
+  };
+}
+
+fun nodeOfAttribute(attribute: ast.Attribute): PrintNode {
+  val ast.Attribute { loc, items } = attribute;
+  return Node { name: "Attribute", loc, fields: [("items", List(items.map(nodeOfAttributeItem)))] };
+}
+
+fun nodeOfAttributeItem(item: ast.AttributeItem): PrintNode {
+  return nodeOfIdentifier(item[0]);
 }
 
 fun nodeOfStatement(stmt: ast.Statement): PrintNode =

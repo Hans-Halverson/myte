@@ -659,7 +659,15 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       block'
 
     method visit_variable_declaration ~is_toplevel decl =
-      let { Ast.Statement.VariableDeclaration.loc = _; kind; pattern; init; annot; is_public = _ } =
+      let {
+        Ast.Statement.VariableDeclaration.loc = _;
+        kind;
+        pattern;
+        init;
+        annot;
+        attributes = _;
+        is_public = _;
+      } =
         decl
       in
       Option.iter this#type_ annot;

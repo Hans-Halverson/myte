@@ -165,14 +165,17 @@ and parse_toplevel env =
   let open Module in
   let marker = mark_loc env in
   let pub_loc = Env.loc env in
+  let attributes = parse_attributes env in
   let is_public = maybe_parse_public env in
   match Env.token env with
   | T_VAL
   | T_VAR ->
-    VariableDeclaration (parse_variable_declaration ~is_toplevel:true ~is_public env marker)
+    VariableDeclaration
+      (parse_variable_declaration ~is_toplevel:true ~attributes ~is_public env marker)
   | T_FUN ->
     FunctionDeclaration
       (parse_function
+         ~attributes
          ~is_public
          ~is_builtin:false
          ~is_static:false
@@ -180,13 +183,15 @@ and parse_toplevel env =
          ~in_trait:false
          marker
          env)
-  | T_TYPE -> TypeDeclaration (parse_type_declaration ~is_public ~is_builtin:false env marker)
+  | T_TYPE ->
+    TypeDeclaration (parse_type_declaration ~attributes ~is_public ~is_builtin:false env marker)
   | T_BUILTIN ->
     Env.advance env;
     (match Env.token env with
     | T_FUN ->
       FunctionDeclaration
         (parse_function
+           ~attributes
            ~is_public
            ~is_builtin:true
            ~is_static:false
@@ -194,14 +199,21 @@ and parse_toplevel env =
            ~in_trait:false
            marker
            env)
-    | T_TYPE -> TypeDeclaration (parse_type_declaration ~is_public ~is_builtin:true env marker)
+    | T_TYPE ->
+      TypeDeclaration (parse_type_declaration ~attributes ~is_public ~is_builtin:true env marker)
     | token -> Parse_error.fatal (Env.loc env, UnexpectedTokens (token, [T_FUN; T_TYPE])))
   | T_METHODS when is_public -> Parse_error.fatal (pub_loc, PublicMethodsBlock)
   | T_METHODS ->
     TraitDeclaration
-      (parse_trait_declaration ~kind:TraitDeclaration.Methods ~is_public:false env marker)
+      (parse_trait_declaration
+         ~kind:TraitDeclaration.Methods
+         ~attributes
+         ~is_public:false
+         env
+         marker)
   | T_TRAIT ->
-    TraitDeclaration (parse_trait_declaration ~kind:TraitDeclaration.Trait ~is_public env marker)
+    TraitDeclaration
+      (parse_trait_declaration ~kind:TraitDeclaration.Trait ~attributes ~is_public env marker)
   | token -> Parse_error.fatal (Env.loc env, MalformedTopLevel token)
 
 and maybe_parse_public env =
@@ -210,6 +222,37 @@ and maybe_parse_public env =
     true
   ) else
     false
+
+and parse_attributes env =
+  match Env.token env with
+  | T_AT ->
+    let marker = mark_loc env in
+    Env.advance env;
+    Env.expect env T_LEFT_PAREN;
+    let rec parse_items env =
+      match Env.token env with
+      | T_RIGHT_PAREN ->
+        Env.advance env;
+        []
+      | _ ->
+        let item = parse_attribute_item env in
+        begin
+          match Env.token env with
+          | T_RIGHT_PAREN -> ()
+          | T_COMMA -> Env.advance env
+          | _ -> Env.expect env T_RIGHT_PAREN
+        end;
+        item :: parse_items env
+    in
+    let items = parse_items env in
+    let loc = marker env in
+    let attribute = { Attribute.loc; items } in
+    attribute :: parse_attributes env
+  | _ -> []
+
+and parse_attribute_item env =
+  let id = parse_identifier env in
+  Attribute.Identifier id
 
 and parse_statement env =
   let open Statement in
@@ -225,11 +268,13 @@ and parse_statement env =
   | T_VAL
   | T_VAR ->
     let marker = mark_loc env in
-    VariableDeclaration (parse_variable_declaration ~is_toplevel:false ~is_public:false env marker)
+    VariableDeclaration
+      (parse_variable_declaration ~is_toplevel:false ~attributes:[] ~is_public:false env marker)
   | T_FUN ->
     let marker = mark_loc env in
     FunctionDeclaration
       (parse_function
+         ~attributes:[]
          ~is_public:false
          ~is_builtin:false
          ~is_static:false
@@ -1249,7 +1294,7 @@ and parse_continue ~in_match_case env =
   let loc = marker env in
   Statement.Continue { loc }
 
-and parse_type_declaration ~is_public ~is_builtin env marker =
+and parse_type_declaration ~attributes ~is_public ~is_builtin env marker =
   let open TypeDeclaration in
   Env.expect env T_TYPE;
   let parse_type_params_opt () =
@@ -1266,7 +1311,7 @@ and parse_type_declaration ~is_public ~is_builtin env marker =
     Env.expect env T_EQUALS;
     let alias = parse_type env in
     let loc = marker env in
-    { loc; name; type_params; decl = Alias alias; is_public }
+    { loc; name; type_params; decl = Alias alias; attributes; is_public }
   | _ ->
     let name_marker = mark_loc env in
     let name = parse_identifier env in
@@ -1274,24 +1319,24 @@ and parse_type_declaration ~is_public ~is_builtin env marker =
     (* Builtins can only have a name and type params *)
     if is_builtin then
       let loc = marker env in
-      { loc; name; type_params; decl = Builtin; is_public }
+      { loc; name; type_params; decl = Builtin; attributes; is_public }
     else (
       match Env.token env with
       | T_LEFT_PAREN ->
         let tuple = parse_tuple_variant env name name_marker in
         let loc = marker env in
-        { loc; name; type_params; decl = Tuple tuple; is_public }
+        { loc; name; type_params; decl = Tuple tuple; attributes; is_public }
       | T_LEFT_BRACE ->
         let record = parse_record_variant env ~is_variant:false name name_marker in
         let loc = marker env in
-        { loc; name; type_params; decl = Record record; is_public }
+        { loc; name; type_params; decl = Record record; attributes; is_public }
       | T_EQUALS ->
         Env.advance env;
-        parse_variant env ~is_public name type_params marker
+        parse_variant env ~attributes ~is_public name type_params marker
       | token -> Parse_error.fatal (Env.loc env, MalformedTypeDeclaration token)
     )
 
-and parse_variant env ~is_public name type_params marker =
+and parse_variant env ~attributes ~is_public name type_params marker =
   (match Env.token env with
   | T_PIPE -> Env.advance env
   | _ -> ());
@@ -1314,7 +1359,7 @@ and parse_variant env ~is_public name type_params marker =
   let variants = parse_variants () in
   let loc = marker env in
   if List.length variants = 1 then Parse_error.fatal (loc, SingleVariant);
-  { loc; name; type_params; decl = Variant variants; is_public }
+  { loc; name; type_params; decl = Variant variants; attributes; is_public }
 
 and parse_record_variant env ~is_variant name marker =
   let open TypeDeclaration.Record in
@@ -1384,7 +1429,7 @@ and parse_tuple_variant env name marker =
   if elements = [] then Parse_error.fatal (loc, EmptyTuple);
   { loc; name; elements }
 
-and parse_variable_declaration ~is_toplevel ~is_public env marker =
+and parse_variable_declaration ~is_toplevel ~attributes ~is_public env marker =
   let open Statement in
   let kind =
     match Env.token env with
@@ -1405,9 +1450,9 @@ and parse_variable_declaration ~is_toplevel ~is_public env marker =
   let init = parse_expression env in
   if not is_toplevel then Env.expect env T_SEMICOLON;
   let loc = marker env in
-  { VariableDeclaration.loc; kind; pattern; init; annot; is_public }
+  { VariableDeclaration.loc; kind; pattern; init; annot; attributes; is_public }
 
-and parse_function ~is_public ~is_builtin ~is_static ~is_override ~in_trait marker env =
+and parse_function ~attributes ~is_public ~is_builtin ~is_static ~is_override ~in_trait marker env =
   let open Function in
   Env.expect env T_FUN;
   let name = parse_identifier env in
@@ -1431,7 +1476,19 @@ and parse_function ~is_public ~is_builtin ~is_static ~is_override ~in_trait mark
     | token -> Parse_error.fatal (Env.loc env, MalformedFunctionBody token)
   in
   let loc = marker env in
-  { loc; name; params; body; return; type_params; is_public; is_builtin; is_static; is_override }
+  {
+    loc;
+    name;
+    params;
+    body;
+    return;
+    type_params;
+    attributes;
+    is_public;
+    is_builtin;
+    is_static;
+    is_override;
+  }
 
 and parse_function_signature env =
   Env.expect env T_LEFT_PAREN;
@@ -1502,7 +1559,7 @@ and parse_anonymous_function_signature env =
   in
   (params, return)
 
-and parse_trait_declaration ~kind ~is_public env marker =
+and parse_trait_declaration ~kind ~attributes ~is_public env marker =
   (match kind with
   | Methods -> Env.expect env T_METHODS
   | Trait -> Env.expect env T_TRAIT);
@@ -1530,6 +1587,7 @@ and parse_trait_declaration ~kind ~is_public env marker =
   let implemented = parse_implemented [] |> List.rev in
   let rec parse_methods acc =
     let marker = mark_loc env in
+    let attributes = parse_attributes env in
     let is_public = maybe_parse_public env in
     let is_builtin =
       match Env.token env with
@@ -1556,6 +1614,7 @@ and parse_trait_declaration ~kind ~is_public env marker =
     | T_FUN ->
       let func =
         parse_function
+          ~attributes
           ~is_public
           ~is_builtin
           ~is_static
@@ -1571,7 +1630,7 @@ and parse_trait_declaration ~kind ~is_public env marker =
   let methods = parse_methods [] |> List.rev in
   Env.expect env T_RIGHT_BRACE;
   let loc = marker env in
-  { loc; kind; name; type_params; implemented; methods; is_public }
+  { loc; kind; name; type_params; implemented; methods; attributes; is_public }
 
 and parse_type env =
   match Env.token env with

@@ -1,0 +1,26 @@
+module test
+
+@(Attr)
+fun foo() {}
+
+@(First)
+@(Second)
+@(Third)
+fun foo() {}
+
+@(Attr1, Attr2, Attr3)
+fun foo() {}
+
+@(Attr1, Attr2, Attr3,)
+fun foo() {}
+
+@(Attr)
+val foo: Int = 1
+
+@(Attr)
+type Foo =
+  | E1
+  | E2
+
+@(Attr)
+trait Foo {}

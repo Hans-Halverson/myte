@@ -29,6 +29,7 @@ pub type Token =
   | Ampersand
   | Caret
   | Question
+  | At
   | Bang
   | LeftParen
   | RightParen
@@ -114,6 +115,7 @@ methods Token {
       | Ampersand -> "&"
       | Caret -> "^"
       | Question -> "?"
+      | At -> "@"
       | Bang -> "!"
       | LeftParen -> "("
       | RightParen -> ")"
@@ -199,6 +201,7 @@ methods Token {
       | (Ampersand, Ampersand)
       | (Caret, Caret)
       | (Question, Question)
+      | (At, At)
       | (Bang, Bang)
       | (LeftParen, LeftParen)
       | (RightParen, RightParen)

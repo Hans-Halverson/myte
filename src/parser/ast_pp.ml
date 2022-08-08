@@ -2,6 +2,7 @@ open Ast
 
 type pp_node =
   | None
+  | Skip
   | Int of Int32.t
   | String of string
   | Bool of bool
@@ -17,6 +18,7 @@ let pp node =
   let rec pp_node node indent =
     match node with
     | None -> add_string "None"
+    | Skip -> ()
     | Int int -> add_string (Int32.to_string int)
     | String str -> add_strings ["\""; str; "\""]
     | Bool bool ->
@@ -31,9 +33,12 @@ let pp node =
       add_string "[\n";
       List.iter
         (fun node ->
-          add_indent (indent + 1);
-          pp_node node (indent + 1);
-          add_string ",\n")
+          match node with
+          | Skip -> ()
+          | _ ->
+            add_indent (indent + 1);
+            pp_node node (indent + 1);
+            add_string ",\n")
         nodes;
       add_indent indent;
       add_string "]"
@@ -42,10 +47,13 @@ let pp node =
       add_string "{\n";
       List.iter
         (fun (name, node) ->
-          add_indent (indent + 1);
-          add_strings [name; ": "];
-          pp_node node (indent + 1);
-          add_string ",\n")
+          match node with
+          | Skip -> ()
+          | _ ->
+            add_indent (indent + 1);
+            add_strings [name; ": "];
+            pp_node node (indent + 1);
+            add_string ",\n")
         attrs;
       add_indent indent;
       add_string "}"
@@ -223,6 +231,21 @@ and node_of_scoped_identifier id =
     "ScopedIdentifier"
     loc
     [("scopes", List (List.map node_of_identifier scopes)); ("name", node_of_identifier name)]
+
+and node_of_attributes attributes =
+  if attributes == [] then
+    Skip
+  else
+    List (List.map node_of_attribute attributes)
+
+and node_of_attribute attribute =
+  let { Attribute.loc; items } = attribute in
+  node "Attribute" loc [("items", List (List.map node_of_attribute_item items))]
+
+and node_of_attribute_item item =
+  let open Attribute in
+  match item with
+  | Identifier id -> node_of_identifier id
 
 and node_of_import import =
   let open Module.Import in
@@ -568,7 +591,9 @@ and node_of_match_case case =
     ]
 
 and node_of_variable_decl decl =
-  let { Statement.VariableDeclaration.loc; kind; pattern; init; annot; is_public } = decl in
+  let { Statement.VariableDeclaration.loc; kind; pattern; init; annot; attributes; is_public } =
+    decl
+  in
   let kind =
     match kind with
     | Immutable -> "Immutable"
@@ -582,12 +607,13 @@ and node_of_variable_decl decl =
       ("pattern", node_of_pattern pattern);
       ("init", node_of_expression init);
       ("annot", opt node_of_type annot);
+      ("attributes", node_of_attributes attributes);
       ("is_public", Bool is_public);
     ]
 
 and node_of_trait_decl decl =
   let open TraitDeclaration in
-  let { loc; kind; name; type_params; implemented; methods; is_public } = decl in
+  let { loc; kind; name; type_params; implemented; methods; attributes; is_public } = decl in
   let kind =
     match kind with
     | Methods -> "Methods"
@@ -602,12 +628,13 @@ and node_of_trait_decl decl =
       ("type_params", List (List.map node_of_type_parameter type_params));
       ("implemented", List (List.map node_of_identifier_type implemented));
       ("methods", List (List.map node_of_function methods));
+      ("attributes", node_of_attributes attributes);
       ("is_public", Bool is_public);
     ]
 
 and node_of_type_decl decl =
   let open TypeDeclaration in
-  let { loc; name; type_params; decl; is_public } = decl in
+  let { loc; name; type_params; decl; attributes; is_public } = decl in
   let decl =
     match decl with
     | Builtin -> ("builtin", Bool true)
@@ -632,6 +659,7 @@ and node_of_type_decl decl =
       ("name", node_of_identifier name);
       ("type_params", List (List.map node_of_type_parameter type_params));
       decl;
+      ("attributes", node_of_attributes attributes);
       ("is_public", Bool is_public);
     ]
 
@@ -676,6 +704,7 @@ and node_of_function func =
     params;
     body;
     return;
+    attributes;
     is_public;
     is_builtin;
     is_static;
@@ -698,6 +727,7 @@ and node_of_function func =
       ("body", body);
       ("return", opt node_of_type return);
       ("type_params", List (List.map node_of_type_parameter type_params));
+      ("attributes", node_of_attributes attributes);
       ("is_public", Bool is_public);
       ("is_builtin", Bool is_builtin);
       ("is_static", Bool is_static);

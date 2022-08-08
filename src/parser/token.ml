@@ -21,6 +21,7 @@ type t =
   | T_LOGICAL_AND
   | T_LOGICAL_OR
   | T_WILDCARD
+  | T_AT
   | T_BANG
   | T_EQUALS
   | T_DOUBLE_EQUALS
@@ -107,6 +108,7 @@ let to_string token =
   | T_LOGICAL_AND -> "&&"
   | T_LOGICAL_OR -> "||"
   | T_WILDCARD -> "_"
+  | T_AT -> "@"
   | T_BANG -> "!"
   | T_EQUALS -> "="
   | T_DOUBLE_EQUALS -> "=="

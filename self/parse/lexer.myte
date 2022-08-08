@@ -362,6 +362,10 @@ methods Lexer {
         this.advance();
         this.tokenResult(token.Question)
       }
+      | '@' -> {
+        this.advance();
+        this.tokenResult(token.At)
+      }
       | '!' -> match (this.peek()) {
         | '=' -> {
           this.advanceTwo();

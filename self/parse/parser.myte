@@ -236,24 +236,34 @@ methods Parser {
 
   fun parseToplevel(): ast.Toplevel {
     val startLoc = this.loc;
+    val attributes = this.parseAttributes();
     val isPublic = this.maybeParsePublic();
     return match (this.token) {
       | token.Fun ->
-        ast.TLFunction (this.parseFunctionDeclaration(startLoc, isPublic, false, false, false, false))
+        ast.TLFunction (
+          this.parseFunctionDeclaration(startLoc, attributes, isPublic, false, false, false, false),
+        )
       | token.Val
-      | token.Var -> ast.TLVariable (this.parseVariableDeclaration(startLoc, true, isPublic))
-      | token.Type -> ast.TLType (this.parseTypeDeclaration(startLoc, isPublic, false))
-      | token.Trait -> ast.TLTrait (this.parseTraitDeclaration(ast.TKTrait, startLoc, isPublic))
+      | token.Var ->
+        ast.TLVariable (this.parseVariableDeclaration(startLoc, true, attributes, isPublic))
+      | token.Type -> ast.TLType (this.parseTypeDeclaration(startLoc, attributes, isPublic, false))
+      | token.Trait ->
+        ast.TLTrait (this.parseTraitDeclaration(ast.TKTrait, startLoc, attributes, isPublic))
       | token.Methods when isPublic -> fatal(error.PublicMethodsBlock, startLoc)
-      | token.Methods -> ast.TLTrait (this.parseTraitDeclaration(ast.TKMethods, startLoc, isPublic))
+      | token.Methods ->
+        ast.TLTrait (this.parseTraitDeclaration(ast.TKMethods, startLoc, attributes, isPublic))
       // A builtin declaration may be either a type or function
       | token.Builtin -> {
         this.advance();
 
         match (this.token) {
           | token.Fun ->
-            ast.TLFunction(this.parseFunctionDeclaration(startLoc, isPublic, true, false, false, false))
-          | token.Type -> ast.TLType (this.parseTypeDeclaration(startLoc, isPublic, true))
+            ast.TLFunction(
+              this.parseFunctionDeclaration(startLoc, attributes, isPublic, true, false, false,
+                false),
+            )
+          | token.Type ->
+            ast.TLType (this.parseTypeDeclaration(startLoc, attributes, isPublic, true))
           | actual ->
             fatal(error.UnexpectedTokens { actual, expected: [token.Fun, token.Type] }, this.loc)
         }
@@ -269,6 +279,40 @@ methods Parser {
     } else {
       false
     }
+  
+  fun parseAttributes(): Vec<ast.Attribute> {
+    val attributes: Vec<ast.Attribute> = [];
+
+    while (this.token match token.At) {
+      var startLoc = this.loc;
+      this.advance();
+      this.expect(token.LeftParen);
+
+      val items: Vec<ast.AttributeItem> = [];
+
+      while (this.token != token.RightParen) {
+        val startLoc = this.loc;
+        items.push(this.parseAttributeItem());
+
+        match (this.token) {
+          | token.RightParen -> ()
+          | token.Comma -> this.advance()
+          | _ -> this.expect(token.RightParen)
+        }
+      }
+
+      this.advance();
+      val loc = this.currentLoc(startLoc);
+      val attribute = ast.Attribute { loc, items };
+      attributes.push(attribute);
+    }
+
+    return attributes;
+  }
+
+  fun parseAttributeItem(): ast.AttributeItem {
+    return ast.AttributeItem (this.parseIdentifier());
+  }
 
   fun parseIdentifier(): ast.Identifier {
     match (this.token) {
@@ -309,6 +353,7 @@ methods Parser {
 
   fun parseFunctionDeclaration(
     startLoc: Loc,
+    attributes: Vec<ast.Attribute>,
     isPublic: Bool,
     isBuiltin: Bool,
     isOverride: Bool,
@@ -339,8 +384,8 @@ methods Parser {
 
     val loc = this.currentLoc(startLoc);
 
-    return ast.FunctionDeclaration
-      { loc, name, params, body, return_, typeParams, isPublic, isBuiltin, isStatic, isOverride };
+    return ast.FunctionDeclaration { loc, name, params, body, return_, typeParams, attributes,
+      isPublic, isBuiltin, isStatic, isOverride };
   }
 
   fun parseFunctionSignature(): (Vec<ast.FunctionParam>, Option<ast.Type>) {
@@ -422,6 +467,7 @@ methods Parser {
   fun parseVariableDeclaration(
     startLoc: Loc,
     isToplevel: Bool,
+    attributes: Vec<ast.Attribute>,
     isPublic: Bool,
   ): ast.VariableDeclaration {
     val kind = if (this.token == token.Val) {
@@ -448,10 +494,15 @@ methods Parser {
 
     val loc = this.currentLoc(startLoc);
 
-    return ast.VariableDeclaration { loc, kind, pattern, annot, init, isPublic };
+    return ast.VariableDeclaration { loc, kind, pattern, annot, init, attributes, isPublic };
   }
 
-  fun parseTypeDeclaration(startLoc: Loc, isPublic: Bool, isBuiltin: Bool): ast.TypeDeclaration {
+  fun parseTypeDeclaration(
+    startLoc: Loc,
+    attributes: Vec<ast.Attribute>,
+    isPublic: Bool,
+    isBuiltin: Bool,
+  ): ast.TypeDeclaration {
     this.expect(token.Type);
 
     // Parse type alias if alias keyword is encountered
@@ -464,7 +515,8 @@ methods Parser {
       val ty = this.parseType();
       val loc = this.currentLoc(startLoc);
 
-      return ast.TypeDeclaration { loc, name, typeParams, decl: ast.TDAlias (ty), isPublic };
+      return ast.TypeDeclaration
+        { loc, name, typeParams, decl: ast.TDAlias (ty), attributes, isPublic };
     }
 
     val nameStartLoc = this.loc;
@@ -474,7 +526,8 @@ methods Parser {
     // Builtin types only have a name and type parameters
     if (isBuiltin) {
       val loc = this.currentLoc(startLoc);
-      return ast.TypeDeclaration { loc, name, typeParams, decl: ast.TDBuiltin, isPublic };
+      return ast.TypeDeclaration
+        { loc, name, typeParams, decl: ast.TDBuiltin, attributes, isPublic };
     }
 
     return match (this.token) {
@@ -483,14 +536,16 @@ methods Parser {
         val tuple = this.parseTupleDeclaration(name, nameStartLoc);
         val loc = this.currentLoc(startLoc);
 
-        return ast.TypeDeclaration { loc, name, typeParams, decl: ast.TDTuple (tuple), isPublic };
+        return ast.TypeDeclaration
+          { loc, name, typeParams, decl: ast.TDTuple (tuple), attributes, isPublic };
       }
       // A left brace following the name signifies a single record variant
       | token.LeftBrace -> {
         val record = this.parseRecordDeclaration(name, nameStartLoc, false);
         val loc = this.currentLoc(startLoc);
 
-        return ast.TypeDeclaration { loc, name, typeParams, decl: ast.TDRecord (record), isPublic };
+        return ast.TypeDeclaration
+          { loc, name, typeParams, decl: ast.TDRecord (record), attributes, isPublic };
       }
       // Otherwise there are multiple variants in this declaration
       | token.Equals -> {
@@ -503,7 +558,7 @@ methods Parser {
         }
 
         return ast.TypeDeclaration
-          { loc, name, typeParams, decl: ast.TDVariant (variants), isPublic };
+          { loc, name, typeParams, decl: ast.TDVariant (variants), attributes, isPublic };
       }
       | _ -> fatal(error.MalformedTypeDeclaration { token: this.token }, this.loc)
     };
@@ -605,7 +660,12 @@ methods Parser {
     return ast.RecordDeclaration { loc, name, fields };
   }
 
-  fun parseTraitDeclaration(kind: ast.TraitDeclarationKind, startLoc: Loc, isPublic: Bool): ast.TraitDeclaration {
+  fun parseTraitDeclaration(
+    kind: ast.TraitDeclarationKind,
+    startLoc: Loc,
+    attributes: Vec<ast.Attribute>,
+    isPublic: Bool,
+  ): ast.TraitDeclaration {
     this.advance();
 
     val inTrait = match (kind) {
@@ -644,6 +704,7 @@ methods Parser {
     while (this.token != token.RightBrace) {
       val startLoc = this.loc;
 
+      val attributes = this.parseAttributes();
       val isPublic = this.maybeParsePublic();
 
       // Methods may optionally start with modifier keywords
@@ -664,7 +725,7 @@ methods Parser {
 
       if (this.token == token.Fun) {
         val method = this.parseFunctionDeclaration(
-          startLoc, isPublic, isBuiltin, isOverride, isStatic, inTrait,
+          startLoc, attributes, isPublic, isBuiltin, isOverride, isStatic, inTrait,
         );
         methods_.push(method);
       } else {
@@ -675,7 +736,8 @@ methods Parser {
     this.advance();
     val loc = this.currentLoc(startLoc);
 
-    return ast.TraitDeclaration { loc, kind, name, typeParams, implemented, methods_, isPublic };
+    return ast.TraitDeclaration
+      { loc, kind, name, typeParams, implemented, methods_, attributes, isPublic };
   }
 
   fun parseTypeParameters(): Vec<ast.TypeParameter> {
@@ -743,7 +805,7 @@ methods Parser {
       | token.LeftBrace -> ast.SBlock (this.parseBlock())
       | token.Val
       | token.Var ->
-        ast.SVariableDeclaration (this.parseVariableDeclaration(this.loc, false, false))
+        ast.SVariableDeclaration (this.parseVariableDeclaration(this.loc, false, [], false))
       | token.If -> ast.SIf (this.parseIf())
       | token.Match -> ast.SMatch (this.parseMatch(false))
       | token.While -> ast.SWhile (this.parseWhile())

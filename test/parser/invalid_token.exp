@@ -1,4 +1,4 @@
-Error: Unexpected token `@`
+Error: Unexpected token `#`
 test/parser/invalid_token.myte:3:0
- 3 | @
+ 3 | #
    | ^

@@ -48,6 +48,13 @@ pub type ScopedIdentifier {
   pub name: Identifier,
 }
 
+pub type Attribute {
+  pub loc: Loc,
+  pub items: Vec<AttributeItem>,
+}
+
+pub type AttributeItem (Identifier)
+
 /* 
  * ============================
  *        Declarations
@@ -61,6 +68,7 @@ pub type FunctionDeclaration {
   pub body: FunctionBody,
   pub return_: Option<Type>,
   pub typeParams: Vec<TypeParameter>,
+  pub attributes: Vec<Attribute>,
   pub isPublic: Bool,
   pub isBuiltin: Bool,
   pub isStatic: Bool,
@@ -90,6 +98,7 @@ pub type VariableDeclaration {
   pub pattern: Pattern,
   pub init: Expression,
   pub annot: Option<Type>,
+  pub attributes: Vec<Attribute>,
   pub isPublic: Bool,
 }
 
@@ -102,6 +111,7 @@ pub type TypeDeclaration {
   pub name: Identifier,
   pub typeParams: Vec<TypeParameter>,
   pub decl: TypeDecl,
+  pub attributes: Vec<Attribute>,
   pub isPublic: Bool,
 }
 
@@ -144,6 +154,7 @@ pub type TraitDeclaration {
   pub typeParams: Vec<TypeParameter>,
   pub implemented: Vec<IdentifierType>,
   pub methods_: Vec<FunctionDeclaration>,
+  pub attributes: Vec<Attribute>,
   pub isPublic: Bool,
 }
 

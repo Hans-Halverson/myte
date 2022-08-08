@@ -506,6 +506,9 @@ let rec tokenize lex =
   | ']' ->
     advance lex;
     token_result T_RIGHT_BRACKET
+  | '@' ->
+    advance lex;
+    token_result T_AT
   | '/' ->
     (match peek lex with
     | '/' ->
