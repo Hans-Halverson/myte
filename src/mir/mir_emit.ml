@@ -866,7 +866,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       let tag = SMap.find name tags in
       emit_store_record_fields ~ecx ~ptr:variant_ptr ~tag:(Some tag) record_variant_agg fields;
       Some union_ptr
-    (* If layout is zero size, still emit all fields as they may have side effect s*)
+    (* If layout is zero size, still emit all fields as they may have side effects *)
     | ZeroSize ->
       List.iter (fun field -> ignore (emit_record_field_value ~ecx field)) fields;
       None
@@ -3251,6 +3251,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             | Aggregate agg ->
               let field_key = get_field_key field in
               emit_load_aggregate_element agg field_key value
+            | InlineValue _ -> (value, IMap.add path_field_id value path_cache)
             | _ -> failwith "Expected aggregate layout")
           (* For variant fields we must find the correct variant aggregate, fetch its field key,
              and cast the pointer to the variant aggregate type. *)

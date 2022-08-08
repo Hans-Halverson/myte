@@ -30,6 +30,10 @@ func int @test.testGenerics(int %0, byte %1) {
   Ret %3
 }
 
+func int @test.testDestructure(int %0) {
+  Ret %0
+}
+
 func int @test.main() {
   Ret 0
 }

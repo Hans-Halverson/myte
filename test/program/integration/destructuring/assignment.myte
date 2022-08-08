@@ -71,9 +71,33 @@ fun testDestructureVariants() {
   assertEqual(y, "bar");
 }
 
+type SingleTuple (Int)
+
+fun destructureNamedSingleTupleInlined(x: SingleTuple): Int {
+  val SingleTuple (y) = x;
+  return y;
+}
+
+fun testDestructureNamedSingleTupleInlined() {
+  assertEqual(destructureNamedSingleTupleInlined(SingleTuple(75)), 75);
+}
+
+type ZeroSizeTuple (Unit, Unit, Unit)
+
+fun destructureNamedZeroSizeTuple(x: ZeroSizeTuple): Unit {
+  val ZeroSizeTuple (y, z, _) = x;
+  return y;
+}
+
+fun testDestructureNamedZeroSizeTuple() {
+  assertEqual(destructureNamedZeroSizeTuple(ZeroSizeTuple((), (), ())), ());
+}
+
 fun main() {
   testDestructureTuple();
   testDestructureNamedTuple();
   testDestructureNamedRecord();
   testDestructureVariants();
+  testDestructureNamedSingleTupleInlined();
+  testDestructureNamedZeroSizeTuple();
 }

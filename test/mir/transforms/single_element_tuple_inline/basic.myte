@@ -24,4 +24,9 @@ fun testGenerics(x: Tuple3<Int>, y: Tuple3<Byte>): Int {
   return x[0] + y[0].toInt();
 }
 
+fun testDestructure(x: Tuple1): Int {
+  val Tuple1 (y) = x;
+  return y;
+}
+
 fun main() {}
