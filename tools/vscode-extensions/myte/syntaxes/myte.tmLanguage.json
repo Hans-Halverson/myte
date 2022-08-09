@@ -233,21 +233,20 @@
           "beginCaptures": {
             "0": { "name": "keyword.operator.assignment.myte" }
           },
-          "end": "(?=\\})|(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)|(?=\\b(fun|pub|builtin|override|static|extends|implement|@)\\b)|(?=@)",
+          "end": "(?=\\})|(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)|(?=\\b(fun|pub|override|static|extends|implement)\\b)|(?=@)",
           "patterns": [{ "include": "#expressions" }]
         }
       ]
     },
     "function-declarations": {
       "name": "meta.function-declaration.myte",
-      "begin": "(\\bpub\\b)?\\s*(\\bbuiltin\\b)?\\s*\\b(fun)\\s(\\w+)*",
+      "begin": "(\\bpub\\b)?\\s*\\b(fun)\\s(\\w+)*",
       "beginCaptures": {
         "1": { "name": "storage.modifier.myte" },
-        "2": { "name": "storage.modifier.myte" },
-        "3": { "name": "keyword.other.fun.myte" },
-        "4": { "name": "entity.name.function.myte" }
+        "2": { "name": "keyword.other.fun.myte" },
+        "3": { "name": "entity.name.function.myte" }
       },
-      "end": "(?=\\{|\\}|=)|(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)|(?=\\b(fun|pub|builtin|override|static|extends|implement|@)\\b)|(?=@)",
+      "end": "(?=\\{|\\}|=)|(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)|(?=\\b(fun|pub|override|static|extends|implement)\\b)|(?=@)",
       "patterns": [
         { "include": "#type-parameters" },
         { "include": "#function-parameters" },
@@ -411,7 +410,7 @@
       "beginCaptures": {
         "1": { "name": "keyword.control.import.myte" }
       },
-      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)",
+      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)",
       "patterns": [
         { "include": "#comments" },
         {
@@ -556,7 +555,7 @@
       "beginCaptures": {
         "1": { "name": "storage.type.myte" }
       },
-      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)",
+      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)",
       "patterns": [
         { "include": "#comments" },
         {
@@ -930,16 +929,12 @@
               "beginCaptures": {
                 "1": { "name": "storage.modifier.myte" }
               },
-              "end": "(?=\\})|(?=\\b(fun|pub|builtin|override|static|extends|implement|@)\\b)|(?=@)",
+              "end": "(?=\\})|(?=\\b(fun|pub|override|static|extends|implement)\\b)|(?=@)",
               "patterns": [{ "include": "#types" }]
             },
             {
               "name": "storage.modifier.myte",
               "match": "\\b(pub)\\b"
-            },
-            {
-              "name": "storage.modifier.myte",
-              "match": "\\b(builtin)\\b"
             },
             {
               "name": "storage.modifier.myte",
@@ -1026,7 +1021,7 @@
             "3": { "name": "storage.modifier.myte" },
             "4": { "name": "entity.name.type.myte" }
           },
-          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)",
+          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)",
           "patterns": [
             { "include": "#type-parameters" },
             {
@@ -1035,23 +1030,22 @@
                 "1": { "name": "keyword.operator.assigment.myte" },
                 "2": { "name": "storage.modifier.myte" }
               },
-              "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)",
+              "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)",
               "patterns": [{ "include": "#types" }]
             }
           ]
         },
         {
           "name": "meta.type-declaration.myte",
-          "begin": "(\\bpub\\b)?\\s*(\\bbuiltin\\b)?\\s*\\b(type)\\s+(\\w+)",
+          "begin": "(\\bpub\\b)?\\s*\\b(type)\\s+(\\w+)",
           "beginCaptures": {
             "1": { "name": "storage.modifier.myte" },
-            "2": { "name": "storage.modifier.myte" },
-            "3": { "name": "storage.type.myte" },
-            "4": {
+            "2": { "name": "storage.type.myte" },
+            "3": {
               "name": "entity.name.type.myte entity.name.constructor.myte"
             }
           },
-          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)",
+          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)",
           "patterns": [
             { "include": "#comments" },
             { "include": "#type-parameters" },
@@ -1062,7 +1056,7 @@
               "beginCaptures": {
                 "0": { "name": "keyword.operator.assigment.myte" }
               },
-              "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)",
+              "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)",
               "patterns": [
                 { "include": "#comments" },
                 {
@@ -1115,7 +1109,7 @@
         "1": { "name": "storage.modifier.myte" },
         "2": { "name": "storage.type.myte" }
       },
-      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)|(?=;)",
+      "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)|(?=;)",
       "patterns": [
         { "include": "#comments" },
         { "include": "#pattern" },
@@ -1132,7 +1126,7 @@
           "beginCaptures": {
             "0": { "name": "keyword.operator.assigment.myte" }
           },
-          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub|builtin)\\b)|(?=@)|(?=;)",
+          "end": "(?=\\b(module|import|fun|methods|trait|type|val|var|pub)\\b)|(?=@)|(?=;)",
           "patterns": [{ "include": "#expressions" }]
         }
       ]

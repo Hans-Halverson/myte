@@ -70,7 +70,6 @@ type t =
   | T_AS
   | T_TYPE
   | T_ALIAS
-  | T_BUILTIN
   | T_TRAIT
   | T_METHODS
   | T_EXTENDS
@@ -157,7 +156,6 @@ let to_string token =
   | T_AS -> "as"
   | T_TYPE -> "type"
   | T_ALIAS -> "alias"
-  | T_BUILTIN -> "builtin"
   | T_TRAIT -> "trait"
   | T_METHODS -> "methods"
   | T_EXTENDS -> "extends"

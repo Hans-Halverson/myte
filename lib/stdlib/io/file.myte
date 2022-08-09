@@ -69,20 +69,20 @@ methods File {
     return Ok (());
   }
 
-  builtin static fun __builtin_read(file: Int, buffer: Array<Byte>, size: Int): Int
+  @(Builtin)
+  static fun __builtin_read(file: Int, buffer: Array<Byte>, size: Int): Int
 
-  pub builtin static fun __builtin_write(
-    file: Int,
-    buffer: Array<Byte>,
-    offset: Int,
-    size: Int,
-  ): Int
+  @(Builtin)
+  pub static fun __builtin_write(file: Int, buffer: Array<Byte>, offset: Int, size: Int): Int
 
-  builtin static fun __builtin_open(file: Array<Byte>, flags: Int, mode: Int): Int
+  @(Builtin)
+  static fun __builtin_open(file: Array<Byte>, flags: Int, mode: Int): Int
 
-  builtin static fun __builtin_close(file: Int): Int
+  @(Builtin)
+  static fun __builtin_close(file: Int): Int
 
-  builtin static fun __builtin_unlink(file: Array<Byte>): Int
+  @(Builtin)
+  static fun __builtin_unlink(file: Array<Byte>): Int
 }
 
 methods File {

@@ -1,0 +1,21 @@
+module test
+
+@(Builtin)
+fun func()
+
+@(Builtin)
+val global: Int = 1
+
+@(Builtin)
+type Type (Int)
+
+@(Builtin)
+trait Trait {}
+
+@(Builtin)
+methods Type {
+  @(Builtin)
+  fun method()
+}
+
+fun main() {}

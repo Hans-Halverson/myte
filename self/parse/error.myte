@@ -22,7 +22,6 @@ pub type ParseError =
   | MalformedCharLiteral
   | MalformedToplevel { token: Token }
   | MalformedFunctionBody { token: Token }
-  | MalformedTypeDeclaration { token: Token }
   | MalformedMethodsItem { token: Token }
   | MalformedType { token: Token }
   | MalformedPattern { token: Token }
@@ -30,7 +29,6 @@ pub type ParseError =
   | EmptyRecord
   | EmptyTuple
   | SingleVariant
-  | TypeAliasBuiltin
   | InvalidAssignmentPattern
   | LiteralInPattern
   | PublicMethodsBlock
@@ -80,8 +78,6 @@ methods ParseError {
         `Unexpected token \`${token}\`, expected start of top level declaration`
       | MalformedFunctionBody { token } ->
         `Unexpected token \`${token}\`, expected start of function body`
-      | MalformedTypeDeclaration { token } ->
-        `Unexpected token \`${token}\`, expected start of type declaration`
       | MalformedMethodsItem { token } -> `Unexpected token \`${token}\`, expected start of method`
       | MalformedType { token } -> `Unexpected token \`${token}\`, expected start of type`
       | MalformedPattern { token } -> `Unexpected token \`${token}\`, expected start of pattern`
@@ -90,8 +86,6 @@ methods ParseError {
       | EmptyRecord -> "Record must have at least one field"
       | EmptyTuple -> "Tuple must have at least one element"
       | SingleVariant -> "Variant type must have at least two variants"
-      | TypeAliasBuiltin ->
-        "A type alias cannot be builtin. Only function and type declarations can be builtin."
       | InvalidAssignmentPattern -> "Invalid left hand side of assignment"
       | LiteralInPattern -> "Literals cannot appear in variable declaration patterns"
       | PublicMethodsBlock -> "Public qualifier cannot be used on entire method declarations block"

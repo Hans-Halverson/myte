@@ -4,6 +4,7 @@ type t = {
   mutable module_tree: Module_tree.t;
   mutable main_loc: Loc.t option;
   type_ctx: Type_context.t;
+  attribute_store: Attributes.AttributeStore.t;
 }
 
 val mk_pcx : unit -> t

@@ -38,7 +38,7 @@ type t =
   | MismatchedOrPatternName of string
   | ExpectedTrait of string
   | StaticMethodOverride
-  | StaticMethodSignature
+  | InvalidFunctionSignature of func_kind
   | OverrideNonexistentMethod of string
   | OverrideMultipleMethods of string * string * string
   | MissingOverrideKeyword of string * string
@@ -89,6 +89,7 @@ type t =
   | InvalidUnwrappedReturnType of invalid_unwrapped_return_type_kind * Type.t
   | InexhaustiveMatch of string
   | UnreachablePattern
+  | BuiltinOutsideStdlib
 
 and name_position_type =
   | NamePositionValue
@@ -124,6 +125,11 @@ and operator_requires_trait_kind =
 and invalid_unwrapped_return_type_kind =
   | InvalidUnwrappedReturnTypeOption
   | InvalidUnwrappedReturnTypeResult of Type.t
+
+and func_kind =
+  | ToplevelFunction
+  | NestedFunction
+  | StaticMethod
 
 and name_source =
   | FunctionName of string
@@ -321,7 +327,14 @@ let to_string error =
     Printf.sprintf "`%s` must appear in all branches of or pattern" name
   | ExpectedTrait name -> Printf.sprintf "Expected `%s` to be a trait" name
   | StaticMethodOverride -> Printf.sprintf "Static methods cannot be overridden"
-  | StaticMethodSignature -> Printf.sprintf "Static methods must have an implementation"
+  | InvalidFunctionSignature func_kind ->
+    let func_kind_string =
+      match func_kind with
+      | StaticMethod -> "Static methods"
+      | ToplevelFunction -> "Top level functions"
+      | NestedFunction -> "Nested functions"
+    in
+    Printf.sprintf "%s must have a body" func_kind_string
   | OverrideNonexistentMethod name ->
     Printf.sprintf "No parent method with name `%s` to override" name
   | OverrideMultipleMethods (method_name, super1, super2) ->
@@ -525,3 +538,4 @@ let to_string error =
       "Inexhaustive pattern matching. For example the pattern `%s` is not matched."
       witness
   | UnreachablePattern -> "Unreachable pattern"
+  | BuiltinOutsideStdlib -> "Builtins can only appear in standard library"

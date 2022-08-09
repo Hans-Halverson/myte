@@ -59,7 +59,7 @@ let add_decls module_ submodule_tree =
       (* Create decls for all constructors in this type declaration *)
       let decls =
         match decl with
-        | Builtin
+        | None
         | Alias _
         | Tuple _
         | Record _ ->

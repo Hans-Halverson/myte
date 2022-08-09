@@ -1,3 +1,4 @@
+open Attributes
 open Basic_collections
 open Bindings
 
@@ -8,16 +9,19 @@ type t = {
   mutable module_tree: Module_tree.t;
   mutable main_loc: Loc.t option;
   type_ctx: Type_context.t;
+  attribute_store: AttributeStore.t;
 }
 
 let mk_pcx () =
   let bindings = Bindings.mk () in
+  let attribute_store = AttributeStore.empty in
   {
     modules = [];
     bindings;
     module_tree = SMap.empty;
     main_loc = None;
-    type_ctx = Type_context.mk ~bindings;
+    type_ctx = Type_context.mk ~bindings ~attribute_store;
+    attribute_store;
   }
 
 let add_modules ~pcx modules = pcx.modules <- modules @ pcx.modules

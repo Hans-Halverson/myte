@@ -1,7 +1,0 @@
-module test
-
-builtin type Array
-
-pub builtin type Array
-
-builtin type Array<T>

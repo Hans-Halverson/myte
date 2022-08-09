@@ -3,18 +3,16 @@ module std.memory
 import std.bool.Bool
 import std.int.Int
 
-pub builtin type Array<T>
+@(Builtin)
+pub type Array<T>
 
 methods Array<T> {
-  pub builtin static fun new<T>(count: Int): Array<T>
+  @(Builtin)
+  pub static fun new<T>(count: Int): Array<T>
 
-  pub builtin static fun copy<T>(
-    dest: Array<T>,
-    destIndex: Int,
-    src: Array<T>,
-    srcIndex: Int,
-    count: Int,
-  )
+  @(Builtin)
+  pub static fun copy<T>(dest: Array<T>, destIndex: Int, src: Array<T>, srcIndex: Int, count: Int)
 
-  pub builtin static fun isNull<T>(array: Array<T>): Bool
+  @(Builtin)
+  pub static fun isNull<T>(array: Array<T>): Bool
 }

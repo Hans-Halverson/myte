@@ -10,7 +10,8 @@ import std.ops.Equatable
 import std.option.{None, Option, Some}
 import std.string.{String, ToString}
 
-pub builtin type Byte
+@(Builtin)
+pub type Byte
 
 pub val BYTE_MIN: Byte = -128
 
@@ -19,7 +20,8 @@ pub val BYTE_MAX: Byte = 127
 methods Byte {
   implements Equatable
 
-  pub builtin override fun equals(other: Byte): Bool
+  @(Builtin)
+  pub override fun equals(other: Byte): Bool
 }
 
 methods Byte {
@@ -31,11 +33,14 @@ methods Byte {
 methods Byte {
   implements ToString
 
-  pub builtin fun toInt(): Int
+  @(Builtin)
+  pub fun toInt(): Int
 
-  pub builtin fun toLong(): Long
+  @(Builtin)
+  pub fun toLong(): Long
 
-  pub builtin fun toDouble(): Double
+  @(Builtin)
+  pub fun toDouble(): Double
 
   pub override fun toString(): String {
     var n = this;

@@ -76,7 +76,6 @@ pub type Token =
   | Break
   | Continue
   | Alias
-  | Builtin
   | Override
   | Pub
   | Static
@@ -162,7 +161,6 @@ methods Token {
       | Break -> "break"
       | Continue -> "continue"
       | Alias -> "alias"
-      | Builtin -> "builtin"
       | Override -> "override"
       | Pub -> "pub"
       | Static -> "static"
@@ -248,7 +246,6 @@ methods Token {
       | (Break, Break)
       | (Continue, Continue)
       | (Alias, Alias)
-      | (Builtin, Builtin)
       | (Override, Override)
       | (Pub, Pub)
       | (Static, Static)

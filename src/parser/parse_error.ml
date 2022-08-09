@@ -15,7 +15,6 @@ type t =
   | MalformedMethodsItem of Token.t
   | MalformedPattern of Token.t
   | MalformedFunctionBody of Token.t
-  | MalformedTypeDeclaration of Token.t
   | MalformedType of Token.t
   | MissingModule of Token.t
   | InvalidAssignmentPattern
@@ -23,7 +22,6 @@ type t =
   | EmptyRecord
   | EmptyTuple
   | SingleVariant
-  | InvalidBuiltin
   | PublicMethodsBlock
   | FileDoesNotExist of string
   | FileIsDirectory of string
@@ -75,10 +73,6 @@ let to_string error =
     Printf.sprintf "Unexpected token `%s`, expected start of pattern" (Token.to_string actual)
   | MalformedFunctionBody actual ->
     Printf.sprintf "Unexpected token `%s`, expected start of function body" (Token.to_string actual)
-  | MalformedTypeDeclaration actual ->
-    Printf.sprintf
-      "Unexpected token `%s`, expected start of type declaration"
-      (Token.to_string actual)
   | MalformedType actual ->
     Printf.sprintf "Unexpected token `%s`, expected start of type" (Token.to_string actual)
   | MissingModule actual ->
@@ -90,8 +84,6 @@ let to_string error =
   | EmptyRecord -> "Record must have at least one field"
   | EmptyTuple -> "Tuple must have at least one element"
   | SingleVariant -> "Variant type must have at least two variants"
-  | InvalidBuiltin ->
-    "A type alias cannot be builtin. Only function and type declarations can be builtin."
   | PublicMethodsBlock -> "Public qualifier cannot be used on entire method declarations block"
   | FileDoesNotExist file -> Printf.sprintf "Cannot find file %s" file
   | FileIsDirectory file -> Printf.sprintf "File %s is a directory" file

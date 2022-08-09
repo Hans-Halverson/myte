@@ -1188,7 +1188,6 @@ test/parser/assignment/basic.myte
       return: None,
       type_params: [],
       is_public: false,
-      is_builtin: false,
       is_static: false,
       is_override: false,
     },

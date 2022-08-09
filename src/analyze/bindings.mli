@@ -32,7 +32,6 @@ module FunctionDeclaration : sig
     name: string;
     loc: Loc.t;
     is_public: bool;
-    is_builtin: bool;
     is_static: bool;
     is_override: bool;
     is_signature: bool;
@@ -47,7 +46,6 @@ module FunctionDeclaration : sig
     name:string ->
     loc:Loc.t ->
     is_public:bool ->
-    is_builtin:bool ->
     is_static:bool ->
     is_override:bool ->
     is_signature:bool ->

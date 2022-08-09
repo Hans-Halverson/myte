@@ -47,6 +47,7 @@ type t = {
   (* Anonymous function node's loc to the bindings it captures *)
   mutable anonymous_function_captures: LBVMMap.t;
   mutable current_module: Module.t;
+  mutable attribute_store: Attributes.AttributeStore.t;
 }
 
 and union_forest_node =
@@ -56,7 +57,7 @@ and union_forest_node =
     }
   | Link of TVar.t
 
-let mk ~bindings =
+let mk ~bindings ~attribute_store =
   {
     bindings;
     errors = [];
@@ -73,6 +74,7 @@ let mk ~bindings =
     num_loops = 0;
     anonymous_function_captures = LBVMMap.empty;
     current_module = Module.none;
+    attribute_store;
   }
 
 let add_error ~cx loc error = cx.errors <- (loc, error) :: cx.errors
@@ -154,6 +156,8 @@ let get_anonymous_function_captures ~cx anon_loc =
 let set_current_module ~cx module_ = cx.current_module <- module_
 
 let get_current_module ~cx = cx.current_module
+
+let get_attribute_store ~cx = cx.attribute_store
 
 let get_value_binding ~cx use_loc = get_value_binding cx.bindings use_loc
 

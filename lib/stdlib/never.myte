@@ -4,4 +4,5 @@ module std.never
  * The never type represents a value that can never exist, such as the return value of a function
  * that exits the program or infinitely loops.
  */
-pub builtin type Never
+@(Builtin)
+pub type Never

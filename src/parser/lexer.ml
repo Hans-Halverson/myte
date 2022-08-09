@@ -174,7 +174,6 @@ let parse_identifier_or_keyword lex =
       | "as" -> token_result T_AS
       | "type" -> token_result T_TYPE
       | "alias" -> token_result T_ALIAS
-      | "builtin" -> token_result T_BUILTIN
       | "trait" -> token_result T_TRAIT
       | "methods" -> token_result T_METHODS
       | "extends" -> token_result T_EXTENDS

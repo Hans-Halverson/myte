@@ -70,7 +70,6 @@ pub type FunctionDeclaration {
   pub typeParams: Vec<TypeParameter>,
   pub attributes: Vec<Attribute>,
   pub isPublic: Bool,
-  pub isBuiltin: Bool,
   pub isStatic: Bool,
   pub isOverride: Bool,
 }
@@ -120,7 +119,7 @@ pub type TypeDecl =
   | TDTuple (TupleDeclaration)
   | TDRecord (RecordDeclaration)
   | TDVariant (Vec<VariantDeclaration>)
-  | TDBuiltin
+  | TDNone
 
 pub type TupleDeclaration {
   pub loc: Loc,

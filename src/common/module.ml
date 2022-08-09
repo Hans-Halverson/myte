@@ -25,3 +25,8 @@ let set_module_for_module_loc loc module_ = module_by_loc := LocMap.add loc modu
 let get_module_for_module_loc loc = LocMap.find loc !module_by_loc
 
 let equal m1 m2 = m1.id == m2.id
+
+let in_stdlib module_ =
+  match module_.name with
+  | "std" :: _ -> true
+  | _ -> false

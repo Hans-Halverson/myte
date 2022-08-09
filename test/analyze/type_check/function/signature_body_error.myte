@@ -1,0 +1,10 @@
+module test
+
+// Error
+fun foo1()
+
+fun nestedFunction() {
+  fun foo2()
+}
+
+fun main() {}

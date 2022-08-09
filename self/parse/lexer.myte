@@ -585,7 +585,6 @@ methods Lexer {
       | "break" -> token.Break
       | "continue" -> token.Continue
       | "alias" -> token.Alias
-      | "builtin" -> token.Builtin
       | "override" -> token.Override
       | "pub" -> token.Pub
       | "static" -> token.Static

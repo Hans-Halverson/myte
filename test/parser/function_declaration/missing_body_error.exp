@@ -1,4 +1,0 @@
-Error: Unexpected token `1`, expected start of function body
-test/parser/function_declaration/missing_body_error.myte:3:10
- 3 | fun foo() 1
-   |           ^

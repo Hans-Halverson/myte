@@ -166,7 +166,7 @@ and build_type_and_trait_parameters ~cx module_ =
               let full_loc = Loc.between (List.hd bounds).loc (List_utils.last bounds).loc in
               Type_context.add_error ~cx full_loc TypeAliasWithBounds)
           type_params
-      | TypeDeclaration { name; decl = Builtin | Tuple _ | Record _ | Variant _; type_params; _ } ->
+      | TypeDeclaration { name; decl = None | Tuple _ | Record _ | Variant _; type_params; _ } ->
         let binding = Type_context.get_type_binding ~cx name.loc in
         let type_decl = Bindings.get_type_decl binding in
         let type_params = build_type_parameters ~cx type_params in
@@ -192,7 +192,7 @@ and build_type_and_trait_parameters ~cx module_ =
           ~check_type_param_bounds:false
           type_params
           alias_decl.type_params
-      | TypeDeclaration { name; decl = Builtin | Tuple _ | Record _ | Variant _; type_params; _ } ->
+      | TypeDeclaration { name; decl = None | Tuple _ | Record _ | Variant _; type_params; _ } ->
         let binding = Type_context.get_type_binding ~cx name.loc in
         let type_decl = Bindings.get_type_decl binding in
         build_type_parameter_bounds
@@ -802,7 +802,13 @@ and check_module ~cx module_ =
     (fun toplevel ->
       match toplevel with
       | VariableDeclaration decl -> check_variable_declaration ~cx ~is_toplevel:true decl
-      | FunctionDeclaration decl -> if not decl.is_builtin then check_function_body ~cx decl
+      | FunctionDeclaration decl ->
+        if decl.body == Signature then (
+          if not (Attributes.is_builtin ~store:(Type_context.get_attribute_store ~cx) decl.name.loc)
+          then
+            Type_context.add_error ~cx decl.loc (InvalidFunctionSignature ToplevelFunction)
+        ) else
+          check_function_body ~cx decl
       | TraitDeclaration { loc; methods; _ } ->
         let this_type_binding = Type_context.get_type_binding ~cx loc in
         let this_type_alias = Bindings.get_type_alias_decl this_type_binding in
@@ -2345,7 +2351,10 @@ and check_statement ~cx ~is_expr stmt =
   | FunctionDeclaration ({ loc; _ } as decl) ->
     let tvar_id = Type_context.mk_tvar_id ~cx ~loc in
     build_function_declaration ~cx decl;
-    check_function_body ~cx decl;
+    if decl.body == Signature then
+      Type_context.add_error ~cx decl.loc (InvalidFunctionSignature NestedFunction)
+    else
+      check_function_body ~cx decl;
     ignore (Type_context.unify ~cx Unit (TVar tvar_id));
     (loc, tvar_id)
   (*
@@ -2694,13 +2703,6 @@ let resolve_unresolved_int_literals ~cx =
 class ensure_resolved_types_visitor ~cx =
   object
     inherit Ast_visitor.visitor as super
-
-    method! function_ decl =
-      let { Ast.Function.is_builtin; _ } = decl in
-      if is_builtin then
-        ()
-      else
-        super#function_ decl
 
     method! expression expr =
       super#expression expr;

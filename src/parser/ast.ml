@@ -543,7 +543,6 @@ and Function : sig
     type_params: TypeParameter.t list;
     attributes: Attribute.t list;
     is_public: bool;
-    is_builtin: bool;
     is_static: bool;
     is_override: bool;
   }
@@ -587,7 +586,7 @@ and TypeDeclaration : sig
     | Record of Record.t
     | Tuple of Tuple.t
     | Variant of variant list
-    | Builtin
+    | None
 
   type t = {
     loc: Loc.t;

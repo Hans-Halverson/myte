@@ -23,10 +23,6 @@ methods Foo<T> {
 }
 
 methods Foo {
-  builtin fun builtinFun()
-
-  pub builtin fun builtinFun()
-
   override fun overrideFun() {}
 
   pub override fun overrideFun() {}
@@ -34,18 +30,6 @@ methods Foo {
   static fun staticFun() {}
 
   pub static fun staticFun() {}
-
-  builtin static fun builtinStaticFun()
-
-  pub builtin static fun builtinStaticFun()
-
-  builtin override fun builtinOverrideFun()
-
-  pub builtin override fun builtinOverrideFun()
-
-  builtin override static fun builtinOverrideStaticFun()
-
-  pub builtin override static fun builtinOverrideStaticFun()
 
   override static fun staticOverrideFun() {}
 

@@ -35,7 +35,6 @@ module FunctionDeclaration = struct
     name: string;
     loc: Loc.t;
     is_public: bool;
-    is_builtin: bool;
     is_static: bool;
     is_override: bool;
     is_signature: bool;
@@ -53,12 +52,11 @@ module FunctionDeclaration = struct
     mutable captures: LocSet.t;
   }
 
-  let mk ~name ~loc ~is_public ~is_builtin ~is_static ~is_override ~is_signature =
+  let mk ~name ~loc ~is_public ~is_static ~is_override ~is_signature =
     {
       name;
       loc;
       is_public;
-      is_builtin;
       is_static;
       is_override;
       is_signature;

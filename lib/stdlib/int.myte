@@ -10,7 +10,8 @@ import std.ops.Equatable
 import std.option.{None, Option, Some}
 import std.string.{String, ToString}
 
-pub builtin type Int
+@(Builtin)
+pub type Int
 
 pub val INT_MIN: Int = -2147483648
 
@@ -19,7 +20,8 @@ pub val INT_MAX: Int = 2147483647
 methods Int {
   implements Equatable
 
-  pub builtin override fun equals(other: Int): Bool
+  @(Builtin)
+  pub override fun equals(other: Int): Bool
 }
 
 methods Int {
@@ -29,11 +31,14 @@ methods Int {
 }
 
 methods Int {
-  pub builtin fun toByte(): Byte
+  @(Builtin)
+  pub fun toByte(): Byte
 
-  pub builtin fun toLong(): Long
+  @(Builtin)
+  pub fun toLong(): Long
 
-  pub builtin fun toDouble(): Double
+  @(Builtin)
+  pub fun toDouble(): Double
 }
 
 methods Int {

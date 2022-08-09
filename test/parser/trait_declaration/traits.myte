@@ -20,7 +20,6 @@ trait Foo<T> {
     return 1;
   }
 
-  builtin fun builtinFun()
   override fun overrideFun()
   static fun staticFun()
 }

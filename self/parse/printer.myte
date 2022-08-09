@@ -190,7 +190,6 @@ fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
     typeParams,
     attributes,
     isPublic,
-    isBuiltin,
     isStatic,
     isOverride,
   } = decl;
@@ -212,7 +211,6 @@ fun nodeOfFunctionDeclaration(decl: ast.FunctionDeclaration): PrintNode {
       ("type_params", List (typeParams.map(nodeOfTypeParameter))),
       ("attributes", nodeOfAttributes(attributes)),
       ("is_public", Bool (isPublic)),
-      ("is_builtin", Bool (isBuiltin)),
       ("is_static", Bool (isStatic)),
       ("is_override", Bool (isOverride)),
     ]
@@ -265,7 +263,7 @@ fun nodeOfTypeDeclaration(decl: ast.TypeDeclaration): PrintNode {
     | ast.TDTuple (tuple) -> ("tuple", nodeOfTupleDeclaration(tuple))
     | ast.TDRecord (record) -> ("record", nodeOfRecordDeclaration(record))
     | ast.TDVariant (variants) -> ("variants", List (variants.map(nodeOfVariantDeclaration)))
-    | ast.TDBuiltin -> ("builtin", Bool (true))
+    | ast.TDNone -> ("skip", Skip)
   };
 
   return Node {

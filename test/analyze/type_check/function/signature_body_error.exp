@@ -1,0 +1,9 @@
+Error: Top level functions must have a body
+test/analyze/type_check/function/signature_body_error.myte:4:0-10
+ 4 | fun foo1()
+   | ^^^^^^^^^^
+
+Error: Nested functions must have a body
+test/analyze/type_check/function/signature_body_error.myte:7:2-12
+ 7 |   fun foo2()
+   |   ^^^^^^^^^^

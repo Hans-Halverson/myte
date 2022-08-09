@@ -6,7 +6,8 @@ import std.int.Int
 import std.long.Long
 import std.ops.Equatable
 
-pub builtin type Double
+@(Builtin)
+pub type Double
 
 pub val NaN: Double = 0.0 / 0.0
 pub val POSITIVE_INFINITY: Double = 1.0 / 0.0
@@ -15,15 +16,19 @@ pub val NEGATIVE_INFINITY: Double = -1.0 / 0.0
 methods Double {
   implements Equatable
 
-  pub builtin override fun equals(other: Double): Bool
+  @(Builtin)
+  pub override fun equals(other: Double): Bool
 }
 
 methods Double {
-  pub builtin fun toByte(): Byte
+  @(Builtin)
+  pub fun toByte(): Byte
 
-  pub builtin fun toInt(): Int
+  @(Builtin)
+  pub fun toInt(): Int
 
-  pub builtin fun toLong(): Long
+  @(Builtin)
+  pub fun toLong(): Long
 
   pub fun isNaN(): Bool = this != this
 

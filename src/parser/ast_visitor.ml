@@ -305,7 +305,6 @@ class visitor =
         body;
         attributes = _;
         is_public = _;
-        is_builtin = _;
         is_static = _;
         is_override = _;
       } =
@@ -455,7 +454,7 @@ class visitor =
     method type_declaration_declaration decl =
       let open TypeDeclaration in
       match decl with
-      | Builtin -> ()
+      | None -> ()
       | Alias ty -> this#type_ ty
       | Record record -> this#record_variant record
       | Tuple tuple -> this#tuple_variant tuple

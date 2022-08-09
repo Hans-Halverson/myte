@@ -10,7 +10,8 @@ import std.ops.Equatable
 import std.option.{None, Option, Some}
 import std.string.{String, ToString}
 
-pub builtin type Long
+@(Builtin)
+pub type Long
 
 pub val LONG_MIN: Long = -9223372036854775808
 
@@ -19,7 +20,8 @@ pub val LONG_MAX: Long = 9223372036854775807
 methods Long {
   implements Equatable
 
-  pub builtin override fun equals(other: Long): Bool
+  @(Builtin)
+  pub override fun equals(other: Long): Bool
 }
 
 methods Long {
@@ -31,11 +33,14 @@ methods Long {
 methods Long {
   implements ToString
 
-  pub builtin fun toByte(): Byte
+  @(Builtin)
+  pub fun toByte(): Byte
 
-  pub builtin fun toInt(): Int
+  @(Builtin)
+  pub fun toInt(): Int
 
-  pub builtin fun toDouble(): Double
+  @(Builtin)
+  pub fun toDouble(): Double
 
   pub override fun toString(): String {
     var n = this;

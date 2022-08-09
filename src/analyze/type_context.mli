@@ -1,10 +1,11 @@
+open Attributes
 open Basic_collections
 open Bindings
 open Types
 
 type t
 
-val mk : bindings:Bindings.t -> t
+val mk : bindings:Bindings.t -> attribute_store:AttributeStore.t -> t
 
 module MethodUse : sig
   type t = {
@@ -81,6 +82,8 @@ val get_anonymous_function_captures : cx:t -> Loc.t -> LBVMMap.VSet.t
 val set_current_module : cx:t -> Module.t -> unit
 
 val get_current_module : cx:t -> Module.t
+
+val get_attribute_store : cx:t -> AttributeStore.t
 
 (* Binding getters *)
 

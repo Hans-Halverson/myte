@@ -33,7 +33,7 @@ test/analyze/name_resolution/static_method_errors/test.myte:34:22-25
  34 |   override static fun bar() {}
     |                       ^^^
 
-Error: Static methods must have an implementation
+Error: Static methods must have a body
 test/analyze/name_resolution/static_method_errors/test.myte:39:13-16
  39 |   static fun foo()
     |              ^^^

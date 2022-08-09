@@ -106,7 +106,8 @@ let build_implicit_imports ~is_stdlib ~bindings =
     in
     (implicit_value_imports, implicit_type_imports)
 
-class bindings_builder ~is_stdlib ~bindings ~module_tree =
+class bindings_builder ~is_stdlib ~pcx =
+  let { Program_context.bindings; module_tree; attribute_store; _ } = pcx in
   let (implicit_value_imports, implicit_type_imports) =
     build_implicit_imports ~is_stdlib ~bindings
   in
@@ -237,6 +238,16 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | None -> this#lookup_type_in_scope name rest
         | Some declaration -> Some declaration)
 
+    method add_general_attributes loc attributes =
+      Attributes.add_general_attributes
+        ~store:attribute_store
+        ~module_:current_module
+        loc
+        attributes
+
+    method add_function_attributes func_node =
+      Attributes.add_function_attributes ~store:attribute_store ~module_:current_module func_node
+
     (* Visit all toplevel declarations in a module, creating bindings for each *)
     method add_toplevel_declarations mod_ =
       let { Ast.Module.loc; name; toplevels; _ } = mod_ in
@@ -277,12 +288,17 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
       List.iter
         (fun toplevel ->
           match toplevel with
-          | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; _ } ->
-            let ids = Ast_utils.ids_of_pattern pattern in
-            List.iter (fun id -> add_value_binding id (VarDecl (VariableDeclaration.mk kind))) ids
+          | VariableDeclaration { Ast.Statement.VariableDeclaration.kind; pattern; attributes; _ }
+            ->
+            (match pattern with
+            | Identifier { name; _ } ->
+              this#add_general_attributes name.loc attributes;
+              add_value_binding name (VarDecl (VariableDeclaration.mk kind))
+            | _ -> this#add_error (Ast_utils.pattern_loc pattern) ToplevelVarWithPattern)
           | FunctionDeclaration
-              { Ast.Function.name; is_public; is_builtin; is_static; is_override; body; _ } ->
+              ({ Ast.Function.name; is_public; is_static; is_override; body; _ } as func_node) ->
             register_stdlib_decl name;
+            this#add_function_attributes func_node;
             add_value_binding
               name
               (FunDecl
@@ -290,12 +306,12 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     ~name:name.name
                     ~loc:name.loc
                     ~is_public
-                    ~is_builtin
                     ~is_static
                     ~is_override
                     ~is_signature:(body = Signature)))
-          | TypeDeclaration { Ast.TypeDeclaration.name; decl; is_public; _ } ->
+          | TypeDeclaration { Ast.TypeDeclaration.name; decl; attributes; is_public; _ } ->
             register_stdlib_decl name;
+            this#add_general_attributes name.loc attributes;
             (if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
@@ -333,7 +349,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                       register_stdlib_decl name;
                       add_value_binding name (CtorDecl type_decl))
                   variants
-              | Builtin ->
+              | None ->
                 let type_decl =
                   TypeDeclaration.mk
                     ~name:name.name
@@ -359,9 +375,10 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
               in
               this#set_record_fields loc names
             | _ -> ())
-          | TraitDeclaration ({ kind = Methods; name; is_public; _ } as trait_decl) ->
+          | TraitDeclaration ({ kind = Methods; name; attributes; is_public; _ } as trait_decl) ->
             register_stdlib_decl name;
             register_stdlib_method_decls trait_decl;
+            this#add_general_attributes name.loc attributes;
             add_type_binding
               name
               (TraitDecl
@@ -370,7 +387,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     ~loc:name.loc
                     ~module_:current_module
                     ~is_public))
-          | TraitDeclaration ({ kind = Trait; name; is_public; _ } as trait_decl) ->
+          | TraitDeclaration ({ kind = Trait; name; attributes; is_public; _ } as trait_decl) ->
             if name.name = "_" then
               this#add_error name.loc InvalidWildcardIdentifier
             else
@@ -378,6 +395,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 TraitDeclaration.mk ~name:name.name ~loc:name.loc ~module_:current_module ~is_public
               in
               register_stdlib_decl name;
+              this#add_general_attributes name.loc attributes;
               Std_lib.register_stdlib_trait name.loc decl.trait_sig;
               register_stdlib_method_decls trait_decl;
               traits <- LocMap.add name.loc trait_decl traits;
@@ -459,12 +477,13 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         (fun toplevel ->
           match toplevel with
           | VariableDeclaration { Ast.Statement.VariableDeclaration.pattern; _ } ->
-            let ids = Ast_utils.ids_of_pattern pattern in
-            List.iter add_value_decl_to_scope ids
+            (match pattern with
+            | Identifier { name; _ } -> add_value_decl_to_scope name
+            | _ -> ())
           | FunctionDeclaration { Ast.Function.name; _ } -> add_value_decl_to_scope name
           | TypeDeclaration { Ast.TypeDeclaration.name; decl; _ } ->
             (match decl with
-            | Builtin
+            | None
             | Alias _ ->
               add_type_decl_to_scope name
             | Tuple { name; _ }
@@ -497,21 +516,14 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         let methods =
           List.fold_left
             (fun methods
-                 {
-                   Function.name = { name; loc };
-                   is_public;
-                   is_builtin;
-                   is_static;
-                   is_override;
-                   body;
-                   _;
-                 } ->
+                 ({ Function.name = { name; loc }; is_public; is_static; is_override; body; _ } as
+                 func_node) ->
+              this#add_function_attributes func_node;
               let method_ =
                 FunctionDeclaration.mk
                   ~name
                   ~loc
                   ~is_public
-                  ~is_builtin
                   ~is_static
                   ~is_override
                   ~is_signature:(body = Function.Signature)
@@ -686,7 +698,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         | Identifier { name = { loc; name }; _ } ->
           let binding = this#get_value_binding loc in
           this#add_value_to_scope name (Decl binding)
-        | _ -> this#add_error (Ast_utils.pattern_loc pattern) ToplevelVarWithPattern
+        | _ -> ()
       else
         this#visit_pattern
           ~is_match:false
@@ -732,7 +744,6 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         name = { Ast.Identifier.loc; name = func_name };
         params;
         type_params;
-        is_builtin;
         is_static;
         is_override;
         body;
@@ -752,7 +763,6 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                     ~name:func_name
                     ~loc
                     ~is_public:false
-                    ~is_builtin
                     ~is_static
                     ~is_override
                     ~is_signature:(body = Signature)))
@@ -1331,9 +1341,7 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
         (* Gather names of all methods on the base trait *)
         let names_acc =
           SMap.fold
-            (fun name
-                 { FunctionDeclaration.loc; is_static; is_override; is_signature; is_builtin; _ }
-                 names_acc ->
+            (fun name { FunctionDeclaration.loc; is_static; is_override; is_signature; _ } names_acc ->
               let add_base_trait_method_name () =
                 MethodMMap.add
                   name
@@ -1345,8 +1353,9 @@ class bindings_builder ~is_stdlib ~bindings ~module_tree =
                 if is_override then (
                   this#add_error loc StaticMethodOverride;
                   names_acc
-                ) else if is_signature && not is_builtin then (
-                  this#add_error loc StaticMethodSignature;
+                ) else if is_signature && not (Attributes.is_builtin ~store:attribute_store loc)
+                  then (
+                  this#add_error loc (InvalidFunctionSignature StaticMethod);
                   names_acc
                 ) else
                   add_base_trait_method_name ()
@@ -1672,9 +1681,9 @@ let assert_stdlib_builtins_found mods =
 
 (* Analyze all bindings in modules, building bindings and marking scoped identifiers in AST.
    Return a tuple of the newly resolved ASTs, the complete bindings, and any resolution errors. *)
-let analyze ~is_stdlib bindings module_tree modules =
+let analyze ~pcx ~is_stdlib modules =
   (* First create bindings for all toplevel declarations in all modules *)
-  let bindings_builder = new bindings_builder ~bindings ~module_tree ~is_stdlib in
+  let bindings_builder = new bindings_builder ~pcx ~is_stdlib in
   List.iter (fun (_, mod_) -> bindings_builder#add_toplevel_declarations mod_) modules;
   (* Then fill in toplevel scopes for all modules *)
   List.iter (fun (_, mod_) -> bindings_builder#setup_toplevel_scope mod_) modules;
@@ -1695,7 +1704,7 @@ let analyze ~is_stdlib bindings module_tree modules =
   let (ordered_type_aliases, leaked_type_errors) =
     match bindings_builder#order_type_aliases modules with
     | Some ordered_type_aliases ->
-      let leaked_type_errors = check_leaked_private_types ~bindings modules in
+      let leaked_type_errors = check_leaked_private_types ~bindings:pcx.bindings modules in
 
       (ordered_type_aliases, leaked_type_errors)
     | None -> ([], [])

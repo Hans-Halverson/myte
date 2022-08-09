@@ -1,0 +1,29 @@
+Error: Builtins can only appear in standard library
+test/analyze/attributes/builtin.myte:3:2-9
+ 3 | @(Builtin)
+   |   ^^^^^^^
+
+Error: Builtins can only appear in standard library
+test/analyze/attributes/builtin.myte:6:2-9
+ 6 | @(Builtin)
+   |   ^^^^^^^
+
+Error: Builtins can only appear in standard library
+test/analyze/attributes/builtin.myte:9:2-9
+ 9 | @(Builtin)
+   |   ^^^^^^^
+
+Error: Builtins can only appear in standard library
+test/analyze/attributes/builtin.myte:12:2-9
+ 12 | @(Builtin)
+    |   ^^^^^^^
+
+Error: Builtins can only appear in standard library
+test/analyze/attributes/builtin.myte:15:2-9
+ 15 | @(Builtin)
+    |   ^^^^^^^
+
+Error: Builtins can only appear in standard library
+test/analyze/attributes/builtin.myte:17:4-11
+ 17 |   @(Builtin)
+    |     ^^^^^^^

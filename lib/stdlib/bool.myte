@@ -5,12 +5,14 @@ import std.int.Int
 import std.ops.Equatable
 import std.string.{String, ToString}
 
-pub builtin type Bool
+@(Builtin)
+pub type Bool
 
 methods Bool {
   implements Equatable
 
-  pub builtin override fun equals(other: Bool): Bool
+  @(Builtin)
+  pub override fun equals(other: Bool): Bool
 }
 
 methods Bool {

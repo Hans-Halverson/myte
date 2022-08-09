@@ -633,11 +633,10 @@ and node_of_trait_decl decl =
     ]
 
 and node_of_type_decl decl =
-  let open TypeDeclaration in
-  let { loc; name; type_params; decl; attributes; is_public } = decl in
+  let { TypeDeclaration.loc; name; type_params; decl; attributes; is_public } = decl in
   let decl =
     match decl with
-    | Builtin -> ("builtin", Bool true)
+    | None -> ("skip", Skip)
     | Alias alias -> ("alias", node_of_type alias)
     | Record record -> ("record", node_of_record_variant record)
     | Tuple tuple -> ("tuple", node_of_tuple_variant tuple)
@@ -647,7 +646,7 @@ and node_of_type_decl decl =
           (List.map
              (fun variant ->
                match variant with
-               | RecordVariant record -> node_of_record_variant record
+               | TypeDeclaration.RecordVariant record -> node_of_record_variant record
                | TupleVariant tuple -> node_of_tuple_variant tuple
                | EnumVariant id -> node_of_identifier id)
              variants) )
@@ -706,7 +705,6 @@ and node_of_function func =
     return;
     attributes;
     is_public;
-    is_builtin;
     is_static;
     is_override;
   } =
@@ -729,7 +727,6 @@ and node_of_function func =
       ("type_params", List (List.map node_of_type_parameter type_params));
       ("attributes", node_of_attributes attributes);
       ("is_public", Bool is_public);
-      ("is_builtin", Bool is_builtin);
       ("is_static", Bool is_static);
       ("is_override", Bool is_override);
     ]

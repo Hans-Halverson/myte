@@ -10,7 +10,8 @@ import std.string.String
 import std.vec.Vec
 import std.unit.Unit
 
-pub builtin fun exit(code: Int): Never
+@(Builtin)
+pub fun exit(code: Int): Never
 
 pub fun abort(): Never {
   exit(1);

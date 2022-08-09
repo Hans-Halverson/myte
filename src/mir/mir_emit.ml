@@ -45,7 +45,7 @@ and register_type_declarations ~ecx =
         let mir_adt_layout = Mir_adt_layout_builder.mk_mir_variants_layout ~ecx decl variants in
         Ecx.add_mir_adt_layout ~ecx mir_adt_layout
       | Alias _
-      | Builtin ->
+      | None ->
         ())
     | _ -> ())
   |> iter_toplevels ~ecx
@@ -152,7 +152,7 @@ and emit_all_enqueue_pending ~ecx =
   let enqueue_nongeneric_function func_node =
     let binding = Bindings.get_value_binding ecx.pcx.bindings func_node.Ast.Function.name.loc in
     let func_decl = Bindings.get_func_decl binding in
-    if (not func_decl.is_builtin) && (not func_decl.is_signature) && func_decl.type_params = [] then
+    if (not func_decl.is_signature) && func_decl.type_params = [] then
       let func_name = mk_value_binding_name binding in
       ignore (Ecx.get_nongeneric_function_value ~ecx func_name)
   in
@@ -204,12 +204,12 @@ and emit_global_variable_declaration ~ecx name decl =
   global_set_init ~global ~init
 
 and emit_nongeneric_function ~ecx func func_decl =
-  if not func_decl.is_builtin then emit_function_body ~ecx func func_decl
+  if func_decl.body != Signature then emit_function_body ~ecx func func_decl
 
 and emit_generic_function_instantiation ~ecx (name, (func, type_param_bindings)) =
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
-      if not func_decl_node.is_builtin then emit_function_body ~ecx func func_decl_node)
+      if func_decl_node.body != Signature then emit_function_body ~ecx func func_decl_node)
 
 and emit_anonymous_function_instantiation
     ~ecx func (pending_anon_func : Ecx.PendingAnonymousFunction.t) =
@@ -471,10 +471,10 @@ and emit_identifier_expression ~(ecx : Ecx.t) (loc : Loc.t) (id : Ast.Identifier
     let ty = type_of_loc ~ecx loc in
     Some (emit_construct_enum_variant ~ecx ~name:id.name ~ty)
   (* This is a function that is not statically called, so create its closure object *)
-  | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
+  | FunDecl { Bindings.FunctionDeclaration.type_params; _ } ->
     let func_name = mk_value_binding_name binding in
     let func_val =
-      if is_builtin then
+      if Attributes.is_builtin ~store:ecx.pcx.attribute_store binding.loc then
         failwith "TODO: Cannot use myte builtin as closure object. Generate MIR for myte builtins."
       else
         let func_val =
@@ -768,11 +768,11 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
         | Some (loc, { Identifier.loc = id_loc; _ }) ->
           let binding = Type_context.get_value_binding ~cx:ecx.pcx.type_ctx id_loc in
           (match binding.declaration with
-          | FunDecl { Bindings.FunctionDeclaration.type_params; is_builtin; _ } ->
+          | FunDecl { Bindings.FunctionDeclaration.type_params; _ } ->
             let func_name = mk_value_binding_name binding in
             let ty = type_of_loc ~ecx loc in
             let func_val =
-              if is_builtin then
+              if Attributes.is_builtin ~store:ecx.pcx.attribute_store binding.loc then
                 mk_myte_builtin_lit func_name
               else if type_params = [] then
                 Ecx.get_nongeneric_function_value ~ecx func_name
