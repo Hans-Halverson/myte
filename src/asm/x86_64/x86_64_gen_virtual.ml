@@ -1,6 +1,7 @@
 open Basic_collections
 open Mir
 open Mir_builders
+open Mir_graph_ordering
 open Mir_type
 open X86_64_builders
 open X86_64_calling_conventions
@@ -132,7 +133,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block label func =
-  let ordered_blocks = Mir_block_ordering.order_blocks start_block in
+  let ordered_blocks = OrderedCFG.order_nodes start_block in
   List.iteri
     (fun i mir_block ->
       let label =
