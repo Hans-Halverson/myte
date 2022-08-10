@@ -75,7 +75,7 @@ module Make (Node : NODE_TYPE) = struct
     Set.iter (fun node -> if not (is_visited node) then strong_connect node) nodes;
     (sccs, node_to_scc_id)
 
-  (* Order all nodes in the graph that are reachable from the provided starting node. We attempt
+  (* Order all nodes in the graph that are reachable from the provided starting nodes. We attempt
      to generate an ordering that resembles the original graph and keeps adjacent nodes near each
      other.
 
@@ -94,7 +94,7 @@ module Make (Node : NODE_TYPE) = struct
      nodes currently on the current SCC frontier), then we visit the next SCC in depth-first
      topological order.
   *)
-  let order_nodes start_node =
+  let order_nodes start_nodes =
     (* Depth-first traversal to gather all nodes *)
     let all_nodes = ref Set.empty in
     let rec visit_node node =
@@ -103,7 +103,7 @@ module Make (Node : NODE_TYPE) = struct
         Node.iter_next node visit_node
       end
     in
-    visit_node start_node;
+    List.iter visit_node start_nodes;
 
     (* Run Tarjan's algorithm to find strongly connected components of control flow graph *)
     let (sccs, node_to_scc_id) = tarjans_scc !all_nodes in
@@ -203,11 +203,13 @@ module Make (Node : NODE_TYPE) = struct
         Queue.push next_node (Stack.top next_sccs_frontier)
     in
 
-    (* Start with a stack of a single queue containing the start node id *)
+    (* Start with a stack of a single queue containing the start node ids *)
     Stack.push (Queue.create ()) next_sccs_frontier;
-    Queue.push start_node (Stack.top next_sccs_frontier);
+    List.iter (fun start_node -> Queue.push start_node (Stack.top next_sccs_frontier)) start_nodes;
 
-    iter ~prev_scc:(Map.find start_node !node_to_scc_id) ();
+    List.iter
+      (fun start_node -> iter ~prev_scc:(Map.find start_node !node_to_scc_id) ())
+      start_nodes;
     List.rev !nodes
 end
 
@@ -224,11 +226,11 @@ module OrderedCFG = Make (struct
     | Some { instr = Branch { test = _; jump; continue }; _ } ->
       f continue;
       f jump
-    | _ -> ()  
+    | _ -> ()
 end)
 
 (* Return CFG of function starting at the start block *)
-let get_ordered_cfg start_block = OrderedCFG.order_nodes start_block
+let get_ordered_cfg start_block = OrderedCFG.order_nodes [start_block]
 
 module OrderedCallGraph = Make (struct
   type t = Function.t
@@ -250,4 +252,4 @@ module OrderedCallGraph = Make (struct
 end)
 
 (* Return reverse ordering of call graph ending at main function *)
-let get_ordered_call_graph start_func = OrderedCallGraph.order_nodes start_func
+let get_ordered_call_graph func_roots = OrderedCallGraph.order_nodes func_roots

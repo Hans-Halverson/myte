@@ -1,7 +1,6 @@
 open Basic_collections
 open Mir
 open Mir_builders
-open Mir_graph_ordering
 open Mir_type
 open X86_64_builders
 open X86_64_calling_conventions
@@ -65,12 +64,17 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     Gcx.add_data ~gcx { label; value = AsciiData data; size; is_pointer = false }
   | Some { value = { value = Lit (ArrayVtable (_, func_labels)); _ }; _ } ->
     let label_values =
-      List.map (fun { Mir.Function.name; _ } -> label_of_mir_label name) func_labels
+      List.map
+        (fun func_use ->
+          let func = cast_to_function_literal func_use.Use.value in
+          label_of_mir_label func.name)
+        func_labels
     in
     let size = List.length label_values * pointer_size in
     Gcx.add_data ~gcx { label; value = LabelData label_values; size; is_pointer = false }
   (* Aggregate closure globals are special cased, with 0 set as environment *)
-  | Some { value = { value = Lit (AggregateClosure (_, func)); _ }; _ } ->
+  | Some { value = { value = Lit (AggregateClosure (_, func_use)); _ }; _ } ->
+    let func = cast_to_function_literal func_use.value in
     let func_data = LabelData [label_of_mir_label func.name] in
     let env_data = ImmediateData (Imm64 0L) in
     Gcx.add_data
@@ -133,7 +137,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block label func =
-  let ordered_blocks = OrderedCFG.order_nodes start_block in
+  let ordered_blocks = Mir_graph_ordering.get_ordered_cfg start_block in
   List.iteri
     (fun i mir_block ->
       let label =

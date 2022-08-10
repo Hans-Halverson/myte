@@ -73,10 +73,10 @@ and Literal : sig
        as a series of instructions *)
     | MyteBuiltin of string
     | ArrayString of string
-    | ArrayVtable of int * Function.t list
+    | ArrayVtable of int * Use.t list
     (* A closure aggregate for a known function, where the environment is the null pointer. Also
        contains closure type. *)
-    | AggregateClosure of Type.t * Function.t
+    | AggregateClosure of Type.t * Use.t
 end =
   Literal
 
@@ -294,6 +294,8 @@ and Function : sig
   }
 
   val compare : t -> t -> int
+
+  val equal : t -> t -> bool
 end = struct
   type t = {
     name: label;
@@ -306,6 +308,8 @@ end = struct
   }
 
   let compare f1 f2 = String.compare f1.name f2.name
+
+  let equal f1 f2 = compare f1 f2 == 0
 end
 
 and Builtin : sig

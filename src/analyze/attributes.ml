@@ -1,7 +1,9 @@
 open Basic_collections
 
 module Attribute = struct
-  type t = Builtin
+  type t =
+    | Builtin
+    | Inline
 end
 
 module AttributeStore = struct
@@ -40,6 +42,7 @@ let add_function_attributes
       match item with
       | Ast.Attribute.Identifier { name = "Builtin"; loc } ->
         visit_builtin_attribute ~store ~add_attribute ~module_ ~loc
+      | Identifier { name = "Inline"; _ } -> add_attribute ~store Attribute.Inline
       | _ -> ())
 
 let add_general_attributes
@@ -63,3 +66,5 @@ let has_attribute ~(store : AttributeStore.t) (loc : Loc.t) (target : Attribute.
   List.exists (fun attribute -> attribute == target) (get_attributes ~store loc)
 
 let is_builtin ~(store : AttributeStore.t) (loc : Loc.t) : bool = has_attribute ~store loc Builtin
+
+let has_inline ~(store : AttributeStore.t) (loc : Loc.t) : bool = has_attribute ~store loc Inline

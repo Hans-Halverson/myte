@@ -1,0 +1,158 @@
+module test
+
+// Inlining basic functions
+fun test1() {
+  toBeInlined1();
+  toBeInlined1();
+  toBeInlined1();
+}
+
+@(Inline)
+fun toBeInlined1() {
+  use(1);
+  use(2);
+}
+
+// Substituting function arguments
+fun test2() {
+  toBeInlined2(1, true);
+  toBeInlined2(8, false);
+}
+
+@(Inline)
+fun toBeInlined2(x: Int, y: Bool) {
+  use (if (y) { x + 2 } else { 3 });
+}
+
+// Return values
+fun test3() {
+  use(toBeInlined3(2));
+  use(toBeInlined3(1));
+}
+
+@(Inline)
+fun toBeInlined3(x: Int): Int {
+  if (x == 2) {
+    return 6;
+  } else {
+    return x * 7;
+  }
+}
+
+// Generics
+fun test4() {
+  use2(toBeInlined4(2));
+  use2(toBeInlined4(true));
+}
+
+@(Inline)
+fun toBeInlined4<T>(x: T): T {
+  use(x);
+  return x;
+}
+
+// Nested inlining
+fun test5() {
+  use(toBeInlined51(3, 5));
+}
+
+@(Inline)
+fun toBeInlined51(x: Int, y: Int): Int {
+  return toBeInlined52(x) + toBeInlined52(y);
+}
+
+@(Inline)
+fun toBeInlined52(x: Int): Int {
+  return toBeInlined53(x) * toBeInlined53(x);
+}
+
+@(Inline)
+fun toBeInlined53(x: Int): Int {
+  return x / 7;
+}
+
+// Circular inlining
+fun test6() {
+  use3(toBeInlined60(7));
+}
+
+@(Inline)
+fun toBeInlined60(x: Int): Int {
+  return toBeInlined61(8, x);
+}
+
+@(Inline)
+fun toBeInlined61(x: Int, y: Int): Int {
+  return toBeInlined62(x) + toBeInlined62(y);
+}
+
+@(Inline)
+fun toBeInlined62(x: Int): Int {
+  use(x);
+  use2(9);
+  toBeInlined60(x);
+
+  return 10;
+}
+
+// Do not inline when function is argument
+fun test7() {
+  use(toBeInlined7(89));
+  // TOOD: This should preserve the function
+  use(toBeInlined7);
+  use(2);
+}
+
+@(Inline)
+fun toBeInlined7(x: Int): Int {
+  use2(x);
+  return x + 2;
+}
+
+// Inline method
+fun test8() {
+  val t = Test8 (10, false);
+  t.method(5, 6);
+  use(t.method(7, 8));
+}
+
+type Test8 (Int, Bool)
+methods Test8 {
+  @(Inline)
+  fun method(x: Int, y: Int): Int {
+    if (this[1]) {
+      return x + 1;
+    } else {
+      return y * 2;
+    }
+  }
+}
+
+// Inline method but do not remove since it is in vtable
+fun test9() {
+  val t = Test9 (2);
+  t.method(3);
+
+  val t2: trait Trait9 = t;
+}
+
+trait Trait9 {
+  fun method(x: Int)
+}
+
+type Test9 (Int)
+methods Test9 {
+  implements Trait9
+  @(Inline)
+  override fun method(x: Int) {
+    use(x / this[0]);
+  }
+}
+
+fun use<T>(x: T) {}
+
+fun use2<T>(x: T) {}
+
+fun use3<T>(x: T) {}
+
+fun main() {}

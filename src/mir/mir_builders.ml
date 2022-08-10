@@ -38,12 +38,18 @@ let mk_myte_builtin_lit (func : string) : Value.t = mk_value (Lit (MyteBuiltin f
 
 let mk_array_string_lit (string : string) : Value.t = mk_value (Lit (ArrayString string))
 
-let mk_array_vtable_lit (funcs : Function.t list) : Value.t =
+let rec mk_array_vtable_lit (funcs : Function.t list) : Value.t =
+  let value = mk_uninit_value () in
   let size = List.length funcs in
-  mk_value (Lit (ArrayVtable (size, funcs)))
+  let func_uses = List.map (fun func -> user_add_use ~user:value ~use:func.Function.value) funcs in
+  value.value <- Lit (ArrayVtable (size, func_uses));
+  value
 
-let mk_aggregate_closure (ty : Type.t) (func : Function.t) : Value.t =
-  mk_value (Lit (AggregateClosure (ty, func)))
+and mk_aggregate_closure (ty : Type.t) (func : Function.t) : Value.t =
+  let value = mk_uninit_value () in
+  let func_use = user_add_use ~user:value ~use:func.value in
+  value.value <- Lit (AggregateClosure (ty, func_use));
+  value
 
 (*
  * ============================
@@ -51,9 +57,21 @@ let mk_aggregate_closure (ty : Type.t) (func : Function.t) : Value.t =
  * ============================
  *)
 
-(* Creates an instruction that is not yet part of a block *)
-let rec mk_blockless_instr ~(value : Value.t) ~(type_ : Type.t) ~(instr : Instruction.instr) :
-    Value.t =
+(* Set a value to contain an instruction, without attaching to a block *)
+and mk_blockless_instr f =
+  let value = mk_uninit_value () in
+  f ~value;
+  value
+
+(* Set a value to contain an instruction, and append to the end of a block *)
+and mk_block_instr ~block f =
+  let value = mk_uninit_value () in
+  f ~value;
+  append_instruction block value;
+  value
+
+(* Set a value to contain an instruction *)
+and set_instr ~(value : Value.t) ~(type_ : Type.t) ~(instr : Instruction.instr) : unit =
   let instruction =
     {
       Instruction.id = mk_value_id ();
@@ -64,60 +82,67 @@ let rec mk_blockless_instr ~(value : Value.t) ~(type_ : Type.t) ~(instr : Instru
       block = null_block;
     }
   in
-  value.value <- Instr instruction;
-  value
+  value.value <- Instr instruction
 
-(* Create an instruction and appends it the end of a block *)
+(* Set a value to contain an instruction and appends it the end of a block *)
 and mk_instr ~(value : Value.t) ~(block : Block.t) ~(type_ : Type.t) ~(instr : Instruction.instr) :
     Value.t =
-  let instr_value = mk_blockless_instr ~value ~type_ ~instr in
-  append_instruction block instr_value;
-  instr_value
+  set_instr ~value ~type_ ~instr;
+  append_instruction block value;
+  value
+
+and set_phi_instr ~(value : Value.t) ~(type_ : Type.t) ~(args : Value.t BlockMap.t) : unit =
+  let args = BlockMap.map (fun arg -> user_add_use ~user:value ~use:arg) args in
+  set_instr ~value ~type_ ~instr:(Phi { args })
 
 and mk_blockless_phi ~(type_ : Type.t) ~(args : Value.t BlockMap.t) : Value.t =
-  let value = mk_uninit_value () in
-  let args = BlockMap.map (fun arg -> user_add_use ~user:value ~use:arg) args in
-  mk_blockless_instr ~value ~type_ ~instr:(Phi { args })
+  mk_blockless_instr (set_phi_instr ~type_ ~args)
 
-and mk_blockless_mov ~(arg : Value.t) : Value.t =
-  let value = mk_uninit_value () in
+and set_mov_instr ~(value : Value.t) ~(arg : Value.t) : unit =
   let arg_use = user_add_use ~user:value ~use:arg in
-  mk_blockless_instr ~value ~type_:(type_of_value arg) ~instr:(Mov arg_use)
+  set_instr ~value ~type_:(type_of_value arg) ~instr:(Mov arg_use)
+
+and mk_blockless_mov ~(arg : Value.t) : Value.t = mk_blockless_instr (set_mov_instr ~arg)
+
+and set_stack_alloc_instr ~(value : Value.t) ~(type_ : Type.t) : unit =
+  set_instr ~value ~type_:(Pointer type_) ~instr:(StackAlloc type_) |> ignore
 
 and mk_blockless_stack_alloc ~(type_ : Type.t) : Value.t =
-  let value = mk_uninit_value () in
-  mk_blockless_instr ~value ~type_:(Pointer type_) ~instr:(StackAlloc type_)
+  mk_blockless_instr (set_stack_alloc_instr ~type_)
 
 and mk_stack_alloc ~(block : Block.t) ~(type_ : Type.t) : Value.t =
-  let value = mk_uninit_value () in
-  mk_instr ~value ~block ~type_:(Pointer type_) ~instr:(StackAlloc type_)
+  mk_block_instr ~block (set_stack_alloc_instr ~type_)
 
-and mk_load ~(block : Block.t) ~(ptr : Value.t) : Value.t =
+and set_load_instr ~(value : Value.t) ~(ptr : Value.t) : unit =
   match type_of_value ptr with
   | Pointer type_ ->
-    let value = mk_uninit_value () in
     let ptr_use = user_add_use ~user:value ~use:ptr in
-    mk_instr ~value ~block ~type_ ~instr:(Load ptr_use)
+    set_instr ~value ~type_ ~instr:(Load ptr_use)
   | _ -> failwith "Load argument must be a pointer type"
 
-and mk_store_ ~(block : Block.t) ~(ptr : Value.t) ~(value : Value.t) : unit =
-  if not (types_equal (pointer_value_element_type ptr) (type_of_value value)) then
-    failwith "Stored pointer and value types do not match";
-  let instr_value = mk_uninit_value () in
-  let ptr_use = user_add_use ~user:instr_value ~use:ptr in
-  let value_use = user_add_use ~user:instr_value ~use:value in
-  ignore
-    (mk_instr ~value:instr_value ~block ~type_:no_return_type ~instr:(Store (ptr_use, value_use)))
+and mk_load ~(block : Block.t) ~(ptr : Value.t) : Value.t =
+  mk_block_instr ~block (set_load_instr ~ptr)
 
-and mk_get_pointer_instr
-    ~(block : Block.t)
+and set_store_instr ~(instr_value : Value.t) ~(ptr : Value.t) ~(stored_value : Value.t) : unit =
+  if not (types_equal (pointer_value_element_type ptr) (type_of_value stored_value)) then
+    failwith "Stored pointer and value types do not match";
+  let ptr_use = user_add_use ~user:instr_value ~use:ptr in
+  let value_use = user_add_use ~user:instr_value ~use:stored_value in
+  ignore (set_instr ~value:instr_value ~type_:no_return_type ~instr:(Store (ptr_use, value_use)))
+
+and mk_store_ ~(block : Block.t) ~(ptr : Value.t) ~(value : Value.t) : unit =
+  mk_block_instr ~block (fun ~value:instr_value ->
+      set_store_instr ~instr_value ~ptr ~stored_value:value)
+  |> ignore
+
+and set_get_pointer_instr
+    ~(value : Value.t)
     ?(pointer_offset : Value.t option = None)
     ~(type_ : Type.t)
     ~(ptr : Value.t)
     ~(offsets : Instruction.GetPointer.value_offset list)
-    () : Value.t =
+    () : unit =
   if not (is_pointer_value ptr) then failwith "GetPointer argument must be a pointer type";
-  let value = mk_uninit_value () in
   let ptr_use = user_add_use ~user:value ~use:ptr in
   let pointer_offset_use =
     Option.map (fun offset -> user_add_use ~user:value ~use:offset) pointer_offset
@@ -131,17 +156,24 @@ and mk_get_pointer_instr
         | FieldIndex index -> FieldIndex index)
       offsets
   in
-  mk_instr
+  set_instr
     ~value
-    ~block
     ~type_:(Pointer type_)
     ~instr:
       (GetPointer { pointer = ptr_use; pointer_offset = pointer_offset_use; offsets = use_offsets })
 
-and mk_call ~(block : Block.t) ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) :
-    Value.t =
+and mk_get_pointer_instr
+    ~(block : Block.t)
+    ?(pointer_offset : Value.t option = None)
+    ~(type_ : Type.t)
+    ~(ptr : Value.t)
+    ~(offsets : Instruction.GetPointer.value_offset list)
+    () : Value.t =
+  mk_block_instr ~block (set_get_pointer_instr ~pointer_offset ~type_ ~ptr ~offsets ())
+
+and set_call_instr
+    ~(value : Value.t) ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) : unit =
   if not (is_function_value func) then failwith "Call function argument must have function type";
-  let value = mk_uninit_value () in
   let func_use = user_add_use ~user:value ~use:func in
   let arg_uses = List.map (fun arg -> user_add_use ~user:value ~use:arg) args in
   let (type_, has_return) =
@@ -149,51 +181,57 @@ and mk_call ~(block : Block.t) ~(func : Value.t) ~(args : Value.t list) ~(return
     | Some type_ -> (type_, true)
     | None -> (no_return_type, false)
   in
-  mk_instr ~value ~block ~type_ ~instr:(Call { func = Value func_use; args = arg_uses; has_return })
+  set_instr ~value ~type_ ~instr:(Call { func = Value func_use; args = arg_uses; has_return })
+
+and mk_call ~(block : Block.t) ~(func : Value.t) ~(args : Value.t list) ~(return : Type.t option) :
+    Value.t =
+  mk_block_instr ~block (set_call_instr ~func ~args ~return)
 
 and mk_call_ ~block ~func ~args ~return : unit = ignore (mk_call ~block ~func ~args ~return)
 
+and set_call_builtin_instr
+    ~(value : Value.t) ~(builtin : Builtin.t) ~(args : Value.t list) ~(return : Type.t option) :
+    unit =
+  let arg_uses = List.map (fun arg -> user_add_use ~user:value ~use:arg) args in
+  let (type_, has_return) =
+    match return with
+    | None -> (no_return_type, false)
+    | Some type_ -> (type_, true)
+  in
+  set_instr ~value ~type_ ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return })
+
 and mk_blockless_call_builtin
     (builtin : Builtin.t) (args : Value.t list) (mk_return_ty_args : Type.t list) : Value.t =
-  let value = mk_uninit_value () in
-  let arg_uses = List.map (fun arg -> user_add_use ~user:value ~use:arg) args in
-  let return_type = builtin.mk_return_ty mk_return_ty_args |> Option.get in
-  mk_blockless_instr
-    ~value
-    ~type_:return_type
-    ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return = true })
+  let return = builtin.mk_return_ty mk_return_ty_args in
+  mk_blockless_instr (set_call_builtin_instr ~builtin ~args ~return)
 
 and mk_call_builtin
     ~(block : Block.t) (builtin : Builtin.t) (args : Value.t list) (mk_return_ty_args : Type.t list)
     : Value.t =
-  let instr_value = mk_blockless_call_builtin builtin args mk_return_ty_args in
-  append_instruction block instr_value;
-  instr_value
+  let return = builtin.mk_return_ty mk_return_ty_args in
+  mk_block_instr ~block (set_call_builtin_instr ~builtin ~args ~return)
 
 and mk_call_builtin_no_return_ ~(block : Block.t) (builtin : Builtin.t) (args : Value.t list) =
-  let value = mk_uninit_value () in
-  let arg_uses = List.map (fun arg -> user_add_use ~user:value ~use:arg) args in
-  ignore
-    (mk_instr
-       ~value
-       ~block
-       ~type_:no_return_type
-       ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return = false }))
+  mk_block_instr ~block (set_call_builtin_instr ~builtin ~args ~return:None) |> ignore
 
-and mk_ret_ ~(block : Block.t) ~(arg : Value.t option) =
-  let value = mk_uninit_value () in
+and set_ret_instr ~(value : Value.t) ~(arg : Value.t option) : unit =
   let arg_use = Option.map (fun arg -> user_add_use ~user:value ~use:arg) arg in
-  ignore (mk_instr ~value ~block ~type_:no_return_type ~instr:(Ret arg_use))
+  set_instr ~value ~type_:no_return_type ~instr:(Ret arg_use)
+
+and mk_ret_ ~(block : Block.t) ~(arg : Value.t option) : unit =
+  mk_block_instr ~block (set_ret_instr ~arg) |> ignore
+
+and set_unary_instr ~(value : Value.t) ~(op : Instruction.unary_operation) ~(arg : Value.t) : unit =
+  if not (is_numeric_value arg) then failwith "Unary argument must be numeric value";
+  let arg_use = user_add_use ~user:value ~use:arg in
+  set_instr ~value ~type_:(type_of_value arg) ~instr:(Unary (op, arg_use))
 
 and mk_unary ~(block : Block.t) ~(op : Instruction.unary_operation) ~(arg : Value.t) : Value.t =
-  if not (is_numeric_value arg) then failwith "Unary argument must be numeric value";
-  let value = mk_uninit_value () in
-  let arg_use = user_add_use ~user:value ~use:arg in
-  mk_instr ~value ~block ~type_:(type_of_value arg) ~instr:(Unary (op, arg_use))
+  mk_block_instr ~block (set_unary_instr ~op ~arg)
 
-and mk_binary
-    ~(block : Block.t) ~(op : Instruction.binary_operation) ~(left : Value.t) ~(right : Value.t) :
-    Value.t =
+and set_binary_instr
+    ~(value : Value.t) ~(op : Instruction.binary_operation) ~(left : Value.t) ~(right : Value.t) :
+    unit =
   let is_shift_op = is_shift_op op in
   if is_shift_op && not (is_integer_value left && is_integer_value right) then
     failwith "Shift arguments must be integers"
@@ -202,35 +240,42 @@ and mk_binary
     && not (is_numeric_value left && is_numeric_value right && values_have_same_type left right)
   then
     failwith "Binary arguments must be numeric and have the same type";
-  let value = mk_uninit_value () in
   let left_use = user_add_use ~user:value ~use:left in
   let right_use = user_add_use ~user:value ~use:right in
-  mk_instr ~value ~block ~type_:(type_of_value left) ~instr:(Binary (op, left_use, right_use))
+  set_instr ~value ~type_:(type_of_value left) ~instr:(Binary (op, left_use, right_use))
 
-and mk_blockless_cmp ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) : Value.t
-    =
+and mk_binary
+    ~(block : Block.t) ~(op : Instruction.binary_operation) ~(left : Value.t) ~(right : Value.t) :
+    Value.t =
+  mk_block_instr ~block (set_binary_instr ~op ~left ~right)
+
+and set_cmp_instr
+    ~(value : Value.t) ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) : unit =
   if not (is_comparable_value left && is_comparable_value right && values_have_same_type left right)
   then
     failwith "Cmp arguments must be numeric or pointers and have the same type";
-  let value = mk_uninit_value () in
   let left_use = user_add_use ~user:value ~use:left in
   let right_use = user_add_use ~user:value ~use:right in
-  mk_blockless_instr ~value ~type_:Bool ~instr:(Cmp (cmp, left_use, right_use))
+  set_instr ~value ~type_:Bool ~instr:(Cmp (cmp, left_use, right_use))
+
+and mk_blockless_cmp ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) : Value.t
+    =
+  mk_blockless_instr (set_cmp_instr ~cmp ~left ~right)
 
 and mk_cmp ~(block : Block.t) ~(cmp : Instruction.comparison) ~(left : Value.t) ~(right : Value.t) :
     Value.t =
-  let instr_value = mk_blockless_cmp ~cmp ~left ~right in
-  append_instruction block instr_value;
-  instr_value
+  mk_block_instr ~block (set_cmp_instr ~cmp ~left ~right)
 
-and mk_cast ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+and set_cast_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit =
   if not (is_pointer_value arg && is_pointer_type type_) then
     failwith "Cast arguments must be pointers";
-  let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  mk_instr ~value ~block ~type_ ~instr:(Cast arg_use)
+  set_instr ~value ~type_ ~instr:(Cast arg_use)
 
-and mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+and mk_cast ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_block_instr ~block (set_cast_instr ~arg ~type_)
+
+and set_trunc_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit =
   let arg_type = type_of_value arg in
   if
     not
@@ -240,11 +285,13 @@ and mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   then
     failwith
       "Trunc arguments must be inters with type argument having smaller size than value argument";
-  let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  mk_instr ~value ~block ~type_ ~instr:(Trunc arg_use)
+  set_instr ~value ~type_ ~instr:(Trunc arg_use)
 
-and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+and mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_block_instr ~block (set_trunc_instr ~arg ~type_)
+
+and set_sext_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit =
   let arg_type = type_of_value arg in
   if
     not
@@ -254,11 +301,13 @@ and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   then
     failwith
       "SExt arguments must be integers with type argument having larger size than value argument";
-  let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  mk_instr ~value ~block ~type_ ~instr:(SExt arg_use)
+  set_instr ~value ~type_ ~instr:(SExt arg_use)
 
-and mk_zext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_block_instr ~block (set_sext_instr ~arg ~type_)
+
+and set_zext_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit =
   let arg_type = type_of_value arg in
   if
     not
@@ -268,43 +317,51 @@ and mk_zext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   then
     failwith
       "ZExt arguments must be integers with type argument having larger size than value argument";
-  let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  mk_instr ~value ~block ~type_ ~instr:(ZExt arg_use)
+  set_instr ~value ~type_ ~instr:(ZExt arg_use)
 
-and mk_int_to_float ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+and mk_zext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_block_instr ~block (set_zext_instr ~arg ~type_)
+
+and set_int_to_float_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit =
   let arg_type = type_of_value arg in
   if not (is_integer_type arg_type && is_float_type type_) then
     failwith "IntToFloat must have integer argument converted to float type";
-  let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  mk_instr ~value ~block ~type_ ~instr:(IntToFloat arg_use)
+  set_instr ~value ~type_ ~instr:(IntToFloat arg_use)
 
-and mk_float_to_int ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+and mk_int_to_float ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_block_instr ~block (set_int_to_float_instr ~arg ~type_)
+
+and set_float_to_int_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit =
   let arg_type = type_of_value arg in
   if not (is_float_type arg_type && is_integer_type type_) then
     failwith "IntToFloat must have float argument converted to integer type";
-  let value = mk_uninit_value () in
   let arg_use = user_add_use ~user:value ~use:arg in
-  mk_instr ~value ~block ~type_ ~instr:(FloatToInt arg_use)
+  set_instr ~value ~type_ ~instr:(FloatToInt arg_use)
+
+and mk_float_to_int ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_block_instr ~block (set_float_to_int_instr ~arg ~type_)
+
+and set_unreachable_instr ~(value : Value.t) : unit =
+  set_instr ~value ~type_:no_return_type ~instr:Unreachable
 
 and mk_unreachable_ ~(block : Block.t) : unit =
-  let value = mk_uninit_value () in
-  ignore (mk_instr ~value ~block ~type_:no_return_type ~instr:Unreachable)
+  mk_block_instr ~block set_unreachable_instr |> ignore
+
+and set_continue_instr ~(value : Value.t) ~(continue : Block.t) : unit =
+  set_instr ~value ~type_:no_return_type ~instr:(Continue continue)
 
 and mk_continue_ ~(block : Block.t) ~(continue : Block.t) : unit =
-  let value = mk_uninit_value () in
-  ignore (mk_instr ~value ~block ~type_:no_return_type ~instr:(Continue continue))
+  mk_block_instr ~block (set_continue_instr ~continue) |> ignore
+
+and set_branch_instr ~(value : Value.t) ~(test : Value.t) ~(continue : Block.t) ~(jump : Block.t) :
+    unit =
+  let test_use = user_add_use ~user:value ~use:test in
+  set_instr ~value ~type_:no_return_type ~instr:(Branch { test = test_use; continue; jump })
 
 and mk_branch_ ~(block : Block.t) ~(test : Value.t) ~(continue : Block.t) ~(jump : Block.t) : unit =
-  let value = mk_uninit_value () in
-  let test_use = user_add_use ~user:value ~use:test in
-  ignore
-    (mk_instr
-       ~value
-       ~block
-       ~type_:no_return_type
-       ~instr:(Branch { test = test_use; continue; jump }))
+  mk_block_instr ~block (set_branch_instr ~test ~continue ~jump) |> ignore
 
 (*
  * ============================
@@ -413,6 +470,20 @@ and value_iter_uses ~(value : Value.t) (f : Use.t -> unit) =
     in
     iter first_use
 
+and value_get_uses ~(value : Value.t) : Use.t list =
+  match value.uses with
+  | None -> []
+  | Some first_use ->
+    let rec gather current_use acc =
+      let next_use = current_use.Use.next in
+      let acc = current_use :: acc in
+      if next_use != first_use then
+        gather next_use acc
+      else
+        acc
+    in
+    gather first_use []
+
 (* Replace all uses of a value with another value. Uses are modified in place and all use links
    are updated appropriately. *)
 and value_replace_uses ~(from : Value.t) ~(to_ : Value.t) =
@@ -478,6 +549,19 @@ and instruction_iter_operands ~(instr : Instruction.t) (f : Use.t -> unit) =
         | Instruction.GetPointer.PointerIndex operand -> f operand
         | FieldIndex _ -> ())
       offsets
+
+(*
+ * ============================
+ *           Blocks
+ * ============================
+ *)
+
+and mk_block ~(func : Function.t) : Block.t =
+  let block =
+    { Block.id = Block.mk_id (); func; instructions = None; prev_blocks = BlockSet.empty }
+  in
+  func.blocks <- BlockSet.add block func.blocks;
+  block
 
 (*
  * ============================
@@ -575,6 +659,39 @@ and concat_instructions (b1 : Block.t) (b2 : Block.t) =
     add_instr_link last2 first1;
     list.last <- last2
 
+(* Split a block after an instruction into two separate blocks with no continue between them.
+   Return a tuple of the (first block, second block). *)
+and split_block_after_instruction (instr_value : Value.t) : Block.t * Block.t =
+  let instr = cast_to_instruction instr_value in
+  let first_block = instr.block in
+  let second_block = mk_block ~func:first_block.func in
+  let { Block.first = first_block_first; last = first_block_last } =
+    Option.get first_block.instructions
+  in
+
+  (* Next blocks now have the second block as their prev block *)
+  BlockSet.iter
+    (fun next_block ->
+      remove_block_link first_block next_block;
+      add_block_link second_block next_block)
+    (get_next_blocks first_block);
+
+  (* If instruction is at end of block then first block is unchanged and second block is empty *)
+  if instr_value == first_block_last then
+    (first_block, second_block)
+  else
+    let instr_next = instr.next in
+
+    (* Create circular linked lists of instructions for first and second blocks *)
+    add_instr_link instr_value first_block_first;
+    first_block.instructions <- Some { first = first_block_first; last = instr_value };
+
+    add_instr_link first_block_last instr_next;
+    second_block.instructions <- Some { first = instr_next; last = first_block_last };
+    iter_instructions second_block (fun _ instr -> instr.block <- second_block);
+
+    (first_block, second_block)
+
 (* Replace an instruction with another value, removing the instruction and replacing all its
    uses with the other value. *)
 and replace_instruction ~(from : Value.t) ~(to_ : Value.t) =
@@ -588,12 +705,17 @@ and assert_valid_instruction_list (block : Block.t) =
   | Some { first = first_val; last = last_val } ->
     let first = cast_to_instruction first_val in
     let last = cast_to_instruction last_val in
-    if first.prev != last_val || last.next != first_val then failwith "List must be circular";
+    if first.prev != last_val || last.next != first_val then
+      failwith
+        (Printf.sprintf
+           "List must be circular %B %B"
+           (first.prev != last_val)
+           (last.next != first_val));
     let rec iter current_val last_val =
       let current = cast_to_instruction current_val in
       let current_next = cast_to_instruction current.next in
-      if current_next.prev != current_val then failwith "Link is not bidirectional";
       if current.block != block then failwith "Instruction does not have correct block";
+      if current_next.prev != current_val then failwith "Link is not bidirectional";
       if current.next != last_val then iter current.next last_val
     in
     iter first_val last_val
@@ -879,6 +1001,7 @@ and split_block_edge (prev_block : Block.t) (next_block : Block.t) : Block.t =
     }
   in
   mk_continue_ ~block:new_block ~continue:next_block;
+  add_block_link new_block next_block;
   func.blocks <- BlockSet.add new_block func.blocks;
   map_next_block prev_block ~from:next_block ~to_:new_block;
   map_phi_backreferences_for_block
@@ -937,3 +1060,32 @@ and map_phi_backreferences_for_block ~(block : Block.t) ~(from : Block.t) ~(to_ 
  *)
 and program_iter_blocks (program : Program.t) (f : Block.t -> unit) =
   SMap.iter (fun _ func -> func_iter_blocks func f) program.funcs
+
+and program_remove_func ~(program : Program.t) ~(func : Function.t) =
+  program.funcs <- SMap.remove func.name program.funcs
+
+and assert_valid_function_cfg (func : Function.t) =
+  (* Create multimap of all previous blocks by visiting CFG *)
+  let prev_blocks = ref BlockMMap.empty in
+  func_iter_blocks func (fun block ->
+      BlockSet.iter
+        (fun next_block -> prev_blocks := BlockMMap.add next_block block !prev_blocks)
+        (get_next_blocks block));
+
+  (* Check that prev blocks for each block matches the true CFG *)
+  func_iter_blocks func (fun block ->
+      let prev_blocks_1 = block.prev_blocks in
+      let prev_blocks_2 = BlockMMap.find_all block !prev_blocks in
+
+      let is_subset_1 =
+        BlockSet.for_all (fun block -> BlockMMap.VSet.mem block prev_blocks_2) prev_blocks_1
+      in
+      let is_subset_2 =
+        BlockMMap.VSet.for_all (fun block -> BlockSet.mem block prev_blocks_1) prev_blocks_2
+      in
+
+      if (not is_subset_1) || not is_subset_2 then
+        failwith "Previous blocks do not match structure of cfg\n")
+
+and assert_valid_program_cfg (program : Program.t) =
+  SMap.iter (fun _ func -> assert_valid_function_cfg func) program.funcs

@@ -1,0 +1,206 @@
+type _closure {fn, byte*}
+
+func void @test.test1() {
+  Call void @test.use<Int>(1)
+  Call void @test.use<Int>(2)
+  Call void @test.use<Int>(1)
+  Call void @test.use<Int>(2)
+  Call void @test.use<Int>(1)
+  Call void @test.use<Int>(2)
+  Ret
+}
+
+func void @test.test2() {
+  branch true, @0, @1
+label @0:
+  %0 := Add int 1, 2
+  continue @1
+label @1:
+  %1 := Phi int @test.test2:3, @0:%0
+  Call void @test.use<Int>(%1)
+  branch false, @2, @3
+label @2:
+  %2 := Add int 8, 2
+  continue @3
+label @3:
+  %3 := Phi int @2:%2, @1:3
+  Call void @test.use<Int>(%3)
+  Ret
+}
+
+func void @test.test3() {
+  %0 := Eq int 2, 2
+  branch %0, @1, @0
+label @0:
+  %1 := Mul int 2, 7
+  continue @1
+label @1:
+  %2 := Phi int @test.test3:6, @0:%1
+  Call void @test.use<Int>(%2)
+  %3 := Eq int 1, 2
+  branch %3, @3, @2
+label @2:
+  %4 := Mul int 1, 7
+  continue @3
+label @3:
+  %5 := Phi int @2:%4, @1:6
+  Call void @test.use<Int>(%5)
+  Ret
+}
+
+func void @test.test4() {
+  Call void @test.use<Int>(2)
+  Call void @test.use2<Int>(2)
+  Call void @test.use<Bool>(true)
+  Call void @test.use2<Bool>(true)
+  Ret
+}
+
+func void @test.test5() {
+  %0 := Div int 3, 7
+  %1 := Div int 3, 7
+  %2 := Mul int %0, %1
+  %3 := Div int 5, 7
+  %4 := Div int 5, 7
+  %5 := Mul int %3, %4
+  %6 := Add int %2, %5
+  Call void @test.use<Int>(%6)
+  Ret
+}
+
+func void @test.test6() {
+  Call void @test.use<Int>(8)
+  Call void @test.use2<Int>(9)
+  %0 := Call int @test.toBeInlined62(8)
+  %1 := Call int @test.toBeInlined62(8)
+  %2 := Add int %0, %1
+  Call void @test.use<Int>(7)
+  Call void @test.use2<Int>(9)
+  %3 := Call int @test.toBeInlined62(8)
+  %4 := Call int @test.toBeInlined62(7)
+  %5 := Add int %3, %4
+  %6 := Add int 10, 10
+  Call void @test.use3<Int>(%6)
+  Ret
+}
+
+func int @test.toBeInlined62(int %0) {
+  Call void @test.use<Int>(%0)
+  Call void @test.use2<Int>(9)
+  %1 := Call int @test.toBeInlined62(8)
+  %2 := Call int @test.toBeInlined62(%0)
+  %3 := Add int %1, %2
+  Ret 10
+}
+
+func void @test.test7() {
+  Call void @test.use2<Int>(89)
+  %0 := Add int 89, 2
+  Call void @test.use<Int>(%0)
+  Call void @test.use<Function>(@_closure$test.toBeInlined7)
+  Call void @test.use<Int>(2)
+  Ret
+}
+
+global _closure @_closure$test.toBeInlined7 = {@test.toBeInlined7, null}
+
+func int @test.toBeInlined7(int %0) {
+  Call void @test.use2<Int>(%0)
+  %1 := Add int %0, 2
+  Ret %1
+}
+
+func void @test.test8() {
+  %0 := Call test.Test8* myte.builtin.alloc(1)
+  %1 := GetPointer int, test.Test8* %0.2
+  Store int %1, 10
+  %2 := GetPointer bool, test.Test8* %0.0
+  Store bool %2, false
+  %3 := GetPointer bool, test.Test8* %0.0
+  %4 := Load bool %3
+  branch %4, @0, @1
+label @0:
+  %5 := Add int 5, 1
+  continue @2
+label @1:
+  %6 := Mul int 6, 2
+  continue @2
+label @2:
+  %7 := Phi int @0:%5, @1:%6
+  %8 := GetPointer bool, test.Test8* %0.0
+  %9 := Load bool %8
+  branch %9, @3, @4
+label @3:
+  %10 := Add int 7, 1
+  continue @5
+label @4:
+  %11 := Mul int 8, 2
+  continue @5
+label @5:
+  %12 := Phi int @3:%10, @4:%11
+  Call void @test.use<Int>(%12)
+  Ret
+}
+
+type test.Test8 {bool, byte[3], int}
+
+func void @test.test9() {
+  %0 := Call test.Test9* myte.builtin.alloc(1)
+  %1 := GetPointer int, test.Test9* %0.0
+  Store int %1, 2
+  %2 := GetPointer int, test.Test9* %0.0
+  %3 := Load int %2
+  %4 := Div int 3, %3
+  Call void @test.use<Int>(%4)
+  %5 := Call _object$test.Test9$test.Trait9* myte.builtin.alloc(1)
+  %6 := GetPointer test.Test9*, _object$test.Test9$test.Trait9* %5.0
+  Store test.Test9* %6, %0
+  %7 := GetPointer fn[1]*, _object$test.Test9$test.Trait9* %5.1
+  Store fn[1]* %7, @_vtable$test.Test9$test.Trait9
+  %8 := Cast _object$test.Test9$test.Trait9* %5 to _object$test.Trait9*
+  Ret
+}
+
+type _object$test.Trait9 {byte*, fn[1]*}
+
+type _object$test.Test9$test.Trait9 {test.Test9*, fn[1]*}
+
+type test.Test9 {int}
+
+global fn[1] @_vtable$test.Test9$test.Trait9 = [@test.Test9.method]
+
+func void @test.Test9.method(test.Test9* %0, int %1) {
+  %2 := GetPointer int, test.Test9* %0.0
+  %3 := Load int %2
+  %4 := Div int %1, %3
+  Call void @test.use<Int>(%4)
+  Ret
+}
+
+func void @test.use<Bool>(bool %0) {
+  Ret
+}
+
+func void @test.use<Function>(_closure* %0) {
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func void @test.use2<Bool>(bool %0) {
+  Ret
+}
+
+func void @test.use2<Int>(int %0) {
+  Ret
+}
+
+func void @test.use3<Int>(int %0) {
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

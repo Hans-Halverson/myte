@@ -186,13 +186,7 @@ let add_global ~ecx global =
   let name = global.Global.name in
   ecx.program.globals <- SMap.add name global ecx.program.globals
 
-let mk_block ~ecx =
-  let func = ecx.current_func in
-  let block =
-    { Block.id = Block.mk_id (); func; instructions = None; prev_blocks = BlockSet.empty }
-  in
-  func.blocks <- BlockSet.add block func.blocks;
-  block
+let mk_block ~ecx = mk_block ~func:ecx.current_func
 
 let get_current_block ~ecx : Block.t =
   match ecx.current_block with

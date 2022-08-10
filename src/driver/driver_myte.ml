@@ -60,9 +60,9 @@ and parse_and_check ~pcx ~is_stdlib files =
 
 let lower_to_ir pcx = Mir_emit.emit pcx
 
-let transform_ir ir =
+let transform_ir ~pcx program =
   let dump_ir () =
-    print_string (Mir_pp.pp_program ir);
+    print_string (Mir_pp.pp_program program);
     exit 0
   in
 
@@ -73,24 +73,24 @@ let transform_ir ir =
     Opts.dump_transformed_ir () |> List.filter_map Mir_transforms.MirTransform.of_string
   in
   if transforms <> [] then (
-    Mir_transforms.apply_transforms ir transforms;
+    Mir_transforms.apply_transforms ~program ~pcx transforms;
     dump_ir ()
   );
 
   (* Generic IR dumps *)
   if Opts.dump_ir () then (
     if Opts.optimize () then
-      Mir_transforms.optimize ir
+      Mir_transforms.optimize ~program ~pcx
     else
-      Mir_transforms.transform_for_dump_ir ir;
+      Mir_transforms.transform_for_dump_ir ~program ~pcx;
 
     dump_ir ()
   );
 
   if Opts.optimize () then
-    Mir_transforms.optimize ir
+    Mir_transforms.optimize ~program ~pcx
   else
-    Mir_transforms.transform_for_assembly ir
+    Mir_transforms.transform_for_assembly ~program ~pcx
 
 let lower_to_asm ir =
   (* Generate x86_64 program  *)
@@ -127,7 +127,7 @@ let compile files =
   if Opts.check () then exit 0;
 
   let ir = lower_to_ir pcx in
-  transform_ir ir;
+  transform_ir ~pcx ir;
 
   let asm_file = lower_to_asm ir in
   gen_executable asm_file

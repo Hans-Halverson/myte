@@ -1,7 +1,6 @@
 open Basic_collections
 open Mir
 open Mir_builders
-open Mir_graph_ordering
 open Mir_type
 
 module Context = struct
@@ -116,7 +115,7 @@ and pp_func ~cx func =
   in
   let func_label = Printf.sprintf "func %s @%s(%s) {" return_ty func.name func_params in
   cx.print_block_id_map <- BlockMap.add func.start_block func.name cx.print_block_id_map;
-  let body_blocks = OrderedCFG.order_nodes func.start_block in
+  let body_blocks = Mir_graph_ordering.get_ordered_cfg func.start_block in
   calc_print_block_ids ~cx (List.tl body_blocks);
   let body_strings = List.mapi (fun i block -> pp_block ~cx ~label:(i <> 0) block) body_blocks in
   String.concat "\n" ((func_label :: body_strings) @ ["}\n"])
@@ -194,9 +193,9 @@ and pp_use ~cx (use : Use.t) =
   | Value.Instr { id; _ }
   | Argument { id; _ } ->
     pp_value_id ~cx id
-  | Lit lit -> pp_literal lit
+  | Lit lit -> pp_literal ~cx lit
 
-and pp_literal lit =
+and pp_literal ~cx lit =
   match lit with
   | Literal.Bool true -> "true"
   | Bool false -> "false"
@@ -217,9 +216,9 @@ and pp_literal lit =
   | NullPointer _ -> "null"
   | ArrayString str -> "\"" ^ str ^ "\""
   | ArrayVtable (_, funcs) ->
-    let funcs = List.map (fun func -> "@" ^ func.Function.name) funcs in
+    let funcs = List.map (pp_use ~cx) funcs in
     "[" ^ String.concat ", " funcs ^ "]"
-  | AggregateClosure (_, { name; _ }) -> Printf.sprintf "{@%s, null}" name
+  | AggregateClosure (_, func) -> Printf.sprintf "{%s, null}" (pp_use ~cx func)
 
 and pp_type ty = type_to_string ty
 
