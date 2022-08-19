@@ -10,6 +10,14 @@ func int @test.use<Int>(int %0) {
   Ret %0
 }
 
+func byte @test.useByte(byte %0) {
+  Ret %0
+}
+
+func long @test.useLong(long %0) {
+  Ret %0
+}
+
 func void @test.unit() {
   Ret
 }
@@ -32,36 +40,42 @@ func void @test.testInt() {
 }
 
 func void @test.testByte() {
-  %0 := Call int @test.use<Int>(-56)
-  %1 := Call int @test.use<Int>(3)
-  %2 := Call int @test.use<Int>(-1)
-  %3 := Call int @test.use<Int>(14)
-  %4 := Call int @test.use<Int>(8)
-  %5 := Call int @test.use<Int>(1)
-  %6 := Call int @test.use<Int>(8)
-  %7 := Call int @test.use<Int>(14)
-  %8 := Call int @test.use<Int>(6)
-  %9 := Call int @test.use<Int>(16)
-  %10 := Call int @test.use<Int>(-1)
-  %11 := Call int @test.use<Int>(1073741823)
-  %12 := Call bool @test.use<Bool>(false)
+  %0 := Call byte @test.useByte(-56)
+  %1 := Call byte @test.useByte(3)
+  %2 := Call byte @test.useByte(-1)
+  %3 := Call byte @test.useByte(14)
+  %4 := Call byte @test.useByte(8)
+  %5 := Call byte @test.useByte(1)
+  %6 := Call byte @test.useByte(8)
+  %7 := Call byte @test.useByte(14)
+  %8 := Call byte @test.useByte(6)
+  %9 := Call byte @test.useByte(16)
+  %10 := Call byte @test.useByte(-128)
+  %11 := Call byte @test.useByte(-1)
+  %12 := Call byte @test.useByte(63)
+  %13 := Call bool @test.use<Bool>(false)
+  %14 := Call byte @test.useByte(-128)
+  %15 := Call byte @test.useByte(-128)
+  %16 := Call byte @test.useByte(125)
+  %17 := Call byte @test.useByte(125)
   Ret
 }
 
 func void @test.testLong() {
-  %0 := Call int @test.use<Int>(-56)
-  %1 := Call int @test.use<Int>(3)
-  %2 := Call int @test.use<Int>(-1)
-  %3 := Call int @test.use<Int>(14)
-  %4 := Call int @test.use<Int>(8)
-  %5 := Call int @test.use<Int>(1)
-  %6 := Call int @test.use<Int>(8)
-  %7 := Call int @test.use<Int>(14)
-  %8 := Call int @test.use<Int>(6)
-  %9 := Call int @test.use<Int>(16)
-  %10 := Call int @test.use<Int>(-1)
-  %11 := Call int @test.use<Int>(1073741823)
-  %12 := Call bool @test.use<Bool>(false)
+  %0 := Call long @test.useLong(-56)
+  %1 := Call long @test.useLong(3)
+  %2 := Call long @test.useLong(-1)
+  %3 := Call long @test.useLong(14)
+  %4 := Call long @test.useLong(8)
+  %5 := Call long @test.useLong(1)
+  %6 := Call long @test.useLong(8)
+  %7 := Call long @test.useLong(14)
+  %8 := Call long @test.useLong(6)
+  %9 := Call long @test.useLong(16)
+  %10 := Call long @test.useLong(-9223372036854775808)
+  %11 := Call long @test.useLong(-1)
+  %12 := Call long @test.useLong(4611686018427387903)
+  %13 := Call bool @test.use<Bool>(false)
   Ret
 }
 

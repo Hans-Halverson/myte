@@ -62,7 +62,7 @@ end
 and Literal : sig
   type t =
     | Bool of bool
-    | Byte of int
+    | Byte of Int8.t
     | Int of Int32.t
     | Long of Int64.t
     | Double of Float.t
@@ -494,7 +494,7 @@ let cast_to_phi (instr : Instruction.t) : Instruction.Phi.t =
 
 let int64_of_literal lit =
   match lit with
-  | Literal.Byte lit -> Int64.of_int lit
+  | Literal.Byte lit -> Int8.to_int64 lit
   | Int lit -> Int64.of_int32 lit
   | Long lit -> lit
   | _ -> failwith "Expected byte, int, or long"

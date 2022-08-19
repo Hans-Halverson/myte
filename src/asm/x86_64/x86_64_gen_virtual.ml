@@ -246,7 +246,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (SImm (Imm8 dividend_imm), divisor) ->
       let divisor_mem = emit_mem divisor in
       let divisor_vreg = mk_vreg ~type_:Short in
-      Gcx.emit ~gcx (MovIM (Size16, Imm16 dividend_imm, mk_short_precolored_a ()));
+      Gcx.emit ~gcx (MovIM (Size16, Imm16 (Int8.to_int dividend_imm), mk_short_precolored_a ()));
       Gcx.emit ~gcx (MovSX (Size8, Size16, divisor_mem, divisor_vreg));
       Gcx.emit ~gcx (ConvertDouble Size16);
       Gcx.emit ~gcx (IDiv (Size16, divisor_vreg));
@@ -263,7 +263,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let dividend_mem = emit_mem dividend in
       let divisor_vreg = mk_vreg ~type_:Short in
       Gcx.emit ~gcx (MovSX (Size8, Size16, dividend_mem, mk_short_precolored_a ()));
-      Gcx.emit ~gcx (MovIM (Size16, Imm16 divisor_imm, divisor_vreg));
+      Gcx.emit ~gcx (MovIM (Size16, Imm16 (Int8.to_int divisor_imm), divisor_vreg));
       Gcx.emit ~gcx (ConvertDouble Size16);
       Gcx.emit ~gcx (IDiv (Size16, divisor_vreg));
       Size32
@@ -323,9 +323,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let target_mem = emit_mem target in
       let shift_value = int64_of_immediate shift_imm in
       (* Only low byte of immediate is used for shift, so truncate immediate to low byte *)
-      let shift_low_byte = Integers.trunc_long_to_byte shift_value in
       Gcx.emit ~gcx (MovMM (size, target_mem, result_op));
-      Gcx.emit ~gcx (mk_imm_instr size (Imm8 shift_low_byte) result_op)
+      Gcx.emit ~gcx (mk_imm_instr size (Imm8 (Int8.of_int64 shift_value)) result_op)
     | (target, shift) ->
       let size = register_size_of_svalue target in
       (* Only low byte is used for shift, so avoid REX prefix for small code size optimization *)
@@ -702,7 +701,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         let left_mem = emit_mem left in
         let size = register_size_of_svalue left in
         Gcx.emit ~gcx (MovMM (size, left_mem, result_op));
-        Gcx.emit ~gcx (SarI (size, Imm8 power_of_two, result_op))
+        Gcx.emit ~gcx (SarI (size, Imm8 (Int8.of_int power_of_two), result_op))
       (* Otherwise emit a divide instruction *)
       | _ ->
         let precolored_a = mk_precolored ~type_ A in
@@ -1092,7 +1091,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let arg_mem = emit_mem arg in
       Gcx.emit ~gcx (MovMM (size, arg_mem, result_op)));
     (* Bools must be further truncated to only lowest bit *)
-    if type_ = Bool then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, result_op));
+    if type_ = Bool then Gcx.emit ~gcx (AndIM (Size8, Imm8 (Int8.of_int 1), result_op));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1395,17 +1394,18 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
 
 (* Truncate a single byte operand to just its lowest bit if the test val has type bool *)
 and maybe_truncate_bool_operand ~gcx ~if_bool op =
-  if is_bool_value if_bool.value then Gcx.emit ~gcx (AndIM (Size8, Imm8 1, op))
+  if is_bool_value if_bool.value then Gcx.emit ~gcx (AndIM (Size8, Imm8 (Int8.of_int 1), op))
 
 and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
   match use.value.value with
   | Lit (Bool b) ->
     SImm
       (Imm8
-         (if b then
-           1
-         else
-           0))
+         (Int8.of_int
+            (if b then
+              1
+            else
+              0)))
   | Lit (Byte b) -> SImm (Imm8 b)
   (* Int literals can be downgraded to an 8 byte literal if they fit *)
   | Lit (Int i) -> SImm (Imm32 i)

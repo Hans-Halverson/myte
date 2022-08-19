@@ -199,7 +199,7 @@ and pp_literal ~cx lit =
   match lit with
   | Literal.Bool true -> "true"
   | Bool false -> "false"
-  | Byte i -> string_of_int i
+  | Byte i -> Int8.to_string i
   | Int i -> Int32.to_string i
   | Long i -> Int64.to_string i
   | Double f ->

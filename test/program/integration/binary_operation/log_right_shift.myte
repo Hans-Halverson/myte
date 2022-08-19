@@ -29,10 +29,6 @@ fun testShiftBytes() {
   assertEqual(shiftByte(-81 /* 0b10101111 */, 4), 0b00001010);
   assertEqual(shiftByte(-81 /* 0b10101111 */, 5), 0b00000101);
   assertEqual(shiftByte(-81 /* 0b10101111 */, 6), 0b00000010);
-
-  // Overflow of shift
-  assertEqual(shiftByte(0b111, 32), 0b111);
-  assertEqual(shiftByte(0b111, 33), 0b11);
 }
 
 fun testShiftInts() {
@@ -51,10 +47,6 @@ fun testShiftInts() {
   assertEqual(shiftInt(-81 /* 0b[1x24]10101111 */, 4), 0b00001111111111111111111111111010);
   assertEqual(shiftInt(-81 /* 0b[1x24]10101111 */, 5), 0b00000111111111111111111111111101);
   assertEqual(shiftInt(-81 /* 0b[1x24]10101111 */, 6), 0b00000011111111111111111111111110);
-
-  // Overflow of shift
-  assertEqual(shiftInt(0b111, 32), 0b111);
-  assertEqual(shiftInt(0b111, 33), 0b11);
 }
 
 fun testShiftLongs() {
@@ -73,10 +65,6 @@ fun testShiftLongs() {
   assertEqual(shiftLong(-81 /* 0b[1x24]10101111 */, 4), 0x0FFFFFFFFFFFFFFA);
   assertEqual(shiftLong(-81 /* 0b[1x24]10101111 */, 5), 0x07FFFFFFFFFFFFFD);
   assertEqual(shiftLong(-81 /* 0b[1x24]10101111 */, 6), 0x03FFFFFFFFFFFFFE);
-
-  // Overflow of shift
-  assertEqual(shiftLong(0b111, 64), 0b111);
-  assertEqual(shiftLong(0b111, 65), 0b11);
 }
 
 fun testShiftMixedTypes() {

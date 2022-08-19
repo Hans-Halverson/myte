@@ -519,7 +519,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let ty = mir_type_of_loc ~ecx loc |> Option.get in
     let value =
       match ty with
-      | Byte -> mk_byte_lit (Int64.to_int value)
+      | Byte -> mk_byte_lit (Int8.of_int64 value)
       | Int -> mk_int_lit_of_int32 (Int64.to_int32 value)
       | Long -> mk_long_lit value
       | _ -> failwith "Int literal must have integer type"
@@ -533,7 +533,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
     let ty = mir_type_of_loc ~ecx loc |> Option.get in
     let value =
       match ty with
-      | Byte -> mk_byte_lit value
+      | Byte -> mk_byte_lit (Int8.of_int value)
       | Int -> mk_int_lit_of_int32 (Int32.of_int value)
       | Long -> mk_long_lit (Int64.of_int value)
       | _ -> failwith "Char literal must have integer type"
@@ -3141,7 +3141,7 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
             let (value, _) = Ctor.cast_to_int ctor in
             let case_lit =
               match scrutinee_type with
-              | Byte -> mk_byte_lit (Int64.to_int value)
+              | Byte -> mk_byte_lit (Int8.of_int64 value)
               | Int -> mk_int_lit_of_int32 (Int64.to_int32 value)
               | Long -> mk_long_lit value
               | _ -> failwith "Expected integer value"

@@ -2,6 +2,10 @@ module test
 
 fun use<T>(x: T): T = x
 
+fun useByte(x: Byte): Byte = x
+
+fun useLong(x: Long): Long = x
+
 fun unit(): Unit = ()
 
 fun testInt() {
@@ -23,37 +27,45 @@ fun testInt() {
 }
 
 fun testByte() {
-  use(-(56));
+  useByte(-(56));
 
-  use(1 + 2);
-  use(1 - 2);
-  use(2 * 7);
-  use(24 / 3);
-  use(19 % 3);
-  use(0b1100 & 0b1010);
-  use(0b1100 | 0b1010);
-  use(0b1100 ^ 0b1010);
-  use(1 << 4);
-  use(-1 >> 2);
-  use(-1 >>> 2);
+  useByte(1 + 2);
+  useByte(1 - 2);
+  useByte(2 * 7);
+  useByte(24 / 3);
+  useByte(19 % 3);
+  useByte(0b1100 & 0b1010);
+  useByte(0b1100 | 0b1010);
+  useByte(0b1100 ^ 0b1010);
+  useByte(1 << 4);
+  useByte(1 << 7);
+  useByte(-1 >> 2);
+  useByte(-1 >>> 2);
 
   use((5: Byte) > 7);
+
+  // Byte overflow
+  useByte(-(-128));
+  useByte(125 + 3);
+  useByte(-128 - 3);
+  useByte(127 * 3);
 }
 
 fun testLong() {
-  use(-(56));
+  useLong(-(56));
 
-  use(1 + 2);
-  use(1 - 2);
-  use(2 * 7);
-  use(24 / 3);
-  use(19 % 3);
-  use(0b1100 & 0b1010);
-  use(0b1100 | 0b1010);
-  use(0b1100 ^ 0b1010);
-  use(1 << 4);
-  use(-1 >> 2);
-  use(-1 >>> 2);
+  useLong(1 + 2);
+  useLong(1 - 2);
+  useLong(2 * 7);
+  useLong(24 / 3);
+  useLong(19 % 3);
+  useLong(0b1100 & 0b1010);
+  useLong(0b1100 | 0b1010);
+  useLong(0b1100 ^ 0b1010);
+  useLong(1 << 4);
+  useLong(1 << 63);
+  useLong(-1 >> 2);
+  useLong(-1 >>> 2);
 
   use((5: Long) > 7);
 }

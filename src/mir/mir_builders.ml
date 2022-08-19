@@ -22,7 +22,7 @@ let mk_uninit_value () : Value.t = { value = uninit_value; uses = None }
 
 let mk_bool_lit (b : bool) : Value.t = mk_value (Lit (Bool b))
 
-let mk_byte_lit (n : int) : Value.t = mk_value (Lit (Byte n))
+let mk_byte_lit (n : Int8.t) : Value.t = mk_value (Lit (Byte n))
 
 let mk_int_lit (n : int) : Value.t = mk_value (Lit (Int (Int32.of_int n)))
 

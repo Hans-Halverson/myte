@@ -7,7 +7,7 @@ type label = string
 type register = Register.t * register_size
 
 type immediate =
-  | Imm8 of int
+  | Imm8 of Int8.t
   | Imm16 of int
   | Imm32 of Int32.t
   | Imm64 of Int64.t
@@ -378,7 +378,7 @@ let size_of_immediate imm =
 
 let int64_of_immediate imm =
   match imm with
-  | Imm8 i -> Int64.of_int i
+  | Imm8 i -> Int8.to_int64 i
   | Imm16 i -> Int64.of_int i
   | Imm32 i -> Int64.of_int32 i
   | Imm64 i -> i

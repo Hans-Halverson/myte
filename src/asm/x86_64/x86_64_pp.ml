@@ -129,9 +129,8 @@ let pp_immediate ~buf imm =
   add_string
     ~buf
     (match imm with
-    | Imm8 imm
-    | Imm16 imm ->
-      string_of_int imm
+    | Imm8 imm -> Int8.to_string imm
+    | Imm16 imm -> string_of_int imm
     | Imm32 imm -> Int32.to_string imm
     | Imm64 imm -> Int64.to_string imm)
 
@@ -468,7 +467,7 @@ let rec pp_data_value ~buf (data_value : data_value) =
   in
   let add_imm_directive imm =
     match imm with
-    | Imm8 imm -> add_directive "byte" (string_of_int imm)
+    | Imm8 imm -> add_directive "byte" (Int8.to_string imm)
     | Imm16 imm -> add_directive "value" (string_of_int imm)
     | Imm32 imm -> add_directive "long" (Int32.to_string imm)
     | Imm64 imm -> add_directive "quad" (Int64.to_string imm)

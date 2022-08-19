@@ -77,7 +77,7 @@ let mk_mir_variants_layout ~(ecx : Ecx.t) decl_node variant_nodes =
               else
                 i
             in
-            mk_byte_lit i
+            mk_byte_lit (Int8.of_int i)
           | Int -> mk_int_lit i
           | _ -> failwith "Invalid tag MIR type"
         in

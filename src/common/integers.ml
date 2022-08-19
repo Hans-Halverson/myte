@@ -49,54 +49,49 @@ let int64_of_string_opt raw base =
       else
         Some value)
 
-let trunc_int_to_bool x = Int32.equal 1l (Int32.logand x 1l)
+let trunc_int8_to_int1 x =
+  let one = Int8.of_int 1 in
+  Int8.equal one (Int8.logand x one)
 
-let trunc_long_to_bool x = Int64.equal 1L (Int64.logand x 1L)
+let trunc_int32_to_int1 x = Int32.equal 1l (Int32.logand x 1l)
 
-let trunc_int_to_byte x =
-  let bytes = Bytes.create 4 in
-  Bytes.set_int32_le bytes 0 x;
-  Bytes.get_int8 bytes 0
+let trunc_int64_to_int1 x = Int64.equal 1L (Int64.logand x 1L)
 
-let trunc_long_to_byte x =
-  let bytes = Bytes.create 8 in
-  Bytes.set_int64_le bytes 0 x;
-  Bytes.get_int8 bytes 0
-
-let trunc_long_to_int x =
+let trunc_int64_to_int32 x =
   let bytes = Bytes.create 8 in
   Bytes.set_int64_le bytes 0 x;
   Bytes.get_int32_le bytes 0
 
-let zext_bool_to_byte x =
-  if x then
-    1
-  else
-    0
+let zext_int1_to_int8 x =
+  Int8.of_int
+    (if x then
+      1
+    else
+      0)
 
-let zext_bool_to_int x =
+let zext_int1_to_int32 x =
   if x then
     1l
   else
     0l
 
-let zext_bool_to_long x =
+let zext_int1_to_int64 x =
   if x then
     1L
   else
     0L
 
-let zext_byte_to_int x =
+let zext_int8_to_int32 x =
   let bytes = Bytes.make 4 '\x00' in
-  Bytes.set_int8 bytes 0 x;
+  Bytes.set_int8 bytes 0 (Int8.to_int x);
   Bytes.get_int32_le bytes 0
 
-let zext_byte_to_long x =
+let zext_int8_to_int64 x =
   let bytes = Bytes.make 8 '\x00' in
-  Bytes.set_int8 bytes 0 x;
+  Bytes.set_int8 bytes 0 (Int8.to_int x);
   Bytes.get_int64_le bytes 0
 
-let zext_int_to_long x =
+let zext_int32_to_int64 x =
   let bytes = Bytes.make 8 '\x00' in
   Bytes.set_int32_le bytes 0 x;
   Bytes.get_int64_le bytes 0

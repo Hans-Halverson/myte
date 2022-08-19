@@ -578,7 +578,7 @@ and instantiate_mir_adt_layout
         InlineValueWithNiche
           { type_; inlined_type = type_; niches; inline_range = NotEqual none_lit }
       | Some Bool ->
-        let none_lit = mk_byte_lit 2 in
+        let none_lit = mk_byte_lit (Int8.of_int 2) in
         let niches = SMap.singleton "None" none_lit in
         InlineValueWithNiche
           { type_ = Byte; inlined_type = Bool; niches; inline_range = Below none_lit }

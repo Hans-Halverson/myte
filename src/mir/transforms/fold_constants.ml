@@ -13,37 +13,37 @@ type conversion_op =
 let apply_unary_operation op (x : Literal.t) : Literal.t =
   match (op, x) with
   | (Instruction.Neg, Bool x) -> Bool x
-  | (Neg, Byte x) -> Byte (-x)
+  | (Neg, Byte x) -> Byte (Int8.neg x)
   | (Neg, Int x) -> Int (Int32.neg x)
   | (Neg, Long x) -> Long (Int64.neg x)
   | (Neg, Double x) -> Double (Float.neg x)
   | (Not, Bool x) -> Bool (not x)
-  | (Not, Byte x) -> Byte (lnot x)
+  | (Not, Byte x) -> Byte (Int8.lognot x)
   | (Not, Int x) -> Int (Int32.lognot x)
   | (Not, Long x) -> Long (Int64.lognot x)
   | _ -> failwith "Invalid operation"
 
 let apply_binary_operation op (x : Literal.t) (y : Literal.t) : Literal.t =
-  let trunc_integer_to_byte (x : Literal.t) : int =
+  let int_of_shift (x : Literal.t) : int =
     match x with
-    | Byte x -> x
-    | Int x -> Integers.trunc_int_to_byte x
-    | Long x -> Integers.trunc_long_to_byte x
+    | Byte x -> Int8.to_int x
+    | Int x -> Int32.to_int x
+    | Long x -> Int64.to_int x
     | _ -> failwith "Invalid operation"
   in
   match (op, x, y) with
   | (Instruction.Add, Bool x, Bool y) -> Bool (x <> y)
-  | (Add, Byte x, Byte y) -> Byte (x + y)
+  | (Add, Byte x, Byte y) -> Byte (Int8.add x y)
   | (Add, Int x, Int y) -> Int (Int32.add x y)
   | (Add, Long x, Long y) -> Long (Int64.add x y)
   | (Add, Double x, Double y) -> Double (Float.add x y)
   | (Sub, Bool x, Bool y) -> Bool (x <> y)
-  | (Sub, Byte x, Byte y) -> Byte (x - y)
+  | (Sub, Byte x, Byte y) -> Byte (Int8.sub x y)
   | (Sub, Int x, Int y) -> Int (Int32.sub x y)
   | (Sub, Long x, Long y) -> Long (Int64.sub x y)
   | (Sub, Double x, Double y) -> Double (Float.sub x y)
   | (Mul, Bool x, Bool y) -> Bool (x && y)
-  | (Mul, Byte x, Byte y) -> Byte (x * y)
+  | (Mul, Byte x, Byte y) -> Byte (Int8.mul x y)
   | (Mul, Int x, Int y) -> Int (Int32.mul x y)
   | (Mul, Long x, Long y) -> Long (Int64.mul x y)
   | (Mul, Double x, Double y) -> Double (Float.mul x y)
@@ -52,7 +52,7 @@ let apply_binary_operation op (x : Literal.t) (y : Literal.t) : Literal.t =
       failwith "Division by zero"
     else
       Bool x
-  | (Div, Byte x, Byte y) -> Byte (x / y)
+  | (Div, Byte x, Byte y) -> Byte (Int8.div x y)
   | (Div, Int x, Int y) -> Int (Int32.div x y)
   | (Div, Long x, Long y) -> Long (Int64.div x y)
   | (Div, Double x, Double y) -> Double (Float.div x y)
@@ -61,56 +61,56 @@ let apply_binary_operation op (x : Literal.t) (y : Literal.t) : Literal.t =
       failwith "Division by zero"
     else
       Bool false
-  | (Rem, Byte x, Byte y) -> Byte (x mod y)
+  | (Rem, Byte x, Byte y) -> Byte (Int8.rem x y)
   | (Rem, Int x, Int y) -> Int (Int32.rem x y)
   | (Rem, Long x, Long y) -> Long (Int64.rem x y)
   | (And, Bool x, Bool y) -> Bool (x && y)
-  | (And, Byte x, Byte y) -> Byte (x land y)
+  | (And, Byte x, Byte y) -> Byte (Int8.logand x y)
   | (And, Int x, Int y) -> Int (Int32.logand x y)
   | (And, Long x, Long y) -> Long (Int64.logand x y)
   | (Or, Bool x, Bool y) -> Bool (x || y)
-  | (Or, Byte x, Byte y) -> Byte (x lor y)
+  | (Or, Byte x, Byte y) -> Byte (Int8.logor x y)
   | (Or, Int x, Int y) -> Int (Int32.logor x y)
   | (Or, Long x, Long y) -> Long (Int64.logor x y)
   | (Xor, Bool x, Bool y) -> Bool (x <> y)
-  | (Xor, Byte x, Byte y) -> Byte (x lxor y)
+  | (Xor, Byte x, Byte y) -> Byte (Int8.logxor x y)
   | (Xor, Int x, Int y) -> Int (Int32.logxor x y)
   | (Xor, Long x, Long y) -> Long (Int64.logxor x y)
   | (Shl, Bool x, Bool y) -> Bool (x && not y)
-  | (Shl, Byte x, y) -> Byte (x lsl trunc_integer_to_byte y)
-  | (Shl, Int x, y) -> Int (Int32.shift_left x (trunc_integer_to_byte y))
-  | (Shl, Long x, y) -> Long (Int64.shift_left x (trunc_integer_to_byte y))
+  | (Shl, Byte x, y) -> Byte (Int8.shift_left x (int_of_shift y))
+  | (Shl, Int x, y) -> Int (Int32.shift_left x (int_of_shift y))
+  | (Shl, Long x, y) -> Long (Int64.shift_left x (int_of_shift y))
   | (Shr, Bool x, Bool _) -> Bool x
-  | (Shr, Byte x, y) -> Byte (x asr trunc_integer_to_byte y)
-  | (Shr, Int x, y) -> Int (Int32.shift_right x (trunc_integer_to_byte y))
-  | (Shr, Long x, y) -> Long (Int64.shift_right x (trunc_integer_to_byte y))
+  | (Shr, Byte x, y) -> Byte (Int8.shift_right x (int_of_shift y))
+  | (Shr, Int x, y) -> Int (Int32.shift_right x (int_of_shift y))
+  | (Shr, Long x, y) -> Long (Int64.shift_right x (int_of_shift y))
   | (Shrl, Bool x, Bool y) -> Bool (x && not y)
-  | (Shrl, Byte x, y) -> Byte (Int.logand x 0xFF lsr trunc_integer_to_byte y)
-  | (Shrl, Int x, y) -> Int (Int32.shift_right_logical x (trunc_integer_to_byte y))
-  | (Shrl, Long x, y) -> Long (Int64.shift_right_logical x (trunc_integer_to_byte y))
+  | (Shrl, Byte x, y) -> Byte (Int8.shift_right_logical x (int_of_shift y))
+  | (Shrl, Int x, y) -> Int (Int32.shift_right_logical x (int_of_shift y))
+  | (Shrl, Long x, y) -> Long (Int64.shift_right_logical x (int_of_shift y))
   | _ -> failwith "Invalid operation"
 
 let apply_conversion op (x : Literal.t) : Literal.t =
   match (op, x) with
-  | (TruncOp Bool, Byte x) -> Bool (x land 1 = 1)
-  | (TruncOp Bool, Int x) -> Bool (Integers.trunc_int_to_bool x)
-  | (TruncOp Bool, Long x) -> Bool (Integers.trunc_long_to_bool x)
-  | (TruncOp Byte, Int x) -> Byte (Integers.trunc_int_to_byte x)
-  | (TruncOp Byte, Long x) -> Byte (Integers.trunc_long_to_byte x)
-  | (TruncOp Int, Long x) -> Int (Integers.trunc_long_to_int x)
-  | ((SExtOp Byte | ZExtOp Byte), Bool x) -> Int (Integers.zext_bool_to_int x)
-  | ((SExtOp Int | ZExtOp Int), Bool x) -> Int (Integers.zext_bool_to_int x)
-  | ((SExtOp Long | ZExtOp Long), Bool x) -> Long (Integers.zext_bool_to_long x)
-  | (SExtOp Int, Byte x) -> Int (Int32.of_int x)
-  | (SExtOp Long, Byte x) -> Long (Int64.of_int x)
+  | (TruncOp Bool, Byte x) -> Bool (Integers.trunc_int8_to_int1 x)
+  | (TruncOp Bool, Int x) -> Bool (Integers.trunc_int32_to_int1 x)
+  | (TruncOp Bool, Long x) -> Bool (Integers.trunc_int64_to_int1 x)
+  | (TruncOp Byte, Int x) -> Byte (Int8.of_int32 x)
+  | (TruncOp Byte, Long x) -> Byte (Int8.of_int64 x)
+  | (TruncOp Int, Long x) -> Int (Integers.trunc_int64_to_int32 x)
+  | ((SExtOp Byte | ZExtOp Byte), Bool x) -> Byte (Integers.zext_int1_to_int8 x)
+  | ((SExtOp Int | ZExtOp Int), Bool x) -> Int (Integers.zext_int1_to_int32 x)
+  | ((SExtOp Long | ZExtOp Long), Bool x) -> Long (Integers.zext_int1_to_int64 x)
+  | (SExtOp Int, Byte x) -> Int (Int8.to_int32 x)
+  | (SExtOp Long, Byte x) -> Long (Int8.to_int64 x)
   | (SExtOp Long, Int x) -> Long (Int64.of_int32 x)
-  | (ZExtOp Int, Byte x) -> Int (Integers.zext_byte_to_int x)
-  | (ZExtOp Long, Byte x) -> Long (Integers.zext_byte_to_long x)
-  | (ZExtOp Long, Int x) -> Long (Integers.zext_int_to_long x)
-  | (IntToFloatOp Double, Byte x) -> Double (Float.of_int x)
+  | (ZExtOp Int, Byte x) -> Int (Integers.zext_int8_to_int32 x)
+  | (ZExtOp Long, Byte x) -> Long (Integers.zext_int8_to_int64 x)
+  | (ZExtOp Long, Int x) -> Long (Integers.zext_int32_to_int64 x)
+  | (IntToFloatOp Double, Byte x) -> Double (Int8.to_float x)
   | (IntToFloatOp Double, Int x) -> Double (Int32.to_float x)
   | (IntToFloatOp Double, Long x) -> Double (Int64.to_float x)
-  | (FloatToIntOp Byte, Double x) -> Byte (Integers.trunc_int_to_byte (Int32.of_float x))
+  | (FloatToIntOp Byte, Double x) -> Byte (Int8.of_int32 (Int32.of_float x))
   | (FloatToIntOp Int, Double x) -> Int (Int32.of_float x)
   | (FloatToIntOp Long, Double x) ->
     (* Largest  *)
@@ -123,7 +123,7 @@ let apply_conversion op (x : Literal.t) : Literal.t =
 let fold_constants_compare (x : Literal.t) (y : Literal.t) : int =
   match (x, y) with
   | (Bool x, Bool y) -> Bool.compare x y
-  | (Byte x, Byte y) -> Int.compare x y
+  | (Byte x, Byte y) -> Int8.compare x y
   | (Int x, Int y) -> Int32.compare x y
   | (Long x, Long y) -> Int64.compare x y
   | (Double x, Double y) -> Float.compare x y

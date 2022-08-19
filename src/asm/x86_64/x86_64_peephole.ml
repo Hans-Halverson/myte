@@ -138,8 +138,8 @@ let remove_byte_reg_reg_moves_optimization ~gcx:_ instr _ _ =
 let load_zero_to_register_optimization ~gcx:_ instr _ _ =
   let open Instruction in
   match instr.instr with
-  | MovIM (_, (Imm8 0 | Imm16 0 | Imm32 0l | Imm64 0L), dest_reg) when Operand.is_reg_value dest_reg
-    ->
+  | MovIM (_, imm, dest_reg)
+    when Int64.equal (int64_of_immediate imm) Int64.zero && Operand.is_reg_value dest_reg ->
     instr.instr <- XorMM (Size32, dest_reg, dest_reg);
     Some (1, [instr])
   | _ -> None
@@ -150,7 +150,7 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr _ _ =
   match instr.instr with
   (* Multiplication by power of two can be reduced to a left shift *)
   | IMulMIR (size, src, imm, dest_reg) when Integers.is_power_of_two (int64_of_immediate imm) ->
-    let power_of_two = Integers.power_of_two (int64_of_immediate imm) in
+    let power_of_two = Int8.of_int (Integers.power_of_two (int64_of_immediate imm)) in
     instr.instr <- ShlI (size, Imm8 power_of_two, dest_reg);
     let shift_instr = instr in
     (* If same register is source and dest, can shift it in place *)
