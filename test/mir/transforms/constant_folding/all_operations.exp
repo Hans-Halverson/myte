@@ -118,6 +118,11 @@ func void @test.testUnit() {
   Ret
 }
 
+func void @test.testNullPointer() {
+  %0 := Call int @test.use<Int>(3)
+  Ret
+}
+
 func void @test.testShift() {
   %0 := Call int @test.use<Int>(4)
   %1 := Call int @test.use<Int>(4)

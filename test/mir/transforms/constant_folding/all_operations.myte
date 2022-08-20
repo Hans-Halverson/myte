@@ -105,6 +105,17 @@ fun testUnit() {
   use(unit() != unit());
 }
 
+@(Inline)
+fun matchNone(x: Option<String>): Int =
+  match (x) {
+    | None -> 3
+    | Some _ -> 5
+  }
+
+fun testNullPointer() {
+  use(matchNone(None));
+}
+
 // Shifts only use lowest byte of right hand side
 fun testShift() {
   use(1 << 258);

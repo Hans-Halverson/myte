@@ -132,6 +132,7 @@ let fold_constants_compare (x : Literal.t) (y : Literal.t) : int =
       1
     else
       Float.compare x y
+  | (NullPointer _, NullPointer _) -> 0
   | _ -> failwith "Invalid operation"
 
 class constant_folding_transform ~(program : Program.t) =
@@ -175,7 +176,9 @@ class constant_folding_transform ~(program : Program.t) =
 
     method get_constant_opt (use : Use.t) : Literal.t option =
       match use.value.value with
-      | Value.Lit ((Bool _ | Byte _ | Int _ | Long _ | Double _ | Function _) as lit) -> Some lit
+      | Value.Lit
+          ((Bool _ | Byte _ | Int _ | Long _ | Double _ | Function _ | NullPointer _) as lit) ->
+        Some lit
       | _ -> None
 
     method visit_global global =
