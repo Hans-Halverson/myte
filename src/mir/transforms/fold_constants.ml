@@ -131,7 +131,11 @@ let fold_constants_compare (x : Literal.t) (y : Literal.t) : int =
 
 class constant_folding_transform ~(program : Program.t) =
   object (this)
+    (* Set of all pending values to be checked if they can be folded *)
     val mutable values_queue : VSet.t = VSet.empty
+
+    (* Set of deleted values which do not need to be folded *)
+    val mutable deleted_values : VSet.t = VSet.empty
 
     method run () =
       (* Initially visit all globals and instructions for an initial round of constant folding *)
@@ -148,7 +152,8 @@ class constant_folding_transform ~(program : Program.t) =
         | _ -> ()
       done
 
-    method enqueue_value value = values_queue <- VSet.add value values_queue
+    method enqueue_value value =
+      if not (VSet.mem value deleted_values) then values_queue <- VSet.add value values_queue
 
     (* Enqueue all values where this value was used to check if they can be folded *)
     method enqueue_value_uses value =
@@ -158,6 +163,10 @@ class constant_folding_transform ~(program : Program.t) =
       let next_value = VSet.choose values_queue in
       values_queue <- VSet.remove next_value values_queue;
       next_value
+
+    method mark_deleted_value value =
+      values_queue <- VSet.remove value values_queue;
+      deleted_values <- VSet.add value deleted_values
 
     method get_constant_opt (use : Use.t) : Literal.t option =
       match use.value.value with
@@ -236,10 +245,21 @@ class constant_folding_transform ~(program : Program.t) =
       (* A constant test means the other branch is pruned *)
       | Branch { test; _ } ->
         (match this#get_constant_opt test with
-        | Some (Bool to_keep) -> prune_branch to_keep instr.block
+        | Some (Bool to_keep) ->
+          prune_branch to_keep instr.block ~on_removed_block:this#on_removed_block
         | _ -> ());
         None
       | _ -> None
+
+    method on_removed_block (block : Block.t) =
+      (* Phis on this block should not be rechecked *)
+      block_iter_phis block (fun phi_value _ -> this#mark_deleted_value phi_value);
+
+      (* All phis on deleted block successors may potentially be folded since they have lost an arg *)
+      BlockSet.iter
+        (fun next_block ->
+          block_iter_phis next_block (fun phi_value _ -> this#enqueue_value phi_value))
+        (get_next_blocks block)
   end
 
 let run ~program =

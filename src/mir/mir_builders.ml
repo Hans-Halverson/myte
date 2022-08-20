@@ -847,8 +847,9 @@ and get_next_blocks (block : Block.t) : BlockSet.t =
  *     Block Graph Mutation
  * ============================
  *)
-and block_remove_if_unreachable (block : Block.t) =
-  if BlockSet.is_empty block.prev_blocks && block.func.start_block != block then remove_block block
+and block_remove_if_unreachable ~(on_removed_block : Block.t -> unit) (block : Block.t) =
+  if BlockSet.is_empty block.prev_blocks && block.func.start_block != block then
+    remove_block ~on_removed_block block
 
 and block_remove_if_empty (block : Block.t) =
   if can_remove_empty_block block then remove_block block
@@ -883,7 +884,8 @@ and can_remove_empty_block (block : Block.t) =
     (not block_needed_for_phi) && not function_start_self_loop
   | _ -> false
 
-and remove_block (block : Block.t) =
+and remove_block ?(on_removed_block : Block.t -> unit = ignore) (block : Block.t) =
+  on_removed_block block;
   (* Remove block from function. This may be the first block in the function. If so, update the
      function to point to the next block as the start. *)
   let func = block.func in
@@ -927,7 +929,7 @@ and remove_block (block : Block.t) =
     (fun next_block ->
       remove_phi_backreferences_for_block ~block:next_block ~to_remove:block;
       remove_block_link block next_block;
-      block_remove_if_unreachable next_block)
+      block_remove_if_unreachable ~on_removed_block next_block)
     (get_next_blocks block);
 
   (* Remove all operand uses in instructions in the block *)
@@ -972,7 +974,7 @@ and merge_adjacent_blocks block1 block2 =
   let func = block2.func in
   func.blocks <- BlockSet.remove block2 func.blocks
 
-and prune_branch (to_keep : bool) (block : Block.t) =
+and prune_branch (to_keep : bool) (block : Block.t) ~(on_removed_block : Block.t -> unit) =
   match get_terminator block with
   | Some ({ instr = Branch { test = _; continue; jump }; _ } as terminator_instr) ->
     let (to_continue, to_prune) =
@@ -986,7 +988,7 @@ and prune_branch (to_keep : bool) (block : Block.t) =
     remove_phi_backreferences_for_block ~block:to_prune ~to_remove:block;
     terminator_instr.instr <- Continue to_continue;
     (* Pruning a branch may cause other to become unreachable *)
-    block_remove_if_unreachable to_prune
+    block_remove_if_unreachable ~on_removed_block to_prune
   | _ -> failwith "Expected branch terminator"
 
 (* Split an edge between two blocks, inserting an empty block in the middle *)

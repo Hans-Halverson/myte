@@ -1,0 +1,10 @@
+module test
+
+fun test1() {
+  use(true || false || false || false || false || false);
+  use(false || false || false || false || false || true);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}
