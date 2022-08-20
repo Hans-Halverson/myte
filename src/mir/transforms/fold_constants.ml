@@ -126,7 +126,12 @@ let fold_constants_compare (x : Literal.t) (y : Literal.t) : int =
   | (Byte x, Byte y) -> Int8.compare x y
   | (Int x, Int y) -> Int32.compare x y
   | (Long x, Long y) -> Int64.compare x y
-  | (Double x, Double y) -> Float.compare x y
+  | (Double x, Double y) ->
+    if Float.is_nan x || Float.is_nan y then
+      (* Doubles only used for Eq/Neq so can use an ordered result to represent not equal *)
+      1
+    else
+      Float.compare x y
   | _ -> failwith "Invalid operation"
 
 class constant_folding_transform ~(program : Program.t) =

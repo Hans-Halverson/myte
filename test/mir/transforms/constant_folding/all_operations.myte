@@ -8,6 +8,8 @@ fun useLong(x: Long): Long = x
 
 fun unit(): Unit = ()
 
+val NaN: Double = 0.0 / 0.0
+
 fun testInt() {
   use(-(56));
 
@@ -79,6 +81,10 @@ fun testDouble() {
   use(24.1 / 3.1);
 
   use(5.0 > 7.0);
+
+  // Special values
+  use(NaN == NaN);
+  use(NaN != NaN);
 }
 
 fun testBool() {

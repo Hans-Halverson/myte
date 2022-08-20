@@ -86,6 +86,8 @@ func void @test.testDouble() {
   %3 := Call double @test.use<Double>(14.91)
   %4 := Call double @test.use<Double>(7.77419354839)
   %5 := Call bool @test.use<Bool>(false)
+  %6 := Call bool @test.use<Bool>(false)
+  %7 := Call bool @test.use<Bool>(true)
   Ret
 }
 
