@@ -252,4 +252,4 @@ module OrderedCallGraph = Make (struct
 end)
 
 (* Return reverse ordering of call graph ending at main function *)
-let get_ordered_call_graph func_roots = OrderedCallGraph.order_nodes func_roots
+let get_ordered_call_graph func_roots = OrderedCallGraph.order_nodes func_roots |> List.rev

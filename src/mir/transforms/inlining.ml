@@ -3,6 +3,13 @@ open Mir
 open Mir_builders
 open Mir_type
 
+(* Cost below which functions will be inlined. Cost is number of additional instructions introduced
+   by inlining. *)
+let inline_threshold = 1000
+
+(* Functions with fewer than this number of instructions will always be inlined *)
+let always_inline_num_instructions_threshold = 20
+
 module InlineContext = struct
   type t = {
     (* Caller which is being inlined into *)
@@ -66,25 +73,45 @@ let rec run ~(program : Program.t) ~(pcx : Program_context.t) =
         program.funcs
         []
     else
-      [program.main_func]
+      let std_sys_init_func = SMap.find Std_lib.std_sys_init program.funcs in
+      [program.main_func; std_sys_init_func]
   in
   let ordered_funcs = Mir_graph_ordering.get_ordered_call_graph func_roots in
   List.iter
-    (fun func -> if should_inline_function ~program ~pcx func then inline_function ~program func)
+    (fun func ->
+      let inlinable_call_instrs = get_inlinable_call_instrs func in
+      if should_inline_function ~program ~pcx func inlinable_call_instrs then
+        inline_function ~program func inlinable_call_instrs)
     ordered_funcs
 
-and should_inline_function ~(program : Program.t) ~(pcx : Program_context.t) (func : Function.t) =
-  if func == program.main_func then
-    false
+and should_inline_function
+    ~(program : Program.t)
+    ~(pcx : Program_context.t)
+    (func : Function.t)
+    (inlinable_call_instrs : Value.t list) =
+  func != program.main_func
+  && func.name != Std_lib.std_sys_init
+  && inlinable_call_instrs != []
+  && (not (Attributes.has_no_inline ~store:pcx.attribute_store func.loc))
+  && (Attributes.has_inline ~store:pcx.attribute_store func.loc
+     || (Opts.optimize () && calculate_inline_cost func inlinable_call_instrs < inline_threshold))
+
+and calculate_inline_cost (func : Function.t) (inlinable_call_instrs : Value.t list) : int =
+  let num_inlinable_call_instrs = List.length inlinable_call_instrs in
+  if num_inlinable_call_instrs == 1 then
+    0
   else
-    Attributes.has_inline ~store:pcx.attribute_store func.loc
+    let num_instructions = ref 0 in
+    func_iter_blocks func (fun block ->
+        iter_instructions block (fun _ _ -> num_instructions := !num_instructions + 1));
+    if !num_instructions <= always_inline_num_instructions_threshold then
+      0
+    else
+      !num_instructions * num_inlinable_call_instrs
 
-and inline_function ~(program : Program.t) (func : Function.t) =
-  let uses = value_get_uses ~value:func.value in
-
-  (* Inline function at all callsites where it is statically called *)
-  List.iter
-    (fun func_use ->
+and get_inlinable_call_instrs (func : Function.t) : Value.t list =
+  let call_instrs = ref [] in
+  value_iter_uses ~value:func.value (fun func_use ->
       match func_use.Use.user.value with
       | Instr { instr = Call { func = Value use; _ }; block = { func = caller_in_func; _ }; _ } ->
         (match use.value.value with
@@ -92,10 +119,14 @@ and inline_function ~(program : Program.t) (func : Function.t) =
         (* Only inline when it is the called function, not when function is an argument to a call.
            Do not inline recursive calls. *)
           when Function.equal func_lit func && not (Function.equal caller_in_func func) ->
-          inline_function_at_callsite func func_use.user
+          call_instrs := func_use.user :: !call_instrs
         | _ -> ())
-      | _ -> ())
-    uses;
+      | _ -> ());
+  !call_instrs
+
+and inline_function
+    ~(program : Program.t) (func : Function.t) (inlinable_call_instrs : Value.t list) =
+  List.iter (inline_function_at_callsite func) inlinable_call_instrs;
 
   (* Remove function if it has no uses remaining *)
   if not (value_has_uses func.value) then program_remove_func ~program ~func

@@ -279,7 +279,10 @@ let emit_init_section ~ecx f =
 
   (* Run callback to generate init instructions and finish block *)
   let result = f () in
-  finish_block_ret ~ecx ~arg:None;
+  let current_block = get_current_block ~ecx in
+  mk_ret_ ~block:current_block ~arg:None;
+  ecx.last_init_block <- Some current_block;
+  ecx.current_block <- None;
 
   ecx.in_init <- old_in_init;
   ecx.current_func <- old_func;

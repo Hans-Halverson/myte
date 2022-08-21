@@ -73,10 +73,10 @@ and Literal : sig
        as a series of instructions *)
     | MyteBuiltin of string
     | ArrayString of string
-    | ArrayVtable of int * Use.t list
+    | ArrayVtable of int * (* Function literals *) Use.t list
     (* A closure aggregate for a known function, where the environment is the null pointer. Also
        contains closure type. *)
-    | AggregateClosure of Type.t * Use.t
+    | AggregateClosure of Type.t * (* Function literal *) Use.t
 end =
   Literal
 

@@ -673,7 +673,11 @@ and split_block_after_instruction (instr_value : Value.t) : Block.t * Block.t =
   BlockSet.iter
     (fun next_block ->
       remove_block_link first_block next_block;
-      add_block_link second_block next_block)
+      add_block_link second_block next_block;
+      map_phi_backreferences_for_block
+        ~block:next_block
+        ~from:first_block
+        ~to_:(BlockSet.singleton second_block))
     (get_next_blocks first_block);
 
   (* If instruction is at end of block then first block is unchanged and second block is empty *)

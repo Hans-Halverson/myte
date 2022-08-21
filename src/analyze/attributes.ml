@@ -4,6 +4,7 @@ module Attribute = struct
   type t =
     | Builtin
     | Inline
+    | NoInline
 end
 
 module AttributeStore = struct
@@ -43,6 +44,7 @@ let add_function_attributes
       | Ast.Attribute.Identifier { name = "Builtin"; loc } ->
         visit_builtin_attribute ~store ~add_attribute ~module_ ~loc
       | Identifier { name = "Inline"; _ } -> add_attribute ~store Attribute.Inline
+      | Identifier { name = "NoInline"; _ } -> add_attribute ~store Attribute.NoInline
       | _ -> ())
 
 let add_general_attributes
@@ -68,3 +70,6 @@ let has_attribute ~(store : AttributeStore.t) (loc : Loc.t) (target : Attribute.
 let is_builtin ~(store : AttributeStore.t) (loc : Loc.t) : bool = has_attribute ~store loc Builtin
 
 let has_inline ~(store : AttributeStore.t) (loc : Loc.t) : bool = has_attribute ~store loc Inline
+
+let has_no_inline ~(store : AttributeStore.t) (loc : Loc.t) : bool =
+  has_attribute ~store loc NoInline

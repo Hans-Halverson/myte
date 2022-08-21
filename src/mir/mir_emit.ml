@@ -445,6 +445,7 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
 and start_init_function ~ecx =
   let func = Ecx.mk_empty_function ~ecx ~name:init_func_name in
   Ecx.start_function ~ecx ~func ~loc:Loc.none ~params:[] ~return_type:None;
+  Ecx.finish_block_ret ~ecx ~arg:None;
   ecx.last_init_block <- Some ecx.current_func.start_block
 
 (*

@@ -1,7 +1,9 @@
 module test
 
+@(NoInline)
 fun use<T>(x: T) {}
 
+@(NoInline)
 fun powerOfTwoMultiply(b: Byte, i: Int, l: Long) {
   use(b * 2);
   use(b * 4);
@@ -21,6 +23,7 @@ fun powerOfTwoMultiply(b: Byte, i: Int, l: Long) {
   use(l * 5);
 }
 
+@(NoInline)
 fun powerOfTwoDivide(b: Byte, i: Int, l: Long) {
   use(b / 2);
   use(b / 4);

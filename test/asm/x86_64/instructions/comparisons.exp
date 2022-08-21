@@ -432,11 +432,11 @@ test.testCompareRegisterRegister:
 .L55:
   ret
 test.testCompareUnitImmReg:
-  call std.unit.Unit.equals
+  movb $1, %al
   ret
 test.testCompareUnitRegImm:
-  call std.unit.Unit.equals
+  movb $1, %al
   ret
 test.testCompareUnitRegs:
-  call std.unit.Unit.equals
+  movb $1, %al
   ret

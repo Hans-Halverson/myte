@@ -98,7 +98,6 @@ fun toBeInlined62(x: Int): Int {
 // Do not inline when function is argument
 fun test7() {
   use(toBeInlined7(89));
-  // TOOD: This should preserve the function
   use(toBeInlined7);
   use(2);
 }
@@ -149,10 +148,34 @@ methods Test9 {
   }
 }
 
+// Main is not inlined
+fun test10() {
+  main();
+}
+
+// Phis in block after inlining are remapped
+fun test11() {
+  var x = 1;
+  if (x + 2 == 5) {
+    toBeInlined11();
+    x = 2;
+  }
+
+  use(x);
+}
+
+@(Inline)
+fun toBeInlined11() {
+  use(false);
+}
+
 fun use<T>(x: T) {}
 
 fun use2<T>(x: T) {}
 
 fun use3<T>(x: T) {}
 
-fun main() {}
+@(Inline)
+fun main() {
+  use3(3);
+}

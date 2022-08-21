@@ -40,6 +40,10 @@ let rec gen ~gcx (ir : Program.t) =
   (* Generate all functions in program *)
   SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
 
+  (* Init function must exist, so generate an empty one if no init func is in MIR *)
+  if (not gcx.generated_init_func) && not (X86_64_utils.any_dump_asm ()) then
+    gen_empty_myte_init_func ~gcx;
+
   Gcx.finish_builders ~gcx
 
 and preprocess_function ~gcx func =
@@ -101,13 +105,15 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
       failwith "Global init value must be a constant")
 
 and gen_function_instruction_builder ~gcx ~ir func =
-  let func_ = Gcx.start_function ~gcx func [] 0 in
+  let param_types = FunctionMap.find func gcx.mir_func_to_param_types in
+  let func_ = Gcx.start_function ~gcx [] param_types 0 in
   let label =
     if func == ir.main_func then
       main_label
-    else if func.name == init_func_name then
+    else if func.name == init_func_name then (
+      gcx.generated_init_func <- true;
       init_label
-    else
+    ) else
       label_of_mir_label func.name
   in
   (* Create function prologue which copies all params from physical registers or stack slots to
@@ -134,6 +140,16 @@ and gen_function_instruction_builder ~gcx ~ir func =
   Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx func.start_block));
   Gcx.finish_block ~gcx;
   gen_blocks ~gcx ~ir func.start_block None func_.id;
+  Gcx.finish_function ~gcx
+
+and gen_empty_myte_init_func ~gcx =
+  gcx.generated_init_func <- true;
+  let func_ = Gcx.start_function ~gcx [] (Array.make 0 (ParamOnStack 0)) 0 in
+  Gcx.start_block ~gcx ~label:(Some init_label) ~func:func_.id ~mir_block:None;
+  let prologue_block_id = (Option.get gcx.current_block_builder).id in
+  func_.prologue <- prologue_block_id;
+  Gcx.emit ~gcx Ret;
+  Gcx.finish_block ~gcx;
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block label func =
@@ -957,7 +973,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
      *)
     if name = myte_alloc.name then (
       let element_mir_ty = cast_to_pointer_type return_type in
-      let param_mir_types = [Type.Long] in
+      let param_mir_types = [Type.Int] in
       let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
       gen_size_from_count_and_type
         ~gcx
@@ -975,7 +991,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     ) else if name = myte_copy.name then (
       let element_mir_ty = cast_to_pointer_type (type_of_use (List.hd args)) in
       let (pointer_args, count_arg) = List_utils.split_last args in
-      let count_mir_type = Type.Long in
+      let count_mir_type = Type.Int in
       let param_mir_types = List.map type_of_use pointer_args @ [count_mir_type] in
       let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
       gen_call_arguments param_types pointer_args;
@@ -1252,7 +1268,7 @@ and gen_get_pointer
     let rec add_unscaled_register reg size =
       if !base = NoBase then
         set_base reg size
-      else if !index_and_scale = None then
+      else if !base != IPBase && !index_and_scale = None then
         set_index_and_scale reg size Scale1
       else (
         ignore (emit_current_address_calculation ());
@@ -1262,7 +1278,7 @@ and gen_get_pointer
     (* Add a scaled register to current address calculation. If there is already a scaled register
        then emit the current address calculation and try again. *)
     let rec add_scaled_register reg size scale =
-      if !index_and_scale = None then
+      if !base != IPBase && !index_and_scale = None then
         set_index_and_scale reg size scale
       else (
         ignore (emit_current_address_calculation ());
@@ -1386,11 +1402,12 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
     in
     (* Check for special case where element size is a single byte - no multiplication required *)
     if element_size = 1 then
-      Gcx.emit ~gcx (MovMM (Size64, count_reg, mk_result_op ()))
+      Gcx.emit ~gcx (MovMM (Size32, count_reg, mk_result_op ()))
     else
+      (* TODO: Could overflow Size32, but count has Size32 so we do not want to use Size64 directly *)
       Gcx.emit
         ~gcx
-        (IMulMIR (Size64, count_reg, Imm32 (Int32.of_int element_size), mk_result_op ()))
+        (IMulMIR (Size32, count_reg, Imm32 (Int32.of_int element_size), mk_result_op ()))
 
 (* Truncate a single byte operand to just its lowest bit if the test val has type bool *)
 and maybe_truncate_bool_operand ~gcx ~if_bool op =

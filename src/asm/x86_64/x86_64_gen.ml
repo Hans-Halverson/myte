@@ -5,10 +5,7 @@ let gen_program ir =
   (* Filter out stdlib for printing *)
   let ir =
     (* TODO: Only use parts of stdlib that we need to, currently strip it all out *)
-    if
-      (Opts.dump_virtual_asm () || Opts.dump_asm () || Opts.dump_full_asm ())
-      && not (Opts.dump_stdlib ())
-    then
+    if X86_64_utils.any_dump_asm () && not (Opts.dump_stdlib ()) then
       Mir.filter_stdlib ir
     else
       ir

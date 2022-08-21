@@ -71,26 +71,24 @@ func void @test.test5() {
 func void @test.test6() {
   Call void @test.use<Int>(8)
   Call void @test.use2<Int>(9)
-  %0 := Call int @test.toBeInlined62(8)
-  %1 := Call int @test.toBeInlined62(8)
-  %2 := Add int %0, %1
+  %0 := Call int @test.toBeInlined60(8)
   Call void @test.use<Int>(7)
   Call void @test.use2<Int>(9)
-  %3 := Call int @test.toBeInlined62(8)
-  %4 := Call int @test.toBeInlined62(7)
-  %5 := Add int %3, %4
-  %6 := Add int 10, 10
-  Call void @test.use3<Int>(%6)
+  %1 := Call int @test.toBeInlined60(7)
+  %2 := Add int 10, 10
+  Call void @test.use3<Int>(%2)
   Ret
 }
 
-func int @test.toBeInlined62(int %0) {
+func int @test.toBeInlined60(int %0) {
+  Call void @test.use<Int>(8)
+  Call void @test.use2<Int>(9)
+  %1 := Call int @test.toBeInlined60(8)
   Call void @test.use<Int>(%0)
   Call void @test.use2<Int>(9)
-  %1 := Call int @test.toBeInlined62(8)
-  %2 := Call int @test.toBeInlined62(%0)
-  %3 := Add int %1, %2
-  Ret 10
+  %2 := Call int @test.toBeInlined60(%0)
+  %3 := Add int 10, 10
+  Ret %3
 }
 
 func void @test.test7() {
@@ -177,6 +175,24 @@ func void @test.Test9.method(test.Test9* %0, int %1) {
   Ret
 }
 
+func void @test.test10() {
+  Call void @test.main()
+  Ret
+}
+
+func void @test.test11() {
+  %0 := Add int 1, 2
+  %1 := Eq int %0, 5
+  branch %1, @0, @1
+label @0:
+  Call void @test.use<Bool>(false)
+  continue @1
+label @1:
+  %2 := Phi int @test.test11:1, @0:2
+  Call void @test.use<Int>(%2)
+  Ret
+}
+
 func void @test.use<Bool>(bool %0) {
   Ret
 }
@@ -202,5 +218,6 @@ func void @test.use3<Int>(int %0) {
 }
 
 func int @test.main() {
+  Call void @test.use3<Int>(3)
   Ret 0
 }

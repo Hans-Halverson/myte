@@ -1,0 +1,88 @@
+module test
+
+// Expand up to added instruction limit
+fun test1() {
+  test11();
+}
+
+fun test11() {
+  test12();
+  test12();
+  test12();
+  test12();
+  test12();
+  test12();
+  test12();
+  test12();
+  test12();
+  test12();
+}
+
+fun test12() {
+  test13();
+  test13();
+  test13();
+  test13();
+  test13();
+  test13();
+  test13();
+  test13();
+  test13();
+  test13();
+}
+
+fun test13() {
+  test14();
+  test14();
+  test14();
+  test14();
+  test14();
+  test14();
+  test14();
+  test14();
+  test14();
+  test14();
+}
+
+fun test14() {
+  test15();
+  test15();
+  test15();
+  test15();
+  test15();
+  test15();
+  test15();
+  test15();
+  test15();
+  test15();
+}
+
+@(NoInline)
+fun test15() {
+  use(1);
+  use(2);
+  use(3);
+}
+
+// NoInline attribute
+fun test2() {
+  test21();
+}
+
+fun test21() {
+  test22();
+}
+
+@(NoInline)
+fun test22() {
+  test23();
+}
+
+fun test23() {
+  use(true);
+}
+
+@(NoInline)
+fun use<T>(x: T) {}
+
+fun main() {}

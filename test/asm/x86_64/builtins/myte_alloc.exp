@@ -17,11 +17,11 @@ test.testMyteAllocLiteralCount:
 test.testMyteAllocVariableCount:
   push %rbx
   movl %edi, %ebx
-  movq %rbx, %rdi
+  movl %ebx, %edi
   call __myte_alloc
-  imulq $4, %rbx, %rdi
+  imull $4, %ebx, %edi
   call __myte_alloc
-  imulq $8, %rbx, %rdi
+  imull $8, %ebx, %edi
   call __myte_alloc
   pop %rbx
   ret

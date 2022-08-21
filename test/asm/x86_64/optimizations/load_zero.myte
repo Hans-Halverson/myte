@@ -1,5 +1,6 @@
 module test
 
+@(NoInline)
 fun use(x1: Int, x2: Byte, x3: Long) {}
 
 fun main() {

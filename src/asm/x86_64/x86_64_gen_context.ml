@@ -30,6 +30,8 @@ module Gcx = struct
     (* Floating point literals *)
     mutable added_double_negate_mask: bool;
     mutable float_immediates: SSet.t;
+    (* Whether the myte_init function has been generated *)
+    mutable generated_init_func: bool;
   }
 
   let mk () =
@@ -61,6 +63,7 @@ module Gcx = struct
       agg_to_layout = IMap.empty;
       added_double_negate_mask = false;
       float_immediates = SSet.empty;
+      generated_init_func = false;
     }
 
   let finish_builders ~gcx =
@@ -127,13 +130,13 @@ module Gcx = struct
       gcx.prev_blocks <- IIMMap.add next_block_id current_block.id gcx.prev_blocks
     | _ -> ()
 
-  let start_function ~gcx mir_func params prologue =
+  let start_function ~gcx params param_types prologue =
     let id = Function.mk_id () in
     let func =
       {
         Function.id;
         params;
-        param_types = Mir.FunctionMap.find mir_func gcx.mir_func_to_param_types;
+        param_types;
         prologue;
         blocks = [];
         spilled_callee_saved_regs = RegSet.empty;
