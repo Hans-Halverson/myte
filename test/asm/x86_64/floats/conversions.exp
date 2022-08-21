@@ -2,7 +2,7 @@
 
   .text
 test.convertByteToDouble:
-  movsx %dil, %eax
+  movsbl %dil, %eax
   cvtsi2sd %eax, %xmm0
   call test.use$Double$
   ret

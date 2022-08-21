@@ -5,11 +5,11 @@ _main:
   movl $0, %eax
   ret
 test.sextByteToInt:
-  movsx %dil, %eax
+  movsbl %dil, %eax
   ret
 test.sextByteToLong:
-  movsx %dil, %rax
+  movsbq %dil, %rax
   ret
 test.sextIntToLong:
-  movsx %edi, %rax
+  movslq %edi, %rax
   ret

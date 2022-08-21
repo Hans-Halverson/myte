@@ -8,19 +8,19 @@ _float$60.:
   .text
 test.divByteImmReg:
   movw $60, %ax
-  movsx %dil, %cx
+  movsbw %dil, %cx
   cwd 
   idivw %cx
   ret
 test.divByteRegImm:
-  movsx %dil, %ax
+  movsbw %dil, %ax
   movw $60, %cx
   cwd 
   idivw %cx
   ret
 test.divByteRegs:
-  movsx %dil, %ax
-  movsx %sil, %cx
+  movsbw %dil, %ax
+  movsbw %sil, %cx
   cwd 
   idivw %cx
   ret
@@ -61,21 +61,21 @@ _main:
   ret
 test.remByteImmReg:
   movw $60, %ax
-  movsx %dil, %cx
+  movsbw %dil, %cx
   cwd 
   idivw %cx
   movl %edx, %eax
   ret
 test.remByteRegImm:
-  movsx %dil, %ax
+  movsbw %dil, %ax
   movw $60, %cx
   cwd 
   idivw %cx
   movl %edx, %eax
   ret
 test.remByteRegs:
-  movsx %dil, %ax
-  movsx %sil, %cx
+  movsbw %dil, %ax
+  movsbw %sil, %cx
   cwd 
   idivw %cx
   movl %edx, %eax

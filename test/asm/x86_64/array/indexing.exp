@@ -67,12 +67,12 @@ test.variableIndexing:
   movq (%rdx, %rax, 8), %rax
   movl %r8d, %eax
   movq (%rcx, %rax, 8), %rax
-  movzx %r9b, %rax
+  movzbq %r9b, %rax
   movb (%rdi, %rax), %al
-  movzx %r9b, %rax
+  movzbq %r9b, %rax
   movl (%rsi, %rax, 4), %eax
-  movzx %r9b, %rax
+  movzbq %r9b, %rax
   movq (%rdx, %rax, 8), %rax
-  movzx %r9b, %rax
+  movzbq %r9b, %rax
   movq (%rcx, %rax, 8), %rax
   ret

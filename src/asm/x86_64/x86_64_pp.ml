@@ -224,6 +224,12 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_integer_size_suffix ~buf size;
         add_char ~buf ' '
       in
+      let pp_double_sized_op op size1 size2 =
+        add_string op;
+        pp_integer_size_suffix ~buf size1;
+        pp_integer_size_suffix ~buf size2;
+        add_char ~buf ' '
+      in
       let pp_register = pp_register ~gcx ~buf in
       let pp_immediate = pp_immediate ~buf in
       let pp_memory_address = pp_memory_address ~gcx ~buf in
@@ -249,7 +255,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_register ~size dest_mem
       | MovSX (src_size, dest_size, src_mem, dest_reg) ->
-        pp_op "movsx";
+        pp_double_sized_op "movs" src_size dest_size;
         pp_register ~size:src_size src_mem;
         pp_args_separator ();
         pp_register ~size:dest_size dest_reg
@@ -260,7 +266,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
             pp_sized_op "mov" Size32;
             (Size32, Size32)
           ) else (
-            pp_op "movzx";
+            pp_double_sized_op "movz" src_size dest_size;
             (src_size, dest_size)
           )
         in

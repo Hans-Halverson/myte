@@ -38,7 +38,7 @@ test.powerOfTwoDivide:
   movq %rbx, %rdi
   sarq $3, %rdi
   call test.use$Long$
-  movsx %r13b, %ax
+  movsbw %r13b, %ax
   movw $5, %cx
   cwd 
   idivw %cx
