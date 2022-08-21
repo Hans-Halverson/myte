@@ -6,6 +6,11 @@ open X86_64_register
 let allocatable_general_purpose_registers =
   RegSet.of_list [A; B; C; D; SI; DI; R8; R9; R10; R11; R12; R13; R14; R15]
 
+let num_allocatable_general_purpose_registers =
+  RegSet.cardinal allocatable_general_purpose_registers - 1
+
+let num_allocatable_sse_registers = RegSet.cardinal all_sse_registers - 1
+
 module X86_64_RegisterAllocatorContext = struct
   module Register = Register
   module Operand = Operand
@@ -59,7 +64,10 @@ module X86_64_RegisterAllocatorContext = struct
 
   let callee_saved_registers = callee_saved_registers
 
-  let num_allocatable_registers reg_class = RegSet.cardinal (allocatable_registers reg_class) - 1
+  let num_allocatable_registers reg_class =
+    match reg_class with
+    | Register.GeneralClass -> num_allocatable_general_purpose_registers
+    | SSEClass -> num_allocatable_sse_registers
 
   let get_rep_physical_registers cx = cx.gcx.color_to_op
 

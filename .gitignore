@@ -2,3 +2,6 @@ _build
 build
 .merlin
 boehm
+
+# Debug files
+*.trace

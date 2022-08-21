@@ -139,6 +139,9 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     mutable colored_vregs: OperandSet.t;
     (* Stack of vregs that are ready for an attempt to have colors assigned to them *)
     mutable select_stack: Operand.t list;
+    (* Set of all members of select stack - keep for optimization, as converting select_stack to
+       set when necessary is expensive. *)
+    mutable select_stack_set: OperandSet.t;
     (* Every move is in exactly one of these sets *)
     mutable coalesced_moves: InstrSet.t;
     mutable constrained_moves: InstrSet.t;
@@ -171,6 +174,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
       coalesced_vregs = OperandSet.empty;
       colored_vregs = OperandSet.empty;
       select_stack = [];
+      select_stack_set = OperandSet.empty;
       coalesced_moves = InstrSet.empty;
       constrained_moves = InstrSet.empty;
       frozen_moves = InstrSet.empty;
@@ -246,13 +250,11 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
 
   let adjacent ~(ra : t) reg =
     let adjacent_regs = OOMMap.find_all reg ra.interference_graph in
-    let to_ignore = OperandSet.union (OperandSet.of_list ra.select_stack) ra.coalesced_vregs in
-    OperandSet.diff adjacent_regs to_ignore
+    OperandSet.diff (OperandSet.diff adjacent_regs ra.coalesced_vregs) ra.select_stack_set
 
   let node_moves ~(ra : t) reg =
-    InstrSet.inter
-      (OInstrMMap.find_all reg ra.move_list)
-      (InstrSet.union ra.active_moves ra.worklist_moves)
+    let moves = OInstrMMap.find_all reg ra.move_list in
+    InstrSet.union (InstrSet.inter moves ra.active_moves) (InstrSet.inter moves ra.worklist_moves)
 
   let move_related ~ra reg = not (InstrSet.is_empty (node_moves ~ra reg))
 
@@ -302,6 +304,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     let vreg = OperandSet.choose ra.simplify_worklist in
     ra.simplify_worklist <- OperandSet.remove vreg ra.simplify_worklist;
     ra.select_stack <- vreg :: ra.select_stack;
+    ra.select_stack_set <- OperandSet.add vreg ra.select_stack_set;
     let adjacent_regs = adjacent ~ra vreg in
     OperandSet.iter (fun adjacent_reg -> decrement_degree ~ra adjacent_reg) adjacent_regs
 
@@ -332,12 +335,13 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
      If there are fewer than K neighbor regs of significant degree, then coalescing cannot make
      the graph non-K colorable. *)
   let can_conservative_coalesce ~(ra : t) reg1 reg2 =
-    let neighbor_regs = OperandSet.union (adjacent ~ra reg1) (adjacent ~ra reg2) in
     let k = ref 0 in
-    OperandSet.iter
-      (fun reg ->
-        if degree ~ra reg >= Cx.num_allocatable_registers (Cx.get_class reg) then k := !k + 1)
-      neighbor_regs;
+    let find_significant_degree_neighbors =
+      OperandSet.iter (fun reg ->
+          if degree ~ra reg >= Cx.num_allocatable_registers (Cx.get_class reg) then k := !k + 1)
+    in
+    find_significant_degree_neighbors (adjacent ~ra reg1);
+    find_significant_degree_neighbors (adjacent ~ra reg2);
     !k < Cx.num_allocatable_registers (Cx.get_class reg1)
 
   let rec get_operand_alias ~ra op =
@@ -433,7 +437,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         in
         let maybe_unfreeze vreg =
           if
-            InstrSet.is_empty (node_moves ~ra vreg)
+            (not (move_related ~ra vreg))
             && degree ~ra vreg < Cx.num_allocatable_registers (Cx.get_class vreg)
           then (
             ra.freeze_worklist <- OperandSet.remove vreg ra.freeze_worklist;
@@ -529,6 +533,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     while ra.select_stack <> [] do
       let vreg = List.hd ra.select_stack in
       ra.select_stack <- List.tl ra.select_stack;
+      ra.select_stack_set <- OperandSet.remove vreg ra.select_stack_set;
       let interfering_vregs = OOMMap.find_all vreg ra.interference_graph in
 
       (* Create a set of all registers and remove colors of all neighbors in interference graph *)
