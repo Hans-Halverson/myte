@@ -90,7 +90,9 @@ let transform_ir ~pcx program =
   if Opts.optimize () then
     Mir_transforms.optimize ~program ~pcx
   else
-    Mir_transforms.transform_for_assembly ~program ~pcx
+    Mir_transforms.non_optimized_transforms ~program ~pcx;
+
+  Mir_transforms.transform_for_assembly ~program ~pcx
 
 let lower_to_asm ir =
   (* Generate x86_64 program  *)

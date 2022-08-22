@@ -1,7 +1,6 @@
 open Basic_collections
 open Mir
 open Mir_builders
-open Mir_type
 
 (* Cost below which functions will be inlined. Cost is number of additional instructions introduced
    by inlining. *)
@@ -10,54 +9,40 @@ let inline_threshold = 1000
 (* Functions with fewer than this number of instructions will always be inlined *)
 let always_inline_num_instructions_threshold = 20
 
-module InlineContext = struct
-  type t = {
-    (* Caller which is being inlined into *)
-    caller_func: Function.t;
-        (* Block in the caller function that all ret functions in inlined functions jump to. Phi
-           instruction with all returned values will be inserted at the start of this block. *)
-    ret_join_block: Block.t;
-    ret_phi_instr: Value.t option;
+class inlining_mapper ~(* Caller which is being inlined into *)
+                      (caller_func : Function.t) =
+  object
     (* Map from value in inlined function to the matching value in the caller function *)
-    mutable value_map: Value.t VMap.t;
+    val mutable value_map : Value.t VMap.t = VMap.empty
+
     (* Map from block in inlined function to the matching block in the caller function *)
-    mutable block_map: Block.t BlockMap.t;
-  }
+    val mutable block_map : Block.t BlockMap.t = BlockMap.empty
 
-  let mk ~caller_func ~ret_join_block ~ret_phi_instr =
-    {
-      caller_func;
-      ret_join_block;
-      ret_phi_instr;
-      value_map = VMap.empty;
-      block_map = BlockMap.empty;
-    }
+    method add_value_mapping v1 v2 = value_map <- VMap.add v1 v2 value_map
 
-  let add_value_mapping ~cx v1 v2 = cx.value_map <- VMap.add v1 v2 cx.value_map
+    method map_value value =
+      match value.Value.value with
+      | Lit _ -> value
+      | Instr _
+      | Argument _ ->
+        (match VMap.find_opt value value_map with
+        | Some mapped_value -> mapped_value
+        | None ->
+          let mapped_value = mk_uninit_value () in
+          (* Temporarily use old value, this will be overwritten but is necessary to pass type checks
+             on this value before it is filled. *)
+          mapped_value.value <- value.value;
+          value_map <- VMap.add value mapped_value value_map;
+          mapped_value)
 
-  let get_mapped_value ~cx value =
-    match value.Value.value with
-    | Lit _ -> value
-    | Instr _
-    | Argument _ ->
-      (match VMap.find_opt value cx.value_map with
-      | Some mapped_value -> mapped_value
+    method map_block block =
+      match BlockMap.find_opt block block_map with
+      | Some mapped_block -> mapped_block
       | None ->
-        let mapped_value = mk_uninit_value () in
-        (* Temporarily use old value, this will be overwritten but is necessary to pass type checks
-           on this value before it is filled. *)
-        mapped_value.value <- value.value;
-        cx.value_map <- VMap.add value mapped_value cx.value_map;
-        mapped_value)
-
-  let get_mapped_block ~cx block =
-    match BlockMap.find_opt block cx.block_map with
-    | Some mapped_block -> mapped_block
-    | None ->
-      let mapped_block = mk_block ~func:cx.caller_func in
-      cx.block_map <- BlockMap.add block mapped_block cx.block_map;
-      mapped_block
-end
+        let mapped_block = mk_block ~func:caller_func in
+        block_map <- BlockMap.add block mapped_block block_map;
+        mapped_block
+  end
 
 let rec run ~(program : Program.t) ~(pcx : Program_context.t) =
   (* Find all function roots. Normally this is just the main function as only functions reachable
@@ -149,7 +134,7 @@ and inline_function_at_callsite (func : Function.t) (call_instr_value : Value.t)
   in
   remove_instruction call_instr_value;
 
-  let cx = InlineContext.mk ~caller_func ~ret_join_block:caller_after_block ~ret_phi_instr in
+  let mapper = new inlining_mapper ~caller_func in
 
   (* Map parameters to call arguments during inlining of this call *)
   let { Instruction.Call.args; _ } =
@@ -158,127 +143,32 @@ and inline_function_at_callsite (func : Function.t) (call_instr_value : Value.t)
     | _ -> failwith "Expected call instruction"
   in
   List.iter2
-    (fun param arg_use -> InlineContext.add_value_mapping ~cx param arg_use.Use.value)
+    (fun param arg_use -> mapper#add_value_mapping param arg_use.Use.value)
     func.params
     args;
 
   (* First block continues to start of inlined body *)
-  let inlined_func_start_block = InlineContext.get_mapped_block ~cx func.start_block in
+  let inlined_func_start_block = mapper#map_block func.start_block in
   mk_continue_ ~block:caller_before_block ~continue:inlined_func_start_block;
   add_block_link caller_before_block inlined_func_start_block;
 
   (* Copy all blocks in the body of the inlined function into caller *)
-  func_iter_blocks func (fun block -> map_block ~cx block)
-
-and map_block ~(cx : InlineContext.t) (source_block : Block.t) =
-  let map_block block = InlineContext.get_mapped_block ~cx block in
-  let map_value value = InlineContext.get_mapped_value ~cx value in
-  let map_use use = map_value use.Use.value in
-
-  let block = InlineContext.get_mapped_block ~cx source_block in
-  iter_instructions source_block (fun instr_value instr ->
-      let type_ = instr.type_ in
-      let value = map_value instr_value in
-      (match instr.instr with
-      (* Returns replaced with continue to join block, adding return argument to join block phi *)
-      | Ret arg ->
-        (match arg with
-        | None -> ()
-        | Some arg ->
-          let arg = map_use arg in
-          let phi_val = Option.get cx.ret_phi_instr in
-          let phi = cast_to_phi (cast_to_instruction phi_val) in
-          phi_add_arg ~phi_val ~phi ~block:instr.block ~value:arg);
-        set_continue_instr ~value ~continue:cx.ret_join_block;
-        add_block_link block cx.ret_join_block
-      (* All other instructions are directly copied, with values and blocks mapped s*)
-      | Phi { args } ->
-        let args =
-          BlockMap.fold
-            (fun source_block source_use args ->
-              BlockMap.add (map_block source_block) (map_use source_use) args)
-            args
-            BlockMap.empty
-        in
-        set_phi_instr ~value ~type_ ~args
-      | Call { func; args; has_return } ->
-        let args = List.map map_use args in
-        let return =
-          if has_return then
-            Some type_
-          else
-            None
-        in
-        (match func with
-        | Value func_use ->
-          let func = map_use func_use in
-          set_call_instr ~value ~func ~args ~return
-        | MirBuiltin builtin -> set_call_builtin_instr ~value ~builtin ~args ~return)
-      | StackAlloc type_ -> set_stack_alloc_instr ~value ~type_
-      | Load ptr ->
-        let ptr = map_use ptr in
-        set_load_instr ~value ~ptr
-      | Store (ptr, stored_value) ->
-        let ptr = map_use ptr in
-        let stored_value = map_use stored_value in
-        set_store_instr ~instr_value:value ~ptr ~stored_value
-      | GetPointer { pointer; pointer_offset; offsets } ->
-        let pointer = map_use pointer in
-        let pointer_offset = Option.map map_use pointer_offset in
-        let offsets =
-          List.map
-            (fun offset ->
-              let open Instruction.GetPointer in
-              match offset with
-              | PointerIndex index -> PointerIndex (map_use index)
-              | FieldIndex index -> FieldIndex index)
-            offsets
-        in
-        let type_ = cast_to_pointer_type type_ in
-        set_get_pointer_instr ~value ~type_ ~ptr:pointer ~pointer_offset ~offsets ()
-      | Unary (op, arg) ->
-        let arg = map_use arg in
-        set_unary_instr ~value ~op ~arg
-      | Binary (op, left, right) ->
-        let left = map_use left in
-        let right = map_use right in
-        set_binary_instr ~value ~op ~left ~right
-      | Cmp (cmp, left, right) ->
-        let left = map_use left in
-        let right = map_use right in
-        set_cmp_instr ~value ~cmp ~left ~right
-      | Cast arg ->
-        let arg = map_use arg in
-        set_cast_instr ~value ~arg ~type_
-      | Trunc arg ->
-        let arg = map_use arg in
-        set_trunc_instr ~value ~arg ~type_
-      | SExt arg ->
-        let arg = map_use arg in
-        set_sext_instr ~value ~arg ~type_
-      | ZExt arg ->
-        let arg = map_use arg in
-        set_zext_instr ~value ~arg ~type_
-      | IntToFloat arg ->
-        let arg = map_use arg in
-        set_int_to_float_instr ~value ~arg ~type_
-      | FloatToInt arg ->
-        let arg = map_use arg in
-        set_float_to_int_instr ~value ~arg ~type_
-      | Unreachable -> set_unreachable_instr ~value
-      | Continue continue ->
-        let continue = map_block continue in
-        set_continue_instr ~value ~continue;
-        add_block_link block continue
-      | Branch { test; continue; jump } ->
-        let test = map_use test in
-        let continue = map_block continue in
-        let jump = map_block jump in
-        set_branch_instr ~value ~test ~continue ~jump;
-        add_block_link block continue;
-        add_block_link block jump
-      | Mov arg ->
-        let arg = map_use arg in
-        set_mov_instr ~value ~arg);
-
-      append_instruction block value)
+  func_iter_blocks func (fun block ->
+      iter_instructions block (fun instr_value instr ->
+          let new_block = mapper#map_block block in
+          let new_value = mapper#map_value instr_value in
+          (match instr.instr with
+          (* Returns replaced with continue to join block, adding return argument to join block phi *)
+          | Ret arg ->
+            (match arg with
+            | None -> ()
+            | Some arg ->
+              let arg = mapper#map_value arg.Use.value in
+              let phi_val = Option.get ret_phi_instr in
+              let phi = cast_to_phi (cast_to_instruction phi_val) in
+              phi_add_arg ~phi_val ~phi ~block:instr.block ~value:arg);
+            set_continue_instr ~value:new_value ~continue:caller_after_block;
+            add_block_link new_block caller_after_block
+          (* All other instructions are directly copied, with values and blocks mapped s*)
+          | _ -> Mir_mapper.map_instruction ~mapper instr_value);
+          append_instruction new_block new_value))

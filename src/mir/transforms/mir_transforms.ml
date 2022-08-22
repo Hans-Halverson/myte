@@ -43,10 +43,13 @@ let optimize ~program ~pcx =
   apply_transforms
     ~program
     ~pcx
-    [SSA; Inline; SimplifyInstructions; ConstantFolding; DIE; Normalize; SSADestruction]
+    [SSA; Inline; SimplifyInstructions; ConstantFolding; DIE; Normalize]
 
-(* Minimal transformations needed to emit assembly, without optimization set *)
-let transform_for_assembly ~program ~pcx =
-  apply_transforms ~program ~pcx [SSA; Inline; ConstantFolding; Normalize; SSADestruction]
+(* Minimal transformations needed when not optimizing *)
+let non_optimized_transforms ~program ~pcx =
+  apply_transforms ~program ~pcx [SSA; Inline; ConstantFolding; Normalize]
+
+(* Transforms need for lowering to assembly *)
+let transform_for_assembly ~program ~pcx = apply_transforms ~program ~pcx [SSADestruction]
 
 let transform_for_dump_ir ~program ~pcx = apply_transforms ~program ~pcx [SSA; Inline; Normalize]
