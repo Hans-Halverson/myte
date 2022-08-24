@@ -135,6 +135,56 @@ let fold_constants_compare (x : Literal.t) (y : Literal.t) : int =
   | (NullPointer _, NullPointer _) -> 0
   | _ -> failwith "Invalid operation"
 
+let get_constant_value_opt (value : Value.t) : Literal.t option =
+  match value.value with
+  | Value.Lit ((Bool _ | Byte _ | Int _ | Long _ | Double _ | Function _ | NullPointer _) as lit) ->
+    Some lit
+  | _ -> None
+
+let get_constant_use_opt (use : Use.t) : Literal.t option = get_constant_value_opt use.value
+
+(* Try to constant fold an expression, returning the constant if instruction was folded otherwise None  *)
+let try_fold_instruction ~mapper (instr : Instruction.t) =
+  let get_constant_opt use = get_constant_value_opt (mapper#map_value use.Use.value) in
+  let try_fold_conversion arg op =
+    match get_constant_opt arg with
+    | None -> None
+    | Some arg -> Some (apply_conversion op arg)
+  in
+  match instr.instr with
+  | Unary (op, arg) ->
+    (match get_constant_opt arg with
+    | None -> None
+    | Some arg -> Some (apply_unary_operation op arg))
+  | Binary (op, left, right) ->
+    (match (get_constant_opt left, get_constant_opt right) with
+    | (Some left, Some right) -> Some (apply_binary_operation op left right)
+    | _ -> None)
+  | Cmp (cmp, left, right) ->
+    let cmp_f =
+      match cmp with
+      | Eq -> ( == )
+      | Neq -> ( <> )
+      | Lt -> ( < )
+      | LtEq -> ( <= )
+      | Gt -> ( > )
+      | GtEq -> ( >= )
+    in
+    (match (get_constant_opt left, get_constant_opt right) with
+    | (Some left, Some right) -> Some (Bool (cmp_f (fold_constants_compare left right) 0))
+    | _ -> None)
+  | Trunc arg -> try_fold_conversion arg (TruncOp instr.type_)
+  | SExt arg -> try_fold_conversion arg (SExtOp instr.type_)
+  | ZExt arg -> try_fold_conversion arg (ZExtOp instr.type_)
+  | IntToFloat arg -> try_fold_conversion arg (IntToFloatOp instr.type_)
+  | FloatToInt arg -> try_fold_conversion arg (FloatToIntOp instr.type_)
+  (* Phis where all branches have the same literal argument are replaced with that literal *)
+  | Phi phi ->
+    (match phi_get_single_arg_value ~map_value:mapper#map_value phi with
+    | Some { value = Lit arg_literal; _ } -> Some arg_literal
+    | _ -> None)
+  | _ -> None
+
 class constant_folding_transform ~(program : Program.t) =
   object (this)
     (* Set of all pending values to be checked if they can be folded *)
@@ -174,16 +224,9 @@ class constant_folding_transform ~(program : Program.t) =
       values_queue <- VSet.remove value values_queue;
       deleted_values <- VSet.add value deleted_values
 
-    method get_constant_opt (use : Use.t) : Literal.t option =
-      match use.value.value with
-      | Value.Lit
-          ((Bool _ | Byte _ | Int _ | Long _ | Double _ | Function _ | NullPointer _) as lit) ->
-        Some lit
-      | _ -> None
-
     method visit_global global =
       if global.is_constant then
-        match Option_utils.flat_map this#get_constant_opt global.init_val with
+        match Option_utils.flat_map get_constant_use_opt global.init_val with
         | None -> ()
         | Some _ ->
           this#enqueue_value_uses global.value;
@@ -199,65 +242,29 @@ class constant_folding_transform ~(program : Program.t) =
         replace_instruction ~from:instr_val ~to_:folded_val
 
     method try_fold_instruction instr_val instr =
-      let try_fold_conversion arg op =
-        match this#get_constant_opt arg with
-        | None -> None
-        | Some arg -> Some (apply_conversion op arg)
-      in
       match instr.instr with
-      | Unary (op, arg) ->
-        (match this#get_constant_opt arg with
-        | None -> None
-        | Some arg -> Some (apply_unary_operation op arg))
-      | Binary (op, left, right) ->
-        (match (this#get_constant_opt left, this#get_constant_opt right) with
-        | (Some left, Some right) -> Some (apply_binary_operation op left right)
-        | _ -> None)
-      | Cmp (cmp, left, right) ->
-        let cmp_f =
-          match cmp with
-          | Eq -> ( == )
-          | Neq -> ( <> )
-          | Lt -> ( < )
-          | LtEq -> ( <= )
-          | Gt -> ( > )
-          | GtEq -> ( >= )
-        in
-        (match (this#get_constant_opt left, this#get_constant_opt right) with
-        | (Some left, Some right) -> Some (Bool (cmp_f (fold_constants_compare left right) 0))
-        | _ -> None)
-      | Trunc arg -> try_fold_conversion arg (TruncOp instr.type_)
-      | SExt arg -> try_fold_conversion arg (SExtOp instr.type_)
-      | ZExt arg -> try_fold_conversion arg (ZExtOp instr.type_)
-      | IntToFloat arg -> try_fold_conversion arg (IntToFloatOp instr.type_)
-      | FloatToInt arg -> try_fold_conversion arg (FloatToIntOp instr.type_)
       (* Propagate global constants through pointers *)
       | Load { value = { value = Lit (Global { is_constant; init_val = Some init_val; _ }); _ }; _ }
         when is_constant ->
-        this#get_constant_opt init_val
+        get_constant_use_opt init_val
       (* Stores in the init function of constants can be converted to constant global initializers *)
       | Store ({ value = { value = Lit (Global global); _ }; _ }, stored_val)
         when instr.block.func.name == init_func_name ->
-        (match this#get_constant_opt stored_val with
+        (match get_constant_use_opt stored_val with
         | None -> ()
         | Some constant ->
           global_set_init ~global ~init:(Some (mk_value (Lit constant)));
           remove_instruction instr_val;
           this#visit_global global);
         None
-      (* Phis where all branches have the same literal argument are replaced with that literal *)
-      | Phi phi ->
-        (match phi_get_single_arg_value phi with
-        | Some { value = Lit arg_literal; _ } -> Some arg_literal
-        | _ -> None)
       (* A constant test means the other branch is pruned *)
       | Branch { test; _ } ->
-        (match this#get_constant_opt test with
+        (match get_constant_use_opt test with
         | Some (Bool to_keep) ->
           prune_branch to_keep instr.block ~on_removed_block:this#on_removed_block
         | _ -> ());
         None
-      | _ -> None
+      | _ -> try_fold_instruction ~mapper:Mir_mapper.id_mapper instr
 
     method on_removed_block (block : Block.t) =
       (* Phis on this block should not be rechecked *)

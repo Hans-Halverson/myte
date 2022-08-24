@@ -1,0 +1,83 @@
+module test
+
+fun bool(): Bool = true
+
+fun int(): Int = 1
+
+// Threading from one path, other path is not threaded
+fun test1() {
+  var x = int();
+  if (bool()) {
+    x = 2;
+  }
+
+  use(100);
+  use(x);
+  use(int());
+
+  if (x == 2) {
+    use(1);
+  } else {
+    use(2);
+  }
+}
+
+// Threading from both paths
+fun test2() {
+  var x = 1;
+  if (bool()) {
+    x = 2;
+  }
+
+  use(100);
+  use(x);
+  use(int());
+
+  if (x == 2) {
+    use(1);
+  } else {
+    use(2);
+  }
+}
+
+// Instruction in target block can be used within target block and non-threaded next block
+fun test3() {
+  var x = 1;
+  if (bool()) {
+    x = 2;
+  }
+
+  use(100);
+  val y = int();
+  use(y);
+
+  if (x == 2) {
+    use(1);
+  } else {
+    use(2);
+    use(y);
+  }
+}
+
+// But cannot be used within threaded next block
+fun test4() {
+  var x = int();
+  if (bool()) {
+    x = 2;
+  }
+
+  use(100);
+  val y = int();
+  use(y);
+
+  if (x == 2) {
+    use(1);
+    use(y);
+  } else {
+    use(2);
+  }
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

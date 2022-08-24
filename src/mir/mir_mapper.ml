@@ -104,3 +104,11 @@ let map_instruction ~mapper (instr_value : Value.t) =
   | Mov arg ->
     let arg = map_use arg in
     set_mov_instr ~value ~arg
+
+class id_mapper =
+  object
+    method map_value (value : Value.t) = value
+    method map_block (block : Block.t) = block
+  end
+
+let id_mapper = new id_mapper

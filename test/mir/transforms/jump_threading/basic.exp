@@ -1,0 +1,112 @@
+func bool @test.bool() {
+  Ret true
+}
+
+func int @test.int() {
+  Ret 1
+}
+
+func void @test.test1() {
+  %0 := Call int @test.int()
+  %1 := Call bool @test.bool()
+  branch %1, @0, @1
+label @0:
+  Call void @test.use<Int>(100)
+  Call void @test.use<Int>(2)
+  %2 := Call int @test.int()
+  Call void @test.use<Int>(%2)
+  continue @2
+label @1:
+  Call void @test.use<Int>(100)
+  Call void @test.use<Int>(%0)
+  %3 := Call int @test.int()
+  Call void @test.use<Int>(%3)
+  %4 := Eq int %0, 2
+  branch %4, @2, @3
+label @2:
+  Call void @test.use<Int>(1)
+  continue @4
+label @3:
+  Call void @test.use<Int>(2)
+  continue @4
+label @4:
+  Ret
+}
+
+func void @test.test2() {
+  %0 := Call bool @test.bool()
+  branch %0, @0, @1
+label @0:
+  Call void @test.use<Int>(100)
+  Call void @test.use<Int>(2)
+  %1 := Call int @test.int()
+  Call void @test.use<Int>(%1)
+  Call void @test.use<Int>(1)
+  continue @2
+label @1:
+  Call void @test.use<Int>(100)
+  Call void @test.use<Int>(1)
+  %2 := Call int @test.int()
+  Call void @test.use<Int>(%2)
+  Call void @test.use<Int>(2)
+  continue @2
+label @2:
+  Ret
+}
+
+func void @test.test3() {
+  %0 := Call bool @test.bool()
+  branch %0, @0, @1
+label @0:
+  Call void @test.use<Int>(100)
+  %1 := Call int @test.int()
+  Call void @test.use<Int>(%1)
+  continue @2
+label @1:
+  Call void @test.use<Int>(100)
+  %2 := Call int @test.int()
+  Call void @test.use<Int>(%2)
+  %3 := Eq int 1, 2
+  branch %3, @2, @3
+label @2:
+  Call void @test.use<Int>(1)
+  continue @4
+label @3:
+  Call void @test.use<Int>(2)
+  Call void @test.use<Int>(%2)
+  continue @4
+label @4:
+  Ret
+}
+
+func void @test.test4() {
+  %0 := Call int @test.int()
+  %1 := Call bool @test.bool()
+  branch %1, @0, @1
+label @0:
+  continue @1
+label @1:
+  %2 := Phi int @test.test4:%0, @0:2
+  Call void @test.use<Int>(100)
+  %3 := Call int @test.int()
+  Call void @test.use<Int>(%3)
+  %4 := Eq int %2, 2
+  branch %4, @2, @3
+label @2:
+  Call void @test.use<Int>(1)
+  Call void @test.use<Int>(%3)
+  continue @4
+label @3:
+  Call void @test.use<Int>(2)
+  continue @4
+label @4:
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

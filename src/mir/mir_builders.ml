@@ -815,15 +815,21 @@ and phi_filter_args ~(phi : Instruction.Phi.t) (f : Block.t -> Use.t -> bool) =
       phi.args
 
 (* If all phi args have the same value, return that value. Otherwise return None. *)
-and phi_get_single_arg_value (phi : Instruction.Phi.t) : Value.t option =
+and phi_get_single_arg_value ~(map_value : Value.t -> Value.t) (phi : Instruction.Phi.t) :
+    Value.t option =
   match BlockMap.choose_opt phi.args with
   | None -> None
-  | Some (_, first_arg) ->
+  | Some (_, first_use) ->
+    let first_arg = map_value first_use.value in
     let has_single_arg_value =
-      BlockMap.for_all (fun _ arg_use -> values_equal arg_use.Use.value first_arg.value) phi.args
+      BlockMap.for_all
+        (fun _ arg_use ->
+          let arg = map_value arg_use.Use.value in
+          values_equal arg first_arg)
+        phi.args
     in
     if has_single_arg_value then
-      Some first_arg.value
+      Some first_arg
     else
       None
 
@@ -1054,10 +1060,10 @@ and map_phi_backreferences_for_block ~(block : Block.t) ~(from : Block.t) ~(to_ 
       match BlockMap.find_opt from phi.args with
       | None -> ()
       | Some use ->
+        phi_remove_arg ~phi ~block:from;
         BlockSet.iter
           (fun to_block -> phi_add_arg ~phi_val ~phi ~block:to_block ~value:use.value)
-          to_;
-        phi_remove_arg ~phi ~block:from)
+          to_)
 
 (*
  * ============================

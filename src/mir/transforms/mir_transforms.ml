@@ -8,6 +8,7 @@ module MirTransform = struct
     | Inline
     (* Dead instruction elimination *)
     | DIE
+    | JumpThreading
     | SSADestruction
 
   let compare = Stdlib.compare
@@ -20,6 +21,7 @@ module MirTransform = struct
     | "simplify-instructions" -> Some SimplifyInstructions
     | "inline" -> Some Inline
     | "die" -> Some DIE
+    | "jump-threading" -> Some JumpThreading
     | "ssa-destruction" -> Some SSADestruction
     | _ -> None
 end
@@ -35,6 +37,7 @@ let apply_transforms
       | ConstantFolding -> Fold_constants.run ~program
       | Inline -> Inlining.run ~program ~pcx
       | DIE -> Dead_instruction_elimination.run ~program
+      | JumpThreading -> Jump_threading.run ~program
       | SSADestruction -> Ssa_destruction.run ~program)
     transforms
 
@@ -43,7 +46,7 @@ let optimize ~program ~pcx =
   apply_transforms
     ~program
     ~pcx
-    [SSA; Inline; SimplifyInstructions; ConstantFolding; DIE; Normalize]
+    [SSA; Inline; SimplifyInstructions; ConstantFolding; Normalize; JumpThreading; DIE; Normalize]
 
 (* Minimal transformations needed when not optimizing *)
 let non_optimized_transforms ~program ~pcx =

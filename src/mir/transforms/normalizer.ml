@@ -69,7 +69,7 @@ and remove_empty_blocks ~program = program_iter_blocks program block_remove_if_e
 (* Replace phis where all args have same value (including single arg phis) with the arg itself *)
 and simplify_phi ~worklist (phi_instr : Value.t) =
   let phi = cast_to_phi (cast_to_instruction phi_instr) in
-  match phi_get_single_arg_value phi with
+  match phi_get_single_arg_value ~map_value:Function_utils.id phi with
   | None -> ()
   | Some arg_value ->
     (* If replaced phi is as arg of other phis, recheck those phis *)
