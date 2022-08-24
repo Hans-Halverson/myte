@@ -288,6 +288,9 @@ and set_trunc_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit
   let arg_use = user_add_use ~user:value ~use:arg in
   set_instr ~value ~type_ ~instr:(Trunc arg_use)
 
+and mk_blockless_trunc ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_blockless_instr (set_trunc_instr ~arg ~type_)
+
 and mk_trunc ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   mk_block_instr ~block (set_trunc_instr ~arg ~type_)
 
@@ -304,6 +307,9 @@ and set_sext_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit 
   let arg_use = user_add_use ~user:value ~use:arg in
   set_instr ~value ~type_ ~instr:(SExt arg_use)
 
+and mk_blockless_sext ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_blockless_instr (set_sext_instr ~arg ~type_)
+
 and mk_sext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   mk_block_instr ~block (set_sext_instr ~arg ~type_)
 
@@ -319,6 +325,9 @@ and set_zext_instr ~(value : Value.t) ~(arg : Value.t) ~(type_ : Type.t) : unit 
       "ZExt arguments must be integers with type argument having larger size than value argument";
   let arg_use = user_add_use ~user:value ~use:arg in
   set_instr ~value ~type_ ~instr:(ZExt arg_use)
+
+and mk_blockless_zext ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
+  mk_blockless_instr (set_zext_instr ~arg ~type_)
 
 and mk_zext ~(block : Block.t) ~(arg : Value.t) ~(type_ : Type.t) : Value.t =
   mk_block_instr ~block (set_zext_instr ~arg ~type_)
@@ -815,8 +824,8 @@ and phi_filter_args ~(phi : Instruction.Phi.t) (f : Block.t -> Use.t -> bool) =
       phi.args
 
 (* If all phi args have the same value, return that value. Otherwise return None. *)
-and phi_get_single_arg_value ~(map_value : Value.t -> Value.t) (phi : Instruction.Phi.t) :
-    Value.t option =
+and phi_get_single_arg_value_with_mapper ~(map_value : Value.t -> Value.t) (phi : Instruction.Phi.t)
+    : Value.t option =
   match BlockMap.choose_opt phi.args with
   | None -> None
   | Some (_, first_use) ->
@@ -832,6 +841,9 @@ and phi_get_single_arg_value ~(map_value : Value.t -> Value.t) (phi : Instructio
       Some first_arg
     else
       None
+
+and phi_get_single_arg_value (phi : Instruction.Phi.t) : Value.t option =
+  phi_get_single_arg_value_with_mapper ~map_value:Function_utils.id phi
 
 (*
  * ============================

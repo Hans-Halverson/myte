@@ -4,15 +4,15 @@ func void @test.negateComparisons(int %0) {
   %2 := Neq int %0, 1
   Call void @test.use<Bool>(%2)
   %3 := Eq int %0, 1
+  Call void @test.use<Bool>(%3)
+  %4 := GtEq int %0, 1
   Call void @test.use<Bool>(%4)
-  %5 := GtEq int %0, 1
+  %5 := Gt int %0, 1
   Call void @test.use<Bool>(%5)
-  %6 := Gt int %0, 1
+  %6 := LtEq int %0, 1
   Call void @test.use<Bool>(%6)
-  %7 := LtEq int %0, 1
+  %7 := Lt int %0, 1
   Call void @test.use<Bool>(%7)
-  %8 := Lt int %0, 1
-  Call void @test.use<Bool>(%8)
   Ret
 }
 
@@ -20,11 +20,11 @@ func void @test.negateMultiple(int %0) {
   %1 := Neq int %0, 1
   Call void @test.use<Bool>(%1)
   %2 := Eq int %0, 1
+  Call void @test.use<Bool>(%2)
+  %3 := Neq int %0, 1
   Call void @test.use<Bool>(%3)
-  %4 := Neq int %0, 1
-  Call void @test.use<Bool>(%5)
-  %6 := Eq int %0, 1
-  Call void @test.use<Bool>(%7)
+  %4 := Eq int %0, 1
+  Call void @test.use<Bool>(%4)
   Ret
 }
 

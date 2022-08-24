@@ -1,0 +1,23 @@
+module test
+
+fun bool(): Bool = true
+
+fun constantFolding() {
+  use(1 + 1 + 1);
+
+  // Phis with same argument simplified
+  var x = 1;
+  if (bool()) {
+    x = 1;
+  } else if (bool()) {
+    x = 1;
+  } else {
+    x = 1;
+  }
+
+  use(x);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

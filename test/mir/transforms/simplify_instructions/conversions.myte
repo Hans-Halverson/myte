@@ -1,0 +1,33 @@
+module test
+
+fun byte(): Byte = 1
+
+fun int(): Int = 1
+
+fun long(): Long = 1
+
+fun truncAfterTrunc() {
+  use(long().toInt().toByte());
+}
+
+fun truncAfterExt() {
+  // Final size same as original
+  use(int().toLong().toInt());
+
+  // Final size smaller than original
+  use(int().toLong().toByte());
+
+  // Final size smaller than intermediate size
+  use(byte().toLong().toInt());
+
+  // No simplification
+  use(int().toByte().toInt());
+}
+
+fun extAfterExt() {
+  use(byte().toInt().toLong());
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

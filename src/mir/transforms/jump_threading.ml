@@ -101,7 +101,7 @@ and get_threaded_path ~mapper (prev_block : Block.t) (target_block : Block.t) =
         mapper#add_value_mapping instr_value value_from_block.value
       (* All other instructions are constant folded given the phi mappings *)
       | _ ->
-        (match Fold_constants.try_fold_instruction ~mapper instr with
+        (match Fold_constants.try_fold_instruction_with_mapper ~mapper instr with
         | None -> ()
         | Some constant -> mapper#add_value_mapping instr_value (mk_value (Lit constant))));
 

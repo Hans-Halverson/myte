@@ -1,0 +1,57 @@
+func byte @test.byte() {
+  Ret 1
+}
+
+func int @test.int() {
+  Ret 1
+}
+
+func long @test.long() {
+  Ret 1
+}
+
+func void @test.truncAfterTrunc() {
+  %0 := Call long @test.long()
+  %1 := Trunc long %0 to byte
+  Call void @test.use<Byte>(%1)
+  Ret
+}
+
+func void @test.truncAfterExt() {
+  %0 := Call int @test.int()
+  Call void @test.use<Int>(%0)
+  %1 := Call int @test.int()
+  %2 := Trunc int %1 to byte
+  Call void @test.use<Byte>(%2)
+  %3 := Call byte @test.byte()
+  %4 := SExt byte %3 to int
+  Call void @test.use<Int>(%4)
+  %5 := Call int @test.int()
+  %6 := Trunc int %5 to byte
+  %7 := SExt byte %6 to int
+  Call void @test.use<Int>(%7)
+  Ret
+}
+
+func void @test.extAfterExt() {
+  %0 := Call byte @test.byte()
+  %1 := SExt byte %0 to long
+  Call void @test.use<Long>(%1)
+  Ret
+}
+
+func void @test.use<Byte>(byte %0) {
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func void @test.use<Long>(long %0) {
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

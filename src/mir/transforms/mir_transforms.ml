@@ -46,7 +46,16 @@ let optimize ~program ~pcx =
   apply_transforms
     ~program
     ~pcx
-    [SSA; Inline; SimplifyInstructions; ConstantFolding; Normalize; JumpThreading; DIE; Normalize]
+    [
+      SSA;
+      Inline;
+      SimplifyInstructions;
+      ConstantFolding;
+      Normalize;
+      JumpThreading;
+      SimplifyInstructions;
+      Normalize;
+    ]
 
 (* Minimal transformations needed when not optimizing *)
 let non_optimized_transforms ~program ~pcx =

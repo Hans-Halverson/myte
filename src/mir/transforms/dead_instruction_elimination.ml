@@ -1,26 +1,32 @@
 open Mir
 open Mir_builders
 
-let visit_instruction ~worklist instr_value =
-  if not (value_has_uses instr_value) then
+let is_dead_instruction (instr_value : Value.t) =
+  if value_has_uses instr_value then
+    false
+  else
     let instr = cast_to_instruction instr_value in
     match instr.instr with
     (* Set of instructions that either do not have direct uses or may have side effects *)
     | Call _
-    | StackAlloc _
     | Store _
     | Ret _
     | Continue _
     | Branch _
     | Unreachable ->
-      ()
-    | _ ->
-      (* Remove instruction and enqueue instruction operands as they may now be unused *)
-      instruction_iter_operands ~instr (fun operand ->
-          match operand.value.value with
-          | Instr _ -> worklist := VSet.add operand.value !worklist
-          | _ -> ());
-      remove_instruction instr_value
+      false
+    | _ -> true
+
+let visit_instruction ~worklist instr_value =
+  if is_dead_instruction instr_value then (
+    let instr = cast_to_instruction instr_value in
+    (* Remove instruction and enqueue instruction operands as they may now be unused *)
+    instruction_iter_operands ~instr (fun operand ->
+        match operand.value.value with
+        | Instr _ -> worklist := VSet.add operand.value !worklist
+        | _ -> ());
+    remove_instruction instr_value
+  )
 
 let run ~program =
   let worklist = ref VSet.empty in

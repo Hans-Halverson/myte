@@ -144,7 +144,7 @@ let get_constant_value_opt (value : Value.t) : Literal.t option =
 let get_constant_use_opt (use : Use.t) : Literal.t option = get_constant_value_opt use.value
 
 (* Try to constant fold an expression, returning the constant if instruction was folded otherwise None  *)
-let try_fold_instruction ~mapper (instr : Instruction.t) =
+let try_fold_instruction_with_mapper ~mapper (instr : Instruction.t) =
   let get_constant_opt use = get_constant_value_opt (mapper#map_value use.Use.value) in
   let try_fold_conversion arg op =
     match get_constant_opt arg with
@@ -180,10 +180,13 @@ let try_fold_instruction ~mapper (instr : Instruction.t) =
   | FloatToInt arg -> try_fold_conversion arg (FloatToIntOp instr.type_)
   (* Phis where all branches have the same literal argument are replaced with that literal *)
   | Phi phi ->
-    (match phi_get_single_arg_value ~map_value:mapper#map_value phi with
+    (match phi_get_single_arg_value_with_mapper ~map_value:mapper#map_value phi with
     | Some { value = Lit arg_literal; _ } -> Some arg_literal
     | _ -> None)
   | _ -> None
+
+let try_fold_instruction (instr : Instruction.t) =
+  try_fold_instruction_with_mapper ~mapper:Mir_mapper.id_mapper instr
 
 class constant_folding_transform ~(program : Program.t) =
   object (this)
@@ -264,7 +267,7 @@ class constant_folding_transform ~(program : Program.t) =
           prune_branch to_keep instr.block ~on_removed_block:this#on_removed_block
         | _ -> ());
         None
-      | _ -> try_fold_instruction ~mapper:Mir_mapper.id_mapper instr
+      | _ -> try_fold_instruction instr
 
     method on_removed_block (block : Block.t) =
       (* Phis on this block should not be rechecked *)
