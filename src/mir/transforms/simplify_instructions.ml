@@ -93,6 +93,41 @@ let simplify_instruction ~cx instr_value =
       let new_trunc_instr = mk_blockless_sext ~arg:original_arg.value ~type_:instr.type_ in
       replace_instr_enqueue_uses new_trunc_instr
     | _ -> ())
+  (* Check for a comparison of a zero extended value against a literal that is out of range *)
+  | Cmp (((Eq | Neq) as cmp), cmp_left_arg, cmp_right_arg) ->
+    (match (cmp_left_arg.value.value, cmp_right_arg.value.value) with
+    | (Lit lit, Instr { instr = ZExt zext_arg; _ })
+    | (Instr { instr = ZExt zext_arg; _ }, Lit lit) ->
+      let lit_int = int64_of_literal lit in
+      (match type_of_use zext_arg with
+      | Byte ->
+        if Integers.is_out_of_signed_byte_range lit_int then
+          replace_instr_with_value_enqueue_uses (mk_bool_lit (cmp != Eq))
+      | Int ->
+        if Integers.is_out_of_signed_int_range lit_int then
+          replace_instr_with_value_enqueue_uses (mk_bool_lit (cmp != Eq))
+      | _ -> ())
+    (* Check for a comparison of a sign extended value against a literal, which is known if the
+       literal does not have the same bit value set for the sign extended range. *)
+    | (Instr { instr = SExt sext_arg; type_; _ }, Lit lit) ->
+      let lit_int = int64_of_literal lit in
+      let check_mask mask =
+        let masked_lit = Int64.logand lit_int mask in
+        if (not (Int64.equal masked_lit 0L)) && not (Int64.equal masked_lit mask) then
+          replace_instr_with_value_enqueue_uses (mk_bool_lit (cmp != Eq))
+      in
+      (match type_of_use sext_arg with
+      | Byte ->
+        (match type_ with
+        | Int -> check_mask 0xFFFFFF80L
+        | Long -> check_mask 0xFFFFFFFFFFFFFF80L
+        | _ -> ())
+      | Int ->
+        (match type_ with
+        | Long -> check_mask 0xFFFFFFFF80000000L
+        | _ -> ())
+      | _ -> ())
+    | _ -> ())
   | _ -> ()
 
 let run_on_instruction ~cx instr_value =

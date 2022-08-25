@@ -17,6 +17,21 @@ fun negateMultiple(x: Int) {
   use(!!!!(x == 1));
 }
 
+fun cmpAfterSext(b: Byte, i: Int) {
+  use(b.toInt() == 256);
+  use(b.toInt() != 256);
+
+  use(b.toInt() == -256);
+  use(b.toInt() == -128);
+  use(b.toInt() == 127);
+  use(b.toInt() == 255);
+
+  use(i.toLong() == -4294967296);
+  use(i.toLong() == -2147483648);
+  use(i.toLong() == 2147483647);
+  use(i.toLong() == 4294967295);
+}
+
 fun use<T>(x: T) {}
 
 fun main() {}

@@ -28,6 +28,28 @@ func void @test.negateMultiple(int %0) {
   Ret
 }
 
+func void @test.cmpAfterSext(byte %0, int %1) {
+  Call void @test.use<Bool>(false)
+  Call void @test.use<Bool>(true)
+  Call void @test.use<Bool>(false)
+  %2 := SExt byte %0 to int
+  %3 := Eq int %2, -128
+  Call void @test.use<Bool>(%3)
+  %4 := SExt byte %0 to int
+  %5 := Eq int %4, 127
+  Call void @test.use<Bool>(%5)
+  Call void @test.use<Bool>(false)
+  Call void @test.use<Bool>(false)
+  %6 := SExt int %1 to long
+  %7 := Eq long %6, -2147483648
+  Call void @test.use<Bool>(%7)
+  %8 := SExt int %1 to long
+  %9 := Eq long %8, 2147483647
+  Call void @test.use<Bool>(%9)
+  Call void @test.use<Bool>(false)
+  Ret
+}
+
 func void @test.use<Bool>(bool %0) {
   Ret
 }

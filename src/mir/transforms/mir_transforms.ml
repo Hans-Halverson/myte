@@ -54,6 +54,7 @@ let optimize ~program ~pcx =
       Normalize;
       JumpThreading;
       SimplifyInstructions;
+      ConstantFolding;
       Normalize;
     ]
 

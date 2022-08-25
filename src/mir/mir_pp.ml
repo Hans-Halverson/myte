@@ -127,18 +127,11 @@ and pp_type_decl type_ =
   Printf.sprintf "type %s {%s}\n" type_.name elements_string
 
 and pp_block ~cx ~label block =
-  let open Block in
   let label_lines =
-    let debug_id =
-      if Opts.dump_debug () then
-        Printf.sprintf "(Block #%s) " (Block.id_to_string block.id)
-      else
-        ""
-    in
     if label then
-      [Printf.sprintf "%slabel %s:" debug_id (pp_block_id ~cx block)]
+      [Printf.sprintf "%slabel %s:" (pp_debug_block_id block) (pp_block_id ~cx block)]
     else if Opts.dump_debug () then
-      [debug_id]
+      [pp_debug_block_id block]
     else
       []
   in
@@ -147,6 +140,12 @@ and pp_block ~cx ~label block =
   in
   let lines = List.concat [label_lines; instruction_lines] in
   String.concat "\n" lines
+
+and pp_debug_block_id block =
+  if Opts.dump_debug () then
+    Printf.sprintf "(Block #%s) " (Block.id_to_string block.id)
+  else
+    ""
 
 and pp_value_id ~cx value_id =
   let open Context in
@@ -383,18 +382,14 @@ and pp_instruction ~cx instr =
            (pp_use ~cx arg)
            (pp_type instr.type_))
     | Continue continue ->
-      let debug_id =
-        if Opts.dump_debug () then
-          Printf.sprintf "(Block #%s) " (Block.id_to_string continue.id)
-        else
-          ""
-      in
-      (Printf.sprintf "continue %s%s") debug_id (pp_block_id ~cx continue)
+      (Printf.sprintf "continue %s%s") (pp_debug_block_id continue) (pp_block_id ~cx continue)
     | Branch { test; jump; continue } ->
       Printf.sprintf
-        "branch %s, %s, %s"
+        "branch %s, %s%s, %s%s"
         (pp_use ~cx test)
+        (pp_debug_block_id continue)
         (pp_block_id ~cx continue)
+        (pp_debug_block_id jump)
         (pp_block_id ~cx jump)
     | Unreachable -> "unreachable"
   in

@@ -183,6 +183,10 @@ let try_fold_instruction_with_mapper ~mapper (instr : Instruction.t) =
     (match phi_get_single_arg_value_with_mapper ~map_value:mapper#map_value phi with
     | Some { value = Lit arg_literal; _ } -> Some arg_literal
     | _ -> None)
+  (* Propagate global constants through pointers *)
+  | Load { value = { value = Lit (Global { is_constant; init_val = Some init_val; _ }); _ }; _ }
+    when is_constant ->
+    get_constant_opt init_val
   | _ -> None
 
 let try_fold_instruction (instr : Instruction.t) =
@@ -246,10 +250,6 @@ class constant_folding_transform ~(program : Program.t) =
 
     method try_fold_instruction instr_val instr =
       match instr.instr with
-      (* Propagate global constants through pointers *)
-      | Load { value = { value = Lit (Global { is_constant; init_val = Some init_val; _ }); _ }; _ }
-        when is_constant ->
-        get_constant_use_opt init_val
       (* Stores in the init function of constants can be converted to constant global initializers *)
       | Store ({ value = { value = Lit (Global global); _ }; _ }, stored_val)
         when instr.block.func.name == init_func_name ->
