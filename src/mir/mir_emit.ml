@@ -302,7 +302,7 @@ and emit_function_return_block ~ecx return_type =
     (* If there is return value allocate space for it in start block, then load and return it in
        return block. *)
     | Some type_ ->
-      let return_pointer = mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_ in
+      let return_pointer = Ecx.emit_stack_alloc_in_start_block ~ecx ~type_ in
       Ecx.set_current_block ~ecx return_block;
       let return_val = mk_load ~block:(Ecx.get_current_block ~ecx) ~ptr:return_pointer in
       Ecx.finish_block_ret ~ecx ~arg:(Some return_val);
@@ -560,7 +560,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
    *)
   | LogicalAnd { loc = _; left; right } ->
     (* Model logical and join by creating stack location to place results of branches *)
-    let result_ptr_val = mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_:Bool in
+    let result_ptr_val = Ecx.emit_stack_alloc_in_start_block ~ecx ~type_:Bool in
 
     (* Short circuit when lhs is false by jumping to false case *)
     let rhs_block = Ecx.mk_block ~ecx in
@@ -590,7 +590,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
    *)
   | LogicalOr { loc = _; left; right } ->
     (* Model logical or join by creating stack location to place results of branches *)
-    let result_ptr_val = mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_:Bool in
+    let result_ptr_val = Ecx.emit_stack_alloc_in_start_block ~ecx ~type_:Bool in
 
     (* Short circuit when lhs is true by jumping to true case *)
     let rhs_block = Ecx.mk_block ~ecx in
@@ -1430,7 +1430,7 @@ and emit_if_expression ~ecx if_ =
   let result_ptr_val =
     match mir_type with
     | None -> None
-    | Some type_ -> Some (mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_)
+    | Some type_ -> Some (Ecx.emit_stack_alloc_in_start_block ~ecx ~type_)
   in
 
   let conseq_block = Ecx.mk_block ~ecx in
@@ -1475,7 +1475,7 @@ and emit_match_expression ~ecx match_ =
   let result_ptr_val =
     match mir_type with
     | None -> None
-    | Some type_ -> Some (mk_stack_alloc ~block:(Ecx.get_current_block ~ecx) ~type_)
+    | Some type_ -> Some (Ecx.emit_stack_alloc_in_start_block ~ecx ~type_)
   in
 
   (* Emit args and decision tree *)
@@ -2881,7 +2881,9 @@ and emit_alloc_destructuring ~(ecx : Ecx.t) pattern value =
       mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:global_ptr ~value
     else
       let alloc_instr = Ecx.get_local_ptr_def_instr ~ecx loc mir_type in
-      append_instruction (Ecx.get_current_block ~ecx) alloc_instr;
+      (match (cast_to_instruction alloc_instr).instr with
+      | StackAlloc _ -> ()
+      | _ -> append_instruction (Ecx.get_current_block ~ecx) alloc_instr);
       mk_store_ ~block:(Ecx.get_current_block ~ecx) ~ptr:alloc_instr ~value
   | _ ->
     let decision_tree =
@@ -2965,15 +2967,13 @@ and emit_match_decision_tree ~ecx ~join_block ~result_ptr ~alloc decision_tree =
           (fun acc (_, binding_loc) ->
             match mir_type_of_loc ~ecx binding_loc with
             | None -> acc
-            | Some mir_type ->
+            | Some _ ->
               let decl_loc = Bindings.get_decl_loc_from_value_use ecx.pcx.bindings binding_loc in
               (* The same binding may be defined in multiple places due to or patterns. Make sure to
                  only emit a single stack slot. *)
               if LocSet.mem decl_loc acc then
                 acc
               else
-                let stack_alloc_instr = Ecx.get_local_ptr_def_instr ~ecx decl_loc mir_type in
-                append_instruction (Ecx.get_current_block ~ecx) stack_alloc_instr;
                 LocSet.add decl_loc acc)
           acc
           bindings

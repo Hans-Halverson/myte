@@ -238,6 +238,11 @@ let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
 let is_captured_binding ~ecx binding =
   Bindings.LBVMMap.VSet.mem binding ecx.current_func_context.captures
 
+let emit_stack_alloc_in_start_block ~ecx ~type_ =
+  let instr = mk_blockless_stack_alloc ~type_ in
+  prepend_instruction ecx.current_func.start_block instr;
+  instr
+
 let get_local_ptr_def_instr ~ecx use_loc type_ =
   let binding = Bindings.get_value_binding ecx.pcx.bindings use_loc in
   match BVMap.find_opt binding ecx.local_variable_to_alloc_instr with
@@ -248,7 +253,7 @@ let get_local_ptr_def_instr ~ecx use_loc type_ =
       if binding.is_captured && Bindings.is_mutable_variable binding then
         mk_blockless_call_builtin Mir_builtin.myte_alloc [mk_int_lit_of_int32 Int32.one] [type_]
       else
-        mk_blockless_stack_alloc ~type_
+        emit_stack_alloc_in_start_block ~ecx ~type_
     in
     ecx.local_variable_to_alloc_instr <- BVMap.add binding instr ecx.local_variable_to_alloc_instr;
     instr

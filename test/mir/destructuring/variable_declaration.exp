@@ -67,10 +67,10 @@ label @1:
   %15 := Load int %14
   continue @2
 label @2:
-  %16 := Phi std.string.String* @0:%9, @1:%12
-  %17 := Phi int @0:%6, @1:%15
-  Call void @test.use<Int>(%17)
-  Call void @test.use<String>(%16)
+  %16 := Phi int @0:%6, @1:%15
+  %17 := Phi std.string.String* @0:%9, @1:%12
+  Call void @test.use<Int>(%16)
+  Call void @test.use<String>(%17)
   Ret
 }
 
