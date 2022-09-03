@@ -100,30 +100,34 @@ label @1:
 }
 
 func void @test.testContinueBranch(bool %0) {
-  branch true, @0, @3
+  continue @0
 label @0:
-  branch %0, @1, @2
+  branch true, @1, @4
 label @1:
-  Call void @test.use<Int>(1)
-  continue @test.testContinueBranch
+  branch %0, @2, @3
 label @2:
-  Call void @test.use<Bool>(false)
-  continue @test.testContinueBranch
+  Call void @test.use<Int>(1)
+  continue @0
 label @3:
+  Call void @test.use<Bool>(false)
+  continue @0
+label @4:
   Ret
 }
 
 func void @test.testBreakBranch(bool %0) {
-  branch true, @0, @3
+  continue @0
 label @0:
-  branch %0, @1, @2
+  branch true, @1, @4
 label @1:
-  Call void @test.use<Int>(1)
-  continue @test.testBreakBranch
+  branch %0, @2, @3
 label @2:
-  Call void @test.use<Bool>(false)
-  continue @3
+  Call void @test.use<Int>(1)
+  continue @0
 label @3:
+  Call void @test.use<Bool>(false)
+  continue @4
+label @4:
   Ret
 }
 

@@ -902,8 +902,7 @@ and can_remove_empty_block (block : Block.t) =
                args)
            continue_block_phis
     in
-    let function_start_self_loop = is_start_block && continue_block == block in
-    (not block_needed_for_phi) && not function_start_self_loop
+    (not block_needed_for_phi) && not is_start_block
   | _ -> false
 
 and remove_block ?(on_removed_block : Block.t -> unit = ignore) (block : Block.t) =

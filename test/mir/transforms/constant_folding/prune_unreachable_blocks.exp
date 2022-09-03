@@ -18,8 +18,10 @@ func int @t.nestedIfStatements() {
 }
 
 func void @t.whileTrue() {
+  continue @0
+label @0:
   Call void @t.func(1)
-  continue @t.whileTrue
+  continue @0
 }
 
 func void @t.whileFalse() {
@@ -39,8 +41,10 @@ func void @t.whileTrueWithBreak() {
 }
 
 func void @t.whileTrueWithContinue() {
+  continue @0
+label @0:
   Call void @t.func(1)
-  continue @t.whileTrueWithContinue
+  continue @0
 }
 
 func int @t.main() {
