@@ -7,11 +7,6 @@ type cx = { (* Instructions that could potentially be simplified *)
 
 let enqueue_instr ~cx instr_value = cx.worklist <- VSet.add instr_value cx.worklist
 
-let dequeue_instr ~cx =
-  let instr_value = VSet.choose cx.worklist in
-  cx.worklist <- VSet.remove instr_value cx.worklist;
-  instr_value
-
 let simplify_instruction ~cx instr_value =
   let instr = cast_to_instruction instr_value in
 
@@ -155,6 +150,7 @@ let run ~program =
       iter_instructions block (fun instr_value _ -> enqueue_instr ~cx instr_value));
   (* Keep checking for simplification and enqueuing dependent uses until no possible changes are left *)
   while not (VSet.is_empty cx.worklist) do
-    let instr_value = dequeue_instr ~cx in
-    run_on_instruction ~cx instr_value
+    let instr_value = VSet.choose cx.worklist in
+    run_on_instruction ~cx instr_value;
+    cx.worklist <- VSet.remove instr_value cx.worklist
   done

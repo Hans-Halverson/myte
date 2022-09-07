@@ -746,6 +746,22 @@ and iter_instructions (block : Block.t) (f : Value.t -> Instruction.t -> unit) =
     in
     iter first last f
 
+(* Return the first instruction that matches the predicate, if such an instruction exists *)
+and find_instruction (block : Block.t) (f : Value.t -> Instruction.t -> bool) : Value.t option =
+  match block.instructions with
+  | None -> None
+  | Some { first; last } ->
+    let rec iter current_val last_val f =
+      let current = cast_to_instruction current_val in
+      if f current_val current then
+        Some current_val
+      else if current_val == last_val then
+        None
+      else
+        iter current.next last_val f
+    in
+    iter first last f
+
 and filter_instructions (block : Block.t) (f : Instruction.t -> bool) =
   iter_instructions block (fun instr_val instr ->
       if not (f instr) then remove_instruction instr_val)
@@ -863,6 +879,14 @@ and get_next_blocks (block : Block.t) : BlockSet.t =
   | Some { instr = Branch { test = _; jump; continue }; _ } ->
     BlockSet.add jump (BlockSet.singleton continue)
   | _ -> BlockSet.empty
+
+and iter_next_blocks (block : Block.t) (f : Block.t -> unit) =
+  match get_terminator block with
+  | Some { instr = Continue continue; _ } -> f continue
+  | Some { instr = Branch { test = _; jump; continue }; _ } ->
+    f continue;
+    f jump
+  | _ -> ()
 
 (*
  * ============================

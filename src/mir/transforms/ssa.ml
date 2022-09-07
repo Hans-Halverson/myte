@@ -3,371 +3,167 @@ open Mir
 open Mir_builders
 open Mir_type
 
-(* Promotion of variables on stack into registers joined with Phi nodes
+(* Promotion of variables on stack into registers joined with Phi nodes.
 
-   During initial MIR emission variables are stored on the stack, where a Store to that stack
-   location is considered a "write" and a Load from that stack location is considered a "use".
-   For the purpose of this pass, variables are uniquely identified by the pointer of their location
-   on the stack (the id of a StackAlloc instruction).
+   Algorithms are based off the paper "Efficiently Computing Single Static Assignment Form and
+   the Control Dependence Graph":
 
-   Pass 1 (Identify join points):
-     Propagate the last write instruction ids for each variable through the program. Identify the set
-     of join points, where a join point is a (block, variable) pair meaning that there are multiple
-     sources for the last write to the given variable which are joined at this block. This means the
-     block is the earliest point where the variable was last written to in multiple control flow
-     paths. Construct an empty phi chain node at each join point.
-
-   Pass 2 (Build phi chain graph):
-     Propagate the last write instruction ids for each variable through the program like before, but
-     also count each saved variable join from the first pass as a "write". Use this to build a graph
-     of phi chain nodes, with one phi chain node for each join point/(block, variable) pair from the
-     previous pass. Phi chain nodes contain the set of last write sources as well as previous phi
-     chain nodes. Phi chain nodes are initially "unrealized", meaning they may not be converted to
-     a concrete phi node in the SSA IR.
-
-     Also for each block, save the source for each variable currently in scope. The source will
-     either be a concrete location or a phi chain node.
-
-     Also for each variable use in each block save the source, which will be either be a concrete
-     location or a phi chain node.
-
-   Realize Phi Nodes:
-     Determine the minimal set of phi nodes needed for the SSA IR. For each of the saved variables
-     whose source is a phi, mark the phi node as realized (creating a phi instruction for it).
-
-     Later, when determining the concrete write locations which are args to each phi node, we simply
-     need to traverse the phi chain node graph and collecting all concrete write locations that are
-     reachable, where realized phi chain nodes cannot be traversed through.
-
-   Map to SSA IR:
-     Map across IR, removing StackAlloc, Load, and Store instructions for variables that have been
-     promoted to registers. Store instructions are converted to Movs of the stored value to the new
-     SSA variable. Also must rewrite all use variables that were the result of removed Load
-     instructions to now directly reference the new SSA variable. *)
-
-module PhiChainNode = struct
-  type id = int
-
-  type t = {
-    id: id;
-    block: Block.t;
-    (* Previous phi nodes in the phi chain graph, mapped to the previous block that they flowed from *)
-    mutable prev_nodes: Block.t IMap.t;
-    (* Store instruction ids for this node, mapped to the previous block that they flowed from along
-       with the value that was stored. *)
-    mutable write_locs: (Block.t * Value.t) IMap.t;
-    mutable realized: Value.t option;
-    (* Type is filled after creation *)
-    mutable mir_type: Type.t option;
-  }
-end
-
-type source =
-  (* There was a single write at this store instruction in this block, writing this value *)
-  | WriteLocation of Block.t * Instruction.t * Value.t
-  (* Multiple writes were joined by phi chain node *)
-  | PhiChainJoin of PhiChainNode.id
-
-type cx = {
-  mutable visited_blocks: BlockSet.t;
-  mutable stack_alloc_ids: Type.t IMap.t;
-  mutable phi_chain_nodes: PhiChainNode.t IMap.t;
-  (* Blocks to the pointer ids with phi chain nodes for that block *)
-  mutable block_nodes: PhiChainNode.id IMap.t BlockMap.t;
-  (* Blocks to the set of phi chain node ids that are realized in that block *)
-  mutable realized_phis: BlockIMMap.t;
-  (* Function name to the (load instruction, local source) for each load instruction id *)
-  mutable use_sources: (Value.t * source) IMap.t SMap.t;
-}
-
-let mk_cx () =
-  {
-    visited_blocks = BlockSet.empty;
-    stack_alloc_ids = IMap.empty;
-    phi_chain_nodes = IMap.empty;
-    block_nodes = BlockMap.empty;
-    realized_phis = BlockIMMap.empty;
-    use_sources = SMap.empty;
-  }
-
-let max_phi_chain_node_id = ref 0
-
-let mk_phi_chain_node_id () =
-  let id = !max_phi_chain_node_id in
-  max_phi_chain_node_id := id + 1;
-  id
-
-let mk_phi_chain_node ~cx block =
-  let id = mk_phi_chain_node_id () in
-  cx.phi_chain_nodes <-
-    IMap.add
-      id
-      {
-        PhiChainNode.id;
-        block;
-        prev_nodes = IMap.empty;
-        write_locs = IMap.empty;
-        realized = None;
-        mir_type = None;
-      }
-      cx.phi_chain_nodes;
-  id
-
-let get_node ~cx node_id = IMap.find node_id cx.phi_chain_nodes
+   Ron Cytron, Jeanne Ferrante, Barry K. Rosen, Mark N. Wegman, and F. Kenneth Zadeck. 1991.
+   Efficiently computing static single assignment form and the control dependence graph.
+   ACM Transactions on Programming Languages and Systems, 13(4), 451–490. *)
 
 let rec run ~program =
-  let cx = mk_cx () in
-  find_join_points ~cx program;
-  build_phi_nodes ~cx program;
-  rewrite_program ~cx program
-
-and find_join_points ~cx program =
-  let open Program in
-  let block_sources = ref BlockMap.empty in
-  (* Maintain set of all sources for each variable in each block *)
-  let add_block_sources (block : Block.t) new_sources =
-    let new_sources =
-      IMap.fold
-        (fun ptr_id store_instr_id sources ->
-          IMap.add ptr_id (ISet.singleton store_instr_id) sources)
-        new_sources
-        IMap.empty
-    in
-    let sources =
-      match BlockMap.find_opt block !block_sources with
-      | None -> new_sources
-      | Some sources ->
-        IMap.union
-          (fun _ sources1 sources2 -> Some (ISet.union sources1 sources2))
-          sources
-          new_sources
-    in
-    block_sources := BlockMap.add block sources !block_sources
-  in
-  let rec visit_block ~sources block =
-    let maybe_visit_block sources (next_block : Block.t) =
-      if BlockSet.mem next_block cx.visited_blocks then
-        add_block_sources next_block sources
-      else
-        visit_block ~sources next_block
-    in
-    cx.visited_blocks <- BlockSet.add block cx.visited_blocks;
-    add_block_sources block sources;
-    (* Collect all declaration sources in block *)
-    let sources = ref sources in
-    iter_instructions block (fun _ instr ->
-        match instr.instr with
-        | StackAlloc ty -> cx.stack_alloc_ids <- IMap.add instr.id ty cx.stack_alloc_ids
-        | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, _)
-          when IMap.mem id cx.stack_alloc_ids ->
-          sources := IMap.add id instr.id !sources
-        | _ -> ());
-    let next_blocks = get_next_blocks block in
-    BlockSet.iter (fun next_block -> maybe_visit_block !sources next_block) next_blocks
-  in
-  (* Visit all function bodies *)
-  SMap.iter
-    (fun _ { Function.start_block; _ } -> visit_block ~sources:IMap.empty start_block)
-    program.funcs;
-  (* Create phi chain nodes for all join points in program *)
-  cx.block_nodes <-
-    BlockMap.fold
-      (fun block sources block_nodes ->
-        let nodes =
-          IMap.fold
-            (fun ptr_id sources nodes ->
-              if ISet.cardinal sources <= 1 then
-                nodes
-              else
-                let node_id = mk_phi_chain_node ~cx block in
-                IMap.add ptr_id node_id nodes)
-            sources
-            IMap.empty
-        in
-        if IMap.is_empty nodes then
-          block_nodes
-        else
-          BlockMap.add block nodes block_nodes)
-      !block_sources
-      BlockMap.empty
-
-and add_use_source ~cx func_name load_instr_id source =
-  let use_sources = SMap.find func_name cx.use_sources in
-  let new_use_sources = IMap.add load_instr_id source use_sources in
-  cx.use_sources <- SMap.add func_name new_use_sources cx.use_sources
-
-and build_phi_nodes ~cx program =
-  let open Program in
-  (* Update phi nodes at the given block with the new sources. If source is a write locations add
-     it directly to the phi node. Otherwise if the source is another phi node then add link to
-     create phi chain. *)
-  let update_phis_from_sources (block : Block.t) (prev_block : Block.t) new_sources =
-    match BlockMap.find_opt block cx.block_nodes with
-    | None -> ()
-    | Some nodes ->
-      IMap.iter
-        (fun ptr_id source ->
-          match IMap.find_opt ptr_id nodes with
-          | None -> ()
-          | Some node_id ->
-            let node = get_node ~cx node_id in
-            (* Propagate mir types from write locations through phi chain nodes *)
-            (match source with
-            | WriteLocation (_, store_instr, arg_val) ->
-              if not (IMap.mem store_instr.id node.write_locs) then (
-                node.write_locs <- IMap.add store_instr.id (prev_block, arg_val) node.write_locs;
-                node.mir_type <- Some (type_of_value arg_val)
-              )
-            | PhiChainJoin prev_node ->
-              if prev_node <> node_id && not (IMap.mem prev_node node.prev_nodes) then (
-                node.prev_nodes <- IMap.add prev_node prev_block node.prev_nodes;
-                match (get_node ~cx prev_node).mir_type with
-                | None -> ()
-                | Some _ as mir_type -> node.mir_type <- mir_type
-              )))
-        new_sources
-  in
-  let phi_nodes_to_realize = ref IMap.empty in
-  let rec visit_block ~func_name ~sources ~prev_block (block : Block.t) =
-    let maybe_visit_block sources (next_block : Block.t) =
-      if BlockSet.mem next_block cx.visited_blocks then
-        update_phis_from_sources next_block block sources
-      else
-        visit_block ~func_name ~sources ~prev_block:block next_block
-    in
-    cx.visited_blocks <- BlockSet.add block cx.visited_blocks;
-    update_phis_from_sources block prev_block sources;
-    let sources = ref sources in
-    (* Add phi chain join nodes as current sources *)
-    begin
-      match BlockMap.find_opt block cx.block_nodes with
-      | None -> ()
-      | Some nodes ->
-        IMap.iter
-          (fun ptr_id node_id -> sources := IMap.add ptr_id (PhiChainJoin node_id) !sources)
-          nodes
-    end;
-    (* Mark phi nodes to realize *)
-    iter_instructions block (fun instr_val instr ->
-        match instr.instr with
-        | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, arg)
-          when IMap.mem id cx.stack_alloc_ids ->
-          (* Source for this variable is now this write location *)
-          sources := IMap.add id (WriteLocation (instr.block, instr, arg.value)) !sources
-        | Load { value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }
-          when IMap.mem id cx.stack_alloc_ids ->
-          (* Save source for each use *)
-          let source = IMap.find id !sources in
-          add_use_source ~cx func_name instr.id (instr_val, source);
-          (* If source is a phi node it should be realized *)
-          (match source with
-          | WriteLocation _ -> ()
-          | PhiChainJoin node_id ->
-            phi_nodes_to_realize := IMap.add node_id id !phi_nodes_to_realize)
-        | _ -> ());
-    let next_blocks = get_next_blocks block in
-    BlockSet.iter (fun next_block -> maybe_visit_block !sources next_block) next_blocks
-  in
-  (* Visit bodies of all functions *)
-  cx.visited_blocks <- BlockSet.empty;
-  SMap.iter
-    (fun _ { Function.name = func_name; start_block; _ } ->
-      cx.use_sources <- SMap.add func_name IMap.empty cx.use_sources;
-      visit_block ~func_name ~sources:IMap.empty ~prev_block:start_block start_block)
-    program.funcs;
-  (* To realize a phi node, that phi node and its entire phi chain graph should be realized *)
-  let rec realize_phi_chain_graph node_id ptr_id =
-    let node = get_node ~cx node_id in
-    if Option.is_none node.realized then (
-      (* Realize by creating phi instruction *)
-      let type_ = IMap.find ptr_id cx.stack_alloc_ids in
-      let phi_instr = mk_blockless_phi ~type_ ~args:BlockMap.empty in
-      node.realized <- Some phi_instr;
-      cx.realized_phis <- BlockIMMap.add node.block node_id cx.realized_phis;
-      IMap.iter (fun prev_node_id _ -> realize_phi_chain_graph prev_node_id ptr_id) node.prev_nodes
-    )
-  in
-  IMap.iter realize_phi_chain_graph !phi_nodes_to_realize
-
-and rewrite_program ~cx program =
-  (* Traverse phi chain graph to gather all previous block/value pairs for a given phi node. The phi
-     chain graph is deeply traversed until realized nodes are encountered. *)
-  let gather_phi_args ~(phi_val : Value.t) ~(phi : Instruction.Phi.t) (node_id : PhiChainNode.id) =
-    let add_phi_arg prev_block arg_val =
-      phi_add_arg ~phi_val ~phi ~block:prev_block ~value:arg_val
-    in
-    let rec visit_phi_node node_id prev_block =
-      let node = get_node ~cx node_id in
-      match node.realized with
-      (* Do not descend into realized nodes, use their realized instruction *)
-      | Some instr -> add_phi_arg prev_block instr
-      (* Descend into unrealized nodes, gather local writes and phi chain nodes *)
-      | _ ->
-        IMap.iter (fun _ (_, arg_val) -> add_phi_arg prev_block arg_val) node.write_locs;
-        IMap.iter (fun node_id _ -> visit_phi_node node_id prev_block) node.prev_nodes
-    in
-    let node = get_node ~cx node_id in
-    IMap.iter (fun _ (prev_block, arg_val) -> add_phi_arg prev_block arg_val) node.write_locs;
-    IMap.iter visit_phi_node node.prev_nodes
-  in
-
-  let visit_block (block : Block.t) =
-    (* Create and add phis to beginning of block *)
-    let phis =
-      let realized_phis = BlockIMMap.find_all block cx.realized_phis in
-      BlockIMMap.VSet.fold
-        (fun node_id phis ->
-          let node = get_node ~cx node_id in
-          let phi_instr = Option.get node.realized in
-          let phi = cast_to_phi (cast_to_instruction phi_instr) in
-          gather_phi_args ~phi_val:phi_instr ~phi node_id;
-          phi_instr :: phis)
-        realized_phis
-        []
-    in
-    List.iter (fun instr -> prepend_instruction block instr) phis;
-    (* Remove memory instructions for memory locations promoted to registers *)
-    filter_instructions block (fun instr ->
-        match instr.Instruction.instr with
-        | StackAlloc _ when IMap.mem instr.id cx.stack_alloc_ids -> false
-        | Store ({ value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }, _)
-        | Load { value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }
-          when IMap.mem id cx.stack_alloc_ids ->
-          false
-        | _ -> true)
-  in
+  (* First clean up unreachable blocks, as they will cause issues with dominator tree construction *)
+  program_iter_blocks program (block_remove_if_unreachable ~on_removed_block:ignore);
 
   SMap.iter
     (fun _ func ->
-      (* Create phi nodes within function *)
-      func_iter_blocks func visit_block;
+      (* Collect and remove allocations for all memory values that can be promoted to registers *)
+      let pointer_instrs = ref VSet.empty in
+      let phi_to_pointer_value = ref VMap.empty in
+      func_iter_blocks func (fun block ->
+          iter_instructions block (fun instr_value instr ->
+              match instr.instr with
+              | StackAlloc _ ->
+                pointer_instrs := VSet.add instr_value !pointer_instrs;
+                remove_instruction instr_value
+              | _ -> ()));
 
-      (* Find all rewrites between values, rewriting uses of a load from a promoted memory location
-         to the value that was last stored before the load. *)
-      let use_sources = SMap.find func.name cx.use_sources in
-      let rewrite_map =
-        IMap.fold
-          (fun _ (load_instr, source) value_map ->
-            match source with
-            | WriteLocation (_, _, write_val) -> VMap.add load_instr write_val value_map
-            | PhiChainJoin node_id ->
-              let node = get_node ~cx node_id in
-              let mapped_val = Option.get node.realized in
-              VMap.add load_instr mapped_val value_map)
-          use_sources
-          VMap.empty
-      in
+      (* Convert to SSA following algorithms from paper *)
+      let dt = Dominator_tree.build_dominator_tree ~func in
+      insert_phis ~dt ~phi_to_pointer_value !pointer_instrs;
+      rename_variables ~dt func !pointer_instrs !phi_to_pointer_value;
 
-      (* Follow successive rewrites to create final rewrite map *)
-      let rec find_final_value value =
-        match VMap.find_opt value rewrite_map with
-        | None -> value
-        | Some mapped_value -> find_final_value mapped_value
-      in
-      let final_rewrite_map = VMap.map (fun to_val -> find_final_value to_val) rewrite_map in
-
-      (* Rewrite uses of values in program *)
+      (* Inserted phi instructions may be dead, so run dead instruction elimination pass on them *)
+      let phi_instrs = ref VSet.empty in
       VMap.iter
-        (fun load_instr write_val -> value_replace_uses ~from:load_instr ~to_:write_val)
-        final_rewrite_map)
-    program.funcs
+        (fun phi_instr _ -> phi_instrs := VSet.add phi_instr !phi_instrs)
+        !phi_to_pointer_value;
+      Dead_instruction_elimination.run_worklist phi_instrs)
+    program.Program.funcs
+
+(* Phi insertion algorithm from paper. Inserts empty phis at all join points where they may be needed. *)
+and insert_phis ~dt ~phi_to_pointer_value pointer_values =
+  let w = ref BlockSet.empty in
+  let work = ref BlockMap.empty in
+  let has_already = ref BlockMap.empty in
+  let iter_count = ref 0 in
+
+  VSet.iter
+    (fun pointer_value ->
+      iter_count := !iter_count + 1;
+
+      iter_def_blocks pointer_value (fun def_block ->
+          work := BlockMap.add def_block !iter_count !work;
+          w := BlockSet.add def_block !w);
+
+      while not (BlockSet.is_empty !w) do
+        let x = BlockSet.choose !w in
+        w := BlockSet.remove x !w;
+
+        let df_x = Dominator_tree.get_dominance_frontier ~dt x in
+        BlockMMap.VSet.iter
+          (fun y ->
+            if find_or_zero y !has_already < !iter_count then (
+              create_phi_node ~phi_to_pointer_value pointer_value y;
+
+              has_already := BlockMap.add y !iter_count !has_already;
+
+              if find_or_zero y !work < !iter_count then (
+                work := BlockMap.add y !iter_count !work;
+                w := BlockSet.add y !w
+              )
+            ))
+          df_x
+      done)
+    pointer_values
+
+and find_or_zero block block_map = BlockMap.find_opt block block_map |> Option.value ~default:0
+
+(* Iterate over the blocks that contain definitions (aka stores) for a given promoted memory value *)
+and iter_def_blocks pointer_value f =
+  value_iter_uses ~value:pointer_value (fun use ->
+      match use.user.value with
+      | Instr { instr = Store (ptr_use, _); block = def_block; _ }
+        when ptr_use.value == pointer_value ->
+        f def_block
+      | _ -> ())
+
+(* Create a phi node for a promoted memory value in the specified block. Phi node will be inserted
+   at the end of the list of phi nodes. *)
+and create_phi_node ~phi_to_pointer_value pointer_value block =
+  let type_ = cast_to_pointer_type (type_of_value pointer_value) in
+  let phi = mk_blockless_phi ~type_ ~args:BlockMap.empty in
+  phi_to_pointer_value := VMap.add phi pointer_value !phi_to_pointer_value;
+
+  (* Phi is inserted before the first non-phi node (aka at the end of the phi list) *)
+  let first_non_phi_instr =
+    find_instruction block (fun _ instr ->
+        match instr.instr with
+        | Instruction.Phi _ -> false
+        | _ -> true)
+  in
+  match first_non_phi_instr with
+  | None -> append_instruction block phi
+  | Some first_non_phi_instr -> insert_instruction_before ~before:first_non_phi_instr phi
+
+(* Rename loads of promoted memory value to their last definition, and fills out phi args.
+   Also rewrites program to remove unnecessary loads, stores, and allocations. *)
+and rename_variables
+    ~dt (func : Function.t) (pointer_values : VSet.t) (phi_to_pointer_value : Value.t VMap.t) =
+  let stacks =
+    VSet.fold
+      (fun pointer_values acc -> VMap.add pointer_values (Stack.create ()) acc)
+      pointer_values
+      VMap.empty
+  in
+
+  (* Recursive traversal of dominator tree in preorder. Maintains a stack of the last definition
+     for each memory value. *)
+  let rec search block =
+    iter_instructions block (fun instr_value instr ->
+        match instr.instr with
+        (* Definitions (aka phis or stores) of this promoted memory value are pushed onto the
+           memory value's last definition stack. *)
+        | Phi _ ->
+          let pointer_value = VMap.find instr_value phi_to_pointer_value in
+          let stack = VMap.find pointer_value stacks in
+          Stack.push instr_value stack
+        | Store (ptr_use, arg_use) when VSet.mem ptr_use.value pointer_values ->
+          let stack = VMap.find ptr_use.value stacks in
+          Stack.push arg_use.value stack
+        (* Uses (aka loads) of this promoted memory value are popped off the memory value's last
+           definition stack. The load is replaced with the last definition. *)
+        | Load ptr_use when VSet.mem ptr_use.value pointer_values ->
+          let stack = VMap.find ptr_use.value stacks in
+          let top_value = Stack.top stack in
+          value_replace_uses ~from:instr_value ~to_:top_value;
+          remove_instruction instr_value
+        | _ -> ());
+
+    (* Add last definition to the phi nodes of the next blocks *)
+    iter_next_blocks block (fun next_block ->
+        block_iter_phis next_block (fun phi_val phi ->
+            let pointer_value = VMap.find phi_val phi_to_pointer_value in
+            let stack = VMap.find pointer_value stacks in
+            if not (Stack.is_empty stack) then
+              let top_value = Stack.top stack in
+              phi_add_arg ~phi_val ~phi ~block ~value:top_value));
+
+    (* Visit all dominated nodes in dominator tree *)
+    let children = Dominator_tree.get_children ~dt block in
+    BlockMMap.VSet.iter (fun child -> search child) children;
+
+    (* Pop definitions in each stack once all children in dominator tree have been visited *)
+    let pop pointer_value = ignore (Stack.pop (VMap.find pointer_value stacks)) in
+    iter_instructions block (fun instr_value instr ->
+        match instr.instr with
+        | Phi _ ->
+          let pointer_value = VMap.find instr_value phi_to_pointer_value in
+          pop pointer_value
+        | Store (ptr_use, _) when VSet.mem ptr_use.value pointer_values ->
+          pop ptr_use.value;
+          remove_instruction instr_value
+        | _ -> ())
+  in
+  search func.start_block

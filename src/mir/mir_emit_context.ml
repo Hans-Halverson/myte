@@ -195,11 +195,6 @@ let get_current_block ~ecx : Block.t =
 
 let set_current_block ~ecx block = ecx.current_block <- Some block
 
-let start_new_block ~ecx =
-  let block = mk_block ~ecx in
-  set_current_block ~ecx block;
-  block
-
 let finish_block ~ecx f =
   match ecx.current_block with
   | None -> ()
@@ -271,7 +266,8 @@ let emit_init_section ~ecx f =
   ecx.in_init <- true;
   ecx.current_func <- SMap.find init_func_name ecx.program.funcs;
 
-  let init_block = start_new_block ~ecx in
+  let init_block = mk_block ~ecx in
+  set_current_block ~ecx init_block;
 
   (* If an init section has already been created, link its last block to the new init section *)
   (match ecx.last_init_block with
@@ -383,7 +379,8 @@ let start_function ~(ecx : t) ~(func : Function.t) ~loc ~params ~return_type =
   func.params <- params;
   func.return_type <- return_type;
   (* Create start block for function *)
-  let start_block = start_new_block ~ecx in
+  let start_block = mk_block ~ecx in
+  set_current_block ~ecx start_block;
   func.start_block <- start_block
 
 let start_function_context ~ecx ~return_ty ~return_block ~return_pointer ~env_agg ~env_ptr ~captures
