@@ -160,6 +160,8 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     mutable aliases: Operand.t OperandMap.t;
     (* Total number of uses and defs for each register *)
     mutable reg_num_use_defs: int OperandMap.t;
+    (* Map from virtual register to the colors assigned to it *)
+    mutable color: Register.t OperandMap.t;
   }
 
   let mk ~(cx : Cx.t) =
@@ -185,6 +187,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
       move_list = OInstrMMap.empty;
       aliases = OperandMap.empty;
       reg_num_use_defs = OperandMap.empty;
+      color = OperandMap.empty;
     }
 
   let liveness_analysis ~(ra : t) =
@@ -527,6 +530,11 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         Cx.add_spilled_callee_saved_register ra.cx reg;
         Some reg)
 
+  let get_color ~(ra : t) vreg =
+    match Cx.get_physical_register_opt vreg with
+    | Some reg -> Some reg
+    | None -> OperandMap.find_opt vreg ra.color
+
   (* Pop nodes off the select stack and greedily assign colors to them. If no color can be assigned,
      add vreg to spill worklist. *)
   let assign_colors ~(ra : t) =
@@ -542,7 +550,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         (fun interfering_vreg ->
           let alias = get_operand_alias ~ra interfering_vreg in
           if OperandSet.mem alias ra.colored_vregs || is_precolored alias then
-            match Cx.get_physical_register_opt alias with
+            match get_color ~ra alias with
             | Some reg -> ok_registers := RegSet.remove reg !ok_registers
             | _ -> ())
         interfering_vregs;
@@ -563,7 +571,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
               reg1
           in
           if OperandSet.mem move_related_reg ra.colored_vregs || is_precolored move_related_reg then
-            match Cx.get_physical_register_opt move_related_reg with
+            match get_color ~ra move_related_reg with
             | Some reg ->
               (match RegMap.find_opt reg !register_priorities with
               | None -> register_priorities := RegMap.add reg 1 !register_priorities
@@ -577,27 +585,44 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
       | None -> ra.spilled_vregs <- OperandSet.add vreg ra.spilled_vregs
       | Some physical_reg ->
         ra.colored_vregs <- OperandSet.add vreg ra.colored_vregs;
-        Cx.assign_physical_register vreg physical_reg
-    done;
-    OperandSet.iter
-      (fun vreg ->
-        match Cx.get_physical_register_opt (get_operand_alias ~ra vreg) with
-        | Some alias_physical_reg -> Cx.assign_physical_register vreg alias_physical_reg
-        | _ -> failwith "Alias must be colored")
-      ra.coalesced_vregs
+        ra.color <- OperandMap.add vreg physical_reg ra.color
+    done
 
-  let rewrite_program ~(ra : t) =
+  let rewrite_program ~(ra : t) ~rewrite_all_vregs =
     (* Resolve spilled vregs to virtual stack slots *)
     OperandSet.iter (Cx.spill_virtual_register ra.cx) ra.spilled_vregs;
+
+    (* If rewriting virtual registers, rewrite all to assigned physical registers *)
+    let get_alias =
+      if rewrite_all_vregs then (
+        OperandMap.iter
+          (fun vreg physical_reg -> Cx.assign_physical_register vreg physical_reg)
+          ra.color;
+
+        OperandSet.iter
+          (fun vreg ->
+            match get_color ~ra (get_operand_alias ~ra vreg) with
+            | Some alias_physical_reg -> Cx.assign_physical_register vreg alias_physical_reg
+            | _ -> failwith "Alias must be colored")
+          ra.coalesced_vregs;
+
+        (* Map all operands to their aliases when rewriting  *)
+        get_operand_alias ~ra
+      ) else
+        Function_utils.id
+    in
+
     (* Then rewrite program to include newly resolved memory locations *)
-    Cx.rewrite_spilled_program ra.cx ~get_alias:(get_operand_alias ~ra);
+    Cx.rewrite_spilled_program ra.cx ~get_alias;
+
     (* Reset state of register allocator *)
     ra.spilled_vregs <- OperandSet.empty;
     ra.colored_vregs <- OperandSet.empty;
     ra.coalesced_vregs <- OperandSet.empty;
     ra.interference_graph <- OOMMap.empty;
     ra.move_list <- OperandMap.empty;
-    ra.aliases <- OperandMap.empty
+    ra.aliases <- OperandMap.empty;
+    ra.color <- OperandMap.empty
 
   (* Remove all moves where both the source and destination alias to the same register, as they are
      unnecessary. *)
@@ -628,7 +653,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
      Simply the graph afterwards to remove unnecessary instructions. *)
   let allocate_registers ~(ra : t) =
     (* Perform initial rewrite to force registers in some locations *)
-    Cx.rewrite_spilled_program ra.cx ~get_alias:(get_operand_alias ~ra);
+    Cx.rewrite_spilled_program ra.cx ~get_alias:Function_utils.id;
 
     let rec iter () =
       initialize ~ra;
@@ -654,7 +679,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
       assign_colors ~ra;
 
       let has_spilled_vregs = not (OperandSet.is_empty ra.spilled_vregs) in
-      rewrite_program ~ra;
+      rewrite_program ~ra ~rewrite_all_vregs:(not has_spilled_vregs);
       if has_spilled_vregs then iter ()
     in
     iter ();
