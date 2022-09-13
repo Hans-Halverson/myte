@@ -18,8 +18,8 @@ let mk_precolored_bp () = mk_precolored ~type_:Long BP
    on the stack, and allocating a stack frame when applicable. *)
 let write_function_prologues ~(gcx : Gcx.t) =
   let open Instruction in
-  IMap.iter
-    (fun _ func ->
+  FunctionSet.iter
+    (fun func ->
       let prologue = IMap.find func.Function.prologue gcx.blocks_by_id in
 
       (* Only need to save the base pointer if there is data on stack *)
@@ -56,7 +56,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
         @ List.rev push_instrs
         @ allocate_stack_frame_instrs
         @ prologue.instructions)
-    gcx.funcs_by_id
+    gcx.funcs
 
 (* Write all function epilogues by destroying the stack frame, popping used callee saved registers
    off the sack, and restoring the base pointer when applicable. *)
@@ -64,7 +64,6 @@ let write_function_epilogues ~(gcx : Gcx.t) =
   IMap.iter
     (fun _ block ->
       let open Block in
-      let func = IMap.find block.func gcx.funcs_by_id in
       let offset = ref 0 in
       block.instructions <-
         List.map
@@ -72,6 +71,8 @@ let write_function_epilogues ~(gcx : Gcx.t) =
             let open Instruction in
             match instr.instr with
             | Ret ->
+              let func = block.func in
+
               (* Destroy the stack frame *)
               let destroy_stack_frame_instrs =
                 if func_has_stack_frame func then

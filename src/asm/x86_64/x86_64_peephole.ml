@@ -1,4 +1,3 @@
-open Basic_collections
 open X86_64_builders
 open X86_64_instructions
 open X86_64_gen_context
@@ -27,7 +26,7 @@ class peephole_optimization_runner ~(gcx : Gcx.t) (opts : peephole_optimization 
         List.iter this#visit_block func.Function.blocks;
         if has_changed then run_to_fixpoint func
       in
-      IMap.iter (fun _ func -> run_to_fixpoint func) gcx.funcs_by_id
+      FunctionSet.iter (fun func -> run_to_fixpoint func) gcx.funcs
 
     (* Try running all peephole optimizations at a particular instruction, returning an edit if
        an optimization is applied. *)

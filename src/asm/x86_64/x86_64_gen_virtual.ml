@@ -118,7 +118,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
   in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
-  Gcx.start_block ~gcx ~label:(Some label) ~func:func_.id ~mir_block:None;
+  Gcx.start_block ~gcx ~label:(Some label) ~func:func_ ~mir_block:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func_.prologue <- prologue_block_id;
 
@@ -137,15 +137,15 @@ and gen_function_instruction_builder ~gcx ~ir func =
       func.params;
 
   (* Jump to function start and gen function body *)
-  Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx func.start_block));
+  Gcx.emit ~gcx (Jmp (Gcx.get_block_from_mir_block ~gcx func.start_block));
   Gcx.finish_block ~gcx;
-  gen_blocks ~gcx ~ir func.start_block None func_.id;
+  gen_blocks ~gcx ~ir func.start_block None func_;
   Gcx.finish_function ~gcx
 
 and gen_empty_myte_init_func ~gcx =
   gcx.generated_init_func <- true;
   let func_ = Gcx.start_function ~gcx [] (Array.make 0 (ParamOnStack 0)) 0 in
-  Gcx.start_block ~gcx ~label:(Some init_label) ~func:func_.id ~mir_block:None;
+  Gcx.start_block ~gcx ~label:(Some init_label) ~func:func_ ~mir_block:None;
   let prologue_block_id = (Option.get gcx.current_block_builder).id in
   func_.prologue <- prologue_block_id;
   Gcx.emit ~gcx Ret;
@@ -453,20 +453,20 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | SingleCC cc ->
       (* Note that the condition code is inverted as we emit a JmpCC to the false branch *)
       let cc = invert_condition_code cc in
-      Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_id_from_mir_block ~gcx jump));
-      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+      Gcx.emit ~gcx (JmpCC (cc, Gcx.get_block_from_mir_block ~gcx jump));
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_from_mir_block ~gcx continue))
     | AndCC (cc1, cc2) ->
       (* Jump to jump block if either condition code is false *)
       let cc1 = invert_condition_code cc1 in
       let cc2 = invert_condition_code cc2 in
-      Gcx.emit ~gcx (JmpCC (cc1, Gcx.get_block_id_from_mir_block ~gcx jump));
-      Gcx.emit ~gcx (JmpCC (cc2, Gcx.get_block_id_from_mir_block ~gcx jump));
-      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+      Gcx.emit ~gcx (JmpCC (cc1, Gcx.get_block_from_mir_block ~gcx jump));
+      Gcx.emit ~gcx (JmpCC (cc2, Gcx.get_block_from_mir_block ~gcx jump));
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_from_mir_block ~gcx continue))
     | OrCC (cc1, cc2) ->
       (* Jump to continue block if either condition code is true *)
-      Gcx.emit ~gcx (JmpCC (cc1, Gcx.get_block_id_from_mir_block ~gcx continue));
-      Gcx.emit ~gcx (JmpCC (cc2, Gcx.get_block_id_from_mir_block ~gcx continue));
-      Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx jump))
+      Gcx.emit ~gcx (JmpCC (cc1, Gcx.get_block_from_mir_block ~gcx continue));
+      Gcx.emit ~gcx (JmpCC (cc2, Gcx.get_block_from_mir_block ~gcx continue));
+      Gcx.emit ~gcx (Jmp (Gcx.get_block_from_mir_block ~gcx jump))
   in
 
   match instructions with
@@ -929,7 +929,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | [{ instr = Unreachable; _ }] -> ()
   | [{ instr = Continue continue; _ }] ->
     (* TODO: Create better structure for tracking relative block locations *)
-    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+    Gcx.emit ~gcx (Jmp (Gcx.get_block_from_mir_block ~gcx continue))
   | [{ instr = Branch { test; continue; jump }; _ }] ->
     let test =
       match test.value.value with
@@ -938,8 +938,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
     let reg = emit_bool_as_reg test in
     Gcx.emit ~gcx (TestMR (Size8, reg, reg));
-    Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_id_from_mir_block ~gcx jump));
-    Gcx.emit ~gcx (Jmp (Gcx.get_block_id_from_mir_block ~gcx continue))
+    Gcx.emit ~gcx (JmpCC (E, Gcx.get_block_from_mir_block ~gcx jump));
+    Gcx.emit ~gcx (Jmp (Gcx.get_block_from_mir_block ~gcx continue))
   | { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ } :: _ ->
     failwith "Terminator instructions must be last instruction"
   (*

@@ -28,15 +28,15 @@ module type RA_OPERAND = sig
 end
 
 module type RA_BLOCK = sig
-  type t
-
-  val get_id : t -> int
+  include SORTED
 end
 
 module type REGISTER_ALLOCATOR_CONTEXT = sig
   module Register : RA_REGISTER
   module Operand : RA_OPERAND
-  module Instruction : SORTED
+  module Instruction : sig
+    type t
+  end
   module Block : RA_BLOCK
 
   module RegSet : Set.S with type elt = Register.t
@@ -44,6 +44,7 @@ module type REGISTER_ALLOCATOR_CONTEXT = sig
   module OperandSet : Set.S with type elt = Operand.t
   module OperandMap : Map.S with type key = Operand.t
   module InstrSet : Set.S with type elt = Instruction.t
+  module BlockMap : Map.S with type key = Block.t
 
   module OOMMap :
     MultiMap.S
@@ -100,7 +101,7 @@ module type REGISTER_ALLOCATOR_CONTEXT = sig
 
   val init_context : t -> int OperandMap.t * OperandSet.t
 
-  val get_live_out_regs : t -> Operand.t list IMap.t
+  val get_live_out_regs : t -> Operand.t list BlockMap.t
 
   val get_use_defs_for_instruction : t -> Instruction.t -> Block.t -> OperandSet.t * OperandSet.t
 
@@ -120,6 +121,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   module OperandSet = Cx.OperandSet
   module OperandMap = Cx.OperandMap
   module InstrSet = Cx.InstrSet
+  module BlockMap = Cx.BlockMap
 
   module OOMMap = Cx.OOMMap
   module OInstrMMap = Cx.OInstrMMap
@@ -127,7 +129,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   type t = {
     cx: Cx.t;
     (* Map of virtual registers live at the beginning of each block *)
-    mutable live_out: Operand.t list IMap.t;
+    mutable live_out: Operand.t list BlockMap.t;
     (* Every register is in exactly one of these sets *)
     mutable initial_vregs: OperandSet.t;
     (* Low degree, non move related vregs *)
@@ -167,7 +169,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   let mk ~(cx : Cx.t) =
     {
       cx;
-      live_out = IMap.empty;
+      live_out = BlockMap.empty;
       initial_vregs = OperandSet.empty;
       simplify_worklist = OperandSet.empty;
       freeze_worklist = OperandSet.empty;
@@ -222,7 +224,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   let build_interference_graph ~(ra : t) =
     Cx.iter_blocks
       (fun block ->
-        let live = ref (IMap.find (Block.get_id block) ra.live_out |> OperandSet.of_list) in
+        let live = ref (BlockMap.find block ra.live_out |> OperandSet.of_list) in
         Cx.iter_instrs_rev
           (fun instr ->
             begin

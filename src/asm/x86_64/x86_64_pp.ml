@@ -3,13 +3,13 @@ open X86_64_gen_context
 open X86_64_instructions
 open X86_64_register
 
-type print_context = { mutable block_print_labels: string IMap.t }
+type print_context = { mutable block_print_labels: string BlockMap.t }
 
 class incoming_jump_blocks_visitor ~(gcx : Gcx.t) =
   object (this)
     inherit X86_64_visitor.instruction_visitor
 
-    val mutable incoming_jump_blocks = ISet.empty
+    val mutable incoming_jump_blocks = BlockSet.empty
 
     method incoming_jump_blocks = incoming_jump_blocks
 
@@ -17,8 +17,8 @@ class incoming_jump_blocks_visitor ~(gcx : Gcx.t) =
 
     method visit_block block = List.iter (this#visit_instruction ~block) block.instructions
 
-    method! visit_block_edge ~block:_ next_block_id =
-      incoming_jump_blocks <- ISet.add next_block_id incoming_jump_blocks
+    method! visit_block_edge ~block:_ next_block =
+      incoming_jump_blocks <- BlockSet.add next_block incoming_jump_blocks
   end
 
 let find_incoming_jump_blocks ~gcx =
@@ -30,26 +30,26 @@ let write_full_asm () =
   Opts.dump_full_asm () || ((not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()))
 
 let mk_pcx ~gcx =
-  let pcx = { block_print_labels = IMap.empty } in
+  let pcx = { block_print_labels = BlockMap.empty } in
   (* Determine labels for every unlabed block in program that has an incoming jump *)
   let max_label_id = ref 0 in
   let incoming_jump_blocks = find_incoming_jump_blocks ~gcx in
-  IMap.iter
-    (fun _ func ->
+  FunctionSet.iter
+    (fun func ->
       List.iter
         (fun block ->
           let open Block in
           match block.label with
           | Some _ -> ()
           | None ->
-            if ISet.mem block.id incoming_jump_blocks then (
+            if BlockSet.mem block incoming_jump_blocks then (
               let id = !max_label_id in
               max_label_id := !max_label_id + 1;
               pcx.block_print_labels <-
-                IMap.add block.id (".L" ^ string_of_int id) pcx.block_print_labels
+                BlockMap.add block (".L" ^ string_of_int id) pcx.block_print_labels
             ))
         func.Function.blocks)
-    gcx.funcs_by_id;
+    gcx.funcs;
   pcx
 
 let mk_buf ?(size = 1024) () = Buffer.create size
@@ -96,10 +96,10 @@ let pp_integer_size_suffix ~buf size =
     | Size64 -> 'q'
     | Size128 -> failwith "Invalid integer operand size")
 
-let pp_label_debug_prefix ~buf block_id =
+let pp_label_debug_prefix ~buf (block : Block.t) =
   if Opts.dump_debug () then (
     add_char ~buf '(';
-    add_string ~buf (string_of_int block_id);
+    add_string ~buf (string_of_int block.id);
     add_string ~buf ") "
   )
 
@@ -107,7 +107,7 @@ let pp_label ~pcx block =
   let open Block in
   match block.label with
   | Some label -> Some label
-  | None -> IMap.find_opt block.id pcx.block_print_labels
+  | None -> BlockMap.find_opt block pcx.block_print_labels
 
 let pp_condition_code cc =
   match cc with
@@ -442,15 +442,13 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_register ~size dest_mem
       (* Control flow *)
-      | Jmp block_id ->
-        let block = IMap.find block_id gcx.Gcx.blocks_by_id in
+      | Jmp block ->
         pp_op "jmp";
-        pp_label_debug_prefix ~buf block_id;
+        pp_label_debug_prefix ~buf block;
         add_string (Option.get (pp_label ~pcx block))
-      | JmpCC (cc, block_id) ->
-        let block = IMap.find block_id gcx.Gcx.blocks_by_id in
+      | JmpCC (cc, block) ->
         pp_op ("j" ^ pp_condition_code cc);
-        pp_label_debug_prefix ~buf block_id;
+        pp_label_debug_prefix ~buf block;
         add_string (Option.get (pp_label ~pcx block))
       | CallM (size, mem) ->
         pp_sized_op "call" size;
@@ -554,7 +552,7 @@ let pp_block ~gcx ~pcx ~buf (block : Block.t) =
   (match pp_label ~pcx block with
   | None -> ()
   | Some label ->
-    pp_label_debug_prefix ~buf block.id;
+    pp_label_debug_prefix ~buf block;
     add_label_line ~buf label);
   List.iter (pp_instruction ~gcx ~pcx ~buf) block.instructions
 
@@ -593,7 +591,7 @@ let pp_program ~gcx =
   (* Add text section *)
   add_blank_line ~buf;
   add_line ~buf (fun buf -> add_string ~buf ".text");
-  IMap.iter (fun _ func -> List.iter (pp_block ~gcx ~pcx ~buf) func.Function.blocks) gcx.funcs_by_id;
+  FunctionSet.iter (fun func -> List.iter (pp_block ~gcx ~pcx ~buf) func.Function.blocks) gcx.funcs;
 
   (* Add data section bitmaps *)
   if Opts.custom_gc () && write_full_asm then (

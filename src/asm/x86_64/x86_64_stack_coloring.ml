@@ -35,10 +35,10 @@ let find_vslot_use_defs block instruction =
 
 let liveness_analysis ~(gcx : Gcx.t) =
   let (_, live_out) = X86_64_liveness_analysis.analyze_virtual_stack_slots ~gcx in
-  let graph = ref OperandMap.empty in
+  let graph = ref OOMMap.empty in
   IMap.iter
-    (fun block_id block ->
-      let live = ref (IMap.find block_id live_out |> OperandSet.of_list) in
+    (fun _ block ->
+      let live = ref (BlockMap.find block live_out |> OperandSet.of_list) in
       List.iter
         (fun instr ->
           let (vslot_uses, vslot_defs) = find_vslot_use_defs block instr in
@@ -71,8 +71,8 @@ let resolve_to_physical_stack_slot operand offset =
 let allocate_stack_slots ~(gcx : Gcx.t) =
   let interference_graph = liveness_analysis ~gcx in
 
-  IMap.iter
-    (fun _ func ->
+  FunctionSet.iter
+    (fun func ->
       let open Function in
       (* Virtual stack slot colors correspond to shared slots on the stack *)
       let max_stack_slot = ref 0 in
@@ -155,4 +155,4 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
             let offset = stack_frame_size + ((num_used_callee_saved_regs + i + 1) * 8) in
             resolve_to_physical_stack_slot param_op offset)
         func.params)
-    gcx.funcs_by_id
+    gcx.funcs

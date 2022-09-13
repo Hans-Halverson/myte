@@ -17,14 +17,27 @@ module X86_64_RegisterAllocatorContext = struct
   module Instruction = Instruction
   module Block = Block
 
-  module RegSet = RegisterCollection.Set
-  module RegMap = RegisterCollection.Map
-  module OperandSet = OperandCollection.Set
-  module OperandMap = OperandCollection.Map
-  module InstrSet = InstructionCollection.Set
+  module RegSet = RegSet
+  module RegMap = RegMap
+  module OperandSet = OperandSet
+  module OperandMap = OperandMap
+  module InstrSet = InstrSet
+  module BlockMap = BlockMap
 
-  module OOMMap = OOMMap
-  module OInstrMMap = OInstrMMap
+  module OOMMap :
+    MultiMap.S
+      with type key = Operand.t
+       and type value = Operand.t
+       and module KMap = OperandMap
+       and module VSet = OperandSet =
+    OOMMap
+  module OInstrMMap :
+    MultiMap.S
+      with type key = Operand.t
+       and type value = Instruction.t
+       and module KMap = OperandMap
+       and module VSet = InstrSet =
+    OInstrMMap
 
   type t = {
     func: Function.t;
@@ -36,9 +49,9 @@ module X86_64_RegisterAllocatorContext = struct
     object (this)
       inherit X86_64_liveness_analysis.use_def_finder color_to_op
 
-      val mutable reg_uses = OperandSet.empty
+      val mutable reg_uses : OperandSet.t = OperandSet.empty
 
-      val mutable reg_defs = OperandSet.empty
+      val mutable reg_defs : OperandSet.t = OperandSet.empty
 
       method find_use_defs ~block instr =
         reg_uses <- OperandSet.empty;
@@ -46,9 +59,9 @@ module X86_64_RegisterAllocatorContext = struct
         this#visit_instruction ~block instr;
         (reg_uses, reg_defs)
 
-      method! add_register_use ~block:_ reg = reg_uses <- OperandSet.add reg reg_uses
+      method! add_register_use ~block:_ (reg : Operand.t) = reg_uses <- OperandSet.add reg reg_uses
 
-      method! add_register_def ~block:_ reg = reg_defs <- OperandSet.add reg reg_defs
+      method! add_register_def ~block:_ (reg : Operand.t) = reg_defs <- OperandSet.add reg reg_defs
     end
 
   let mk ~gcx ~func =

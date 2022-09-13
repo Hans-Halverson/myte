@@ -37,7 +37,44 @@ let mk_function_stack_argument ~(arg_id : int) ~(type_ : Type.t) : Operand.t =
  * ============================
  *)
 
+let max_instr_id = ref 0
+
+let mk_instr_id () =
+  let id = !max_instr_id in
+  max_instr_id := id + 1;
+  id
+
 let mk_instr instr =
-  let id = Instruction.mk_id () in
+  let id = mk_instr_id () in
   let instruction = { Instruction.id; instr } in
   instruction
+
+(*
+ * ============================
+ *           Blocks
+ * ============================
+ *)
+
+let max_block_id = ref 0
+
+let mk_block_id () =
+  let id = !max_block_id in
+  max_block_id := id + 1;
+  id
+
+let mk_block ~(func : Function.t) : Block.t =
+  let block = { Block.id = mk_block_id (); label = None; func; instructions = [] } in
+  block
+
+(*
+ * ============================
+ *         Functions
+ * ============================
+ *)
+
+let max_func_id = ref 0
+
+let mk_func_id () =
+  let id = !max_func_id in
+  max_func_id := id + 1;
+  id

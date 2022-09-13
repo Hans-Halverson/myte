@@ -21,9 +21,9 @@ module Gcx = struct
     mutable blocks_by_id: Block.t IMap.t;
     mutable prev_blocks: IIMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
-    mutable mir_block_id_to_block_id: Block.id Mir.BlockMap.t;
+    mutable mir_block_to_block: Block.t Mir.BlockMap.t;
     mutable mir_func_to_param_types: param_types Mir.FunctionMap.t;
-    mutable funcs_by_id: Function.t IMap.t;
+    mutable funcs: FunctionSet.t;
     (* Map from physical register to a representative precolored register operand *)
     mutable color_to_op: Operand.t RegMap.t;
     mutable agg_to_layout: AggregateLayout.t IMap.t;
@@ -56,9 +56,9 @@ module Gcx = struct
       current_func_builder = None;
       blocks_by_id = IMap.empty;
       prev_blocks = IIMMap.empty;
-      mir_block_id_to_block_id = Mir.BlockMap.empty;
+      mir_block_to_block = Mir.BlockMap.empty;
       mir_func_to_param_types = Mir.FunctionMap.empty;
-      funcs_by_id = IMap.empty;
+      funcs = FunctionSet.empty;
       color_to_op;
       agg_to_layout = IMap.empty;
       added_double_negate_mask = false;
@@ -95,29 +95,29 @@ module Gcx = struct
     );
     literal_label
 
-  let get_block_id_from_mir_block ~gcx mir_block =
-    match Mir.BlockMap.find_opt mir_block gcx.mir_block_id_to_block_id with
-    | Some block_id -> block_id
+  let get_block_from_mir_block ~gcx mir_block =
+    match Mir.BlockMap.find_opt mir_block gcx.mir_block_to_block with
+    | Some block -> block
     | None ->
-      let block_id = Block.mk_id () in
-      gcx.mir_block_id_to_block_id <-
-        Mir.BlockMap.add mir_block block_id gcx.mir_block_id_to_block_id;
-      block_id
+      let block = mk_block ~func:null_function in
+      gcx.mir_block_to_block <- Mir.BlockMap.add mir_block block gcx.mir_block_to_block;
+      block
 
   let start_block ~gcx ~label ~func ~mir_block =
-    let id =
+    let block =
       match mir_block with
-      | None -> Block.mk_id ()
-      | Some mir_block -> get_block_id_from_mir_block ~gcx mir_block
+      | None -> mk_block ~func
+      | Some mir_block -> get_block_from_mir_block ~gcx mir_block
     in
-    gcx.current_block_builder <- Some { id; label; func; instructions = [] }
+    block.func <- func;
+    block.label <- label;
+    gcx.current_block_builder <- Some block
 
   let finish_block ~gcx =
     let block = Option.get gcx.current_block_builder in
     block.instructions <- List.rev block.instructions;
     gcx.blocks_by_id <- IMap.add block.id block gcx.blocks_by_id;
-    let func = IMap.find block.func gcx.funcs_by_id in
-    func.blocks <- block :: func.blocks;
+    block.func.blocks <- block :: block.func.blocks;
     gcx.current_block_builder <- None
 
   let emit ~gcx instr =
@@ -125,16 +125,15 @@ module Gcx = struct
     let instruction = mk_instr instr in
     current_block.instructions <- instruction :: current_block.instructions;
     match instr with
-    | Jmp next_block_id
-    | JmpCC (_, next_block_id) ->
-      gcx.prev_blocks <- IIMMap.add next_block_id current_block.id gcx.prev_blocks
+    | Jmp next_block
+    | JmpCC (_, next_block) ->
+      gcx.prev_blocks <- IIMMap.add next_block.id current_block.id gcx.prev_blocks
     | _ -> ()
 
   let start_function ~gcx params param_types prologue =
-    let id = Function.mk_id () in
     let func =
       {
-        Function.id;
+        Function.id = mk_func_id ();
         params;
         param_types;
         prologue;
@@ -147,7 +146,7 @@ module Gcx = struct
       }
     in
     gcx.current_func_builder <- Some func;
-    gcx.funcs_by_id <- IMap.add id func gcx.funcs_by_id;
+    gcx.funcs <- FunctionSet.add func gcx.funcs;
     func
 
   let finish_function ~gcx =
@@ -238,14 +237,13 @@ module Gcx = struct
       match blocks with
       | block1 :: block2 :: tl ->
         (match List.rev block1.instructions with
-        | { instr = Instruction.Jmp next_block_id; _ } :: rev_instrs when next_block_id = block2.id
-          ->
+        | { instr = Instruction.Jmp next_block; _ } :: rev_instrs when next_block.id = block2.id ->
           block1.instructions <- List.rev rev_instrs
         | _ -> ());
         merge (block2 :: tl)
       | _ -> ()
     in
-    IMap.iter (fun _ func -> merge func.Function.blocks) gcx.funcs_by_id;
+    FunctionSet.iter (fun func -> merge func.Function.blocks) gcx.funcs;
     (* Remove reflexive move instructions *)
     IMap.iter
       (fun _ block ->
@@ -267,34 +265,33 @@ module Gcx = struct
   let compress_jump_aliases ~gcx =
     let open Block in
     (* Find all jump aliases in program *)
-    let jump_aliases = ref IMap.empty in
+    let jump_aliases = ref BlockMap.empty in
     IMap.iter
       (fun _ block ->
         match block.instructions with
-        | [{ instr = Jmp next_jump_block; _ }] when block.id <> next_jump_block ->
-          jump_aliases := IMap.add block.id next_jump_block !jump_aliases
+        | [{ instr = Jmp next_jump_block; _ }] when block.id <> next_jump_block.id ->
+          jump_aliases := BlockMap.add block next_jump_block !jump_aliases
         | _ -> ())
       gcx.blocks_by_id;
     (* Filter out jump alias blocks *)
-    IMap.iter
-      (fun _ func ->
+    FunctionSet.iter
+      (fun func ->
         let open Function in
         func.blocks <-
           List.filter
             (fun block ->
-              let func = IMap.find block.func gcx.funcs_by_id in
-              if IMap.mem block.id !jump_aliases && func.prologue != block.id then (
+              if BlockMap.mem block !jump_aliases && block.func.prologue != block.id then (
                 gcx.blocks_by_id <- IMap.remove block.id gcx.blocks_by_id;
                 gcx.prev_blocks <- IIMMap.remove_key block.id gcx.prev_blocks;
                 false
               ) else
                 true)
             func.blocks)
-      gcx.funcs_by_id;
+      gcx.funcs;
     (* Rewrite jumps to skip over jump alias blocks *)
-    let rec resolve_jump_alias block_id =
-      match IMap.find_opt block_id !jump_aliases with
-      | None -> block_id
+    let rec resolve_jump_alias block =
+      match BlockMap.find_opt block !jump_aliases with
+      | None -> block
       | Some alias -> resolve_jump_alias alias
     in
     IMap.iter
@@ -303,11 +300,11 @@ module Gcx = struct
         List.iter
           (fun instr ->
             match instr.instr with
-            | Jmp next_block_id when IMap.mem next_block_id !jump_aliases ->
-              let resolved_alias = resolve_jump_alias next_block_id in
+            | Jmp next_block when BlockMap.mem next_block !jump_aliases ->
+              let resolved_alias = resolve_jump_alias next_block in
               instr.instr <- Jmp resolved_alias
-            | JmpCC (cond, next_block_id) when IMap.mem next_block_id !jump_aliases ->
-              let resolved_alias = resolve_jump_alias next_block_id in
+            | JmpCC (cond, next_block) when BlockMap.mem next_block !jump_aliases ->
+              let resolved_alias = resolve_jump_alias next_block in
               instr.instr <- JmpCC (cond, resolved_alias)
             | _ -> ())
           block.instructions)

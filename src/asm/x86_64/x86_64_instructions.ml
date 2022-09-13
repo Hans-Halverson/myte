@@ -142,27 +142,7 @@ type condition_code =
   | P
   | NP
 
-type block_id = int
-
-type func_id = int
-
-module OperandCollection = MakeCollection (Operand)
-
-module OperandSet = OperandCollection.Set
-module OperandMap = OperandCollection.Map
-module OOMMap = MultiMap.Make (OperandCollection) (OperandCollection)
-module OIMMap = MultiMap.Make (OperandCollection) (IntCollection)
-
-let string_of_oset oset =
-  let elements =
-    OperandSet.to_seq oset
-    |> List.of_seq
-    |> List.map (fun op -> string_of_int op.Operand.id)
-    |> String.concat ", "
-  in
-  "(" ^ elements ^ ")"
-
-module Instruction = struct
+module rec Instruction : sig
   type id = int
 
   type instr =
@@ -248,8 +228,8 @@ module Instruction = struct
         * (* GP mem *) Operand.t
         * (* SSE register *) Operand.t
     (* Control flow *)
-    | Jmp of block_id
-    | JmpCC of condition_code * block_id
+    | Jmp of Block.t
+    | JmpCC of condition_code * Block.t
     | CallL of label
     | CallM of register_size * Operand.t
     | Leave
@@ -260,49 +240,49 @@ module Instruction = struct
     id: id;
     mutable instr: instr;
   }
+end =
+  Instruction
 
-  let max_id = ref 0
-
-  let mk_id () =
-    let id = !max_id in
-    max_id := id + 1;
-    id
-
-  let compare i1 i2 = Int.compare i1.id i2.id
-end
-
-module Block = struct
-  type id = block_id
+and Block : sig
+  type id = int
 
   and t = {
     id: id;
-    label: label option;
-    func: func_id;
+    mutable label: label option;
+    mutable func: Function.t;
     mutable instructions: Instruction.t list;
   }
 
-  let max_id = ref 0
+  val compare : t -> t -> int
 
-  let mk_id () =
-    let id = !max_id in
-    max_id := id + 1;
-    id
+  val iter_instrs_rev : (Instruction.t -> unit) -> t -> unit
 
-  let get_id block = block.id
+  val filter_instrs : (Instruction.t -> bool) -> t -> unit
+end = struct
+  type id = int
+
+  and t = {
+    id: id;
+    mutable label: label option;
+    mutable func: Function.t;
+    mutable instructions: Instruction.t list;
+  }
+
+  let compare b1 b2 = Int.compare b1.id b2.id
 
   let iter_instrs_rev f block = List.iter f (List.rev block.instructions)
 
   let filter_instrs f block = block.instructions <- List.filter f block.instructions
 end
 
-module Function = struct
+and Function : sig
   type id = int
 
   type t = {
     id: id;
     mutable params: Operand.t list;
     param_types: param_type array;
-    mutable prologue: block_id;
+    mutable prologue: Block.id;
     mutable blocks: Block.t list;
     mutable spilled_callee_saved_regs: RegSet.t;
     mutable spilled_vslots: OperandSet.t;
@@ -312,19 +292,63 @@ module Function = struct
     mutable argument_stack_slots: Operand.t list;
     mutable num_argument_stack_slots: int;
   }
+end =
+  Function
 
-  let max_id = ref 0
+and OperandCollection : (MultiMap.KEY_AND_VALUE_TYPE with type t = Operand.t) =
+  MakeCollection (Operand)
 
-  let mk_id () =
-    let id = !max_id in
-    max_id := id + 1;
-    id
-end
+and InstructionCollection : (MultiMap.KEY_AND_VALUE_TYPE with type t = Instruction.t) =
+MakeCollection (struct
+  type t = Instruction.t
+  let compare (i1 : Instruction.t) (i2 : Instruction.t) = Int.compare i1.id i2.id
+end)
 
-module InstructionCollection = MakeCollection (Instruction)
+and BlockCollection : (MultiMap.KEY_AND_VALUE_TYPE with type t = Block.t) = MakeCollection (Block)
 
-module InstrSet = InstructionCollection.Set
-module OInstrMMap = MultiMap.Make (OperandCollection) (InstructionCollection)
+and FunctionCollection : (MultiMap.KEY_AND_VALUE_TYPE with type t = Function.t) =
+MakeCollection (struct
+  type t = Function.t
+  let compare (f1 : Function.t) (f2 : Function.t) = Int.compare f1.id f2.id
+end)
+
+and OperandSet : (Set.S with type elt = Operand.t) = OperandCollection.Set
+and OperandMap : (Map.S with type key = Operand.t) = OperandCollection.Map
+and InstrSet : (Set.S with type elt = Instruction.t) = InstructionCollection.Set
+and BlockSet : (Set.S with type elt = Block.t) = BlockCollection.Set
+and BlockMap : (Map.S with type key = Block.t) = BlockCollection.Map
+and FunctionSet : (Set.S with type elt = Function.t) = FunctionCollection.Set
+
+and BlockMMap : (MultiMap.S with type key = Block.t and type value = Block.t) =
+  MultiMap.Make (BlockCollection) (BlockCollection)
+
+and OInstrMMap :
+  (MultiMap.S
+    with type key = Operand.t
+     and type value = Instruction.t
+     and type 'a KMap.t = 'a OperandMap.t
+     and type VSet.t = InstrSet.t) =
+  MultiMap.Make (OperandCollection) (InstructionCollection)
+
+and OOMMap :
+  (MultiMap.S
+    with type key = Operand.t
+     and type value = Operand.t
+     and type 'a KMap.t = 'a OperandMap.t
+     and type VSet.t = OperandSet.t) =
+  MultiMap.Make (OperandCollection) (OperandCollection)
+
+and OBMMap : (MultiMap.S with type key = Operand.t and type value = Block.t) =
+  MultiMap.Make (OperandCollection) (BlockCollection)
+
+let string_of_oset oset =
+  let elements =
+    OperandSet.to_seq oset
+    |> List.of_seq
+    |> List.map (fun op -> string_of_int op.Operand.id)
+    |> String.concat ", "
+  in
+  "(" ^ elements ^ ")"
 
 type data_value =
   | ImmediateData of immediate
@@ -356,6 +380,22 @@ type program = {
   data: data;
   bss: bss;
 }
+
+let rec null_function : Function.t =
+  {
+    Function.id = 0;
+    params = [];
+    param_types = Array.make 0 (ParamOnStack 0);
+    prologue = 0;
+    blocks = [];
+    spilled_callee_saved_regs = RegSet.empty;
+    spilled_vslots = OperandSet.empty;
+    num_stack_frame_slots = 0;
+    argument_stack_slots = [];
+    num_argument_stack_slots = 0;
+  }
+
+and null_block : Block.t = { Block.id = 0; label = None; func = null_function; instructions = [] }
 
 let pointer_size = 8
 
