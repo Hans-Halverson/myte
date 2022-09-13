@@ -36,11 +36,9 @@ let find_vslot_use_defs block instruction =
 let liveness_analysis ~(gcx : Gcx.t) =
   let (_, live_out) = X86_64_liveness_analysis.analyze_virtual_stack_slots ~gcx in
   let graph = ref OOMMap.empty in
-  IMap.iter
-    (fun _ block ->
+  funcs_iter_blocks gcx.funcs (fun block ->
       let live = ref (BlockMap.find block live_out |> OperandSet.of_list) in
-      List.iter
-        (fun instr ->
+      iter_instructions_rev block (fun instr ->
           let (vslot_uses, vslot_defs) = find_vslot_use_defs block instr in
           live := OperandSet.union vslot_defs !live;
           OperandSet.iter
@@ -54,9 +52,7 @@ let liveness_analysis ~(gcx : Gcx.t) =
                   ))
                 !live)
             vslot_defs;
-          live := OperandSet.union vslot_uses (OperandSet.diff !live vslot_defs))
-        (List.rev block.Block.instructions))
-    gcx.blocks_by_id;
+          live := OperandSet.union vslot_uses (OperandSet.diff !live vslot_defs)));
   !graph
 
 let resolve_to_physical_stack_slot operand offset =

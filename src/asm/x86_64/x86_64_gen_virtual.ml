@@ -106,7 +106,7 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
 
 and gen_function_instruction_builder ~gcx ~ir func =
   let param_types = FunctionMap.find func gcx.mir_func_to_param_types in
-  let func_ = Gcx.start_function ~gcx [] param_types 0 in
+  let func_ = Gcx.start_function ~gcx [] param_types in
   let label =
     if func == ir.main_func then
       main_label
@@ -119,8 +119,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
   Gcx.start_block ~gcx ~label:(Some label) ~func:func_ ~mir_block:None;
-  let prologue_block_id = (Option.get gcx.current_block_builder).id in
-  func_.prologue <- prologue_block_id;
+  func_.prologue <- Option.get gcx.current_block;
 
   func_.params <-
     List.mapi
@@ -144,10 +143,9 @@ and gen_function_instruction_builder ~gcx ~ir func =
 
 and gen_empty_myte_init_func ~gcx =
   gcx.generated_init_func <- true;
-  let func_ = Gcx.start_function ~gcx [] (Array.make 0 (ParamOnStack 0)) 0 in
+  let func_ = Gcx.start_function ~gcx [] (Array.make 0 (ParamOnStack 0)) in
   Gcx.start_block ~gcx ~label:(Some init_label) ~func:func_ ~mir_block:None;
-  let prologue_block_id = (Option.get gcx.current_block_builder).id in
-  func_.prologue <- prologue_block_id;
+  func_.prologue <- Option.get gcx.current_block;
   Gcx.emit ~gcx Ret;
   Gcx.finish_block ~gcx;
   Gcx.finish_function ~gcx

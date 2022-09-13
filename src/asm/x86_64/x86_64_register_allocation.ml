@@ -1,4 +1,5 @@
 open Register_allocation
+open X86_64_builders
 open X86_64_gen_context
 open X86_64_instructions
 open X86_64_register
@@ -118,9 +119,9 @@ module X86_64_RegisterAllocatorContext = struct
 
   let iter_blocks f cx = List.iter f cx.func.blocks
 
-  let iter_instrs_rev f block = List.iter f (List.rev block.Block.instructions)
+  let iter_instrs_rev f block = iter_instructions_rev block f
 
-  let filter_instrs f block = Block.(block.instructions <- List.filter f block.instructions)
+  let filter_instrs f block = filter_instructions block f
 
   let get_move_opt instr =
     match instr.Instruction.instr with
@@ -175,8 +176,7 @@ module X86_64_RegisterAllocatorContext = struct
     (* Collect all registers in program, splitting into precolored and other initial vregs *)
     let init_visitor = new init_visitor ~cx in
     List.iter
-      (fun block ->
-        List.iter (fun instr -> init_visitor#visit_instruction ~block instr) block.instructions)
+      (fun block -> iter_instructions block (init_visitor#visit_instruction ~block))
       cx.func.blocks;
     (init_visitor#reg_num_use_defs, init_visitor#initial_vregs)
 

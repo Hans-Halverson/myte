@@ -1,4 +1,4 @@
-open Basic_collections
+open X86_64_builders
 open X86_64_gen_context
 open X86_64_instructions
 open X86_64_register
@@ -87,7 +87,7 @@ class analyze_regs_init_visitor (blocks : Block.t List.t) color_to_operand =
 
     method run () = List.iter (fun block -> this#visit_block block) blocks
 
-    method visit_block block = List.iter (this#visit_instruction ~block) block.instructions
+    method visit_block block = iter_instructions block (this#visit_instruction ~block)
 
     method! visit_block_edge ~block next_block =
       prev_blocks <- BlockMMap.add next_block block prev_blocks
@@ -174,9 +174,9 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
 
     method vslot_use_before_def_blocks = vslot_use_before_def_blocks
 
-    method run () = IMap.iter (fun _ block -> this#visit_block block) gcx.blocks_by_id
+    method run () = funcs_iter_blocks gcx.funcs (fun block -> this#visit_block block)
 
-    method visit_block block = List.iter (this#visit_instruction ~block) block.instructions
+    method visit_block block = iter_instructions block (this#visit_instruction ~block)
 
     method! visit_block_edge ~block next_block =
       prev_blocks <- BlockMMap.add next_block block prev_blocks
@@ -211,11 +211,9 @@ let analyze_virtual_stack_slots ~(gcx : Gcx.t) =
   (* Initialize liveness sets *)
   let live_in = ref BlockMap.empty in
   let live_out = ref BlockMap.empty in
-  IMap.iter
-    (fun _ block ->
+  funcs_iter_blocks gcx.funcs (fun block ->
       live_in := BlockMap.add block [] !live_in;
-      live_out := BlockMap.add block [] !live_out)
-    gcx.blocks_by_id;
+      live_out := BlockMap.add block [] !live_out);
 
   (* Propagate a single variable backwards through the program, building liveness sets as we go *)
   let set_contains set block vslot =

@@ -239,6 +239,10 @@ module rec Instruction : sig
   type t = {
     id: id;
     mutable instr: instr;
+    mutable block: Block.t;
+    (* Circular, doubly linked list of instructions in block *)
+    mutable prev: Instruction.t;
+    mutable next: Instruction.t;
   }
 end =
   Instruction
@@ -250,14 +254,16 @@ and Block : sig
     id: id;
     mutable label: label option;
     mutable func: Function.t;
-    mutable instructions: Instruction.t list;
+    mutable instructions: instructions option;
+  }
+
+  (* Circular doubly linked list of all instructions in block *)
+  and instructions = {
+    mutable first: Instruction.t;
+    mutable last: Instruction.t;
   }
 
   val compare : t -> t -> int
-
-  val iter_instrs_rev : (Instruction.t -> unit) -> t -> unit
-
-  val filter_instrs : (Instruction.t -> bool) -> t -> unit
 end = struct
   type id = int
 
@@ -265,14 +271,15 @@ end = struct
     id: id;
     mutable label: label option;
     mutable func: Function.t;
-    mutable instructions: Instruction.t list;
+    mutable instructions: instructions option;
+  }
+
+  and instructions = {
+    mutable first: Instruction.t;
+    mutable last: Instruction.t;
   }
 
   let compare b1 b2 = Int.compare b1.id b2.id
-
-  let iter_instrs_rev f block = List.iter f (List.rev block.instructions)
-
-  let filter_instrs f block = block.instructions <- List.filter f block.instructions
 end
 
 and Function : sig
@@ -282,7 +289,7 @@ and Function : sig
     id: id;
     mutable params: Operand.t list;
     param_types: param_type array;
-    mutable prologue: Block.id;
+    mutable prologue: Block.t;
     mutable blocks: Block.t list;
     mutable spilled_callee_saved_regs: RegSet.t;
     mutable spilled_vslots: OperandSet.t;
@@ -386,7 +393,7 @@ let rec null_function : Function.t =
     Function.id = 0;
     params = [];
     param_types = Array.make 0 (ParamOnStack 0);
-    prologue = 0;
+    prologue = null_block;
     blocks = [];
     spilled_callee_saved_regs = RegSet.empty;
     spilled_vslots = OperandSet.empty;
@@ -395,7 +402,7 @@ let rec null_function : Function.t =
     num_argument_stack_slots = 0;
   }
 
-and null_block : Block.t = { Block.id = 0; label = None; func = null_function; instructions = [] }
+and null_block : Block.t = { Block.id = 0; label = None; func = null_function; instructions = None }
 
 let pointer_size = 8
 

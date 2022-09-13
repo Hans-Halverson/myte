@@ -8,22 +8,18 @@ let mk_vreg id = mk_virtual_register_of_value_id ~value_id:id ~type_:Byte
 
 let mk_blocks blocks =
   List.fold_left
-    (fun blocks (id, label, instructions) ->
-      {
-        Block.id;
-        label = Some label;
-        func = null_function;
-        instructions =
-          List.map (fun instr -> Instruction.{ id = mk_instr_id (); instr }) instructions;
-      }
-      :: blocks)
+    (fun blocks (block, label, instructions) ->
+      block.Block.label <- Some label;
+      block.instructions <- None;
+      List.iter (fun instr -> mk_instr_ ~block instr) instructions;
+      block :: blocks)
     []
     blocks
 
 let find_liveness_sets blocks =
   let open Operand in
-  let blocks_by_id = mk_blocks blocks in
-  let (live_in, live_out) = X86_64_liveness_analysis.analyze_regs blocks_by_id RegMap.empty in
+  let blocks = mk_blocks blocks in
+  let (live_in, live_out) = X86_64_liveness_analysis.analyze_regs blocks RegMap.empty in
 
   ( BlockMap.fold
       (fun block set_as_list acc ->
@@ -58,17 +54,17 @@ let tests =
       (* If there is no def for a use the vreg is live in (and assumed to have come from another
          source such as function parameters. *)
       fun _ ->
-        let sets = find_liveness_sets [(0, "start", [PushM (mk_vreg 1); Ret])] in
+        let sets = find_liveness_sets [(block0, "start", [PushM (mk_vreg 1); Ret])] in
         assert_liveness_sets sets 0 ~live_in:[1] ~live_out:[] );
     ( "use_stops_propagation",
       fun _ ->
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); Jmp block1]);
-              (1, "L1", [PushM (mk_vreg 0); Jmp block2]);
-              (2, "L2", [PushM (mk_vreg 1); Jmp block3]);
-              (3, "L3", [Ret]);
+              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); Jmp block1]);
+              (block1, "L1", [PushM (mk_vreg 0); Jmp block2]);
+              (block2, "L2", [PushM (mk_vreg 1); Jmp block3]);
+              (block3, "L3", [Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];
@@ -80,8 +76,8 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopM (mk_vreg 0); PushM (mk_vreg 0); Jmp block1]);
-              (1, "L1", [PopM (mk_vreg 1); PushM (mk_vreg 1); Ret]);
+              (block0, "start", [PopM (mk_vreg 0); PushM (mk_vreg 0); Jmp block1]);
+              (block1, "L1", [PopM (mk_vreg 1); PushM (mk_vreg 1); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[];
@@ -92,9 +88,9 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopM (mk_vreg 0); Jmp block1]);
-              (1, "L1", [PushM (mk_vreg 0); PopM (mk_vreg 0); Jmp block2]);
-              (2, "L2", [PushM (mk_vreg 0); Ret]);
+              (block0, "start", [PopM (mk_vreg 0); Jmp block1]);
+              (block1, "L1", [PushM (mk_vreg 0); PopM (mk_vreg 0); Jmp block2]);
+              (block2, "L2", [PushM (mk_vreg 0); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0];
@@ -105,7 +101,7 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              ( 0,
+              ( block0,
                 "start",
                 [
                   PopM (mk_vreg 0);
@@ -115,9 +111,9 @@ let tests =
                   JmpCC (E, block1);
                   Jmp block2;
                 ] );
-              (1, "L1", [PushM (mk_vreg 0); PushM (mk_vreg 3); Jmp block3]);
-              (2, "L2", [PushM (mk_vreg 1); Jmp block3]);
-              (3, "L3", [PushM (mk_vreg 2); PushM (mk_vreg 3); Ret]);
+              (block1, "L1", [PushM (mk_vreg 0); PushM (mk_vreg 3); Jmp block3]);
+              (block2, "L2", [PushM (mk_vreg 1); Jmp block3]);
+              (block3, "L3", [PushM (mk_vreg 2); PushM (mk_vreg 3); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1; 2; 3];
@@ -129,10 +125,10 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); JmpCC (E, block1); Jmp block3]);
-              (1, "L1", [PushM (mk_vreg 0); Jmp block2]);
-              (2, "L2", [PushM (mk_vreg 1); Jmp block0]);
-              (3, "L3", [PushM (mk_vreg 0); Ret]);
+              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); JmpCC (E, block1); Jmp block3]);
+              (block1, "L1", [PushM (mk_vreg 0); Jmp block2]);
+              (block2, "L2", [PushM (mk_vreg 1); Jmp block0]);
+              (block3, "L3", [PushM (mk_vreg 0); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];
@@ -144,11 +140,11 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); Jmp block1]);
-              (1, "L1", [PushM (mk_vreg 0); JmpCC (E, block2); Jmp block4]);
-              (2, "L2", [Jmp block3]);
-              (3, "L3", [PopM (mk_vreg 1); Jmp block1]);
-              (4, "L4", [PushM (mk_vreg 1); Ret]);
+              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); Jmp block1]);
+              (block1, "L1", [PushM (mk_vreg 0); JmpCC (E, block2); Jmp block4]);
+              (block2, "L2", [Jmp block3]);
+              (block3, "L3", [PopM (mk_vreg 1); Jmp block1]);
+              (block4, "L4", [PushM (mk_vreg 1); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];
@@ -161,15 +157,15 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); PopM (mk_vreg 2); Jmp block1]);
-              ( 1,
+              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); PopM (mk_vreg 2); Jmp block1]);
+              ( block1,
                 "L1",
                 [
                   XorMM (Size64, mk_vreg 1, mk_vreg 1);
                   XorMM (Size64, mk_vreg 0, mk_vreg 2);
                   Jmp block2;
                 ] );
-              (2, "L2", [PushM (mk_vreg 1); PushM (mk_vreg 2); Ret]);
+              (block2, "L2", [PushM (mk_vreg 1); PushM (mk_vreg 2); Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 2];

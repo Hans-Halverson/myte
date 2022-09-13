@@ -1,4 +1,4 @@
-open Basic_collections
+open X86_64_builders
 open X86_64_gen_context
 open X86_64_instructions
 open X86_64_register
@@ -13,9 +13,9 @@ class incoming_jump_blocks_visitor ~(gcx : Gcx.t) =
 
     method incoming_jump_blocks = incoming_jump_blocks
 
-    method run () = IMap.iter (fun _ block -> this#visit_block block) gcx.blocks_by_id
+    method run () = funcs_iter_blocks gcx.funcs (fun block -> this#visit_block block)
 
-    method visit_block block = List.iter (this#visit_instruction ~block) block.instructions
+    method visit_block block = iter_instructions block (this#visit_instruction ~block)
 
     method! visit_block_edge ~block:_ next_block =
       incoming_jump_blocks <- BlockSet.add next_block incoming_jump_blocks
@@ -554,7 +554,7 @@ let pp_block ~gcx ~pcx ~buf (block : Block.t) =
   | Some label ->
     pp_label_debug_prefix ~buf block;
     add_label_line ~buf label);
-  List.iter (pp_instruction ~gcx ~pcx ~buf) block.instructions
+  iter_instructions block (pp_instruction ~gcx ~pcx ~buf)
 
 let pp_program ~gcx =
   let open Gcx in
