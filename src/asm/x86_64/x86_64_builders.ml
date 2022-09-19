@@ -25,6 +25,20 @@ let mk_virtual_register_of_value_id ~(value_id : Mir.Value.id) ~(type_ : Type.t)
 let mk_memory_address ~(address : MemoryAddress.t) ~(type_ : Type.t) : Operand.t =
   mk_operand ~value:(MemoryAddress address) ~type_
 
+let mk_imm ~(imm : immediate) : Operand.t =
+  let type_ =
+    match imm with
+    | Imm8 _ -> Type.Byte
+    | Imm16 _ -> Int
+    | Imm32 _ -> Int
+    | Imm64 _ -> Long
+  in
+  mk_operand ~value:(Immediate imm) ~type_
+
+let mk_function_label ~(label : label) : Operand.t = mk_operand ~value:(Label label) ~type_:Function
+
+let mk_block_op ~(block : Block.t) = mk_operand ~value:(Block block) ~type_:Long
+
 let mk_function_argument_stack_slot ~(i : int) ~(type_ : Type.t) : Operand.t =
   mk_operand ~value:(FunctionArgumentStackSlot i) ~type_
 

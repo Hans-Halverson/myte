@@ -14,8 +14,7 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
     method resolve_operator ~block ~instr op =
       let alias_op = get_alias op in
       (match alias_op.value with
-      | MemoryAddress mem ->
-        alias_op.value <- MemoryAddress (this#force_registers_in_address ~block ~instr mem)
+      | MemoryAddress _ -> this#force_registers_in_address ~block ~instr alias_op
       | _ -> ());
       op.value <- alias_op.value
 
@@ -74,7 +73,8 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       in
       match instr.instr with
       (* 64-bit immediates can only be loaded to registers *)
-      | MovIM (dest_size, (Imm64 i as imm), dest_op) when Integers.is_out_of_signed_int_range i ->
+      | MovIM (dest_size, ({ value = Immediate (Imm64 i); _ } as imm), dest_op)
+        when Integers.is_out_of_signed_int_range i ->
         resolve_operator dest_op;
         if Operand.is_reg_value dest_op then
           replace_instr (MovIM (dest_size, imm, dest_op))
@@ -123,8 +123,10 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
         resolve_operator op
       | IMulMIR (size, src_op, src_imm, dest_reg) ->
         resolve_operator src_op;
-        force_register_write (size_of_immediate src_imm) dest_reg (fun dest_reg' ->
-            IMulMIR (size, src_op, src_imm, dest_reg'))
+        force_register_write
+          (size_of_immediate (cast_to_immediate src_imm))
+          dest_reg
+          (fun dest_reg' -> IMulMIR (size, src_op, src_imm, dest_reg'))
       | MovSX (src_size, dest_size, src_op, dest_reg) ->
         resolve_operator src_op;
         force_register_write dest_size dest_reg (fun reg' ->
@@ -134,8 +136,8 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
         force_register_write dest_size dest_reg (fun reg' ->
             MovZX (src_size, dest_size, src_op, reg'))
       | Lea (size, addr, reg) ->
-        force_register_write size reg (fun reg' ->
-            Lea (size, this#force_registers_in_address ~block ~instr addr, reg'))
+        this#force_registers_in_address ~block ~instr addr;
+        force_register_write size reg (fun reg' -> Lea (size, addr, reg'))
       (* Resolve all operations with two operands only one of which can be a memory *)
       | MovMM (size, src_op, dest_op) ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> MovMM (size, s, d))
@@ -193,7 +195,8 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
     (* The base and offset in memory addresses must be a register. If the base or offset has been
        resolved to a stack slot, emit a mov to copy this stack slot to a register and use the
        register in the memory address instead. *)
-    method force_registers_in_address ~block ~instr addr =
+    method force_registers_in_address ~block ~instr op =
+      let addr = cast_to_memory_address op in
       let { MemoryAddress.offset; base; index_and_scale } = addr in
       let add_before_instr new_instr =
         insert_instruction_before ~before:instr (mk_blockless_instr new_instr)
@@ -223,8 +226,6 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
             index_and_scale
         | _ -> index_and_scale
       in
-      if base == base' && index_and_scale == index_and_scale' then
-        addr
-      else
-        { offset; base = base'; index_and_scale = index_and_scale' }
+      if base != base' || index_and_scale != index_and_scale' then
+        op.value <- MemoryAddress { offset; base = base'; index_and_scale = index_and_scale' }
   end

@@ -45,7 +45,8 @@ let write_function_prologues ~(gcx : Gcx.t) =
       (* Allocate space for the stack frame *)
       if func_has_stack_frame func then
         let stack_frame_size = func_stack_frame_size func in
-        add_instr (SubIM (Size64, Imm32 (Int32.of_int stack_frame_size), mk_precolored_sp ())))
+        let stack_frame_size_imm = mk_imm ~imm:(Imm32 (Int32.of_int stack_frame_size)) in
+        add_instr (SubIM (Size64, stack_frame_size_imm, mk_precolored_sp ())))
     gcx.funcs
 
 (* Write all function epilogues by destroying the stack frame, popping used callee saved registers
@@ -68,7 +69,8 @@ let write_function_epilogues ~(gcx : Gcx.t) =
             (* Destroy the stack frame *)
             (if func_has_stack_frame func then
               let stack_frame_size = func_stack_frame_size func in
-              add_instr (AddIM (Size64, Imm32 (Int32.of_int stack_frame_size), mk_precolored_sp ())));
+              let stack_frame_size_imm = mk_imm ~imm:(Imm32 (Int32.of_int stack_frame_size)) in
+              add_instr (AddIM (Size64, stack_frame_size_imm, mk_precolored_sp ())));
 
             (* Pop all saved callee saved registers off the stack. Collect into accumulator first
                so that instructions can be added in reverse order. *)

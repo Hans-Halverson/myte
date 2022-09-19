@@ -20,24 +20,24 @@ module X86_64_RegisterAllocatorContext = struct
 
   module RegSet = RegSet
   module RegMap = RegMap
-  module OperandSet = OperandSet
-  module OperandMap = OperandMap
-  module InstrSet = InstrSet
+  module OperandSet = OperandCollection.Set
+  module OperandMap = OperandCollection.Map
+  module InstrSet = InstructionCollection.Set
   module BlockMap = BlockMap
 
   module OOMMap :
     MultiMap.S
       with type key = Operand.t
        and type value = Operand.t
-       and module KMap = OperandMap
-       and module VSet = OperandSet =
+       and module KMap = OperandCollection.Map
+       and module VSet = OperandCollection.Set =
     OOMMap
   module OInstrMMap :
     MultiMap.S
       with type key = Operand.t
        and type value = Instruction.t
-       and module KMap = OperandMap
-       and module VSet = InstrSet =
+       and module KMap = OperandCollection.Map
+       and module VSet = InstructionCollection.Set =
     OInstrMMap
 
   type t = {
@@ -187,7 +187,7 @@ module X86_64_RegisterAllocatorContext = struct
   let get_use_defs_for_instruction cx instr block = cx.find_use_defs ~block instr
 
   let spill_virtual_register cx vreg =
-    cx.func.spilled_vslots <- OperandSet.add vreg cx.func.spilled_vslots;
+    cx.func.spilled_vslots <- X86_64_instructions.OperandSet.add vreg cx.func.spilled_vslots;
     vreg.value <- VirtualStackSlot
 
   let rewrite_spilled_program cx ~get_alias =

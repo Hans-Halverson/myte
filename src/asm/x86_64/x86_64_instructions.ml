@@ -12,6 +12,20 @@ type immediate =
   | Imm32 of Int32.t
   | Imm64 of Int64.t
 
+type condition_code =
+  | E
+  | NE
+  | L
+  | LE
+  | G
+  | GE
+  | B
+  | BE
+  | A
+  | AE
+  | P
+  | NP
+
 module rec MemoryAddress : sig
   type t = {
     offset: offset option;
@@ -52,8 +66,14 @@ and Operand : sig
     | PhysicalRegister of Register.t
     (* This is a virtual register that has not yet been resolved *)
     | VirtualRegister
+    (* Immediate argument *)
+    | Immediate of immediate
     (* Memory address (which may contain vregs as the base, offset, or index) *)
     | MemoryAddress of MemoryAddress.t
+    (* Label (memory address of function or global) *)
+    | Label of label
+    (* Direct reference to a basic block *)
+    | Block of Block.t
     | VirtualStackSlot
     (* An argument to the current function that is passed on the stack. These arguments appear at
        the bottom of the previous function's stack frame. *)
@@ -85,7 +105,10 @@ end = struct
   and value =
     | PhysicalRegister of Register.t
     | VirtualRegister
+    | Immediate of immediate
     | MemoryAddress of MemoryAddress.t
+    | Label of label
+    | Block of Block.t
     | VirtualStackSlot
     | FunctionStackArgument
     | FunctionArgumentStackSlot of int
@@ -126,23 +149,7 @@ end = struct
     | _ -> false
 end
 
-let empty_memory_address = { MemoryAddress.offset = None; base = NoBase; index_and_scale = None }
-
-type condition_code =
-  | E
-  | NE
-  | L
-  | LE
-  | G
-  | GE
-  | B
-  | BE
-  | A
-  | AE
-  | P
-  | NP
-
-module rec Instruction : sig
+and Instruction : sig
   type id = int
 
   type instr =
@@ -156,12 +163,12 @@ module rec Instruction : sig
 
         Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
     (* Stack instructions, all implicitly have size of 64 bits *)
-    | PushI of immediate
+    | PushI of (* Immediate *) Operand.t
     | PushM of Operand.t
     | PopM of Operand.t
     (* Data instructions *)
     (* Allows 64-bit immediate. register_size is destination size which may not match immediate size *)
-    | MovIM of register_size * immediate * Operand.t
+    | MovIM of register_size * (* Immediate *) Operand.t * Operand.t
     (* Allows 64-bit immediate. Allows SSE registers. register_size is destination size, or transferred size if SSE *)
     | MovMM of register_size * Operand.t * Operand.t
     (* Src size then dest size where src size < dest size *)
@@ -170,15 +177,15 @@ module rec Instruction : sig
     | MovZX of register_size * register_size * Operand.t * (* Register *) Operand.t
     | Lea of
         register_size
-        * MemoryAddress.t
+        * (* Memory address *) Operand.t
         * Operand.t (* Only supports 32 or 64 bit register argument *)
     (* Numeric operations *)
     | NegM of register_size * Operand.t
-    | AddIM of register_size * immediate * Operand.t
+    | AddIM of register_size * (* Immediate *) Operand.t * Operand.t
     (* Allows SSE registers (with 64 bit size), if SSE then destination must be a register *)
     | AddMM of register_size * Operand.t * Operand.t
     (* For sub instructions, right/dest := right/dest - left/src *)
-    | SubIM of register_size * immediate * Operand.t
+    | SubIM of register_size * (* Immediate *) Operand.t * Operand.t
     (* Allows SSE registers (with 64 bit size), if SSE then destination must be a register *)
     | SubMM of register_size * Operand.t * Operand.t
     (* Allows SSE registers (with 64 bit size) *)
@@ -189,29 +196,29 @@ module rec Instruction : sig
     | IMulMIR of
         register_size
         * Operand.t
-        * immediate
+        * (* Immediate *) Operand.t
         * (* Register *) Operand.t (* Only supports 16 and 32-bit immediates *)
     | IDiv of register_size * Operand.t
     (* Requires SSE registers (with 64 bit size). right/dest := (right/dest) / (left/src) *)
     | FDivMR of register_size * Operand.t * Operand.t
     (* Bitwise operations *)
     | NotM of register_size * Operand.t
-    | AndIM of register_size * immediate * Operand.t
+    | AndIM of register_size * (* Immediate *) Operand.t * Operand.t
     | AndMM of register_size * Operand.t * Operand.t
-    | OrIM of register_size * immediate * Operand.t
+    | OrIM of register_size * (* Immediate *) Operand.t * Operand.t
     | OrMM of register_size * Operand.t * Operand.t
-    | XorIM of register_size * immediate * Operand.t
+    | XorIM of register_size * (* Immediate *) Operand.t * Operand.t
     (* Allows SSE registers (with 128 bit size), if SSE then destination must be a register *)
     | XorMM of register_size * Operand.t * Operand.t
     (* Bit shifts *)
-    | ShlI of register_size * immediate * Operand.t (* Requires 8-bit immediate *)
+    | ShlI of register_size * (* 8 bit immediate *) Operand.t * Operand.t
     | ShlR of register_size * Operand.t
-    | ShrI of register_size * immediate * Operand.t (* Requires 8-bit immediate *)
+    | ShrI of register_size * (* 8 bit immediate *) Operand.t * Operand.t
     | ShrR of register_size * Operand.t
-    | SarI of register_size * immediate * Operand.t (* Requires 8-bit immediate *)
+    | SarI of register_size * (* 8 bit immediate *) Operand.t * Operand.t
     | SarR of register_size * Operand.t
     (* Comparisons *)
-    | CmpMI of register_size * Operand.t * immediate
+    | CmpMI of register_size * Operand.t * (* Immediate *) Operand.t
     (* Allows SSE registers (with 64 bit size). Must be CmpRM if SSE. *)
     | CmpMM of register_size * Operand.t * Operand.t
     | TestMR of register_size * Operand.t * (* Register *) Operand.t
@@ -228,9 +235,9 @@ module rec Instruction : sig
         * (* GP mem *) Operand.t
         * (* SSE register *) Operand.t
     (* Control flow *)
-    | Jmp of Block.t
-    | JmpCC of condition_code * Block.t
-    | CallL of label
+    | Jmp of (* Block *) Operand.t
+    | JmpCC of condition_code * (* Block *) Operand.t
+    | CallL of (* Label *) Operand.t
     | CallM of register_size * Operand.t
     | Leave
     | Ret
@@ -333,16 +340,16 @@ and OInstrMMap :
   (MultiMap.S
     with type key = Operand.t
      and type value = Instruction.t
-     and type 'a KMap.t = 'a OperandMap.t
-     and type VSet.t = InstrSet.t) =
+     and type 'a KMap.t = 'a OperandCollection.Map.t
+     and type VSet.t = InstructionCollection.Set.t) =
   MultiMap.Make (OperandCollection) (InstructionCollection)
 
 and OOMMap :
   (MultiMap.S
     with type key = Operand.t
      and type value = Operand.t
-     and type 'a KMap.t = 'a OperandMap.t
-     and type VSet.t = OperandSet.t) =
+     and type 'a KMap.t = 'a OperandCollection.Map.t
+     and type VSet.t = OperandCollection.Set.t) =
   MultiMap.Make (OperandCollection) (OperandCollection)
 
 and OBMMap : (MultiMap.S with type key = Operand.t and type value = Block.t) =
@@ -404,6 +411,8 @@ let rec null_function : Function.t =
 
 and null_block : Block.t = { Block.id = 0; label = None; func = null_function; instructions = None }
 
+let empty_memory_address = { MemoryAddress.offset = None; base = NoBase; index_and_scale = None }
+
 let pointer_size = 8
 
 let mk_data_section () = Array.make 5 []
@@ -422,6 +431,21 @@ let size_of_immediate imm =
   | Imm16 _ -> Size16
   | Imm32 _ -> Size32
   | Imm64 _ -> Size64
+
+let cast_to_immediate op =
+  match op.Operand.value with
+  | Immediate imm -> imm
+  | _ -> failwith "Expected immediate operand"
+
+let cast_to_memory_address op =
+  match op.Operand.value with
+  | MemoryAddress addr -> addr
+  | _ -> failwith "Expected memory address operand"
+
+let cast_to_block op =
+  match op.Operand.value with
+  | Block block -> block
+  | _ -> failwith "Expected block operand"
 
 let int64_of_immediate imm =
   match imm with

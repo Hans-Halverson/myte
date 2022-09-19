@@ -63,9 +63,9 @@ class instruction_visitor =
       | Lea (_, addr, write_op) ->
         this#visit_memory_address ~block addr;
         visit_write_operand write_op
-      | Jmp next_block_id
-      | JmpCC (_, next_block_id) ->
-        this#visit_block_edge ~block next_block_id
+      | Jmp next_block
+      | JmpCC (_, next_block) ->
+        this#visit_block_edge ~block (cast_to_block next_block)
       | PushI _
       | CallL _
       | ConvertDouble _
@@ -74,24 +74,25 @@ class instruction_visitor =
       | Syscall ->
         ()
 
-    method visit_block_edge ~block:_ _next_block_id = ()
+    method visit_block_edge ~block:_ _next_block = ()
 
-    method visit_memory_address ~block memory_address =
-      (match memory_address.base with
+    method visit_memory_address ~block op =
+      let addr = cast_to_memory_address op in
+      (match addr.base with
       | NoBase -> ()
       | RegBase reg -> this#visit_read_operand ~block reg
       | IPBase -> ());
-      match memory_address.index_and_scale with
+      match addr.index_and_scale with
       | None -> ()
       | Some (index_op, _) -> this#visit_read_operand ~block index_op
 
     method visit_read_operand ~block op =
       match op.value with
-      | MemoryAddress addr -> this#visit_memory_address ~block addr
+      | MemoryAddress _ -> this#visit_memory_address ~block op
       | _ -> ()
 
     method visit_write_operand ~block op =
       match op.value with
-      | MemoryAddress addr -> this#visit_memory_address ~block addr
+      | MemoryAddress _ -> this#visit_memory_address ~block op
       | _ -> ()
   end

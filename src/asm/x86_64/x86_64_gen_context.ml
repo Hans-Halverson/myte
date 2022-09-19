@@ -118,8 +118,8 @@ module Gcx = struct
     let current_block = Option.get gcx.current_block in
     mk_instr_ ~block:current_block instr;
     match instr with
-    | Instruction.Jmp next_block
-    | JmpCC (_, next_block) ->
+    | Instruction.Jmp { value = Block next_block; _ }
+    | JmpCC (_, { value = Block next_block; _ }) ->
       gcx.prev_blocks <- BlockMMap.add next_block current_block gcx.prev_blocks
     | _ -> ()
 
@@ -230,7 +230,7 @@ module Gcx = struct
       match blocks with
       | block1 :: block2 :: tl ->
         (match get_last_instr_opt block1 with
-        | Some ({ instr = Instruction.Jmp next_block; _ } as jmp_instr)
+        | Some ({ instr = Instruction.Jmp { value = Block next_block; _ }; _ } as jmp_instr)
           when next_block.id = block2.id ->
           remove_instruction jmp_instr
         | _ -> ());
@@ -263,7 +263,7 @@ module Gcx = struct
     let jump_aliases = ref BlockMap.empty in
     funcs_iter_blocks gcx.funcs (fun block ->
         match get_first_instr_opt block with
-        | Some { instr = Jmp next_jump_block; _ }
+        | Some { instr = Jmp { value = Block next_jump_block; _ }; _ }
           when has_single_instruction block && block.id != next_jump_block.id ->
           jump_aliases := BlockMap.add block next_jump_block !jump_aliases
         | _ -> ());
@@ -291,11 +291,13 @@ module Gcx = struct
         let open Instruction in
         iter_instructions block (fun instr ->
             match instr.instr with
-            | Jmp next_block when BlockMap.mem next_block !jump_aliases ->
+            | Jmp ({ value = Block next_block; _ } as block_op)
+              when BlockMap.mem next_block !jump_aliases ->
               let resolved_alias = resolve_jump_alias next_block in
-              instr.instr <- Jmp resolved_alias
-            | JmpCC (cond, next_block) when BlockMap.mem next_block !jump_aliases ->
+              if resolved_alias != next_block then block_op.value <- Block resolved_alias
+            | JmpCC (_, ({ value = Block next_block; _ } as block_op))
+              when BlockMap.mem next_block !jump_aliases ->
               let resolved_alias = resolve_jump_alias next_block in
-              instr.instr <- JmpCC (cond, resolved_alias)
+              if resolved_alias != next_block then block_op.value <- Block resolved_alias
             | _ -> ()))
 end

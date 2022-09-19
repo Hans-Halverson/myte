@@ -49,6 +49,11 @@ let tests =
   let block2 = mk_block ~func:null_function in
   let block3 = mk_block ~func:null_function in
   let block4 = mk_block ~func:null_function in
+  let block0_op = mk_block_op ~block:block0 in
+  let block1_op = mk_block_op ~block:block1 in
+  let block2_op = mk_block_op ~block:block2 in
+  let block3_op = mk_block_op ~block:block3 in
+  let block4_op = mk_block_op ~block:block4 in
   [
     ( "use_without_def",
       (* If there is no def for a use the vreg is live in (and assumed to have come from another
@@ -61,9 +66,9 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); Jmp block1]);
-              (block1, "L1", [PushM (mk_vreg 0); Jmp block2]);
-              (block2, "L2", [PushM (mk_vreg 1); Jmp block3]);
+              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); Jmp block1_op]);
+              (block1, "L1", [PushM (mk_vreg 0); Jmp block2_op]);
+              (block2, "L2", [PushM (mk_vreg 1); Jmp block3_op]);
               (block3, "L3", [Ret]);
             ]
         in
@@ -76,7 +81,7 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [PopM (mk_vreg 0); PushM (mk_vreg 0); Jmp block1]);
+              (block0, "start", [PopM (mk_vreg 0); PushM (mk_vreg 0); Jmp block1_op]);
               (block1, "L1", [PopM (mk_vreg 1); PushM (mk_vreg 1); Ret]);
             ]
         in
@@ -88,8 +93,8 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [PopM (mk_vreg 0); Jmp block1]);
-              (block1, "L1", [PushM (mk_vreg 0); PopM (mk_vreg 0); Jmp block2]);
+              (block0, "start", [PopM (mk_vreg 0); Jmp block1_op]);
+              (block1, "L1", [PushM (mk_vreg 0); PopM (mk_vreg 0); Jmp block2_op]);
               (block2, "L2", [PushM (mk_vreg 0); Ret]);
             ]
         in
@@ -108,11 +113,11 @@ let tests =
                   PopM (mk_vreg 1);
                   PopM (mk_vreg 2);
                   PopM (mk_vreg 3);
-                  JmpCC (E, block1);
-                  Jmp block2;
+                  JmpCC (E, block1_op);
+                  Jmp block2_op;
                 ] );
-              (block1, "L1", [PushM (mk_vreg 0); PushM (mk_vreg 3); Jmp block3]);
-              (block2, "L2", [PushM (mk_vreg 1); Jmp block3]);
+              (block1, "L1", [PushM (mk_vreg 0); PushM (mk_vreg 3); Jmp block3_op]);
+              (block2, "L2", [PushM (mk_vreg 1); Jmp block3_op]);
               (block3, "L3", [PushM (mk_vreg 2); PushM (mk_vreg 3); Ret]);
             ]
         in
@@ -125,9 +130,11 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); JmpCC (E, block1); Jmp block3]);
-              (block1, "L1", [PushM (mk_vreg 0); Jmp block2]);
-              (block2, "L2", [PushM (mk_vreg 1); Jmp block0]);
+              ( block0,
+                "start",
+                [PopM (mk_vreg 0); PopM (mk_vreg 1); JmpCC (E, block1_op); Jmp block3_op] );
+              (block1, "L1", [PushM (mk_vreg 0); Jmp block2_op]);
+              (block2, "L2", [PushM (mk_vreg 1); Jmp block0_op]);
               (block3, "L3", [PushM (mk_vreg 0); Ret]);
             ]
         in
@@ -140,10 +147,10 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); Jmp block1]);
-              (block1, "L1", [PushM (mk_vreg 0); JmpCC (E, block2); Jmp block4]);
-              (block2, "L2", [Jmp block3]);
-              (block3, "L3", [PopM (mk_vreg 1); Jmp block1]);
+              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); Jmp block1_op]);
+              (block1, "L1", [PushM (mk_vreg 0); JmpCC (E, block2_op); Jmp block4_op]);
+              (block2, "L2", [Jmp block3_op]);
+              (block3, "L3", [PopM (mk_vreg 1); Jmp block1_op]);
               (block4, "L4", [PushM (mk_vreg 1); Ret]);
             ]
         in
@@ -157,13 +164,15 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [PopM (mk_vreg 0); PopM (mk_vreg 1); PopM (mk_vreg 2); Jmp block1]);
+              ( block0,
+                "start",
+                [PopM (mk_vreg 0); PopM (mk_vreg 1); PopM (mk_vreg 2); Jmp block1_op] );
               ( block1,
                 "L1",
                 [
                   XorMM (Size64, mk_vreg 1, mk_vreg 1);
                   XorMM (Size64, mk_vreg 0, mk_vreg 2);
-                  Jmp block2;
+                  Jmp block2_op;
                 ] );
               (block2, "L2", [PushM (mk_vreg 1); PushM (mk_vreg 2); Ret]);
             ]

@@ -83,7 +83,7 @@ let coalesce_lea_mapper =
 let coalesce_lea_optimization ~gcx:_ instr =
   let open Instruction in
   match instr.instr with
-  | Lea (_, addr, result_reg) ->
+  | Lea (_, { value = MemoryAddress addr; _ }, result_reg) ->
     let block = instr.block in
     (* Check if there is an instruction following the Lea *)
     if instr == (Option.get block.instructions).last then
@@ -115,7 +115,7 @@ let remove_byte_reg_reg_moves_optimization ~gcx:_ instr =
 let load_zero_to_register_optimization ~gcx:_ instr =
   let open Instruction in
   match instr.instr with
-  | MovIM (_, imm, dest_reg)
+  | MovIM (_, { value = Immediate imm; _ }, dest_reg)
     when Int64.equal (int64_of_immediate imm) Int64.zero && Operand.is_reg_value dest_reg ->
     instr.instr <- XorMM (Size32, dest_reg, dest_reg);
     true
@@ -126,9 +126,10 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr =
   let open Instruction in
   match instr.instr with
   (* Multiplication by power of two can be reduced to a left shift *)
-  | IMulMIR (size, src, imm, dest_reg) when Integers.is_power_of_two (int64_of_immediate imm) ->
+  | IMulMIR (size, src, { value = Immediate imm; _ }, dest_reg)
+    when Integers.is_power_of_two (int64_of_immediate imm) ->
     let power_of_two = Int8.of_int (Integers.power_of_two (int64_of_immediate imm)) in
-    instr.instr <- ShlI (size, Imm8 power_of_two, dest_reg);
+    instr.instr <- ShlI (size, mk_imm ~imm:(Imm8 power_of_two), dest_reg);
     let shift_instr = instr in
     (* If same register is source and dest, can shift it in place *)
     if
