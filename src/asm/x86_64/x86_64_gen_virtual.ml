@@ -126,7 +126,8 @@ and gen_function_instruction_builder ~gcx ~ir func =
     List.mapi
       (fun i param ->
         let param_mir_type = type_of_value param in
-        let { Argument.id = arg_id; type_; _ } = cast_to_argument param in
+        let arg_id = param.id in
+        let { Argument.type_; _ } = cast_to_argument param in
         match func_.param_types.(i) with
         | ParamOnStack _ -> mk_function_stack_argument ~arg_id ~type_:param_mir_type
         | ParamInRegister reg ->
@@ -163,7 +164,7 @@ and gen_blocks ~gcx ~ir start_block label func =
       in
       Gcx.start_block ~gcx ~label ~func ~mir_block:(Some mir_block);
       let instructions =
-        fold_instructions mir_block [] (fun _ instr acc -> instr :: acc) |> List.rev
+        fold_instructions mir_block [] (fun instr_val _ acc -> instr_val :: acc) |> List.rev
       in
       gen_instructions ~gcx ~ir ~block:mir_block instructions;
       Gcx.finish_block ~gcx)
@@ -482,8 +483,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Mov
    * ===========================================
    *)
-  | { Mir.Instruction.id = dest_id; instr = Mov value; _ } :: rest_instructions ->
-    gen_mov dest_id value;
+  | { id = result_id; value = Instr { instr = Mov value; _ }; _ } :: rest_instructions ->
+    gen_mov result_id value;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -491,9 +492,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | {
-      id = return_id;
-      type_ = return_type;
-      instr = Call { func = Value func_val; args = arg_vals; has_return };
+      id = result_id;
+      value =
+        Instr { type_; instr = Call { func = Value func_val; args = arg_vals; has_return }; _ };
       _;
     }
     :: rest_instructions ->
@@ -514,10 +515,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx inst;
     (* Move result from return register to return operand *)
     (if has_return then
-      let return_size = register_size_of_mir_value_type return_type in
-      let return_reg = SystemVCallingConvention.calculate_return_register return_type in
-      let return_reg_op = mk_precolored ~type_:return_type return_reg in
-      let return_op = operand_of_value_id ~type_:return_type return_id in
+      let return_size = register_size_of_mir_value_type type_ in
+      let return_reg = SystemVCallingConvention.calculate_return_register type_ in
+      let return_reg_op = mk_precolored ~type_ return_reg in
+      let return_op = operand_of_value_id ~type_ result_id in
       Gcx.emit ~gcx (MovMM (return_size, return_reg_op, return_op)));
     gen_instructions rest_instructions
   (*
@@ -525,7 +526,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Ret
    * ===========================================
    *)
-  | [{ instr = Ret value; _ }] ->
+  | [{ value = Instr { instr = Ret value; _ }; _ }] ->
     (match value with
     | None -> ()
     | Some value ->
@@ -544,7 +545,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                Load
    * ===========================================
    *)
-  | { id = result_id; instr = Load pointer; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Load pointer; _ }; _ } :: rest_instructions ->
     let type_ = pointer_value_element_type pointer.value in
     let result_op = operand_of_value_id ~type_ result_id in
     let size =
@@ -582,7 +583,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                Store
    * ===========================================
    *)
-  | { instr = Store (pointer, value); _ } :: rest_instructions ->
+  | { value = Instr { instr = Store (pointer, value); _ }; _ } :: rest_instructions ->
     let type_ = pointer_value_element_type pointer.value in
     let size =
       match type_ with
@@ -632,7 +633,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Add
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Add, left_val, right_val); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Add, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
     let result_op = operand_of_value_id ~type_ result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -656,7 +658,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Sub
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Sub, left_val, right_val); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Sub, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
     let result_op = operand_of_value_id ~type_ result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -683,7 +686,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Mul
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Mul, left_val, right_val); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Mul, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
     let result_op = operand_of_value_id ~type_ result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -706,7 +710,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Div
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Div, left_val, right_val); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Div, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
     let result_op = operand_of_value_id ~type_ result_id in
     (* Floating point divide uses SSE registers and separate instruction *)
     if type_ = Double then (
@@ -743,7 +748,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Rem
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Rem, left_val, right_val); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Rem, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
     let result_op = operand_of_value_id ~type_ result_id in
     let precolored_d = mk_precolored ~type_ D in
     let size = gen_idiv left_val right_val in
@@ -755,7 +761,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Neg
    * ===========================================
    *)
-  | { id = result_id; instr = Unary (Neg, arg); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Unary (Neg, arg); type_; _ }; _ } :: rest_instructions
+    ->
     let resolved_value = resolve_ir_value arg in
     let size = register_size_of_svalue resolved_value in
     let arg_mem = emit_mem resolved_value in
@@ -781,7 +788,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Not
    * ===========================================
    *)
-  | { id = result_id; instr = Unary (Not, arg); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Unary (Not, arg); type_; _ }; _ } :: rest_instructions
+    ->
     (if is_bool_value arg.value then (
       let arg_reg = emit_bool_as_reg arg in
       let result_op = operand_of_value_id ~type_ result_id in
@@ -801,7 +809,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    And
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (And, left_val, right_val); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (And, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
     let result_op = operand_of_value_id ~type_ result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -824,7 +833,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Or
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Or, left_val, right_val); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Or, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
     let result_op = operand_of_value_id ~type_ result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -847,7 +857,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                    Xor
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Xor, left_val, right_val); type_; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Xor, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
     let result_op = operand_of_value_id ~type_ result_id in
     (match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
@@ -871,7 +882,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shl
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Shl, target_use, shift_use); _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Shl, target_use, shift_use); _ }; _ }
+    :: rest_instructions ->
     let result_op =
       gen_shift
         result_id
@@ -887,7 +899,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shr
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Shr, target_use, shift_use); _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Shr, target_use, shift_use); _ }; _ }
+    :: rest_instructions ->
     (* Arithmetic right shift is a no-op on bools and cannot be represented by sar instruction *)
     if is_bool_value target_use.value then
       gen_mov result_id target_use
@@ -905,7 +918,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Shrl
    * ===========================================
    *)
-  | { id = result_id; instr = Binary (Shrl, target_use, shift_use); _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Binary (Shrl, target_use, shift_use); _ }; _ }
+    :: rest_instructions ->
     ignore
       (gen_shift
          result_id
@@ -920,16 +934,19 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | [
-   { id = result_id; instr = Cmp (cmp, left_val, right_val); _ };
+   { id = result_id; value = Instr { instr = Cmp (cmp, left_val, right_val); _ }; _ };
    {
-     instr = Branch { test = { value = { value = Instr { id; _ } | Argument { id; _ }; _ }; _ }; _ };
+     value =
+       Instr
+         { instr = Branch { test = { value = { id; value = Instr _ | Argument _; _ }; _ }; _ }; _ };
      _;
    };
   ]
     when result_id == id ->
     let cc = cc_of_mir_comparison cmp (type_of_use left_val) in
     gen_cond_jmp cc result_id left_val right_val
-  | { id = result_id; instr = Cmp (cmp, left_val, right_val); _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Cmp (cmp, left_val, right_val); _ }; _ }
+    :: rest_instructions ->
     let cc = cc_of_mir_comparison cmp (type_of_use left_val) in
     ignore (gen_cmp_set_cc cc result_id left_val right_val);
     gen_instructions rest_instructions
@@ -938,11 +955,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                Terminators
    * ===========================================
    *)
-  | [{ instr = Unreachable; _ }] -> ()
-  | [{ instr = Continue continue; _ }] ->
+  | [{ value = Instr { instr = Unreachable; _ }; _ }] -> ()
+  | [{ value = Instr { instr = Continue continue; _ }; _ }] ->
     (* TODO: Create better structure for tracking relative block locations *)
     Gcx.emit ~gcx (Jmp (block_op_of_mir_block ~gcx continue))
-  | [{ instr = Branch { test; continue; jump }; _ }] ->
+  | [{ value = Instr { instr = Branch { test; continue; jump }; _ }; _ }] ->
     let test =
       match test.value.value with
       | Lit _ -> failwith "Dead branch pruning must have already occurred"
@@ -952,7 +969,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     Gcx.emit ~gcx (TestMR (Size8, reg, reg));
     Gcx.emit ~gcx (JmpCC (E, block_op_of_mir_block ~gcx jump));
     Gcx.emit ~gcx (Jmp (block_op_of_mir_block ~gcx continue))
-  | { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ } :: _ ->
+  | { value = Instr { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ }; _ } :: _ ->
     failwith "Terminator instructions must be last instruction"
   (*
    * ===========================================
@@ -960,9 +977,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
    * ===========================================
    *)
   | {
-      id = return_id;
-      type_ = return_type;
-      instr = Call { func = MirBuiltin { name; _ }; args; _ };
+      id = result_id;
+      value =
+        Instr { type_ = return_type; instr = Call { func = MirBuiltin { name; _ }; args; _ }; _ };
       _;
     }
     :: rest_instructions ->
@@ -975,7 +992,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let gen_return_op return_mir_type =
       let return_reg = SystemVCallingConvention.calculate_return_register return_mir_type in
       let return_reg_op = mk_precolored ~type_:return_type return_reg in
-      let return_op = operand_of_value_id ~type_:return_type return_id in
+      let return_op = operand_of_value_id ~type_:return_type result_id in
       Gcx.emit ~gcx (MovMM (Size64, return_reg_op, return_op))
     in
     (*
@@ -1085,7 +1102,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                 GetPointer
    * ===========================================
    *)
-  | ({ instr = GetPointer get_pointer_instr; _ } as instr) :: rest_instructions ->
+  | ({ value = Instr { instr = GetPointer get_pointer_instr; _ }; _ } as instr) :: rest_instructions
+    ->
     gen_get_pointer ~gcx instr get_pointer_instr;
     gen_instructions rest_instructions
   (*
@@ -1093,8 +1111,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                   Cast
    * ===========================================
    *)
-  | { id = return_id; instr = Cast arg_val; type_; _ } :: rest_instructions ->
-    let result_op = operand_of_value_id ~type_ return_id in
+  | { id = result_id; value = Instr { instr = Cast arg_val; type_; _ }; _ } :: rest_instructions ->
+    let result_op = operand_of_value_id ~type_ result_id in
     (* Cast simply copies argument to result operand, which will likely be optimized away *)
     (match resolve_ir_value ~allow_imm64:true arg_val with
     | SImm imm ->
@@ -1109,11 +1127,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  Trunc
    * ===========================================
    *)
-  | { id = return_id; type_; instr = Trunc arg_val; _ } :: rest_instructions ->
+  | { id = result_id; value = Instr { type_; instr = Trunc arg_val; _ }; _ } :: rest_instructions ->
     (* Truncation occurs when later accessing only a portion of the arg. Emit mov to link arg and
        result, which will likely be optimized away (but may not be optimized away if we end up
        moving the truncated portion to memory). *)
-    let result_op = operand_of_value_id ~type_ return_id in
+    let result_op = operand_of_value_id ~type_ result_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
@@ -1130,8 +1148,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  SExt
    * ===========================================
    *)
-  | { id = return_id; type_; instr = SExt arg_val; _ } :: rest_instructions ->
-    let result_op = operand_of_value_id ~type_ return_id in
+  | { id = result_id; value = Instr { type_; instr = SExt arg_val; _ }; _ } :: rest_instructions ->
+    let result_op = operand_of_value_id ~type_ result_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
@@ -1148,8 +1166,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                  ZExt
    * ===========================================
    *)
-  | { id = return_id; type_; instr = ZExt arg_val; _ } :: rest_instructions ->
-    let result_op = operand_of_value_id ~type_ return_id in
+  | { id = result_id; value = Instr { type_; instr = ZExt arg_val; _ }; _ } :: rest_instructions ->
+    let result_op = operand_of_value_id ~type_ result_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
@@ -1166,8 +1184,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                IntToFloat
    * ===========================================
    *)
-  | { id = return_id; type_; instr = IntToFloat arg_val; _ } :: rest_instructions ->
-    let result_op = operand_of_value_id ~type_ return_id in
+  | { id = result_id; value = Instr { type_; instr = IntToFloat arg_val; _ }; _ }
+    :: rest_instructions ->
+    let result_op = operand_of_value_id ~type_ result_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
@@ -1186,8 +1205,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *                FloatToInt
    * ===========================================
    *)
-  | { id = return_id; type_; instr = FloatToInt arg_val; _ } :: rest_instructions ->
-    let result_op = operand_of_value_id ~type_ return_id in
+  | { id = result_id; value = Instr { type_; instr = FloatToInt arg_val; _ }; _ }
+    :: rest_instructions ->
+    let result_op = operand_of_value_id ~type_ result_id in
     (match resolve_ir_value arg_val with
     | SImm _ -> failwith "Constants must be folded before gen"
     | arg ->
@@ -1195,20 +1215,22 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let arg_mem = emit_mem arg in
       Gcx.emit ~gcx (ConvertFloatToInt (int_size, arg_mem, result_op)));
     gen_instructions rest_instructions
-  | { instr = Mir.Instruction.Phi _; _ } :: _ -> failwith "Phi nodes must be removed before asm gen"
-  | { instr = Mir.Instruction.StackAlloc _; _ } :: _ ->
+  | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
+    failwith "Phi nodes must be removed before asm gen"
+  | { value = Instr { instr = Mir.Instruction.StackAlloc _; _ }; _ } :: _ ->
     failwith "StackAlloc instructions removed before asm gen"
+  | { value = Lit _ | Argument _; _ } :: _ -> failwith "Expected instruction value"
 
 and gen_get_pointer
-    ~gcx
-    ({ id = return_id; type_ = return_type; _ } : Mir.Instruction.t)
-    (get_pointer_instr : Mir.Instruction.GetPointer.t) =
+    ~gcx (get_pointer_instr_val : Mir.Value.t) (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in
+  let result_id = get_pointer_instr_val.id in
+  let { Mir.Instruction.type_ = return_type; _ } = cast_to_instruction get_pointer_instr_val in
   let { pointer; pointer_offset; offsets } = get_pointer_instr in
   let element_ty = pointer_value_element_type pointer.value in
 
   (* Utilities for creating operands *)
-  let operand_of_value_id return_id = mk_virtual_register_of_value_id ~value_id:return_id in
+  let operand_of_value_id result_id = mk_virtual_register_of_value_id ~value_id:result_id in
   let mk_vreg ~type_ = mk_virtual_register ~type_ in
   let mk_vreg_of_op op = mk_virtual_register ~type_:op.Operand.type_ in
 
@@ -1391,7 +1413,7 @@ and gen_get_pointer
   List.iter (fun offset -> gen_offset offset !current_ty) offsets;
 
   let address_op = emit_current_address_calculation () in
-  let result_op = operand_of_value_id ~type_:return_type return_id in
+  let result_op = operand_of_value_id ~type_:return_type result_id in
   Gcx.emit ~gcx (MovMM (Size64, address_op, result_op))
 
 and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir_type mir_ty =
@@ -1475,9 +1497,9 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
   | Lit (ArrayVtable _) ->
     failwith "TODO: Cannot compile array literals"
   | Lit (AggregateClosure _) -> failwith "TODO: Cannot compile aggregate literals"
-  | Instr { id; type_; _ }
-  | Argument { id; type_; _ } ->
-    let op = mk_virtual_register_of_value_id ~value_id:id ~type_ in
+  | Instr { type_; _ }
+  | Argument { type_; _ } ->
+    let op = mk_virtual_register_of_value_id ~value_id:use.value.id ~type_ in
     let size = register_size_of_mir_value_type type_ in
     if Operand.is_memory_value op then
       SMem (op, size)

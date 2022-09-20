@@ -30,6 +30,7 @@ and Value : sig
     | Argument of Argument.t
 
   type t = {
+    id: id;
     mutable value: value;
     (* All uses of this value, forming a circular linked list. None if there are no uses. *)
     mutable uses: Use.t option;
@@ -45,15 +46,14 @@ end = struct
     | Argument of Argument.t
 
   type t = {
+    id: id;
     mutable value: value;
     mutable uses: Use.t option;
   }
 
   let compare v1 v2 =
     match (v1.value, v2.value) with
-    | ( (Instr { id = id1; _ } | Argument { id = id1; _ }),
-        (Instr { id = id2; _ } | Argument { id = id2; _ }) ) ->
-      Int.compare id1 id2
+    | ((Instr _ | Argument _), (Instr _ | Argument _)) -> Int.compare v1.id v2.id
     | (Lit _, Lit _) -> 0
     | (Lit _, _) -> -1
     | (_, Lit _) -> 1
@@ -82,7 +82,6 @@ end =
 
 and Argument : sig
   type t = {
-    id: Value.id;
     func: Function.t;
     type_: Type.t;
     (* Location of argument declaration identifier *)
@@ -199,7 +198,6 @@ and Instruction : sig
     | Mov of Use.t
 
   and t = {
-    id: Value.id;
     mutable type_: Type.t;
     mutable instr: instr;
     mutable block: Block.t;
@@ -371,7 +369,7 @@ and null_block : Block.t =
 
 and null_value_value : Value.value = Lit (Bool true)
 
-and null_value : Value.t = { Value.value = null_value_value; uses = None }
+and null_value : Value.t = { Value.id = 0; value = null_value_value; uses = None }
 
 let rec type_of_use (use : Use.t) : Type.t = type_of_value use.value
 
@@ -438,9 +436,9 @@ let is_comparable_value (v : Value.t) : bool =
 
 let rec values_equal (v1 : Value.t) (v2 : Value.t) : bool =
   match (v1.value, v2.value) with
-  | (Instr { id = id1; _ }, Instr { id = id2; _ }) -> id1 = id2
+  | (Instr _, Instr _) -> v1.id == v2.id
   | (Lit lit1, Lit lit2) -> literals_equal lit1 lit2
-  | (Argument { id = id1; _ }, Argument { id = id2; _ }) -> id1 = id2
+  | (Argument _, Argument _) -> v1.id == v2.id
   | _ -> false
 
 and literals_equal (lit1 : Literal.t) (lit2 : Literal.t) : bool =

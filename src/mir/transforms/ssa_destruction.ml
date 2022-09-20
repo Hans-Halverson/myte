@@ -57,15 +57,14 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
 
   (* Initialize copy graph *)
   List.iter
-    (fun (dest_val, src_val) ->
-      let dest_instr = cast_to_instruction dest_val in
-      match src_val.Value.value with
-      | Value.Instr { id; _ }
-      | Argument { id; _ } ->
+    (fun (dest_instr, src_instr) ->
+      match src_instr.Value.value with
+      | Value.Instr _
+      | Argument _ ->
         (* Add edge to graph for copy between variables. Self copies can be ignored *)
-        if id <> dest_instr.id then add_copy_edge dest_val src_val
+        if Value.(src_instr.id <> dest_instr.id) then add_copy_edge dest_instr src_instr
       (* Copies of literal values can always be immediately sequentialized, as they cannot form cycles *)
-      | Lit _ -> add_to_sequence dest_val src_val)
+      | Lit _ -> add_to_sequence dest_instr src_instr)
     parallel_copies;
 
   while not (VVMMap.is_empty !copied_to) do

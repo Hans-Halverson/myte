@@ -104,8 +104,8 @@ and pp_func ~cx func =
   let func_params =
     func.params
     |> List.map (fun arg_value ->
-           let { Argument.id; type_; _ } = cast_to_argument arg_value in
-           Printf.sprintf "%s %s" (pp_type type_) (pp_value_id ~cx id))
+           let { Argument.type_; _ } = cast_to_argument arg_value in
+           Printf.sprintf "%s %s" (pp_type type_) (pp_value_id ~cx arg_value.id))
     |> String.concat ", "
   in
   let return_ty =
@@ -136,7 +136,9 @@ and pp_block ~cx ~label block =
       []
   in
   let instruction_lines =
-    fold_instructions block [] (fun _ instr acc -> pp_instruction ~cx instr :: acc) |> List.rev
+    fold_instructions block [] (fun instr_val instr acc ->
+        pp_instruction ~cx instr_val instr :: acc)
+    |> List.rev
   in
   let lines = List.concat [label_lines; instruction_lines] in
   String.concat "\n" lines
@@ -189,9 +191,9 @@ and pp_block_id ~cx block =
 
 and pp_use ~cx (use : Use.t) =
   match use.value.value with
-  | Value.Instr { id; _ }
-  | Argument { id; _ } ->
-    pp_value_id ~cx id
+  | Value.Instr _
+  | Argument _ ->
+    pp_value_id ~cx use.value.id
   | Lit lit -> pp_literal ~cx lit
 
 and pp_literal ~cx lit =
@@ -251,9 +253,9 @@ and pp_comparison comparison =
   | Gt -> "Gt"
   | GtEq -> "GtEq"
 
-and pp_instruction ~cx instr =
+and pp_instruction ~cx instr_val instr =
   let open Instruction in
-  let pp_instr str = Printf.sprintf "%s := %s" (pp_value_id ~cx instr.id) str in
+  let pp_instr str = Printf.sprintf "%s := %s" (pp_value_id ~cx instr_val.id) str in
   let instr_string =
     match instr.instr with
     | Mov right -> pp_instr (Printf.sprintf "Mov %s %s" (pp_type_of_use right) (pp_use ~cx right))

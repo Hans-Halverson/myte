@@ -10,9 +10,9 @@ open Mir_type
 
 let uninit_value : Value.value = Value.Lit (Bool true)
 
-let mk_value (value : Value.value) : Value.t = { value; uses = None }
+let mk_value (value : Value.value) : Value.t = { id = mk_value_id (); value; uses = None }
 
-let mk_uninit_value () : Value.t = { value = uninit_value; uses = None }
+let mk_uninit_value () : Value.t = { id = mk_value_id (); value = uninit_value; uses = None }
 
 (*
  * ============================
@@ -72,16 +72,7 @@ and mk_block_instr ~block f =
 
 (* Set a value to contain an instruction *)
 and set_instr ~(value : Value.t) ~(type_ : Type.t) ~(instr : Instruction.instr) : unit =
-  let instruction =
-    {
-      Instruction.id = mk_value_id ();
-      type_;
-      instr;
-      prev = value;
-      next = value;
-      block = null_block;
-    }
-  in
+  let instruction = { Instruction.type_; instr; prev = value; next = value; block = null_block } in
   value.value <- Instr instruction
 
 (* Set a value to contain an instruction and appends it the end of a block *)
@@ -419,7 +410,7 @@ and mk_function ~(name : label) : Function.t =
   func
 
 and mk_argument ~(func : Function.t) ~(decl_loc : Loc.t) ~(type_ : Type.t) : Value.t =
-  let argument = { Argument.id = mk_value_id (); type_; func; decl_loc } in
+  let argument = { Argument.type_; func; decl_loc } in
   mk_value (Argument argument)
 
 and func_iter_blocks (func : Function.t) (f : Block.t -> unit) = BlockSet.iter f func.blocks
@@ -806,7 +797,7 @@ and block_iter_phis (block : Block.t) (f : Value.t -> Instruction.Phi.t -> unit)
 and block_filter_phis (block : Block.t) (f : Value.id -> Instruction.Phi.t -> bool) =
   iter_instructions block (fun instr_val instr ->
       match instr with
-      | { instr = Phi phi; id; _ } -> if not (f id phi) then remove_instruction instr_val
+      | { instr = Phi phi; _ } -> if not (f instr_val.id phi) then remove_instruction instr_val
       | _ -> ())
 
 and block_fold_phis (block : Block.t) (acc : 'a) (f : Value.t -> Instruction.Phi.t -> 'a -> 'a) : 'a
