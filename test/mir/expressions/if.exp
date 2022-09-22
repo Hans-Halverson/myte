@@ -90,13 +90,13 @@ label @2:
 }
 
 func void @test.testDivergentExpressionBranch(bool %0) {
-  branch %0, @1, @0
+  branch %0, @0, @1
 label @0:
-  Call void myte.builtin.exit(1)
-  continue @1
-label @1:
   Call void @test.use<Int>(1)
   Ret
+label @1:
+  Call void myte.builtin.exit(1)
+  unreachable
 }
 
 func void @test.testContinueBranch(bool %0) {

@@ -4,6 +4,4 @@
 _main:
   movl $1, %edi
   call __myte_exit
-  movl $0, %eax
-  ret
 NOTE: Exited with code 1

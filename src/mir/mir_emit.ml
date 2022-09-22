@@ -456,10 +456,16 @@ and emit_expression ~ecx expr : Value.t option =
   (* Check for trait object promotion on every expression *)
   let expr_val = emit_expression_without_promotion ~ecx expr in
   let expr_loc = Ast_utils.expression_loc expr in
+  let ty = type_of_loc ~ecx expr_loc in
+
+  (* Expressions which evaluate to never will never actually evaluate to a value, so block ends
+     with an unreachable instruction. *)
+  if ty == Types.Type.Never then Ecx.finish_block_unreachable ~ecx;
+
+  (* Any expression could be implicitly promoted to a trait object *)
   match Type_context.get_trait_object_promotion ~cx:ecx.Ecx.pcx.type_ctx expr_loc with
   | None -> expr_val
   | Some trait_instance ->
-    let ty = type_of_loc ~ecx expr_loc in
     let trait_object_layout = Ecx.get_trait_object_layout ~ecx trait_instance.trait_sig in
     let trait_object_instance = Ecx.instantiate_trait_object_vtable ~ecx trait_instance ty in
     emit_trait_object_promotion ~ecx expr_val trait_object_layout trait_object_instance

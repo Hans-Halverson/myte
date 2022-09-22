@@ -1,4 +1,4 @@
 func int @test.main() {
   Call void myte.builtin.exit(1)
-  Ret 0
+  unreachable
 }

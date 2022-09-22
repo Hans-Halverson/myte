@@ -36,7 +36,7 @@ label @1:
   branch %6, @2, @3
 label @2:
   Call void @std.sys.abort()
-  continue @3
+  unreachable
 label @3:
   %7 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
   %8 := Load bool* %7
@@ -58,7 +58,7 @@ label @1:
   branch %6, @2, @3
 label @2:
   Call void @std.sys.abort()
-  continue @3
+  unreachable
 label @3:
   %7 := GetPointer int*, std.vec.Vec<Int>* %0.2
   %8 := Load int* %7
@@ -80,7 +80,7 @@ label @1:
   branch %6, @2, @3
 label @2:
   Call void @std.sys.abort()
-  continue @3
+  unreachable
 label @3:
   %7 := GetPointer std._ZeroSize*, std.vec.Vec<test.ZeroSize>* %0.2
   %8 := Load std._ZeroSize* %7
@@ -100,7 +100,7 @@ label @1:
   branch %7, @2, @3
 label @2:
   Call void @std.sys.abort()
-  continue @3
+  unreachable
 label @3:
   %8 := GetPointer bool*, std.vec.Vec<Bool>* %0.2
   %9 := Load bool* %8
@@ -122,7 +122,7 @@ label @1:
   branch %7, @2, @3
 label @2:
   Call void @std.sys.abort()
-  continue @3
+  unreachable
 label @3:
   %8 := GetPointer int*, std.vec.Vec<Int>* %0.2
   %9 := Load int* %8
