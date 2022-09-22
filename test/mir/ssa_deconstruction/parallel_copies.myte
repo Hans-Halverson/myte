@@ -10,6 +10,8 @@ fun swap() {
     x = y;
     y = tmp;
   }
+
+  use(x);
 }
 
 // Two copy cycles, both need to be broken with a new variable
@@ -28,7 +30,10 @@ fun doubleSwap() {
     tmp = x2;
     x2 = y2;
     y2 = tmp;
-  } 
+  }
+
+  use(x1);
+  use(x2);
 }
 
 // Long copy cycle, only needs a single variable to break
@@ -45,6 +50,10 @@ fun longSwap() {
     z = a;
     a = tmp;
   }
+
+  use(x);
 }
+
+fun use<T>(x: T) {}
 
 fun main() {}

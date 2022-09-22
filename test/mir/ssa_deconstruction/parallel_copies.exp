@@ -10,6 +10,7 @@ label @1:
   %0 := Mov int %2
   continue @0
 label @2:
+  Call void @test.use<Int>(%0)
   Ret
 }
 
@@ -30,6 +31,8 @@ label @1:
   %2 := Mov int %5
   continue @0
 label @2:
+  Call void @test.use<Int>(%0)
+  Call void @test.use<Int>(%2)
   Ret
 }
 
@@ -49,6 +52,11 @@ label @1:
   %0 := Mov int %4
   continue @0
 label @2:
+  Call void @test.use<Int>(%0)
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
   Ret
 }
 

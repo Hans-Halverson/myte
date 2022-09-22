@@ -39,7 +39,7 @@ let rec run ~program =
       VMap.iter
         (fun phi_instr _ -> phi_instrs := VSet.add phi_instr !phi_instrs)
         !phi_to_pointer_value;
-      Dead_instruction_elimination.run_worklist phi_instrs)
+      Dead_instruction_elimination.run_worklist !phi_instrs)
     program.Program.funcs
 
 (* Phi insertion algorithm from paper. Inserts empty phis at all join points where they may be needed. *)

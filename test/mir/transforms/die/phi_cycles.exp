@@ -1,0 +1,26 @@
+func void @test.deadPhiCycle() {
+  continue @0
+label @0:
+  branch true, @0, @1
+label @1:
+  Ret
+}
+
+func void @test.livePhiCycle() {
+  continue @0
+label @0:
+  %1 := Phi int @test.livePhiCycle:1, @0:%0
+  %0 := Phi int @test.livePhiCycle:2, @0:%1
+  branch true, @0, @1
+label @1:
+  Call void @test.use<Int>(%1)
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

@@ -1,0 +1,29 @@
+module test
+
+fun deadPhiCycle() {
+  var x = 1;
+  var y = 2;
+
+  while (true) {
+    var tmp = x;
+    x = y;
+    y = tmp;
+  }
+}
+
+fun livePhiCycle() {
+  var x = 1;
+  var y = 2;
+
+  while (true) {
+    var tmp = x;
+    x = y;
+    y = tmp;
+  }
+
+  use(x);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}
