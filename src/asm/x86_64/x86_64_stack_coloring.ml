@@ -17,20 +17,20 @@ class vslot_use_def_finder =
 
     method vslot_defs = vslot_defs
 
-    method! visit_read_operand ~block op =
+    method! visit_read_operand ~instr op =
       match op.value with
       | VirtualStackSlot -> vslot_uses <- OperandSet.add op vslot_uses
-      | _ -> super#visit_read_operand ~block op
+      | _ -> super#visit_read_operand ~instr op
 
-    method! visit_write_operand ~block op =
+    method! visit_write_operand ~instr op =
       match op.value with
       | VirtualStackSlot -> vslot_defs <- OperandSet.add op vslot_defs
-      | _ -> super#visit_write_operand ~block op
+      | _ -> super#visit_write_operand ~instr op
   end
 
-let find_vslot_use_defs block instruction =
+let find_vslot_use_defs instruction =
   let finder = new vslot_use_def_finder in
-  finder#visit_instruction ~block instruction;
+  finder#visit_instruction instruction;
   (finder#vslot_uses, finder#vslot_defs)
 
 let liveness_analysis ~(gcx : Gcx.t) =
@@ -39,7 +39,7 @@ let liveness_analysis ~(gcx : Gcx.t) =
   funcs_iter_blocks gcx.funcs (fun block ->
       let live = ref (BlockMap.find block live_out |> OperandSet.of_list) in
       iter_instructions_rev block (fun instr ->
-          let (vslot_uses, vslot_defs) = find_vslot_use_defs block instr in
+          let (vslot_uses, vslot_defs) = find_vslot_use_defs instr in
           live := OperandSet.union vslot_defs !live;
           OperandSet.iter
             (fun vslot_def ->

@@ -15,7 +15,7 @@ class incoming_jump_blocks_visitor ~(gcx : Gcx.t) =
 
     method run () = funcs_iter_blocks gcx.funcs (fun block -> this#visit_block block)
 
-    method visit_block block = iter_instructions block (this#visit_instruction ~block)
+    method visit_block block = iter_instructions block this#visit_instruction
 
     method! visit_block_edge ~block:_ next_block =
       incoming_jump_blocks <- BlockSet.add next_block incoming_jump_blocks

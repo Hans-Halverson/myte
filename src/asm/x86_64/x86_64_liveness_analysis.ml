@@ -8,13 +8,13 @@ class use_def_finder color_to_representative_operand =
   object (this)
     inherit X86_64_visitor.instruction_visitor as super
 
-    method add_register_use ~block:_ (_reg : Operand.t) = ()
+    method add_register_use ~instr:_ (_reg : Operand.t) = ()
 
-    method add_register_def ~block:_ (_reg : Operand.t) = ()
+    method add_register_def ~instr:_ (_reg : Operand.t) = ()
 
     method get_representative_register reg = RegMap.find reg color_to_representative_operand
 
-    method! visit_instruction ~block instr =
+    method! visit_instruction instr =
       let open Instruction in
       match instr.instr with
       (* Calls implicitly use all parameter register and define all caller save registers *)
@@ -24,37 +24,37 @@ class use_def_finder color_to_representative_operand =
           (fun param_type ->
             match param_type with
             | ParamInRegister reg ->
-              this#add_register_use ~block (this#get_representative_register reg)
+              this#add_register_use ~instr (this#get_representative_register reg)
             | _ -> ())
           param_types;
         RegSet.iter
-          (fun reg -> this#add_register_def ~block (this#get_representative_register reg))
+          (fun reg -> this#add_register_def ~instr (this#get_representative_register reg))
           caller_saved_registers;
-        super#visit_instruction ~block instr
+        super#visit_instruction instr
       (* IDiv uses the value in register A and writes to registers A and D *)
       | IDiv _ ->
         let reg_a = this#get_representative_register A in
         let reg_d = this#get_representative_register D in
-        this#add_register_use ~block reg_a;
-        this#add_register_def ~block reg_a;
-        this#add_register_def ~block reg_d;
-        super#visit_instruction ~block instr
+        this#add_register_use ~instr reg_a;
+        this#add_register_def ~instr reg_a;
+        this#add_register_def ~instr reg_d;
+        super#visit_instruction instr
       (* ConvertDouble (e.g. cdq) uses the value in register A and writes to register D *)
       | ConvertDouble _ ->
-        this#add_register_use ~block (this#get_representative_register A);
-        this#add_register_def ~block (this#get_representative_register D);
-        super#visit_instruction ~block instr
+        this#add_register_use ~instr (this#get_representative_register A);
+        this#add_register_def ~instr (this#get_representative_register D);
+        super#visit_instruction instr
       (* Shifts with register shift argument implicitly use value in register C *)
       | ShlR _
       | ShrR _
       | SarR _ ->
-        this#add_register_use ~block (this#get_representative_register C);
-        super#visit_instruction ~block instr
+        this#add_register_use ~instr (this#get_representative_register C);
+        super#visit_instruction instr
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
       | XorMM (_, reg1, reg2) when Operand.is_reg_value reg1 && reg1.id = reg2.id ->
-        this#visit_write_operand ~block reg1
-      | _ -> super#visit_instruction ~block instr
+        this#visit_write_operand ~instr reg1
+      | _ -> super#visit_instruction instr
 
     method resolve_register op =
       match op.Operand.value with
@@ -62,15 +62,15 @@ class use_def_finder color_to_representative_operand =
       | VirtualRegister -> Some op
       | _ -> None
 
-    method! visit_read_operand ~block op =
+    method! visit_read_operand ~instr op =
       match this#resolve_register op with
-      | Some reg -> this#add_register_use ~block reg
-      | None -> super#visit_read_operand ~block op
+      | Some reg -> this#add_register_use ~instr reg
+      | None -> super#visit_read_operand ~instr op
 
-    method! visit_write_operand ~block op =
+    method! visit_write_operand ~instr op =
       match this#resolve_register op with
-      | Some reg -> this#add_register_def ~block reg
-      | None -> super#visit_write_operand ~block op
+      | Some reg -> this#add_register_def ~instr reg
+      | None -> super#visit_write_operand ~instr op
   end
 
 class analyze_regs_init_visitor (blocks : Block.t List.t) color_to_operand =
@@ -95,15 +95,16 @@ class analyze_regs_init_visitor (blocks : Block.t List.t) color_to_operand =
 
     method run () = List.iter (fun block -> this#visit_block block) blocks
 
-    method visit_block block = iter_instructions block (this#visit_instruction ~block)
+    method visit_block block = iter_instructions block this#visit_instruction
 
     method! visit_block_edge ~block next_block =
       prev_blocks <- BlockMMap.add next_block block prev_blocks
 
-    method! add_register_use ~(block : Block.t) (reg : Operand.t) =
-      reg_use_blocks <- OBMMap.add reg block reg_use_blocks
+    method! add_register_use ~(instr : Instruction.t) (reg : Operand.t) =
+      reg_use_blocks <- OBMMap.add reg instr.block reg_use_blocks
 
-    method! add_register_def ~(block : Block.t) (reg : Operand.t) =
+    method! add_register_def ~(instr : Instruction.t) (reg : Operand.t) =
+      let block = instr.block in
       if OBMMap.contains reg block reg_use_blocks && not (OBMMap.contains reg block reg_def_blocks)
       then
         reg_use_before_def_blocks <- OBMMap.add reg block reg_use_before_def_blocks;
@@ -184,17 +185,18 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
 
     method run () = funcs_iter_blocks gcx.funcs (fun block -> this#visit_block block)
 
-    method visit_block block = iter_instructions block (this#visit_instruction ~block)
+    method visit_block block = iter_instructions block this#visit_instruction
 
     method! visit_block_edge ~block next_block =
       prev_blocks <- BlockMMap.add next_block block prev_blocks
 
-    method! visit_read_operand ~block op =
+    method! visit_read_operand ~instr op =
       match op.value with
-      | VirtualStackSlot -> vslot_use_blocks <- OBMMap.add op block vslot_use_blocks
-      | _ -> super#visit_read_operand ~block op
+      | VirtualStackSlot -> vslot_use_blocks <- OBMMap.add op instr.block vslot_use_blocks
+      | _ -> super#visit_read_operand ~instr op
 
-    method! visit_write_operand ~block op =
+    method! visit_write_operand ~instr op =
+      let block = instr.block in
       match op.value with
       | VirtualStackSlot ->
         if
@@ -203,7 +205,7 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
         then
           vslot_use_before_def_blocks <- OBMMap.add op block vslot_use_before_def_blocks;
         vslot_def_blocks <- OBMMap.add op block vslot_def_blocks
-      | _ -> super#visit_write_operand ~block op
+      | _ -> super#visit_write_operand ~instr op
   end
 
 let analyze_virtual_stack_slots ~(gcx : Gcx.t) =

@@ -43,7 +43,7 @@ module X86_64_RegisterAllocatorContext = struct
   type t = {
     func: Function.t;
     gcx: Gcx.t;
-    find_use_defs: block:Block.t -> Instruction.t -> OperandSet.t * OperandSet.t;
+    find_use_defs: Instruction.t -> OperandSet.t * OperandSet.t;
   }
 
   class use_def_finder color_to_op =
@@ -54,15 +54,15 @@ module X86_64_RegisterAllocatorContext = struct
 
       val mutable reg_defs : OperandSet.t = OperandSet.empty
 
-      method find_use_defs ~block instr =
+      method find_use_defs instr =
         reg_uses <- OperandSet.empty;
         reg_defs <- OperandSet.empty;
-        this#visit_instruction ~block instr;
+        this#visit_instruction instr;
         (reg_uses, reg_defs)
 
-      method! add_register_use ~block:_ (reg : Operand.t) = reg_uses <- OperandSet.add reg reg_uses
+      method! add_register_use ~instr:_ (reg : Operand.t) = reg_uses <- OperandSet.add reg reg_uses
 
-      method! add_register_def ~block:_ (reg : Operand.t) = reg_defs <- OperandSet.add reg reg_defs
+      method! add_register_def ~instr:_ (reg : Operand.t) = reg_defs <- OperandSet.add reg reg_defs
     end
 
   let mk ~gcx ~func =
@@ -159,32 +159,30 @@ module X86_64_RegisterAllocatorContext = struct
             | Some prev_count -> prev_count + 1)
             reg_num_use_defs
 
-      method! visit_read_operand ~block op =
+      method! visit_read_operand ~instr op =
         if Operand.is_reg_value op then
           this#visit_reg op
         else
-          super#visit_read_operand ~block op
+          super#visit_read_operand ~instr op
 
-      method! visit_write_operand ~block op =
+      method! visit_write_operand ~instr op =
         if Operand.is_reg_value op then
           this#visit_reg op
         else
-          super#visit_write_operand ~block op
+          super#visit_write_operand ~instr op
     end
 
   let init_context cx =
     (* Collect all registers in program, splitting into precolored and other initial vregs *)
     let init_visitor = new init_visitor ~cx in
-    List.iter
-      (fun block -> iter_instructions block (init_visitor#visit_instruction ~block))
-      cx.func.blocks;
+    List.iter (fun block -> iter_instructions block init_visitor#visit_instruction) cx.func.blocks;
     (init_visitor#reg_num_use_defs, init_visitor#initial_vregs)
 
   let get_live_out_regs cx =
     let (_, live_out) = X86_64_liveness_analysis.analyze_regs cx.func.blocks cx.gcx.color_to_op in
     live_out
 
-  let get_use_defs_for_instruction cx instr block = cx.find_use_defs ~block instr
+  let get_use_defs_for_instruction cx instr _ = cx.find_use_defs instr
 
   let spill_virtual_register cx vreg =
     cx.func.spilled_vslots <- X86_64_instructions.OperandSet.add vreg cx.func.spilled_vslots;

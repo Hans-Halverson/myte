@@ -18,7 +18,7 @@ class use_def_finder color_to_op =
       memory_reg_uses <- RegSet.empty;
       other_reg_uses <- RegSet.empty;
       reg_defs <- RegSet.empty;
-      this#visit_instruction ~block:instr.block instr;
+      this#visit_instruction instr;
       (memory_reg_uses, other_reg_uses, reg_defs)
 
     (* Find memory uses in both read and write positions. Returns whether operand has been handled. *)
@@ -29,16 +29,16 @@ class use_def_finder color_to_op =
         true
       | _ -> false
 
-    method! visit_read_operand ~block op =
-      if not (this#check_memory_use_operand op) then super#visit_read_operand ~block op
+    method! visit_read_operand ~instr op =
+      if not (this#check_memory_use_operand op) then super#visit_read_operand ~instr op
 
-    method! visit_write_operand ~block op =
-      if not (this#check_memory_use_operand op) then super#visit_write_operand ~block op
+    method! visit_write_operand ~instr op =
+      if not (this#check_memory_use_operand op) then super#visit_write_operand ~instr op
 
-    method! add_register_use ~block:_ (reg : Operand.t) =
+    method! add_register_use ~instr:_ (reg : Operand.t) =
       other_reg_uses <- RegSet.add (Operand.get_physical_register_value reg) other_reg_uses
 
-    method! add_register_def ~block:_ (reg : Operand.t) =
+    method! add_register_def ~instr:_ (reg : Operand.t) =
       reg_defs <- RegSet.add (Operand.get_physical_register_value reg) reg_defs
   end
 
@@ -56,9 +56,7 @@ let inline_lea_mapper =
         reg_to_replace <- Operand.get_physical_register_value dest_reg;
         address_to_coalesce <- addr;
 
-        InstrSet.iter
-          (fun use_instr -> this#visit_instruction ~block:use_instr.block use_instr)
-          use_instrs
+        InstrSet.iter this#visit_instruction use_instrs
       | _ -> ()
 
     method visit_operand op =
@@ -68,9 +66,9 @@ let inline_lea_mapper =
         op.value <- MemoryAddress address_to_coalesce
       | _ -> ()
 
-    method! visit_read_operand ~block:_ op = this#visit_operand op
+    method! visit_read_operand ~instr:_ op = this#visit_operand op
 
-    method! visit_write_operand ~block:_ op = this#visit_operand op
+    method! visit_write_operand ~instr:_ op = this#visit_operand op
   end
 
 (* Get all register arguments used in a memory operand *)

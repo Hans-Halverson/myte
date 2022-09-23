@@ -2,10 +2,10 @@ open X86_64_instructions
 
 class instruction_visitor =
   object (this)
-    method visit_instruction ~(block : Block.t) (instr : Instruction.t) =
+    method visit_instruction (instr : Instruction.t) =
       let open Instruction in
-      let visit_read_operand op = this#visit_read_operand ~block op in
-      let visit_write_operand op = this#visit_write_operand ~block op in
+      let visit_read_operand op = this#visit_read_operand ~instr op in
+      let visit_write_operand op = this#visit_write_operand ~instr op in
       match instr.instr with
       | PushM read_op
       | CmpMI (_, read_op, _)
@@ -61,11 +61,11 @@ class instruction_visitor =
         visit_read_operand read_write_op;
         visit_write_operand read_write_op
       | Lea (_, addr, write_op) ->
-        this#visit_memory_address ~block addr;
+        this#visit_memory_address ~instr addr;
         visit_write_operand write_op
       | Jmp next_block
       | JmpCC (_, next_block) ->
-        this#visit_block_edge ~block (cast_to_block next_block)
+        this#visit_block_edge ~block:instr.block (cast_to_block next_block)
       | PushI _
       | CallL _
       | ConvertDouble _
@@ -76,23 +76,23 @@ class instruction_visitor =
 
     method visit_block_edge ~block:_ _next_block = ()
 
-    method visit_memory_address ~block op =
+    method visit_memory_address ~instr op =
       let addr = cast_to_memory_address op in
       (match addr.base with
       | NoBase -> ()
-      | RegBase reg -> this#visit_read_operand ~block reg
+      | RegBase reg -> this#visit_read_operand ~instr reg
       | IPBase -> ());
       match addr.index_and_scale with
       | None -> ()
-      | Some (index_op, _) -> this#visit_read_operand ~block index_op
+      | Some (index_op, _) -> this#visit_read_operand ~instr index_op
 
-    method visit_read_operand ~block op =
+    method visit_read_operand ~instr op =
       match op.value with
-      | MemoryAddress _ -> this#visit_memory_address ~block op
+      | MemoryAddress _ -> this#visit_memory_address ~instr op
       | _ -> ()
 
-    method visit_write_operand ~block op =
+    method visit_write_operand ~instr op =
       match op.value with
-      | MemoryAddress _ -> this#visit_memory_address ~block op
+      | MemoryAddress _ -> this#visit_memory_address ~instr op
       | _ -> ()
   end
