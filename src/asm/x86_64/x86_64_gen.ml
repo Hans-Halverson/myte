@@ -28,13 +28,15 @@ let gen_program ir =
   X86_64_stack_coloring.allocate_stack_slots ~gcx;
 
   (* Simplify program, write function prologue and epilogue *)
+  Gcx.remove_redundant_moves ~gcx;
   Gcx.compress_jump_aliases ~gcx;
-  Gcx.remove_redundant_instructions ~gcx;
   X86_64_stack_frame.write_function_prologues ~gcx;
   X86_64_stack_frame.write_function_epilogues ~gcx;
 
   (* Apply optimizations *)
+  X86_64_address_propagation.run ~gcx;
   X86_64_peephole.run_peephole_optimizations ~gcx;
+  Gcx.remove_redundant_jumps ~gcx;
 
   (* Optionally dump assembly to stdout *)
   if Opts.dump_asm () || Opts.dump_full_asm () then begin

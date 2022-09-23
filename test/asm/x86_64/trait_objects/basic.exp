@@ -51,9 +51,8 @@ test.testPromotion:
   movl $16, %edi
   call __myte_alloc
   movq %rbx, (%rax)
-  leaq 8(%rax), %rcx
   leaq _vtable$test.Type$test.Trait(%rip), %rbx
-  movq %rbx, (%rcx)
+  movq %rbx, 8(%rax)
   movq %rax, %rdi
   call test.testCall
   pop %rbx

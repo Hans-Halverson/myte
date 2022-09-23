@@ -451,11 +451,11 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | JmpCC (cc, block) ->
         pp_op ("j" ^ pp_condition_code cc);
         pp_operand ~size:Size64 block
-      | CallM (size, mem) ->
+      | CallM (size, mem, _) ->
         pp_sized_op "call" size;
         add_char ~buf '*';
         pp_operand ~size mem
-      | CallL label ->
+      | CallL (label, _) ->
         pp_op "call";
         pp_operand ~size:Size64 label
       | Leave -> add_string "leave"

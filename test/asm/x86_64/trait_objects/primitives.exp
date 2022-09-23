@@ -44,9 +44,8 @@ test.testBoolPromotion:
   call __myte_alloc
   movb %r12b, (%rax)
   movq %rax, (%rbx)
-  leaq 8(%rbx), %rax
   leaq _vtable$std.bool.Bool$std.string.ToString(%rip), %rcx
-  movq %rcx, (%rax)
+  movq %rcx, 8(%rbx)
   movq %rbx, %rdi
   call test.useToString
   pop %r12
@@ -63,9 +62,8 @@ test.testBytePromotion:
   call __myte_alloc
   movb %r12b, (%rax)
   movq %rax, (%rbx)
-  leaq 8(%rbx), %rax
   leaq _vtable$std.byte.Byte$std.string.ToString(%rip), %rcx
-  movq %rcx, (%rax)
+  movq %rcx, 8(%rbx)
   movq %rbx, %rdi
   call test.useToString
   pop %r12
@@ -82,9 +80,8 @@ test.testIntPromotion:
   call __myte_alloc
   movl %r12d, (%rax)
   movq %rax, (%rbx)
-  leaq 8(%rbx), %rax
   leaq _vtable$std.int.Int$std.string.ToString(%rip), %rcx
-  movq %rcx, (%rax)
+  movq %rcx, 8(%rbx)
   movq %rbx, %rdi
   call test.useToString
   pop %r12
@@ -101,9 +98,8 @@ test.testLongPromotion:
   call __myte_alloc
   movq %r12, (%rax)
   movq %rax, (%rbx)
-  leaq 8(%rbx), %rax
   leaq _vtable$std.long.Long$std.string.ToString(%rip), %rcx
-  movq %rcx, (%rax)
+  movq %rcx, 8(%rbx)
   movq %rbx, %rdi
   call test.useToString
   pop %r12
@@ -112,9 +108,8 @@ test.testLongPromotion:
 test.testUnitPromotion:
   movl $16, %edi
   call __myte_alloc
-  leaq 8(%rax), %rcx
   leaq _vtable$std.unit.Unit$std.string.ToString(%rip), %rdx
-  movq %rdx, (%rcx)
+  movq %rdx, 8(%rax)
   movq %rax, %rdi
   call test.useToString
   ret

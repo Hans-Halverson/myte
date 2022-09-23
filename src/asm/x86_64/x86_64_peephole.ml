@@ -38,67 +38,6 @@ class peephole_optimization_runner ~(gcx : Gcx.t) (opts : peephole_optimization 
       iter_instructions block (fun instr -> this#run_opts_on_instruction instr)
   end
 
-(* An instruction mapper which coalesces Lea instructions into the next instruction if applicable *)
-let coalesce_lea_mapper =
-  object (this)
-    inherit X86_64_visitor.instruction_visitor
-
-    val mutable has_coalesced = false
-
-    val mutable reg_to_replace = Register.A
-
-    val mutable address_to_coalesce = empty_memory_address
-
-    method has_coalesced = has_coalesced
-
-    method set_reg_and_address reg addr =
-      has_coalesced <- false;
-      reg_to_replace <- Operand.get_physical_register_value reg;
-      address_to_coalesce <- addr
-
-    method visit_operand op =
-      match op.Operand.value with
-      | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None }
-        when Operand.get_physical_register_value reg = reg_to_replace ->
-        has_coalesced <- true;
-        op.value <- MemoryAddress address_to_coalesce
-      | _ -> ()
-
-    method! visit_read_operand ~block:_ op = this#visit_operand op
-
-    method! visit_write_operand ~block:_ op = this#visit_operand op
-  end
-
-(* Coalesce a Lea instruction's address into the next instruction if the next instruction is the
-   only use of the Lea instruction's calculated address.
-
-   Example Before:
-   leaq 4(%rax, %rdi), %rcx
-   mov (%rcx), %rdx
-
-   Example After:
-   mov 4(%rax, %rdi), %rdx
-
-   TODO: Track uses of reg defs to make sure next instruction is only use of Lea result reg *)
-let coalesce_lea_optimization ~gcx:_ instr =
-  let open Instruction in
-  match instr.instr with
-  | Lea (_, { value = MemoryAddress addr; _ }, result_reg) ->
-    let block = instr.block in
-    (* Check if there is an instruction following the Lea *)
-    if instr == (Option.get block.instructions).last then
-      false
-    else (
-      coalesce_lea_mapper#set_reg_and_address result_reg addr;
-      coalesce_lea_mapper#visit_instruction ~block instr.next;
-      if coalesce_lea_mapper#has_coalesced then (
-        remove_instruction instr;
-        true
-      ) else
-        false
-    )
-  | _ -> false
-
 (* Avoid partial register stalls/dependencies by rewriting byte to byte register moves to instead
    write full register (note: writing 32 bits does not cause partial stall, so has same effect as
    writing full 64-bits with smaller code size by avoiding REX prefix). *)
@@ -144,8 +83,7 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr =
       true
   | _ -> false
 
-let basic_peephole_optimizations =
-  [coalesce_lea_optimization; remove_byte_reg_reg_moves_optimization]
+let basic_peephole_optimizations = [remove_byte_reg_reg_moves_optimization]
 
 let optimizer_peephole_optimizations =
   [load_zero_to_register_optimization; power_of_two_strength_reduction_optimization]

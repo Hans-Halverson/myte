@@ -237,8 +237,8 @@ and Instruction : sig
     (* Control flow *)
     | Jmp of (* Block *) Operand.t
     | JmpCC of condition_code * (* Block *) Operand.t
-    | CallL of (* Label *) Operand.t
-    | CallM of register_size * Operand.t
+    | CallL of (* Label *) Operand.t * param_types
+    | CallM of register_size * Operand.t * param_types
     | Leave
     | Ret
     | Syscall
@@ -296,6 +296,7 @@ and Function : sig
     id: id;
     mutable params: Operand.t list;
     param_types: param_type array;
+    return_type: Mir_type.Type.t option;
     mutable prologue: Block.t;
     mutable blocks: Block.t list;
     mutable spilled_callee_saved_regs: RegSet.t;
@@ -329,6 +330,7 @@ end)
 and OperandSet : (Set.S with type elt = Operand.t) = OperandCollection.Set
 and OperandMap : (Map.S with type key = Operand.t) = OperandCollection.Map
 and InstrSet : (Set.S with type elt = Instruction.t) = InstructionCollection.Set
+and InstrMap : (Map.S with type key = Instruction.t) = InstructionCollection.Map
 and BlockSet : (Set.S with type elt = Block.t) = BlockCollection.Set
 and BlockMap : (Map.S with type key = Block.t) = BlockCollection.Map
 and FunctionSet : (Set.S with type elt = Function.t) = FunctionCollection.Set
@@ -400,6 +402,7 @@ let rec null_function : Function.t =
     Function.id = 0;
     params = [];
     param_types = Array.make 0 (ParamOnStack 0);
+    return_type = None;
     prologue = null_block;
     blocks = [];
     spilled_callee_saved_regs = RegSet.empty;

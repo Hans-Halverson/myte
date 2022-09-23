@@ -15,21 +15,16 @@ _main:
   movq %rax, %rbx
   movq _float$1.(%rip), %xmm0
   movq %xmm0, (%rbx)
-  leaq 8(%rbx), %rax
   movq _float$2.(%rip), %xmm0
-  movq %xmm0, (%rax)
-  leaq 16(%rbx), %rax
+  movq %xmm0, 8(%rbx)
   movq _float$1.(%rip), %xmm0
-  movq %xmm0, (%rax)
-  leaq 24(%rbx), %rax
+  movq %xmm0, 16(%rbx)
   movq _float$1.(%rip), %xmm0
-  movq %xmm0, (%rax)
-  leaq 32(%rbx), %rax
+  movq %xmm0, 24(%rbx)
   movq _float$2.(%rip), %xmm0
-  movq %xmm0, (%rax)
-  leaq 40(%rbx), %rax
+  movq %xmm0, 32(%rbx)
   movq _float$1.(%rip), %xmm0
-  movq %xmm0, (%rax)
+  movq %xmm0, 40(%rbx)
   movl $16, %edi
   call __myte_alloc
   movq %rbx, 8(%rax)

@@ -9,7 +9,7 @@ class instruction_visitor =
       match instr.instr with
       | PushM read_op
       | CmpMI (_, read_op, _)
-      | CallM (_, read_op)
+      | CallM (_, read_op, _)
       | IDiv (_, read_op) ->
         visit_read_operand read_op
       | PopM write_op

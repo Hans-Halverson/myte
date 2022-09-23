@@ -118,7 +118,7 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       | IDiv (_, op)
       | NotM (_, op)
       | SetCC (_, op)
-      | CallM (_, op) ->
+      | CallM (_, op, _) ->
         (* Resolve all instructions with a single operand that must be a register *)
         resolve_operator op
       | IMulMIR (size, src_op, src_imm, dest_reg) ->

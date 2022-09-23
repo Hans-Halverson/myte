@@ -1,4 +1,5 @@
 open X86_64_builders
+open X86_64_calling_conventions
 open X86_64_gen_context
 open X86_64_instructions
 open X86_64_register
@@ -16,9 +17,16 @@ class use_def_finder color_to_representative_operand =
     method! visit_instruction ~block instr =
       let open Instruction in
       match instr.instr with
-      (* Calls define all caller save registers *)
-      | CallM _
-      | CallL _ ->
+      (* Calls implicitly use all parameter register and define all caller save registers *)
+      | CallM (_, _, param_types)
+      | CallL (_, param_types) ->
+        Array.iter
+          (fun param_type ->
+            match param_type with
+            | ParamInRegister reg ->
+              this#add_register_use ~block (this#get_representative_register reg)
+            | _ -> ())
+          param_types;
         RegSet.iter
           (fun reg -> this#add_register_def ~block (this#get_representative_register reg))
           caller_saved_registers;

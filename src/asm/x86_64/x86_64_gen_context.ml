@@ -123,12 +123,13 @@ module Gcx = struct
       gcx.prev_blocks <- BlockMMap.add next_block current_block gcx.prev_blocks
     | _ -> ()
 
-  let start_function ~gcx params param_types =
+  let start_function ~gcx params param_types return_type =
     let func =
       {
         Function.id = mk_func_id ();
         params;
         param_types;
+        return_type;
         prologue = null_block;
         blocks = [];
         spilled_callee_saved_regs = RegSet.empty;
@@ -223,9 +224,8 @@ module Gcx = struct
     in
     gcx.agg_to_layout <- IMap.add agg.id agg_layout gcx.agg_to_layout
 
-  let remove_redundant_instructions ~gcx =
-    let open Block in
-    (* Remove jump instructions where the label immediately succeeds the jump instruction *)
+  (* Remove jump instructions where the label immediately succeeds the jump instruction *)
+  let remove_redundant_jumps ~gcx =
     let rec merge blocks =
       match blocks with
       | block1 :: block2 :: tl ->
@@ -237,22 +237,21 @@ module Gcx = struct
         merge (block2 :: tl)
       | _ -> ()
     in
+    FunctionSet.iter (fun func -> merge func.blocks) gcx.funcs
+
+  let remove_redundant_moves ~gcx =
     (* Remove reflexive move instructions *)
-    let remove_reflexive_moves func =
-      func_iter_blocks func (fun block ->
-          let open Instruction in
-          filter_instructions block (fun { Instruction.instr; _ } ->
-              match instr with
-              | MovMM (_, op1, op2) ->
-                (match (op1.value, op2.value) with
-                | (PhysicalRegister reg1, PhysicalRegister reg2) when reg1 = reg2 -> false
-                | _ -> true)
-              | _ -> true))
-    in
     FunctionSet.iter
       (fun func ->
-        merge func.Function.blocks;
-        remove_reflexive_moves func)
+        func_iter_blocks func (fun block ->
+            let open Instruction in
+            filter_instructions block (fun { Instruction.instr; _ } ->
+                match instr with
+                | MovMM (_, op1, op2) ->
+                  (match (op1.value, op2.value) with
+                  | (PhysicalRegister reg1, PhysicalRegister reg2) when reg1 = reg2 -> false
+                  | _ -> true)
+                | _ -> true)))
       gcx.funcs
 
   (* Find all empty blocks that only contain an unconditional jump. Remove them and rewrite other

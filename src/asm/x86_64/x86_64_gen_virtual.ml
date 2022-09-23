@@ -107,7 +107,7 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
 
 and gen_function_instruction_builder ~gcx ~ir func =
   let param_types = FunctionMap.find func gcx.mir_func_to_param_types in
-  let func_ = Gcx.start_function ~gcx [] param_types in
+  let func_ = Gcx.start_function ~gcx [] param_types func.return_type in
   let label =
     if func == ir.main_func then
       main_label
@@ -145,7 +145,7 @@ and gen_function_instruction_builder ~gcx ~ir func =
 
 and gen_empty_myte_init_func ~gcx =
   gcx.generated_init_func <- true;
-  let func_ = Gcx.start_function ~gcx [] (Array.make 0 (ParamOnStack 0)) in
+  let func_ = Gcx.start_function ~gcx [] (Array.make 0 (ParamOnStack 0)) None in
   Gcx.start_block ~gcx ~label:(Some init_label) ~func:func_ ~mir_block:None;
   func_.prologue <- Option.get gcx.current_block;
   Gcx.emit ~gcx Ret;
@@ -507,10 +507,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let inst =
       match func_val.value.value with
       | Lit (Function { name = label; _ }) ->
-        CallL (mk_function_label ~label:(label_of_mir_label label))
+        CallL (mk_function_label ~label:(label_of_mir_label label), param_types)
       | _ ->
         let func_mem = emit_mem (resolve_ir_value func_val) in
-        CallM (Size64, func_mem)
+        CallM (Size64, func_mem, param_types)
     in
     Gcx.emit ~gcx inst;
     (* Move result from return register to return operand *)
@@ -987,7 +987,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let gen_call_arguments_with_types arg_vals =
       let param_mir_types = List.map type_of_use arg_vals in
       let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
-      gen_call_arguments param_types arg_vals
+      gen_call_arguments param_types arg_vals;
+      param_types
     in
     let gen_return_op return_mir_type =
       let return_reg = SystemVCallingConvention.calculate_return_register return_mir_type in
@@ -1010,7 +1011,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         param_types.(0)
         (List.hd param_mir_types)
         element_mir_ty;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_alloc_label));
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_alloc_label, param_types));
       gen_return_op (Pointer Byte)
       (*
        * ===========================================
@@ -1025,23 +1026,23 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
       gen_call_arguments param_types pointer_args;
       gen_size_from_count_and_type ~gcx count_arg param_types.(2) count_mir_type element_mir_ty;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_copy_label))
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_copy_label, param_types))
       (*
        * ===========================================
        *                myte_exit
        * ===========================================
        *)
-    ) else if name = myte_exit.name then (
-      gen_call_arguments_with_types args;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_exit_label))
-      (*
-       * ===========================================
-       *                myte_write
-       * ===========================================
-       *)
-    ) else if name = myte_write.name then (
-      gen_call_arguments_with_types args;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_write_label));
+    ) else if name = myte_exit.name then
+      let param_types = gen_call_arguments_with_types args in
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_exit_label, param_types))
+    (*
+     * ===========================================
+     *                myte_write
+     * ===========================================
+     *)
+    else if name = myte_write.name then (
+      let param_types = gen_call_arguments_with_types args in
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_write_label, param_types));
       gen_return_op Int
       (*
        * ===========================================
@@ -1049,8 +1050,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_read.name then (
-      gen_call_arguments_with_types args;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_read_label));
+      let param_types = gen_call_arguments_with_types args in
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_read_label, param_types));
       gen_return_op Int
       (*
        * ===========================================
@@ -1058,8 +1059,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_open.name then (
-      gen_call_arguments_with_types args;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_open_label));
+      let param_types = gen_call_arguments_with_types args in
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_open_label, param_types));
       gen_return_op Int
       (*
        * ===========================================
@@ -1067,8 +1068,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_close.name then (
-      gen_call_arguments_with_types args;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_close_label));
+      let param_types = gen_call_arguments_with_types args in
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_close_label, param_types));
       gen_return_op Int
       (*
        * ===========================================
@@ -1076,8 +1077,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_unlink.name then (
-      gen_call_arguments_with_types args;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_unlink_label));
+      let param_types = gen_call_arguments_with_types args in
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_unlink_label, param_types));
       gen_return_op Int
       (*
        * ===========================================
@@ -1085,7 +1086,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_get_heap_size.name then (
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_get_heap_size_label));
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_get_heap_size_label, [||]));
       gen_return_op Long
       (*
        * ===========================================
@@ -1093,7 +1094,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_collect.name then
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_collect_label))
+      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_collect_label, [||]))
     else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions
