@@ -166,7 +166,7 @@ and inline_function_at_callsite (func : Function.t) (call_instr_value : Value.t)
               let arg = mapper#map_value arg.Use.value in
               let phi_val = Option.get ret_phi_instr in
               let phi = cast_to_phi (cast_to_instruction phi_val) in
-              phi_add_arg ~phi_val ~phi ~block:instr.block ~value:arg);
+              phi_add_arg ~phi_val ~phi ~block:new_block ~value:arg);
             set_continue_instr ~value:new_value ~continue:caller_after_block;
             add_block_link new_block caller_after_block
           (* All other instructions are directly copied, with values and blocks mapped s*)

@@ -128,10 +128,20 @@ and pp_type_decl type_ =
 
 and pp_block ~cx ~label block =
   let label_lines =
-    if label then
-      [Printf.sprintf "%slabel %s:" (pp_debug_block_id block) (pp_block_id ~cx block)]
-    else if Opts.dump_debug () then
-      [pp_debug_block_id block]
+    if label || Opts.dump_debug () then
+      let label_string =
+        if label then
+          Printf.sprintf "label %s:" (pp_block_id ~cx block)
+        else
+          ""
+      in
+      let prev_blocks_string =
+        if Opts.dump_debug () then
+          " prev blocks " ^ string_of_block_set (BlockSet.to_seq block.prev_blocks)
+        else
+          ""
+      in
+      [Printf.sprintf "%s%s%s" (pp_debug_block_id block) label_string prev_blocks_string]
     else
       []
   in
@@ -262,7 +272,8 @@ and pp_instruction ~cx instr_val instr =
     | Phi { args } ->
       let args_string =
         List.map
-          (fun (prev_block, arg) -> pp_block_id ~cx prev_block ^ ":" ^ pp_use ~cx arg)
+          (fun (prev_block, arg) ->
+            pp_debug_block_id prev_block ^ pp_block_id ~cx prev_block ^ ":" ^ pp_use ~cx arg)
           (BlockMap.bindings args)
         |> String.concat ", "
       in

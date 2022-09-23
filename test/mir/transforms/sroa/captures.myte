@@ -1,0 +1,35 @@
+module test
+
+type Rec1 { foo: Int, bar: Long }
+type HoldsRec1 { rec: Rec1, int: Int }
+
+fun noCapture() {
+  val x = Rec1 { foo: 1, bar: 2 };
+  use(x.foo);
+}
+
+fun storeCapturesAggregate() {
+  val x = Rec1 { foo: 1, bar: 2 };
+  val y = HoldsRec1 { rec: x, int: 0 };
+  use(y);
+  use(x.foo);
+}
+
+fun callCapturesAggregate() {
+  val x = Rec1 { foo: 1, bar: 2 };
+  use(x);
+  use(x.foo);
+}
+
+fun inlinedCallNoCapture() {
+  val x = Rec1 { foo: 1, bar: 2 };
+  inlineUse(x);
+  use(x.foo);
+}
+
+fun use<T>(x: T) {}
+
+@(Inline)
+fun inlineUse<T>(x: T) {}
+
+fun main() {}

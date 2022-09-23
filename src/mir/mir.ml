@@ -318,7 +318,7 @@ and Builtin : sig
 end =
   Builtin
 
-and ValueCollection : MultiMap.KEY_AND_VALUE_TYPE = MakeCollection (Value)
+and ValueCollection : (MultiMap.KEY_AND_VALUE_TYPE with type t = Value.t) = MakeCollection (Value)
 and BlockCollection : MultiMap.KEY_AND_VALUE_TYPE = MakeCollection (Block)
 and FunctionCollection : MultiMap.KEY_AND_VALUE_TYPE = MakeCollection (Function)
 and VSet : (Set.S with type elt = Value.t) = ValueCollection.Set
@@ -530,11 +530,20 @@ let get_terminator (block : Block.t) : Instruction.t option =
     Some last
   | _ -> None
 
-let string_of_block_set (blocks : BlockSet.t) : string =
+let string_of_block_set (blocks : Block.t Seq.t) : string =
   let elements =
-    BlockSet.to_seq blocks
+    blocks
     |> List.of_seq
     |> List.map (fun block -> Block.(id_to_string block.id))
+    |> String.concat ", "
+  in
+  "(" ^ elements ^ ")"
+
+let string_of_instr_set (instr_values : Value.t Seq.t) : string =
+  let elements =
+    instr_values
+    |> List.of_seq
+    |> List.map (fun instr_value -> string_of_int instr_value.Value.id)
     |> String.concat ", "
   in
   "(" ^ elements ^ ")"

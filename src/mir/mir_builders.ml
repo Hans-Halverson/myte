@@ -1096,8 +1096,11 @@ and map_phi_backreferences_for_block ~(block : Block.t) ~(from : Block.t) ~(to_ 
  *           Program
  * ============================
  *)
+and program_iter_funcs (program : Program.t) (f : Function.t -> unit) =
+  SMap.iter (fun _ func -> f func) program.funcs
+
 and program_iter_blocks (program : Program.t) (f : Block.t -> unit) =
-  SMap.iter (fun _ func -> func_iter_blocks func f) program.funcs
+  program_iter_funcs program (fun func -> func_iter_blocks func f)
 
 and program_remove_func ~(program : Program.t) ~(func : Function.t) =
   program.funcs <- SMap.remove func.name program.funcs
@@ -1110,8 +1113,8 @@ and assert_valid_function_cfg (func : Function.t) =
         (fun next_block -> prev_blocks := BlockMMap.add next_block block !prev_blocks)
         (get_next_blocks block));
 
-  (* Check that prev blocks for each block matches the true CFG *)
   func_iter_blocks func (fun block ->
+      (* Check that prev blocks for each block matches the true CFG *)
       let prev_blocks_1 = block.prev_blocks in
       let prev_blocks_2 = BlockMMap.find_all block !prev_blocks in
 
@@ -1123,7 +1126,19 @@ and assert_valid_function_cfg (func : Function.t) =
       in
 
       if (not is_subset_1) || not is_subset_2 then
-        failwith "Previous blocks do not match structure of cfg\n")
+        failwith "Previous blocks do not match structure of cfg\n";
+
+      (* Check that each phi contains entries for all previous blocks *)
+      block_iter_phis block (fun _ phi ->
+          let phi_prev_blocks =
+            BlockMap.fold (fun block _ acc -> BlockSet.add block acc) phi.args BlockSet.empty
+          in
+          if not (BlockSet.equal prev_blocks_1 phi_prev_blocks) then
+            failwith
+              (Printf.sprintf
+                 "Phi does not have arguments for all previous blocks for block %s in func %s\n"
+                 (Block.id_to_string block.id)
+                 func.name)))
 
 and assert_valid_program_cfg (program : Program.t) =
   SMap.iter (fun _ func -> assert_valid_function_cfg func) program.funcs

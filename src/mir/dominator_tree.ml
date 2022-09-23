@@ -14,6 +14,8 @@ module DominatorTree = struct
     (* Key is a block, and value is the immediate dominator for that block. In the dominator tree,
        the idom is the parent pointer of the block. *)
     mutable idoms: Block.t BlockMap.t;
+    (* Root of the dominator tree (the function's start block) *)
+    root: Block.t;
     (* Child nodes in the dominator tree. Parent is the immediate dominator of the child nodes. *)
     mutable children: BlockMMap.t;
     mutable dominance_frontiers: BlockMMap.t;
@@ -53,6 +55,18 @@ let mk_cx ~num_blocks ~block_to_num ~num_to_block =
     num_to_block;
   }
 
+let debug_print_dominator_tree ~(dt : DominatorTree.t) =
+  let depth = ref 0 in
+  let rec visit node =
+    let indent = String.concat "" (List.init !depth (fun _ -> "| ")) in
+    Printf.eprintf "%s%s\n" indent Block.(id_to_string node.id);
+    let children = BlockMMap.find_all node dt.children in
+    depth := !depth + 1;
+    BlockMMap.VSet.iter visit children;
+    depth := !depth - 1
+  in
+  visit dt.root
+
 let block_of_num ~cx num = IMap.find num cx.num_to_block
 
 let num_of_block ~cx block = BlockMap.find block cx.block_to_num
@@ -81,7 +95,23 @@ let rec compress ~cx v =
     cx.ancestor.(v) <- ancestor_ancestor_v
   )
 
+(* Simple link-eval from paper *)
 let eval ~cx v =
+  if cx.ancestor.(v) == 0 then
+    v
+  else (
+    compress ~cx v;
+    cx.label.(v)
+  )
+
+let link ~cx v w = cx.ancestor.(w) <- v
+
+(* Optimized link-eval from paper.
+
+   TODO: Fix and use optimized algorithm *)
+
+(*
+  let eval ~cx v =
   let ancestor_v = cx.ancestor.(v) in
   let label_v = cx.label.(v) in
   if ancestor_v == 0 then
@@ -121,6 +151,7 @@ let link ~cx v w =
     cx.ancestor.(!s) <- v;
     s := cx.child.(!s)
   done
+*)
 
 let lengauer_tarjans ~cx (func : Function.t) =
   (* Step 1 from paper *)
@@ -220,10 +251,11 @@ let build_dominance_frontiers ~(dt : DominatorTree.t) ~(func : Function.t) =
   in
   visit func.start_block
 
-let build_dominator_tree ~func =
+let build_dominator_tree ~(func : Function.t) =
   let dt =
     {
       DominatorTree.idoms = BlockMap.empty;
+      root = func.start_block;
       children = BlockMMap.empty;
       dominance_frontiers = BlockMMap.empty;
     }

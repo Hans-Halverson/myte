@@ -6,6 +6,7 @@ module MirTransform = struct
     | ConstantFolding
     | SimplifyInstructions
     | Inline
+    | SROA
     (* Dead instruction elimination *)
     | DIE
     | JumpThreading
@@ -20,10 +21,23 @@ module MirTransform = struct
     | "constant-folding" -> Some ConstantFolding
     | "simplify-instructions" -> Some SimplifyInstructions
     | "inline" -> Some Inline
+    | "sroa" -> Some SROA
     | "die" -> Some DIE
     | "jump-threading" -> Some JumpThreading
     | "ssa-destruction" -> Some SSADestruction
     | _ -> None
+
+  let to_string transform =
+    match transform with
+    | SSA -> "ssa"
+    | Normalize -> "normalize"
+    | ConstantFolding -> "constant-folding"
+    | SimplifyInstructions -> "simplify-instructions"
+    | Inline -> "inline"
+    | SROA -> "sroa"
+    | DIE -> "die"
+    | JumpThreading -> "jump-threading"
+    | SSADestruction -> "ssa-destruction"
 end
 
 let apply_transforms
@@ -36,6 +50,7 @@ let apply_transforms
       | SimplifyInstructions -> Simplify_instructions.run ~program
       | ConstantFolding -> Fold_constants.run ~program
       | Inline -> Inlining.run ~program ~pcx
+      | SROA -> Sroa.run ~program
       | DIE -> Dead_instruction_elimination.run ~program
       | JumpThreading -> Jump_threading.run ~program
       | SSADestruction -> Ssa_destruction.run ~program)
@@ -47,14 +62,21 @@ let optimize ~program ~pcx =
     ~program
     ~pcx
     [
+      (* Initial round of transforms *)
       SSA;
       Inline;
+      (* Eliminate dead and unnecessary uses (e.g. single argument phis) *)
+      SimplifyInstructions;
+      SROA;
+      (* Sparse conditional constant propagation *)
       SimplifyInstructions;
       ConstantFolding;
       Normalize;
+      (* Jump threading and clean up afterwards *)
       JumpThreading;
       SimplifyInstructions;
       ConstantFolding;
+      (* Clean up output *)
       Normalize;
     ]
 

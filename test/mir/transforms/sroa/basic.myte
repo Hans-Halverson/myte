@@ -1,0 +1,44 @@
+module test
+
+type Rec1 { var foo: Int, bar: Long, baz: Byte }
+type HoldsRec1 { rec: Rec1, int: Int }
+
+fun singleStore() {
+  val x = Rec1 { foo: 1, bar: 2, baz: 3 };
+  use(x.foo);
+  use(x.foo);
+  use(x.foo);
+  use(x.bar);
+  use(x.baz);
+}
+
+fun multipleStores() {
+  val x = Rec1 { foo: 1, bar: 2, baz: 3 };
+  use(x.foo);
+
+  x.foo = 4;
+  use(x.foo);
+
+  if (true) {
+    x.foo = 5;
+    use(x.foo);
+  } else {
+    x.foo = 6;
+    use(x.foo);
+  }
+}
+
+fun testInsertPhis() {
+  val x = Rec1 { foo: 1, bar: 2, baz: 3 };
+  use(x.foo);
+
+  if (true) {
+    x.foo = 4;
+  }
+
+  use(x.foo);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

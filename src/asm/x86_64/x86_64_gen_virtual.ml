@@ -1263,6 +1263,10 @@ and gen_get_pointer
     let result_vreg =
       match (!offset, !base, !index_and_scale) with
       | (None, RegBase reg, None) -> reg
+      | (None, NoBase, None) ->
+        let result_vreg = mk_vreg ~type_:Int in
+        Gcx.emit ~gcx (XorMM (Size32, result_vreg, result_vreg));
+        result_vreg
       | (offset, base, index_and_scale) ->
         let result_vreg = mk_vreg ~type_:Long in
         let addr =
@@ -1347,6 +1351,7 @@ and gen_get_pointer
   | Lit (Global global) ->
     offset := Some (LabelOffset (label_of_mir_label global.name));
     base := IPBase
+  | Lit (NullPointer _) -> ()
   | _ ->
     (match resolve_ir_value ~gcx pointer with
     | SReg (reg, size) -> set_base reg size

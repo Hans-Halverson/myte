@@ -1,0 +1,60 @@
+type test.Rec1 {int, byte[4], long}
+
+type test.HoldsRec1 {int, byte[4], test.Rec1*}
+
+func void @test.noCapture() {
+  Call void @test.use<Int>(1)
+  Ret
+}
+
+func void @test.storeCapturesAggregate() {
+  %0 := Call test.Rec1* myte.builtin.alloc(1)
+  %1 := GetPointer int, test.Rec1* %0.0
+  Store int %1, 1
+  %2 := GetPointer long, test.Rec1* %0.2
+  Store long %2, 2
+  %3 := Call test.HoldsRec1* myte.builtin.alloc(1)
+  %4 := GetPointer test.Rec1*, test.HoldsRec1* %3.2
+  Store test.Rec1* %4, %0
+  %5 := GetPointer int, test.HoldsRec1* %3.0
+  Store int %5, 0
+  Call void @test.use<test.HoldsRec1>(%3)
+  %6 := GetPointer int, test.Rec1* %0.0
+  %7 := Load int %6
+  Call void @test.use<Int>(%7)
+  Ret
+}
+
+func void @test.callCapturesAggregate() {
+  %0 := Call test.Rec1* myte.builtin.alloc(1)
+  %1 := GetPointer int, test.Rec1* %0.0
+  Store int %1, 1
+  %2 := GetPointer long, test.Rec1* %0.2
+  Store long %2, 2
+  Call void @test.use<test.Rec1>(%0)
+  %3 := GetPointer int, test.Rec1* %0.0
+  %4 := Load int %3
+  Call void @test.use<Int>(%4)
+  Ret
+}
+
+func void @test.inlinedCallNoCapture() {
+  Call void @test.use<Int>(1)
+  Ret
+}
+
+func void @test.use<Int>(int %0) {
+  Ret
+}
+
+func void @test.use<test.HoldsRec1>(test.HoldsRec1* %0) {
+  Ret
+}
+
+func void @test.use<test.Rec1>(test.Rec1* %0) {
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}
