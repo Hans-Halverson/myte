@@ -200,11 +200,15 @@ class constant_folding_transform ~(program : Program.t) =
     (* Set of deleted values which do not need to be folded *)
     val mutable deleted_values : VSet.t = VSet.empty
 
+    (* Set of blocks that have been deleted so far *)
+    val mutable deleted_blocks : BlockSet.t = BlockSet.empty
+
     method run () =
       (* Initially visit all globals and instructions for an initial round of constant folding *)
       SMap.iter (fun _ global -> this#visit_global global) program.globals;
       program_iter_blocks program (fun block ->
-          iter_instructions block (fun instr_val instr -> this#visit_instruction instr_val instr));
+          if not (BlockSet.mem block deleted_blocks) then
+            iter_instructions block (fun instr_val instr -> this#visit_instruction instr_val instr));
 
       (* Pop values off the queue and try to fold constants until there are no values on queue left *)
       while not (VSet.is_empty values_queue) do
@@ -246,7 +250,8 @@ class constant_folding_transform ~(program : Program.t) =
         (* Replace this instruction in all its uses with the new constant *)
         this#enqueue_value_uses instr_val;
         let folded_val = mk_value (Lit constant) in
-        replace_instruction ~from:instr_val ~to_:folded_val
+        replace_instruction ~from:instr_val ~to_:folded_val;
+        this#mark_deleted_value instr_val
 
     method try_fold_instruction instr_val instr =
       match instr.instr with
@@ -258,6 +263,7 @@ class constant_folding_transform ~(program : Program.t) =
         | Some constant ->
           global_set_init ~global ~init:(Some (mk_value (Lit constant)));
           remove_instruction instr_val;
+          this#mark_deleted_value instr_val;
           this#visit_global global);
         None
       (* A constant test means the other branch is pruned *)
@@ -270,6 +276,8 @@ class constant_folding_transform ~(program : Program.t) =
       | _ -> try_fold_instruction instr
 
     method on_removed_block (block : Block.t) =
+      deleted_blocks <- BlockSet.add block deleted_blocks;
+
       (* Phis on this block should not be rechecked *)
       block_iter_phis block (fun phi_value _ -> this#mark_deleted_value phi_value);
 

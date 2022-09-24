@@ -493,19 +493,6 @@ and value_replace_uses ~(from : Value.t) ~(to_ : Value.t) =
       add_value_use ~value:to_ ~use);
   from.uses <- None
 
-(* Utility function to check if a use list has a valid structure *)
-and assert_valid_use_list ~(value : Value.t) =
-  match value.uses with
-  | None -> ()
-  | Some first_use ->
-    let rec iter current_use last_use =
-      let next_use = current_use.Use.next in
-      if next_use.prev != current_use then failwith "Link is not bidirectional";
-      if current_use.value != value then failwith "Use does not have correct value";
-      if next_use != last_use then iter next_use last_use
-    in
-    iter first_use first_use
-
 (*
  * ============================
  *        Instructions
@@ -701,28 +688,6 @@ and split_block_after_instruction (instr_value : Value.t) : Block.t * Block.t =
 and replace_instruction ~(from : Value.t) ~(to_ : Value.t) =
   value_replace_uses ~from ~to_;
   remove_instruction from
-
-(* Utility function to check if an instruction list has a valid structure *)
-and assert_valid_instruction_list (block : Block.t) =
-  match block.instructions with
-  | None -> ()
-  | Some { first = first_val; last = last_val } ->
-    let first = cast_to_instruction first_val in
-    let last = cast_to_instruction last_val in
-    if first.prev != last_val || last.next != first_val then
-      failwith
-        (Printf.sprintf
-           "List must be circular %B %B"
-           (first.prev != last_val)
-           (last.next != first_val));
-    let rec iter current_val last_val =
-      let current = cast_to_instruction current_val in
-      let current_next = cast_to_instruction current.next in
-      if current.block != block then failwith "Instruction does not have correct block";
-      if current_next.prev != current_val then failwith "Link is not bidirectional";
-      if current.next != last_val then iter current.next last_val
-    in
-    iter first_val last_val
 
 and iter_instructions (block : Block.t) (f : Value.t -> Instruction.t -> unit) =
   match block.instructions with
@@ -939,7 +904,7 @@ and remove_block ?(on_removed_block : Block.t -> unit = ignore) (block : Block.t
       (fun prev_block ->
         match get_terminator prev_block with
         | Some ({ instr = Continue _; _ } as term_instr) -> term_instr.instr <- Unreachable
-        | Some ({ instr = Branch { test = _; continue; jump }; _ } as term_instr) ->
+        | Some ({ instr = Branch { test; continue; jump }; _ } as term_instr) ->
           term_instr.instr <-
             (if continue == block then
               if jump == block then
@@ -947,7 +912,8 @@ and remove_block ?(on_removed_block : Block.t -> unit = ignore) (block : Block.t
               else
                 Continue jump
             else
-              Continue continue)
+              Continue continue);
+          remove_use test
         | _ -> failwith "Previous block must have branching terminator")
       block.prev_blocks
   | Some { instr = Continue next_block; _ } ->
@@ -1012,7 +978,7 @@ and merge_adjacent_blocks block1 block2 =
 
 and prune_branch (to_keep : bool) (block : Block.t) ~(on_removed_block : Block.t -> unit) =
   match get_terminator block with
-  | Some ({ instr = Branch { test = _; continue; jump }; _ } as terminator_instr) ->
+  | Some ({ instr = Branch { test; continue; jump }; _ } as terminator_instr) ->
     let (to_continue, to_prune) =
       if to_keep then
         (continue, jump)
@@ -1023,6 +989,7 @@ and prune_branch (to_keep : bool) (block : Block.t) ~(on_removed_block : Block.t
     remove_block_link block to_prune;
     remove_phi_backreferences_for_block ~block:to_prune ~to_remove:block;
     terminator_instr.instr <- Continue to_continue;
+    remove_use test;
     (* Pruning a branch may cause other to become unreachable *)
     block_remove_if_unreachable ~on_removed_block to_prune
   | _ -> failwith "Expected branch terminator"
@@ -1105,6 +1072,21 @@ and program_iter_blocks (program : Program.t) (f : Block.t -> unit) =
 and program_remove_func ~(program : Program.t) ~(func : Function.t) =
   program.funcs <- SMap.remove func.name program.funcs
 
+(*
+ * ============================
+ *         Validation
+ * ============================
+ *)
+
+and assert_valid_program (program : Program.t) =
+  SMap.iter (fun _ func -> assert_valid_function func) program.funcs
+
+and assert_valid_function (func : Function.t) =
+  assert_valid_function_cfg func;
+  func_iter_blocks func (fun block ->
+      assert_valid_instruction_list block;
+      iter_instructions block (fun instr_value _ -> assert_valid_use_list ~value:instr_value))
+
 and assert_valid_function_cfg (func : Function.t) =
   (* Create multimap of all previous blocks by visiting CFG *)
   let prev_blocks = ref BlockMMap.empty in
@@ -1140,5 +1122,37 @@ and assert_valid_function_cfg (func : Function.t) =
                  (Block.id_to_string block.id)
                  func.name)))
 
-and assert_valid_program_cfg (program : Program.t) =
-  SMap.iter (fun _ func -> assert_valid_function_cfg func) program.funcs
+(* Utility function to check if a use list has a valid structure *)
+and assert_valid_use_list ~(value : Value.t) =
+  match value.uses with
+  | None -> ()
+  | Some first_use ->
+    let rec iter current_use last_use =
+      let next_use = current_use.Use.next in
+      if next_use.prev != current_use then failwith "Link is not bidirectional";
+      if current_use.value != value then failwith "Use does not have correct value";
+      if next_use != last_use then iter next_use last_use
+    in
+    iter first_use first_use
+
+(* Utility function to check if an instruction list has a valid structure *)
+and assert_valid_instruction_list (block : Block.t) =
+  match block.instructions with
+  | None -> ()
+  | Some { first = first_val; last = last_val } ->
+    let first = cast_to_instruction first_val in
+    let last = cast_to_instruction last_val in
+    if first.prev != last_val || last.next != first_val then
+      failwith
+        (Printf.sprintf
+           "List must be circular %B %B"
+           (first.prev != last_val)
+           (last.next != first_val));
+    let rec iter current_val last_val =
+      let current = cast_to_instruction current_val in
+      let current_next = cast_to_instruction current.next in
+      if current.block != block then failwith "Instruction does not have correct block";
+      if current_next.prev != current_val then failwith "Link is not bidirectional";
+      if current.next != last_val then iter current.next last_val
+    in
+    iter first_val last_val
