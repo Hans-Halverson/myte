@@ -849,9 +849,6 @@ and iter_next_blocks (block : Block.t) (f : Block.t -> unit) =
  *     Block Graph Mutation
  * ============================
  *)
-and block_remove_if_unreachable ~(on_removed_block : Block.t -> unit) (block : Block.t) =
-  if BlockSet.is_empty block.prev_blocks && block.func.start_block != block then
-    remove_block ~on_removed_block block
 
 and block_remove_if_empty (block : Block.t) =
   if can_remove_empty_block block then remove_block block
@@ -864,9 +861,8 @@ and can_remove_empty_block (block : Block.t) =
   match get_terminator block with
   | Some { instr = Continue continue_block; _ } ->
     (* A block is needed if any of its previous blocks appear in a phi node of the next block, with
-       a different value than the value from this block. A block is also needed if it is the start
-       block and the next block has any phi nodes. If we were to remove this block, the value from
-       its branch would be lost in the phi node. *)
+       a different value than the value from this block. If we were to remove this block, the value
+       from its branch would be lost in the phi node. The start block can never be removed. *)
     let is_start_block = block.func.start_block == block in
     let continue_block_phis = block_get_phis continue_block in
     let block_needed_for_phi =
@@ -885,8 +881,42 @@ and can_remove_empty_block (block : Block.t) =
     (not block_needed_for_phi) && not is_start_block
   | _ -> false
 
-and remove_block ?(on_removed_block : Block.t -> unit = ignore) (block : Block.t) =
-  on_removed_block block;
+and block_is_unreachable (block : Block.t) =
+  BlockSet.is_empty block.prev_blocks && block.func.start_block != block
+
+and remove_unreachable_blocks_from_init ?(on_removed_block : Block.t -> unit = ignore) init_func =
+  let worklist = ref BlockSet.empty in
+  let removed = ref BlockSet.empty in
+
+  let remove_if_unreachable block =
+    if (not (BlockSet.mem block !removed)) && block_is_unreachable block then (
+      iter_next_blocks block (fun next_block ->
+          if not (BlockSet.mem next_block !removed) then
+            worklist := BlockSet.add next_block !worklist);
+      on_removed_block block;
+      remove_block block;
+      removed := BlockSet.add block !removed
+    )
+  in
+
+  init_func remove_if_unreachable;
+
+  while not (BlockSet.is_empty !worklist) do
+    let block = BlockSet.choose !worklist in
+    remove_if_unreachable block;
+    worklist := BlockSet.remove block !worklist
+  done
+
+and remove_unreachable_blocks_from_root
+    ?(on_removed_block : Block.t -> unit = ignore) (root_block : Block.t) =
+  remove_unreachable_blocks_from_init ~on_removed_block (fun remove_if_unreachable ->
+      remove_if_unreachable root_block)
+
+and remove_unreachable_blocks_in_func (func : Function.t) =
+  remove_unreachable_blocks_from_init (fun remove_if_unreachable ->
+      func_iter_blocks func remove_if_unreachable)
+
+and remove_block (block : Block.t) =
   (* Remove block from function. This may be the first block in the function. If so, update the
      function to point to the next block as the start. *)
   let func = block.func in
@@ -930,8 +960,7 @@ and remove_block ?(on_removed_block : Block.t -> unit = ignore) (block : Block.t
   BlockSet.iter
     (fun next_block ->
       remove_phi_backreferences_for_block ~block:next_block ~to_remove:block;
-      remove_block_link block next_block;
-      block_remove_if_unreachable ~on_removed_block next_block)
+      remove_block_link block next_block)
     (get_next_blocks block);
 
   (* Remove all operand uses in instructions in the block *)
@@ -991,7 +1020,7 @@ and prune_branch (to_keep : bool) (block : Block.t) ~(on_removed_block : Block.t
     terminator_instr.instr <- Continue to_continue;
     remove_use test;
     (* Pruning a branch may cause other to become unreachable *)
-    block_remove_if_unreachable ~on_removed_block to_prune
+    remove_unreachable_blocks_from_root ~on_removed_block to_prune
   | _ -> failwith "Expected branch terminator"
 
 (* Split an edge between two blocks, inserting an empty block in the middle *)

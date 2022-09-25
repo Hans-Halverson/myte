@@ -41,7 +41,7 @@ end
 module SSATransformer (Context : SSA_TRANFORMER_CONTEXT) = struct
   let rec run ~cx ~func =
     (* First clean up unreachable blocks, as they will cause issues with dominator tree construction *)
-    func_iter_blocks func (block_remove_if_unreachable ~on_removed_block:ignore);
+    remove_unreachable_blocks_in_func func;
 
     (* Collect and remove allocations for all memory values that can be promoted to registers *)
     func_iter_blocks func (fun block ->

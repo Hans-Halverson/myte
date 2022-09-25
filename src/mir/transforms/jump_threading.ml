@@ -86,7 +86,7 @@ let rec run ~(program : Program.t) =
         (* If all paths were threaded then target block has been copied into each rewritten
            threaded path, so the original block can be deleted. *)
         if List.for_all Option.is_some threaded_paths then
-          block_remove_if_unreachable ~on_removed_block:(fun _ -> ()) target_block
+          remove_unreachable_blocks_from_root target_block
       ))
 
 (* Determine if the prev block always leads to a specific next block by constant folding block
