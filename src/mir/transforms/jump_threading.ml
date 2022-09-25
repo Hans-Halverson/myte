@@ -66,6 +66,17 @@ type threaded_path = {
   threaded_next_block: Block.t;
 }
 
+let find_reachable_blocks block =
+  let reachable_blocks = ref BlockSet.empty in
+  let rec visit block =
+    if not (BlockSet.mem block !reachable_blocks) then (
+      reachable_blocks := BlockSet.add block !reachable_blocks;
+      iter_next_blocks block visit
+    )
+  in
+  visit block;
+  !reachable_blocks
+
 let rec run ~(program : Program.t) =
   program_iter_blocks program (fun target_block ->
       if
@@ -107,29 +118,33 @@ and get_threaded_path ~mapper (prev_block : Block.t) (target_block : Block.t) =
 
   (* Threaded path has been found if branch test is determined to be a boolean constant *)
   match get_terminator target_block with
-  | Some { instr = Branch { test; continue; jump }; _ } when VMap.mem test.value mapper#value_map ->
+  | Some { instr = Branch { test; continue; jump }; _ }
+    when VMap.mem test.value mapper#value_map && continue != jump ->
     (match mapper#map_value test.value with
     | { value = Lit (Bool test_value); _ } ->
-      let (threaded_next_block, other_next_block) =
+      let (threaded_next_block, _) =
         if test_value then
           (continue, jump)
         else
           (jump, continue)
       in
 
-      (* Check if any instruction in this block is used outside the block. If so we cannot copy
-         block as we would need to insert phis across the program to merge original and copied
-         values before all of their uses. *)
-      let instr_used_outside_block = ref false in
+      (* Check if any instruction in this block is used in the threaded path outside the target block.
+         If so we cannot copy block as we would need to insert phis across the program to merge
+         original and copied values before all of their uses. *)
+      let reachable_from_threaded_path = find_reachable_blocks threaded_next_block in
+      let instr_used_in_threaded_path = ref false in
+      
       iter_instructions target_block (fun instr_value _ ->
           value_iter_uses ~value:instr_value (fun use ->
               match use.Use.user.value with
               | Instr { block = use_block; _ }
-                when use_block != target_block && use_block != other_next_block ->
-                instr_used_outside_block := true
+                when use_block != target_block
+                     && BlockSet.mem use_block reachable_from_threaded_path ->
+                instr_used_in_threaded_path := true
               | _ -> ()));
 
-      if !instr_used_outside_block then
+      if !instr_used_in_threaded_path then
         None
       else
         Some { mapper; threaded_prev_block = prev_block; target_block; threaded_next_block }
