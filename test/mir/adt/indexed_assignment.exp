@@ -82,32 +82,24 @@ func void @test.accessOperatorAssign(test.Rec1* %0, test.Rec3* %1, test.Tup1* %2
   %3 := GetPointer int, test.Rec1* %0.0
   %4 := Load int %3
   %5 := Add int %4, 1
+  Store int %3, %5
   %6 := GetPointer int, test.Rec1* %0.0
-  Store int %6, %5
-  %7 := GetPointer int, test.Rec1* %0.0
-  %8 := Load int %7
-  %9 := Call int @test.getInt()
-  %10 := Add int %8, %9
-  %11 := GetPointer int, test.Rec1* %0.0
-  Store int %11, %10
-  %12 := GetPointer test.Rec2*, test.Rec3* %1.2
-  %13 := Load test.Rec2* %12
-  %14 := GetPointer int, test.Rec2* %13.2
-  %15 := Load int %14
-  %16 := Add int %15, 1
-  %17 := GetPointer test.Rec2*, test.Rec3* %1.2
-  %18 := Load test.Rec2* %17
-  %19 := GetPointer int, test.Rec2* %18.2
-  Store int %19, %16
-  %20 := GetPointer test.Rec3*, test.Tup1* %2.0
-  %21 := Load test.Rec3* %20
-  %22 := GetPointer long, test.Rec3* %21.3
-  %23 := Load long %22
-  %24 := Add long %23, 1
-  %25 := GetPointer test.Rec3*, test.Tup1* %2.0
-  %26 := Load test.Rec3* %25
-  %27 := GetPointer long, test.Rec3* %26.3
-  Store long %27, %24
+  %7 := Load int %6
+  %8 := Call int @test.getInt()
+  %9 := Add int %7, %8
+  Store int %6, %9
+  %10 := GetPointer test.Rec2*, test.Rec3* %1.2
+  %11 := Load test.Rec2* %10
+  %12 := GetPointer int, test.Rec2* %11.2
+  %13 := Load int %12
+  %14 := Add int %13, 1
+  Store int %12, %14
+  %15 := GetPointer test.Rec3*, test.Tup1* %2.0
+  %16 := Load test.Rec3* %15
+  %17 := GetPointer long, test.Rec3* %16.3
+  %18 := Load long %17
+  %19 := Add long %18, 1
+  Store long %17, %19
   Ret
 }
 

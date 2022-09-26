@@ -158,8 +158,7 @@ label @3:
   %15 := GetPointer int, std.vec.Vec<Bool>* %0.0
   %16 := Load int %15
   %17 := Add int %16, 1
-  %18 := GetPointer int, std.vec.Vec<Bool>* %0.0
-  Store int %18, %17
+  Store int %15, %17
   Ret
 }
 
@@ -190,8 +189,7 @@ label @3:
   %15 := GetPointer int, std.vec.Vec<Int>* %0.0
   %16 := Load int %15
   %17 := Add int %16, 1
-  %18 := GetPointer int, std.vec.Vec<Int>* %0.0
-  Store int %18, %17
+  Store int %15, %17
   Ret
 }
 
@@ -222,8 +220,7 @@ label @3:
   %15 := GetPointer int, std.vec.Vec<String>* %0.0
   %16 := Load int %15
   %17 := Add int %16, 1
-  %18 := GetPointer int, std.vec.Vec<String>* %0.0
-  Store int %18, %17
+  Store int %15, %17
   Ret
 }
 

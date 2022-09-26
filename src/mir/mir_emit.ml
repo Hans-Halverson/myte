@@ -2621,13 +2621,19 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
 
     (* Emit an assignment that stores at an expression access chain *)
     let emit_access_chain_assign lvalue =
+      let cached_pointer_val = ref None in
       let mk_pointer_val () =
-        match emit_expression_access_chain ~ecx lvalue with
+        match !cached_pointer_val with
+        | Some pointer_val -> pointer_val
+        | None ->
+        let pointer_val = match emit_expression_access_chain ~ecx lvalue with
         | None -> None
         | Some (GetPointerEmittedResult element_pointer_val) -> Some element_pointer_val
         | Some (InlinedValueResult _) -> failwith "Cannot store to inlined value"
+        in
+        cached_pointer_val := Some pointer_val;
+        pointer_val
       in
-      (* TODO: Only emit element pointer once, but this requires fixing lea coalescing in asm *)
       emit_pointer_assign mk_pointer_val expr
     in
 
