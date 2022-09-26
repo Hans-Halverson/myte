@@ -20,9 +20,7 @@ fib.fibRecursive:
   push %r12
   movl %edi, %ebx
   cmpl $1, %ebx
-  jg .L2
-  jmp .L3
-.L2:
+  jle .L2
   movl %ebx, %edi
   subl $1, %edi
   call fib.fibRecursive
@@ -32,7 +30,7 @@ fib.fibRecursive:
   call fib.fibRecursive
   addl %r12d, %eax
   movl %eax, %ebx
-.L3:
+.L2:
   movl %ebx, %eax
   pop %r12
   pop %rbx

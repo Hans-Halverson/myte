@@ -224,8 +224,8 @@ module Gcx = struct
     in
     gcx.agg_to_layout <- IMap.add agg.id agg_layout gcx.agg_to_layout
 
-  (* Remove jump instructions where the label immediately succeeds the jump instruction *)
-  let remove_redundant_jumps ~gcx =
+  (* Simplify Jmp instructions, removing unnecessary Jmp instructions when possible *)
+  let simplify_jumps ~gcx =
     let rec merge blocks =
       match blocks with
       | block1 :: block2 :: tl ->
@@ -233,6 +233,23 @@ module Gcx = struct
         | Some ({ instr = Instruction.Jmp { value = Block next_block; _ }; _ } as jmp_instr)
           when next_block.id = block2.id ->
           remove_instruction jmp_instr
+        (* Eliminate unnecessary Jmp instructions by reordering sequences of JmpCCs:
+
+             JmpCC block1
+             Jmp block2           JmpCC block2 (with inverse CC)
+           block1:              block1:
+             ...                  ...
+           block2:              block2:
+             ...                  ... *)
+        | Some
+            ({
+               instr = Jmp { value = Block jmp_block; _ };
+               prev = { instr = JmpCC (cc, { value = Block jmp_cc_block; _ }); _ } as jmp_cc_instr;
+               _;
+             } as jmp_instr)
+          when jmp_cc_block.id == block2.id ->
+          remove_instruction jmp_instr;
+          jmp_cc_instr.instr <- JmpCC (invert_condition_code cc, mk_block_op ~block:jmp_block)
         | _ -> ());
         merge (block2 :: tl)
       | _ -> ()

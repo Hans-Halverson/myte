@@ -36,7 +36,7 @@ let gen_program ir =
   (* Apply optimizations *)
   X86_64_address_propagation.run ~gcx;
   X86_64_peephole.run_peephole_optimizations ~gcx;
-  Gcx.remove_redundant_jumps ~gcx;
+  Gcx.simplify_jumps ~gcx;
 
   (* Optionally dump assembly to stdout *)
   if Opts.dump_asm () || Opts.dump_full_asm () then begin

@@ -134,7 +134,7 @@ and get_threaded_path ~mapper (prev_block : Block.t) (target_block : Block.t) =
          original and copied values before all of their uses. *)
       let reachable_from_threaded_path = find_reachable_blocks threaded_next_block in
       let instr_used_in_threaded_path = ref false in
-      
+
       iter_instructions target_block (fun instr_value _ ->
           value_iter_uses ~value:instr_value (fun use ->
               match use.Use.user.value with

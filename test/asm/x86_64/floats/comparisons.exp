@@ -20,8 +20,7 @@ test.testCompareMemoryMemory:
   movq 8(%rsp), %xmm0
   ucomisd 16(%rsp), %xmm0
   jne .L1
-  jp .L1
-  jmp .L2
+  jnp .L2
 .L1:
   xorl %eax, %eax
   movq 8(%rsp), %xmm0
@@ -83,8 +82,7 @@ test.testCompareMemoryRegister:
 .L8:
   ucomisd 8(%rsp), %xmm0
   jne .L9
-  jp .L9
-  jmp .L10
+  jnp .L10
 .L9:
   xorl %eax, %eax
   ucomisd 8(%rsp), %xmm0
@@ -137,8 +135,7 @@ test.testCompareRegisterMemory:
 .L16:
   ucomisd 8(%rsp), %xmm0
   jne .L17
-  jp .L17
-  jmp .L18
+  jnp .L18
 .L17:
   xorl %eax, %eax
   ucomisd 8(%rsp), %xmm0
@@ -191,8 +188,7 @@ test.testCompareRegisterRegister:
 .L24:
   ucomisd %xmm1, %xmm0
   jne .L25
-  jp .L25
-  jmp .L26
+  jnp .L26
 .L25:
   xorl %eax, %eax
   ucomisd %xmm1, %xmm0

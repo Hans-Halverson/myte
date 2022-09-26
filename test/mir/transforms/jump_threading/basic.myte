@@ -59,8 +59,31 @@ fun test3() {
   }
 }
 
-// But cannot be used within threaded next block
+// Instruction in target block can be used within target block and non-threaded next block descendents
 fun test4() {
+  var x = 1;
+  if (bool()) {
+    x = 2;
+  }
+
+  use(100);
+  val y = int();
+  use(y);
+
+  if (x == 2) {
+    use(1);
+  } else {
+    use(2);
+    if (bool()) {
+      if (bool()) {
+        use(y);
+      }
+    }
+  }
+}
+
+// But cannot be used within threaded next block
+fun test5() {
   var x = int();
   if (bool()) {
     x = 2;
@@ -76,6 +99,49 @@ fun test4() {
   } else {
     use(2);
   }
+}
+
+// And cannot be used within threaded next block descendents
+fun test6() {
+  var x = int();
+  if (bool()) {
+    x = 2;
+  }
+
+  use(100);
+  val y = int();
+  use(y);
+
+  if (x == 2) {
+    use(1);
+    if (bool()) {
+      if (bool()) {
+        use(y);
+      }
+    }
+  } else {
+    use(2);
+  }
+}
+
+// Or descendents of both paths
+fun test7() {
+  var x = int();
+  if (bool()) {
+    x = 2;
+  }
+
+  use(100);
+  val y = int();
+  use(y);
+
+  if (x == 2) {
+    use(1);
+  } else {
+    use(2);
+  }
+
+  use(y);
 }
 
 fun use<T>(x: T) {}
