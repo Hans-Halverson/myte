@@ -1497,7 +1497,6 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
     let address = mk_label_memory_address name in
     let type_ = type_of_use use in
     SAddr (mk_memory_address ~address ~type_, type_)
-  | Lit (MyteBuiltin _) -> failwith "TODO: Cannot compile Myte builtin"
   | Lit (NullPointer _) -> SImm (mk_imm ~imm:(Imm64 0L))
   | Lit (ArrayString _)
   | Lit (ArrayVtable _) ->

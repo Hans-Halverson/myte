@@ -1,0 +1,19 @@
+module test
+
+import std.memory.Array
+import std.sys.exit
+
+fun nongeneric() {
+  use(exit);
+  use((Array.isNull: (Array<Int>) -> Bool));
+}
+
+fun generic() {
+  use((Array.new: (Int) -> Array<Byte>));
+  use((Array.new: (Int) -> Array<Int>));
+  use((Array.copy: (Array<String>, Int, Array<String>, Int, Int) -> Unit));
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

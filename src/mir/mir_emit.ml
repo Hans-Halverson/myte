@@ -22,6 +22,7 @@ let rec emit (pcx : Pcx.t) : Program.t =
   register_toplevel_variable_declarations ~ecx;
   register_function_declarations ~ecx;
   emit_pending ~ecx;
+  emit_myte_builtin_functions ~ecx;
   ecx.program
 
 and iter_toplevels ~ecx f =
@@ -203,13 +204,12 @@ and emit_global_variable_declaration ~ecx name decl =
   in
   global_set_init ~global ~init
 
-and emit_nongeneric_function ~ecx func func_decl =
-  if func_decl.body != Signature then emit_function_body ~ecx func func_decl
+and emit_nongeneric_function ~ecx func func_decl = emit_function_body ~ecx func func_decl
 
 and emit_generic_function_instantiation ~ecx (name, (func, type_param_bindings)) =
   Ecx.in_type_binding_context ~ecx type_param_bindings (fun _ ->
       let func_decl_node = SMap.find name ecx.func_decl_nodes in
-      if func_decl_node.body != Signature then emit_function_body ~ecx func func_decl_node)
+      emit_function_body ~ecx func func_decl_node)
 
 and emit_anonymous_function_instantiation
     ~ecx func (pending_anon_func : Ecx.PendingAnonymousFunction.t) =
@@ -268,26 +268,28 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
   in
   Ecx.start_function ~ecx ~func ~loc ~params ~return_type;
 
-  if is_main_func then ecx.program.main_func <- ecx.current_func;
+  if not (Attributes.is_builtin ~store:ecx.pcx.attribute_store binding.loc) then (
+    if is_main_func then ecx.program.main_func <- ecx.current_func;
 
-  (* Set up return pointer and block, and create function context *)
-  let (return_block, return_pointer) = emit_function_return_block ~ecx return_type in
-  Ecx.start_function_context
-    ~ecx
-    ~return_ty
-    ~return_block
-    ~return_pointer
-    ~env_agg:None
-    ~env_ptr:None
-    ~captures:Bindings.LBVMMap.VSet.empty;
+    (* Set up return pointer and block, and create function context *)
+    let (return_block, return_pointer) = emit_function_return_block ~ecx return_type in
+    Ecx.start_function_context
+      ~ecx
+      ~return_ty
+      ~return_block
+      ~return_pointer
+      ~env_agg:None
+      ~env_ptr:None
+      ~captures:Bindings.LBVMMap.VSet.empty;
 
-  (* Build IR for function body *)
-  Ecx.set_current_block ~ecx ecx.current_func.start_block;
-  (match body with
-  | Block block -> emit_function_block_body ~ecx ~is_main_func block
-  | Expression expr -> emit_function_expression_body ~ecx expr
-  | Signature -> failwith "Cannot emit function signature");
-  Ecx.finish_block_unreachable ~ecx
+    (* Build IR for function body *)
+    Ecx.set_current_block ~ecx ecx.current_func.start_block;
+    (match body with
+    | Block block -> emit_function_block_body ~ecx ~is_main_func block
+    | Expression expr -> emit_function_expression_body ~ecx expr
+    | Signature -> failwith "Cannot emit function signature");
+    Ecx.finish_block_unreachable ~ecx
+  )
 
 and emit_function_return_block ~ecx return_type =
   (* Set up return value and return block *)
@@ -442,6 +444,26 @@ and emit_trampoline_function ~(ecx : Ecx.t) (trampoline_func : Function.t) =
   let args = receiver_arg :: rest_args in
   call_inner_func_and_return args
 
+(* Fill in body of myte builtin functions that are used, removing unused myte builtin functions. *)
+and emit_myte_builtin_functions ~ecx =
+  let builtin_functions = Lazy.force_val builtin_functions in
+  program_iter_funcs ecx.program (fun func ->
+      let nongeneric_name = get_nongeneric_name func in
+      match SMap.find_opt nongeneric_name builtin_functions with
+      | None -> ()
+      | Some _ when not (value_has_uses func.value) ->
+        ecx.program.funcs <- SMap.remove func.name ecx.program.funcs
+      | Some mk_func ->
+        Ecx.set_current_block ~ecx func.start_block;
+        let ret_val = mk_func ~ecx func.params func.return_type in
+        Ecx.finish_block_ret ~ecx ~arg:ret_val)
+
+(* Take name up to start of first type arguments *)
+and get_nongeneric_name (func : Function.t) =
+  match String.index_from_opt func.name 0 '<' with
+  | None -> func.name
+  | Some type_args_start_index -> String.sub func.name 0 type_args_start_index
+
 and start_init_function ~ecx =
   let func = Ecx.mk_empty_function ~ecx ~name:init_func_name in
   Ecx.start_function ~ecx ~func ~loc:Loc.none ~params:[] ~return_type:None;
@@ -481,19 +503,16 @@ and emit_identifier_expression ~(ecx : Ecx.t) (loc : Loc.t) (id : Ast.Identifier
   | FunDecl { Bindings.FunctionDeclaration.type_params; _ } ->
     let func_name = mk_value_binding_name binding in
     let func_val =
-      if Attributes.is_builtin ~store:ecx.pcx.attribute_store binding.loc then
-        failwith "TODO: Cannot use myte builtin as closure object. Generate MIR for myte builtins."
-      else
-        let func_val =
-          if type_params = [] then
-            Ecx.get_nongeneric_function_value ~ecx func_name
-          else
-            let ty = type_of_loc ~ecx loc in
-            let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
-            Ecx.get_generic_function_value ~ecx func_name type_params type_args
-        in
-        let func = cast_to_function_literal func_val in
-        Ecx.get_closure_global_value ~ecx ~loc ~func
+      let func_val =
+        if type_params = [] then
+          Ecx.get_nongeneric_function_value ~ecx func_name
+        else
+          let ty = type_of_loc ~ecx loc in
+          let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
+          Ecx.get_generic_function_value ~ecx func_name type_params type_args
+      in
+      let func = cast_to_function_literal func_val in
+      Ecx.get_closure_global_value ~ecx ~loc ~func
     in
     Some func_val
   | VarDecl _
@@ -779,9 +798,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
             let func_name = mk_value_binding_name binding in
             let ty = type_of_loc ~ecx loc in
             let func_val =
-              if Attributes.is_builtin ~store:ecx.pcx.attribute_store binding.loc then
-                mk_myte_builtin_lit func_name
-              else if type_params = [] then
+              if type_params = [] then
                 Ecx.get_nongeneric_function_value ~ecx func_name
               else
                 let { Types.Function.type_args; _ } = Type_util.cast_to_function_type ty in
@@ -1791,8 +1808,8 @@ and emit_call
   let builtin_functions = Lazy.force_val builtin_functions in
   match func_val.value with
   (* Generate Myte builtin function *)
-  | Lit (MyteBuiltin name) ->
-    let mk_func = SMap.find name builtin_functions in
+  | Lit (Function func) when SMap.mem (get_nongeneric_name func) builtin_functions ->
+    let mk_func = SMap.find (get_nongeneric_name func) builtin_functions in
     mk_func ~ecx arg_vals ret_type
   (* Generate regular calls *)
   | _ ->
@@ -2626,13 +2643,14 @@ and emit_statement ~ecx ~is_expr stmt : Value.t option =
         match !cached_pointer_val with
         | Some pointer_val -> pointer_val
         | None ->
-        let pointer_val = match emit_expression_access_chain ~ecx lvalue with
-        | None -> None
-        | Some (GetPointerEmittedResult element_pointer_val) -> Some element_pointer_val
-        | Some (InlinedValueResult _) -> failwith "Cannot store to inlined value"
-        in
-        cached_pointer_val := Some pointer_val;
-        pointer_val
+          let pointer_val =
+            match emit_expression_access_chain ~ecx lvalue with
+            | None -> None
+            | Some (GetPointerEmittedResult element_pointer_val) -> Some element_pointer_val
+            | Some (InlinedValueResult _) -> failwith "Cannot store to inlined value"
+          in
+          cached_pointer_val := Some pointer_val;
+          pointer_val
       in
       emit_pointer_assign mk_pointer_val expr
     in

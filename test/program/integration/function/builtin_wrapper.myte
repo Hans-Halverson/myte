@@ -1,0 +1,22 @@
+module test
+
+import std.memory.Array
+import std.test.{assertFalse, assertTrue}
+
+fun isNotNull<T>(x: Array<T>): Bool = !Array.isNull(x)
+
+fun apply<T>(x: Array<T>, f: (Array<T>) -> Bool): Bool = f(x)
+
+fun test() {
+  val nullArray: Array<Int> = Array.new(0);
+  val nonNullArray: Array<Int> = Array.new(10);
+
+  assertTrue(apply(nullArray, Array.isNull));
+  assertFalse(apply(nullArray, isNotNull));
+  assertFalse(apply(nonNullArray, Array.isNull));
+  assertTrue(apply(nonNullArray, isNotNull));
+}
+
+fun main() {
+  test();
+}

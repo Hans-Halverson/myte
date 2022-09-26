@@ -34,8 +34,6 @@ let mk_double_lit (n : Float.t) : Value.t = mk_value (Lit (Double n))
 
 let mk_null_ptr_lit (type_ : Type.t) : Value.t = mk_value (Lit (NullPointer type_))
 
-let mk_myte_builtin_lit (func : string) : Value.t = mk_value (Lit (MyteBuiltin func))
-
 let mk_array_string_lit (string : string) : Value.t = mk_value (Lit (ArrayString string))
 
 let rec mk_array_vtable_lit (funcs : Function.t list) : Value.t =
@@ -381,7 +379,6 @@ and mk_global
   global
 
 and global_set_init ~(global : Global.t) ~(init : Value.t option) =
-  (* TODO: Check if the old and new value are the same *)
   (match global.init_val with
   | None -> ()
   | Some old_init_use -> remove_use old_init_use);

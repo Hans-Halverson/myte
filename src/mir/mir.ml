@@ -69,9 +69,6 @@ and Literal : sig
     | Global of Global.t
     | NullPointer of Type.t
     | Function of Function.t
-    (* A builtin Myte function that may be translated into a MIR function or inlined
-       as a series of instructions *)
-    | MyteBuiltin of string
     | ArrayString of string
     | ArrayVtable of int * (* Function literals *) Use.t list
     (* A closure aggregate for a known function, where the environment is the null pointer. Also
@@ -386,9 +383,7 @@ and type_of_literal (lit : Literal.t) : Type.t =
   | Int _ -> Int
   | Long _ -> Long
   | Double _ -> Double
-  | Function _
-  | MyteBuiltin _ ->
-    Function
+  | Function _ -> Function
   | Global global -> Pointer global.type_
   | NullPointer ty -> Pointer ty
   | ArrayString str -> Array (Byte, String.length str)

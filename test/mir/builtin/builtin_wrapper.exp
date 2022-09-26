@@ -1,0 +1,84 @@
+type _closure {fn, byte*}
+
+func void @_init() {
+  %0 := Neg double 1.0
+  %1 := Div double %0, 0.0
+  Store double @std.double.NEGATIVE_INFINITY, %1
+  %2 := Div double 0.0, 0.0
+  Store double @std.double.NaN, %2
+  %3 := Div double 1.0, 0.0
+  Store double @std.double.POSITIVE_INFINITY, %3
+  %4 := Call std.io.file.File* myte.builtin.alloc(1)
+  %5 := GetPointer int, std.io.file.File* %4.0
+  Store int %5, 2
+  Store std.io.file.File* @std.io.STDERR, %4
+  %6 := Call std.io.file.File* myte.builtin.alloc(1)
+  %7 := GetPointer int, std.io.file.File* %6.0
+  Store int %7, 0
+  Store std.io.file.File* @std.io.STDIN, %6
+  %8 := Call std.io.file.File* myte.builtin.alloc(1)
+  %9 := GetPointer int, std.io.file.File* %8.0
+  Store int %9, 1
+  Store std.io.file.File* @std.io.STDOUT, %8
+  %10 := Call std.vec.Vec<String>* @std.vec.Vec.new<String>()
+  Store std.vec.Vec<String>* @std.sys.args, %10
+  Ret
+}
+
+func byte* @std.memory.Array.new<Byte>(int %0) {
+  %1 := Call byte* myte.builtin.alloc(%0)
+  Ret %1
+}
+
+func int* @std.memory.Array.new<Int>(int %0) {
+  %1 := Call int* myte.builtin.alloc(%0)
+  Ret %1
+}
+
+func void @std.memory.Array.copy<String>(std.string.String** %0, int %1, std.string.String** %2, int %3, int %4) {
+  %5 := GetPointer std.string.String*, std.string.String** %0[int %1]
+  %6 := GetPointer std.string.String*, std.string.String** %2[int %3]
+  Call void myte.builtin.copy(%5, %6, %4)
+  Ret
+}
+
+func bool @std.memory.Array.isNull<Int>(int* %0) {
+  %1 := Eq int* %0, null
+  Ret %1
+}
+
+func void @std.sys.exit(int %0) {
+  Call void myte.builtin.exit(%0)
+  Ret
+}
+
+func void @test.nongeneric() {
+  Call void @test.use<Function>(@_closure$std.sys.exit)
+  Call void @test.use<Function>(@_closure$std.memory.Array.isNull<Int>)
+  Ret
+}
+
+global _closure @_closure$std.sys.exit = {@std.sys.exit, null}
+
+global _closure @_closure$std.memory.Array.isNull<Int> = {@std.memory.Array.isNull<Int>, null}
+
+func void @test.generic() {
+  Call void @test.use<Function>(@_closure$std.memory.Array.new<Byte>)
+  Call void @test.use<Function>(@_closure$std.memory.Array.new<Int>)
+  Call void @test.use<Function>(@_closure$std.memory.Array.copy<String>)
+  Ret
+}
+
+global _closure @_closure$std.memory.Array.new<Byte> = {@std.memory.Array.new<Byte>, null}
+
+global _closure @_closure$std.memory.Array.new<Int> = {@std.memory.Array.new<Int>, null}
+
+global _closure @_closure$std.memory.Array.copy<String> = {@std.memory.Array.copy<String>, null}
+
+func void @test.use<Function>(_closure* %0) {
+  Ret
+}
+
+func int @test.main() {
+  Ret 0
+}

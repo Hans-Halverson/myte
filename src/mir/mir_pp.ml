@@ -32,12 +32,11 @@ let rec pp_program program =
     Mir.has_std_lib_prefix name
     else
       match dump_stdlib_prefix with
-      | None -> (fun _ -> false)
-      | Some prefix ->
-        let prefix_length = String.length prefix in
+      | [] -> (fun _ -> false)
+      | prefixes ->
         fun name ->
           Mir.has_std_lib_prefix name
-          && not (String.length name >= prefix_length && String.sub name 0 prefix_length = prefix)
+          && not (List.exists (fun prefix -> String.starts_with ~prefix name) prefixes)
   in
   (* Collect printed blocks along with their source locations *)
   let blocks =
@@ -223,7 +222,6 @@ and pp_literal ~cx lit =
   | Function { name; _ }
   | Global { name; _ } ->
     "@" ^ name
-  | MyteBuiltin _ -> failwith "TODO: MyteBuiltins cannot appear in MIR"
   | NullPointer _ -> "null"
   | ArrayString str -> "\"" ^ str ^ "\""
   | ArrayVtable (_, funcs) ->

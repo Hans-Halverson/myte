@@ -10,7 +10,7 @@ type t = {
   dump_full_asm: bool ref;
   dump_debug: bool ref;
   dump_stdlib: bool ref;
-  dump_stdlib_prefix: string option ref;
+  dump_stdlib_prefix: string list ref;
   emit_all: bool ref;
   installation_path: string option ref;
   optimize: bool ref;
@@ -31,7 +31,7 @@ let opts =
     dump_full_asm = ref false;
     dump_debug = ref false;
     dump_stdlib = ref false;
-    dump_stdlib_prefix = ref None;
+    dump_stdlib_prefix = ref [];
     emit_all = ref false;
     installation_path = ref None;
     optimize = ref false;
@@ -65,7 +65,7 @@ let spec =
     ( "--dump-stdlib-prefix",
       Arg.String
         (fun prefix ->
-          opts.dump_stdlib_prefix := Some prefix;
+          opts.dump_stdlib_prefix := prefix :: !(opts.dump_stdlib_prefix);
           opts.dump_stdlib := true),
       " Include the standard library under the given prefix when printing other commands" );
     ("--emit-all", Arg.Set opts.emit_all, " Emit all functions, not just those that are reachable");

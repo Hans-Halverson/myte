@@ -889,58 +889,20 @@ and get_zero_size_global_pointer ~ecx =
   in
   zero_size_global.value
 
-and builtin_functions =
-  lazy
-    ([
-       Std_lib.std_bool_bool_equals;
-       Std_lib.std_byte_byte_equals;
-       Std_lib.std_byte_byte_toInt;
-       Std_lib.std_byte_byte_toLong;
-       Std_lib.std_byte_byte_toDouble;
-       Std_lib.std_double_double_equals;
-       Std_lib.std_double_double_toByte;
-       Std_lib.std_double_double_toInt;
-       Std_lib.std_double_double_toLong;
-       Std_lib.std_gc_collect;
-       Std_lib.std_gc_getHeapSize;
-       Std_lib.std_int_int_equals;
-       Std_lib.std_int_int_toByte;
-       Std_lib.std_int_int_toLong;
-       Std_lib.std_int_int_toDouble;
-       Std_lib.std_long_long_equals;
-       Std_lib.std_long_long_toByte;
-       Std_lib.std_long_long_toInt;
-       Std_lib.std_long_long_toDouble;
-       Std_lib.std_memory_array_copy;
-       Std_lib.std_memory_array_isNull;
-       Std_lib.std_memory_array_new;
-       Std_lib.std_io_file_builtin_close;
-       Std_lib.std_io_file_builtin_open;
-       Std_lib.std_io_file_builtin_read;
-       Std_lib.std_io_file_builtin_unlink;
-       Std_lib.std_io_file_builtin_write;
-       Std_lib.std_sys_exit;
-     ]
-    |> SSet.of_list)
-
 (*
  * Nongeneric Functions
  *)
 and get_nongeneric_function_value ~(ecx : t) (name : label) : Value.t =
-  let builtin_functions = Lazy.force_val builtin_functions in
-  if SSet.mem name builtin_functions then
-    mk_myte_builtin_lit name
-  else
-    (* Mark function as pending if it has not yet been generated *)
-    let func =
-      match SMap.find_opt name ecx.program.funcs with
-      | Some func -> func
-      | None ->
-        let func = mk_empty_function ~ecx ~name in
-        ecx.pending_nongeneric_funcs <- FunctionSet.add func ecx.pending_nongeneric_funcs;
-        func
-    in
-    func.value
+  (* Mark function as pending if it has not yet been generated *)
+  let func =
+    match SMap.find_opt name ecx.program.funcs with
+    | Some func -> func
+    | None ->
+      let func = mk_empty_function ~ecx ~name in
+      ecx.pending_nongeneric_funcs <- FunctionSet.add func ecx.pending_nongeneric_funcs;
+      func
+  in
+  func.value
 
 and pop_pending_nongeneric_function ~ecx =
   match FunctionSet.choose_opt ecx.pending_nongeneric_funcs with
