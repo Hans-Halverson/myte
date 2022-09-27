@@ -1,5 +1,6 @@
 open Mir_type
 open X86_64_instructions
+open X86_64_instruction_definitions
 open X86_64_register
 
 (*
@@ -58,11 +59,12 @@ let mk_instr_id () =
   max_instr_id := id + 1;
   id
 
-let rec mk_blockless_instr (instr : Instruction.instr) : Instruction.t =
+let rec mk_blockless_instr (instr : instr) (operands : Operand.t array) : Instruction.t =
   let rec instruction =
     {
       Instruction.id = mk_instr_id ();
       instr;
+      operands;
       prev = instruction;
       next = instruction;
       block = null_block;
@@ -70,12 +72,60 @@ let rec mk_blockless_instr (instr : Instruction.instr) : Instruction.t =
   in
   instruction
 
-and mk_instr ~(block : Block.t) (instr : Instruction.instr) : Instruction.t =
-  let instr = mk_blockless_instr instr in
+and mk_instr ~(block : Block.t) (instr : instr) (operands : Operand.t array) : Instruction.t =
+  let instr = mk_blockless_instr instr operands in
   append_instruction block instr;
   instr
 
-and mk_instr_ ~(block : Block.t) (instr : Instruction.instr) : unit = ignore (mk_instr ~block instr)
+and mk_instr_ ~(block : Block.t) (instr : instr) (operands : Operand.t array) : unit =
+  ignore (mk_instr ~block instr operands)
+
+(*
+ * ============================
+ *            Uses
+ * ============================
+ *)
+
+and instr_iter_all_operands (instr : Instruction.t) (f : Operand.t -> OperandDef.t -> unit) : unit =
+  let instr_def = instr_def instr.instr in
+  List.iteri
+    (fun i (operand_def : OperandDef.t) ->
+      let operand = instr.operands.(i) in
+      f operand operand_def)
+    instr_def.operands
+
+(* Iterate over all register or memory operands in an instruction. Do not iterate over memory
+   addresses directly, instead iterate over their register base and index components. *)
+and instr_iter_reg_mem_operands (instr : Instruction.t) (f : Operand.t -> OperandDef.t -> unit) :
+    unit =
+  instr_iter_all_operands instr (fun operand operand_def ->
+      operand_iter_reg_mem_operands operand operand_def f)
+
+(* Iterate over all register or memory operands in an operand. Do not iterate over memory
+   addresses directly, instead iterate over their register base and index components. *)
+and operand_iter_reg_mem_operands
+    (operand : Operand.t) (operand_def : OperandDef.t) (f : Operand.t -> OperandDef.t -> unit) :
+    unit =
+  match operand.value with
+  | MemoryAddress { offset = _; base; index_and_scale } ->
+    (match base with
+    | RegBase base_reg -> f base_reg address_reg_operand_def
+    | NoBase
+    | IPBase ->
+      ());
+    (match index_and_scale with
+    | Some (index_reg, _) -> f index_reg address_reg_operand_def
+    | None -> ())
+  | PhysicalRegister _
+  | VirtualRegister
+  | VirtualStackSlot
+  | FunctionStackArgument
+  | FunctionArgumentStackSlot _ ->
+    f operand operand_def
+  | Immediate _
+  | Label _
+  | Block _ ->
+    ()
 
 (*
  * ============================

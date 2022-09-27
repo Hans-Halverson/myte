@@ -1,5 +1,6 @@
 open Basic_collections
 open X86_64_calling_conventions
+open X86_64_instruction_definitions
 open X86_64_register
 
 type label = string
@@ -11,20 +12,6 @@ type immediate =
   | Imm16 of int
   | Imm32 of Int32.t
   | Imm64 of Int64.t
-
-type condition_code =
-  | E
-  | NE
-  | L
-  | LE
-  | G
-  | GE
-  | B
-  | BE
-  | A
-  | AE
-  | P
-  | NP
 
 module rec MemoryAddress : sig
   type t = {
@@ -152,100 +139,10 @@ end
 and Instruction : sig
   type id = int
 
-  type instr =
-    (* Instruction Suffixes:
-          R - virtual register
-          I - immediate
-          M - memory location or virtual register
-
-        When multiple suffixes are used, first is source and second is dest when applicable.
-        All MM instructions must contain at least one register as an argument.
-
-        Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
-    (* Stack instructions, all implicitly have size of 64 bits *)
-    | PushI of (* Immediate *) Operand.t
-    | PushM of Operand.t
-    | PopM of Operand.t
-    (* Data instructions *)
-    (* Allows 64-bit immediate. register_size is destination size which may not match immediate size *)
-    | MovIM of register_size * (* Immediate *) Operand.t * Operand.t
-    (* Allows 64-bit immediate. Allows SSE registers. register_size is destination size, or transferred size if SSE *)
-    | MovMM of register_size * Operand.t * Operand.t
-    (* Src size then dest size where src size < dest size *)
-    | MovSX of register_size * register_size * Operand.t * (* Register *) Operand.t
-    (* Src size then dest size where src size < dest size *)
-    | MovZX of register_size * register_size * Operand.t * (* Register *) Operand.t
-    | Lea of
-        register_size
-        * (* Memory address *) Operand.t
-        * Operand.t (* Only supports 32 or 64 bit register argument *)
-    (* Numeric operations *)
-    | NegM of register_size * Operand.t
-    | AddIM of register_size * (* Immediate *) Operand.t * Operand.t
-    (* Allows SSE registers (with 64 bit size), if SSE then destination must be a register *)
-    | AddMM of register_size * Operand.t * Operand.t
-    (* For sub instructions, right/dest := right/dest - left/src *)
-    | SubIM of register_size * (* Immediate *) Operand.t * Operand.t
-    (* Allows SSE registers (with 64 bit size), if SSE then destination must be a register *)
-    | SubMM of register_size * Operand.t * Operand.t
-    (* Allows SSE registers (with 64 bit size) *)
-    | MulMR of
-        register_size
-        * Operand.t
-        * (* Register *) Operand.t (* Only supports 16, 32, and 64-bit arguments *)
-    | IMulMIR of
-        register_size
-        * Operand.t
-        * (* Immediate *) Operand.t
-        * (* Register *) Operand.t (* Only supports 16 and 32-bit immediates *)
-    | IDiv of register_size * Operand.t
-    (* Requires SSE registers (with 64 bit size). right/dest := (right/dest) / (left/src) *)
-    | FDivMR of register_size * Operand.t * Operand.t
-    (* Bitwise operations *)
-    | NotM of register_size * Operand.t
-    | AndIM of register_size * (* Immediate *) Operand.t * Operand.t
-    | AndMM of register_size * Operand.t * Operand.t
-    | OrIM of register_size * (* Immediate *) Operand.t * Operand.t
-    | OrMM of register_size * Operand.t * Operand.t
-    | XorIM of register_size * (* Immediate *) Operand.t * Operand.t
-    (* Allows SSE registers (with 128 bit size), if SSE then destination must be a register *)
-    | XorMM of register_size * Operand.t * Operand.t
-    (* Bit shifts *)
-    | ShlI of register_size * (* 8 bit immediate *) Operand.t * Operand.t
-    | ShlR of register_size * Operand.t
-    | ShrI of register_size * (* 8 bit immediate *) Operand.t * Operand.t
-    | ShrR of register_size * Operand.t
-    | SarI of register_size * (* 8 bit immediate *) Operand.t * Operand.t
-    | SarR of register_size * Operand.t
-    (* Comparisons *)
-    | CmpMI of register_size * Operand.t * (* Immediate *) Operand.t
-    (* Allows SSE registers (with 64 bit size). Must be CmpRM if SSE. *)
-    | CmpMM of register_size * Operand.t * Operand.t
-    | TestMR of register_size * Operand.t * (* Register *) Operand.t
-    | SetCC of condition_code * Operand.t (* Only supports 8-bit destination *)
-    (* Conversions *)
-    | ConvertDouble of register_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
-    (* Converts with truncation towards zero *)
-    | ConvertFloatToInt of
-        (* GP register size, must be 32 or 64-bit *) register_size
-        * (* SSE mem *) Operand.t
-        * (* GP register *) Operand.t
-    | ConvertIntToFloat of
-        (* GP size, must be 32 or 64-bit *) register_size
-        * (* GP mem *) Operand.t
-        * (* SSE register *) Operand.t
-    (* Control flow *)
-    | Jmp of (* Block *) Operand.t
-    | JmpCC of condition_code * (* Block *) Operand.t
-    | CallL of (* Label *) Operand.t * param_types
-    | CallM of register_size * Operand.t * param_types
-    | Leave
-    | Ret
-    | Syscall
-
   type t = {
     id: id;
     mutable instr: instr;
+    mutable operands: Operand.t array;
     mutable block: Block.t;
     (* Circular, doubly linked list of instructions in block *)
     mutable prev: Instruction.t;

@@ -1,39 +1,27 @@
 open X86_64_builders
 open X86_64_gen_context
 open X86_64_instructions
+open X86_64_instruction_definitions
 open X86_64_register
 
 type print_context = { mutable block_print_labels: string BlockMap.t }
 
-class incoming_jump_blocks_visitor ~(gcx : Gcx.t) =
-  object (this)
-    inherit X86_64_visitor.instruction_visitor
-
-    val mutable incoming_jump_blocks = BlockSet.empty
-
-    method incoming_jump_blocks = incoming_jump_blocks
-
-    method run () = funcs_iter_blocks gcx.funcs (fun block -> this#visit_block block)
-
-    method visit_block block = iter_instructions block this#visit_instruction
-
-    method! visit_block_edge ~block:_ next_block =
-      incoming_jump_blocks <- BlockSet.add next_block incoming_jump_blocks
-  end
-
-let find_incoming_jump_blocks ~gcx =
-  let visitor = new incoming_jump_blocks_visitor ~gcx in
-  visitor#run ();
-  visitor#incoming_jump_blocks
-
 let write_full_asm () =
   Opts.dump_full_asm () || ((not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()))
 
-let mk_pcx ~gcx =
+let mk_pcx ~(gcx : Gcx.t) =
   let pcx = { block_print_labels = BlockMap.empty } in
+  (* Find set of all blocks that have an incoming jump *)
+  let incoming_jump_blocks = ref BlockSet.empty in
+  funcs_iter_blocks gcx.funcs (fun block ->
+      iter_instructions block (fun instr ->
+          match instr with
+          | { instr = Jmp | JmpCC _; operands = [| { value = Block next_block; _ } |]; _ } ->
+            incoming_jump_blocks := BlockSet.add next_block !incoming_jump_blocks
+          | _ -> ()));
+
   (* Determine labels for every unlabed block in program that has an incoming jump *)
   let max_label_id = ref 0 in
-  let incoming_jump_blocks = find_incoming_jump_blocks ~gcx in
   FunctionSet.iter
     (fun func ->
       List.iter
@@ -42,7 +30,7 @@ let mk_pcx ~gcx =
           match block.label with
           | Some _ -> ()
           | None ->
-            if BlockSet.mem block incoming_jump_blocks then (
+            if BlockSet.mem block !incoming_jump_blocks then (
               let id = !max_label_id in
               max_label_id := !max_label_id + 1;
               pcx.block_print_labels <-
@@ -237,32 +225,32 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       in
       let pp_operand = pp_operand ~gcx ~pcx ~buf in
       let pp_args_separator () = add_string ", " in
-      match instr.instr with
-      | PushI imm ->
+      match (instr.instr, instr.operands) with
+      | (PushI, [| imm |]) ->
         pp_op "push";
         pp_operand ~size:Size64 imm
-      | PushM mem ->
+      | (PushM, [| mem |]) ->
         pp_op "push";
         pp_operand ~size:Size64 mem
-      | PopM mem ->
+      | (PopM, [| mem |]) ->
         pp_op "pop";
         pp_operand ~size:Size64 mem
-      | MovMM (size, src_mem, dest_mem) ->
+      | (MovMM size, [| src_mem; dest_mem |]) ->
         pp_sized_op "mov" size;
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | MovIM (size, src_imm, dest_mem) ->
+      | (MovIM size, [| src_imm; dest_mem |]) ->
         pp_sized_op "mov" size;
         pp_operand ~size src_imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | MovSX (src_size, dest_size, src_mem, dest_reg) ->
+      | (MovSX (src_size, dest_size), [| src_mem; dest_reg |]) ->
         pp_double_sized_op "movs" src_size dest_size;
         pp_operand ~size:src_size src_mem;
         pp_args_separator ();
         pp_operand ~size:dest_size dest_reg
-      | MovZX (src_size, dest_size, src_mem, dest_reg) ->
+      | (MovZX (src_size, dest_size), [| src_mem; dest_reg |]) ->
         (* Zero extending 32 bit register is actually just a regular mov instruction *)
         let (src_size, dest_size) =
           if src_size == Size32 && dest_size == Size64 then (
@@ -276,16 +264,16 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size:src_size src_mem;
         pp_args_separator ();
         pp_operand ~size:dest_size dest_reg
-      | Lea (size, mem, reg) ->
+      | (Lea size, [| mem; reg |]) ->
         pp_sized_op "lea" size;
         pp_operand ~size mem;
         pp_args_separator ();
         pp_operand ~size reg
       (* Numeric operations *)
-      | NegM (size, mem) ->
+      | (NegM size, [| mem |]) ->
         pp_sized_op "neg" size;
         pp_operand ~size mem
-      | AddMM (size, src_mem, dest_mem) ->
+      | (AddMM size, [| src_mem; dest_mem |]) ->
         if size == Size64 && dest_mem.type_ == Double then
           pp_op "addsd"
         else
@@ -293,12 +281,12 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | AddIM (size, imm, dest_mem) ->
+      | (AddIM size, [| imm; dest_mem |]) ->
         pp_sized_op "add" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | SubMM (size, src_mem, dest_mem) ->
+      | (SubMM size, [| src_mem; dest_mem |]) ->
         if size == Size64 && dest_mem.type_ == Double then
           pp_op "subsd"
         else
@@ -306,12 +294,12 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | SubIM (size, imm, dest_mem) ->
+      | (SubIM size, [| imm; dest_mem |]) ->
         pp_sized_op "sub" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | MulMR (size, src_mem, dest_reg) ->
+      | (MulMR size, [| src_mem; dest_reg |]) ->
         if size == Size64 && dest_reg.type_ == Double then
           pp_op "mulsd"
         else
@@ -319,46 +307,46 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_reg
-      | IMulMIR (size, src_mem, imm, dest_reg) ->
+      | (IMulMIR size, [| src_mem; imm; dest_reg |]) ->
         pp_sized_op "imul" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_reg
-      | IDiv (size, mem) ->
+      | (IDiv size, [| mem |]) ->
         pp_sized_op "idiv" size;
         pp_operand ~size mem
-      | FDivMR (size, src_mem, dest_reg) ->
+      | (FDivMR size, [| src_mem; dest_reg |]) ->
         pp_op "divsd";
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_reg
       (* Bitwise operations *)
-      | NotM (size, mem) ->
+      | (NotM size, [| mem |]) ->
         pp_sized_op "not" size;
         pp_operand ~size mem
-      | AndMM (size, src_mem, dest_mem) ->
+      | (AndMM size, [| src_mem; dest_mem |]) ->
         pp_sized_op "and" size;
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | AndIM (size, imm, dest_mem) ->
+      | (AndIM size, [| imm; dest_mem |]) ->
         pp_sized_op "and" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | OrMM (size, src_mem, dest_mem) ->
+      | (OrMM size, [| src_mem; dest_mem |]) ->
         pp_sized_op "or" size;
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | OrIM (size, imm, dest_mem) ->
+      | (OrIM size, [| imm; dest_mem |]) ->
         pp_sized_op "or" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | XorMM (size, src_mem, dest_mem) ->
+      | (XorMM size, [| src_mem; dest_mem |]) ->
         if size == Size128 then
           pp_op "xorpd"
         else
@@ -366,43 +354,43 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | XorIM (size, imm, dest_mem) ->
+      | (XorIM size, [| imm; dest_mem |]) ->
         pp_sized_op "xor" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | ShlR (size, dest_mem) ->
+      | (ShlM size, [| dest_mem |]) ->
         pp_sized_op "shl" size;
         pp_sized_register ~buf C Size8;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | ShlI (size, imm, dest_mem) ->
+      | (ShlI size, [| imm; dest_mem |]) ->
         pp_sized_op "shl" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | ShrR (size, dest_mem) ->
+      | (ShrM size, [| dest_mem |]) ->
         pp_sized_op "shr" size;
         pp_sized_register ~buf C Size8;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | ShrI (size, imm, dest_mem) ->
+      | (ShrI size, [| imm; dest_mem |]) ->
         pp_sized_op "shr" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | SarR (size, dest_mem) ->
+      | (SarM size, [| dest_mem |]) ->
         pp_sized_op "sar" size;
         pp_sized_register ~buf C Size8;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | SarI (size, imm, dest_mem) ->
+      | (SarI size, [| imm; dest_mem |]) ->
         pp_sized_op "sar" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size dest_mem
       (* Comparisons - arguments intentionally flipped *)
-      | CmpMM (size, mem1, mem2) ->
+      | (CmpMM size, [| mem1; mem2 |]) ->
         if size == Size64 && mem1.type_ == Double then
           pp_op "ucomisd"
         else
@@ -410,20 +398,20 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size mem2;
         pp_args_separator ();
         pp_operand ~size mem1
-      | CmpMI (size, mem, imm) ->
+      | (CmpMI size, [| mem; imm |]) ->
         pp_sized_op "cmp" size;
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size mem
-      | TestMR (size, mem, reg) ->
+      | (TestMR size, [| mem; reg |]) ->
         pp_sized_op "test" size;
         pp_operand ~size mem;
         pp_args_separator ();
         pp_operand ~size reg
-      | SetCC (cc, mem) ->
+      | (SetCC cc, [| mem |]) ->
         pp_op ("set" ^ pp_condition_code cc);
         pp_operand ~size:Size8 mem
-      | ConvertDouble size ->
+      | (ConvertDouble size, [||]) ->
         let op =
           match size with
           | Size16 -> "cwd"
@@ -434,33 +422,32 @@ let pp_instruction ~gcx ~pcx ~buf instr =
             failwith "ConvertDouble cannot have 1-byte or 16-byte size"
         in
         pp_op op
-      | ConvertIntToFloat (size, src_mem, dest_mem) ->
+      | (ConvertIntToFloat size, [| src_mem; dest_mem |]) ->
         pp_op "cvtsi2sd";
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
-      | ConvertFloatToInt (size, src_mem, dest_mem) ->
+      | (ConvertFloatToInt size, [| src_mem; dest_mem |]) ->
         pp_op "cvttsd2si";
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
       (* Control flow *)
-      | Jmp block ->
+      | (Jmp, [| block |]) ->
         pp_op "jmp";
         pp_operand ~size:Size64 block
-      | JmpCC (cc, block) ->
+      | (JmpCC cc, [| block |]) ->
         pp_op ("j" ^ pp_condition_code cc);
         pp_operand ~size:Size64 block
-      | CallM (size, mem, _) ->
+      | (CallM (size, _), [| mem |]) ->
         pp_sized_op "call" size;
         add_char ~buf '*';
         pp_operand ~size mem
-      | CallL (label, _) ->
+      | (CallL _, [| label |]) ->
         pp_op "call";
         pp_operand ~size:Size64 label
-      | Leave -> add_string "leave"
-      | Ret -> add_string "ret"
-      | Syscall -> add_string "syscall")
+      | (Ret, [||]) -> add_string "ret"
+      | _ -> failwith "Unknown instruction or wrong number of operands")
 
 let rec pp_data_value ~buf (data_value : data_value) =
   let add_directive directive value =

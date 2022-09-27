@@ -43,32 +43,37 @@ class peephole_optimization_runner ~(gcx : Gcx.t) (opts : peephole_optimization 
    writing full 64-bits with smaller code size by avoiding REX prefix). *)
 let remove_byte_reg_reg_moves_optimization ~gcx:_ instr =
   let open Instruction in
-  match instr.instr with
-  | MovMM (Size8, src_reg, dest_reg)
+  match instr with
+  | { instr = MovMM Size8; operands = [| src_reg; dest_reg |]; _ }
     when Operand.is_reg_value src_reg && Operand.is_reg_value dest_reg ->
-    instr.instr <- MovMM (Size32, src_reg, dest_reg);
+    instr.instr <- MovMM Size32;
+    instr.operands.(0) <- src_reg;
+    instr.operands.(1) <- dest_reg;
     true
   | _ -> false
 
 (* Loading zero to a register can be replaced by a reflexive xor for smaller instruction size *)
 let load_zero_to_register_optimization ~gcx:_ instr =
   let open Instruction in
-  match instr.instr with
-  | MovIM (_, { value = Immediate imm; _ }, dest_reg)
+  match instr with
+  | { instr = MovIM _; operands = [| { value = Immediate imm; _ }; dest_reg |]; _ }
     when Int64.equal (int64_of_immediate imm) Int64.zero && Operand.is_reg_value dest_reg ->
-    instr.instr <- XorMM (Size32, dest_reg, dest_reg);
+    instr.instr <- XorMM Size32;
+    instr.operands.(0) <- dest_reg;
+    instr.operands.(1) <- dest_reg;
     true
   | _ -> false
 
 (* Some arithmetic operations that involve immediate powers of two can be reduced to bit shifts *)
 let power_of_two_strength_reduction_optimization ~gcx:_ instr =
   let open Instruction in
-  match instr.instr with
+  match instr with
   (* Multiplication by power of two can be reduced to a left shift *)
-  | IMulMIR (size, src, { value = Immediate imm; _ }, dest_reg)
+  | { instr = IMulMIR size; operands = [| src; { value = Immediate imm; _ }; dest_reg |]; _ }
     when Integers.is_power_of_two (int64_of_immediate imm) ->
     let power_of_two = Int8.of_int (Integers.power_of_two (int64_of_immediate imm)) in
-    instr.instr <- ShlI (size, mk_imm ~imm:(Imm8 power_of_two), dest_reg);
+    instr.instr <- ShlI size;
+    instr.operands <- [| mk_imm ~imm:(Imm8 power_of_two); dest_reg |];
     let shift_instr = instr in
     (* If same register is source and dest, can shift it in place *)
     if
@@ -78,7 +83,7 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr =
       true
     else
       (* Otherwise must move to dest register before shift *)
-      let mov_instr = mk_blockless_instr (MovMM (size, src, dest_reg)) in
+      let mov_instr = mk_blockless_instr (MovMM size) [| src; dest_reg |] in
       insert_instruction_before ~before:shift_instr mov_instr;
       true
   | _ -> false

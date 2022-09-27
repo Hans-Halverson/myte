@@ -6,6 +6,7 @@ open X86_64_builders
 open X86_64_calling_conventions
 open X86_64_gen_context
 open X86_64_instructions
+open X86_64_instruction_definitions
 open X86_64_layout
 open X86_64_register
 
@@ -133,12 +134,12 @@ and gen_function_instruction_builder ~gcx ~ir func =
         | ParamInRegister reg ->
           let size = register_size_of_mir_value_type type_ in
           let param_op = mk_virtual_register_of_value_id ~value_id:arg_id ~type_:param_mir_type in
-          Gcx.emit ~gcx (MovMM (size, mk_precolored_of_operand reg param_op, param_op));
+          Gcx.emit ~gcx (MovMM size) [| mk_precolored_of_operand reg param_op; param_op |];
           param_op)
       func.params;
 
   (* Jump to function start and gen function body *)
-  Gcx.emit ~gcx (Jmp (block_op_of_mir_block ~gcx func.start_block));
+  Gcx.emit ~gcx Jmp [| block_op_of_mir_block ~gcx func.start_block |];
   Gcx.finish_block ~gcx;
   gen_blocks ~gcx ~ir func.start_block None func_;
   Gcx.finish_function ~gcx
@@ -148,7 +149,7 @@ and gen_empty_myte_init_func ~gcx =
   let func_ = Gcx.start_function ~gcx [] (Array.make 0 (ParamOnStack 0)) None in
   Gcx.start_block ~gcx ~label:(Some init_label) ~func:func_ ~mir_block:None;
   func_.prologue <- Option.get gcx.current_block;
-  Gcx.emit ~gcx Ret;
+  Gcx.emit ~gcx Ret [||];
   Gcx.finish_block ~gcx;
   Gcx.finish_function ~gcx
 
@@ -171,7 +172,6 @@ and gen_blocks ~gcx ~ir start_block label func =
     ordered_blocks
 
 and gen_instructions ~gcx ~ir ~block instructions =
-  let open Instruction in
   let gen_instructions = gen_instructions ~gcx ~ir ~block in
   let operand_of_value_id value_id = mk_virtual_register_of_value_id ~value_id in
   let mk_vreg ~type_ = mk_virtual_register ~type_ in
@@ -183,7 +183,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | SMem (mem, _) -> mem
     | SAddr (addr, type_) ->
       let vreg = mk_vreg ~type_ in
-      Gcx.emit ~gcx (Lea (Size64, addr, vreg));
+      Gcx.emit ~gcx (Lea Size64) [| addr; vreg |];
       vreg
     | _ -> failwith "Only called on address, memory location, or vreg"
   in
@@ -192,7 +192,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | SReg (reg, _) -> reg
     | SMem (mem, size) ->
       let vreg = mk_vreg_of_op mem in
-      Gcx.emit ~gcx (MovMM (size, mem, vreg));
+      Gcx.emit ~gcx (MovMM size) [| mem; vreg |];
       vreg
     | _ -> failwith "Boolean variable must be vreg or memory location"
   in
@@ -218,14 +218,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
           (match resolve_ir_value arg_val with
           | SImm imm ->
             let dest_size = register_size_of_mir_value_type arg_type in
-            Gcx.emit ~gcx (MovIM (dest_size, imm, argument_stack_slot_op))
+            Gcx.emit ~gcx (MovIM dest_size) [| imm; argument_stack_slot_op |]
           (* Address must be calculated in a register and then moved into stack slot *)
           | SAddr (addr, type_) ->
             let vreg = mk_vreg ~type_ in
-            Gcx.emit ~gcx (Lea (Size64, addr, vreg));
-            Gcx.emit ~gcx (MovMM (Size64, vreg, argument_stack_slot_op))
-          | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, mem, argument_stack_slot_op))
-          | SReg (reg, size) -> Gcx.emit ~gcx (MovMM (size, reg, argument_stack_slot_op))))
+            Gcx.emit ~gcx (Lea Size64) [| addr; vreg |];
+            Gcx.emit ~gcx (MovMM Size64) [| vreg; argument_stack_slot_op |]
+          | SMem (mem, size) -> Gcx.emit ~gcx (MovMM size) [| mem; argument_stack_slot_op |]
+          | SReg (reg, size) -> Gcx.emit ~gcx (MovMM size) [| reg; argument_stack_slot_op |]))
       arg_vals;
     (* Then move function arguments that are passed in stack slots​ *)
     List.iteri
@@ -238,24 +238,21 @@ and gen_instructions ~gcx ~ir ~block instructions =
           (match resolve_ir_value ~allow_imm64:true arg_val with
           | SImm imm ->
             let size = size_of_immediate (cast_to_immediate imm) in
-            Gcx.emit ~gcx (MovIM (size, imm, precolored_reg))
-          | SAddr (addr, _) -> Gcx.emit ~gcx (Lea (Size64, addr, precolored_reg))
-          | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, mem, precolored_reg))
-          | SReg (source_reg, size) -> Gcx.emit ~gcx (MovMM (size, source_reg, precolored_reg))))
+            Gcx.emit ~gcx (MovIM size) [| imm; precolored_reg |]
+          | SAddr (addr, _) -> Gcx.emit ~gcx (Lea Size64) [| addr; precolored_reg |]
+          | SMem (mem, size) -> Gcx.emit ~gcx (MovMM size) [| mem; precolored_reg |]
+          | SReg (source_reg, size) -> Gcx.emit ~gcx (MovMM size) [| source_reg; precolored_reg |]))
       arg_vals
   in
   let gen_mov result_value_id value =
     let result_op = operand_of_value_id ~type_:(type_of_use value) result_value_id in
-    let instr =
-      match resolve_ir_value ~allow_imm64:true value with
-      | SImm imm ->
-        let size = size_of_immediate (cast_to_immediate imm) in
-        MovIM (size, imm, result_op)
-      | SAddr (addr, _) -> Lea (Size64, addr, result_op)
-      | SMem (mem, size) -> MovMM (size, mem, result_op)
-      | SReg (src_reg, size) -> MovMM (size, src_reg, result_op)
-    in
-    Gcx.emit ~gcx instr
+    match resolve_ir_value ~allow_imm64:true value with
+    | SImm imm ->
+      let size = size_of_immediate (cast_to_immediate imm) in
+      Gcx.emit ~gcx (MovIM size) [| imm; result_op |]
+    | SAddr (addr, _) -> Gcx.emit ~gcx (Lea Size64) [| addr; result_op |]
+    | SMem (mem, size) -> Gcx.emit ~gcx (MovMM size) [| mem; result_op |]
+    | SReg (src_reg, size) -> Gcx.emit ~gcx (MovMM size) [| src_reg; result_op |]
   in
   let gen_idiv left_val right_val =
     let mk_short_precolored_a () = mk_precolored ~type_:Short A in
@@ -267,36 +264,36 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let dividend_imm = mk_imm ~imm:(Imm16 (Int8.to_int dividend_imm)) in
       let divisor_mem = emit_mem divisor in
       let divisor_vreg = mk_vreg ~type_:Short in
-      Gcx.emit ~gcx (MovIM (Size16, dividend_imm, mk_short_precolored_a ()));
-      Gcx.emit ~gcx (MovSX (Size8, Size16, divisor_mem, divisor_vreg));
-      Gcx.emit ~gcx (ConvertDouble Size16);
-      Gcx.emit ~gcx (IDiv (Size16, divisor_vreg));
+      Gcx.emit ~gcx (MovIM Size16) [| dividend_imm; mk_short_precolored_a () |];
+      Gcx.emit ~gcx (MovSX (Size8, Size16)) [| divisor_mem; divisor_vreg |];
+      Gcx.emit ~gcx (ConvertDouble Size16) [||];
+      Gcx.emit ~gcx (IDiv Size16) [| divisor_vreg |];
       Size32
     | (SImm dividend_imm, divisor) ->
       let size = register_size_of_svalue divisor in
       let divisor_mem = emit_mem divisor in
-      Gcx.emit ~gcx (MovIM (size, dividend_imm, mk_precolored_a ()));
-      Gcx.emit ~gcx (ConvertDouble size);
-      Gcx.emit ~gcx (IDiv (size, divisor_mem));
+      Gcx.emit ~gcx (MovIM size) [| dividend_imm; mk_precolored_a () |];
+      Gcx.emit ~gcx (ConvertDouble size) [||];
+      Gcx.emit ~gcx (IDiv size) [| divisor_mem |];
       size
     (* Convert 8-byte divides to 16-byte divides *)
     | (dividend, SImm { value = Immediate (Imm8 divisor_imm); _ }) ->
       let dividend_mem = emit_mem dividend in
       let divisor_imm = mk_imm ~imm:(Imm16 (Int8.to_int divisor_imm)) in
       let divisor_vreg = mk_vreg ~type_:Short in
-      Gcx.emit ~gcx (MovSX (Size8, Size16, dividend_mem, mk_short_precolored_a ()));
-      Gcx.emit ~gcx (MovIM (Size16, divisor_imm, divisor_vreg));
-      Gcx.emit ~gcx (ConvertDouble Size16);
-      Gcx.emit ~gcx (IDiv (Size16, divisor_vreg));
+      Gcx.emit ~gcx (MovSX (Size8, Size16)) [| dividend_mem; mk_short_precolored_a () |];
+      Gcx.emit ~gcx (MovIM Size16) [| divisor_imm; divisor_vreg |];
+      Gcx.emit ~gcx (ConvertDouble Size16) [||];
+      Gcx.emit ~gcx (IDiv Size16) [| divisor_vreg |];
       Size32
     | (dividend, SImm divisor_imm) ->
       let size = register_size_of_svalue dividend in
       let dividend_mem = emit_mem dividend in
       let divisor_vreg = mk_vreg ~type_:(type_of_use left_val) in
-      Gcx.emit ~gcx (MovMM (size, dividend_mem, mk_precolored_a ()));
-      Gcx.emit ~gcx (MovIM (size, divisor_imm, divisor_vreg));
-      Gcx.emit ~gcx (ConvertDouble size);
-      Gcx.emit ~gcx (IDiv (size, divisor_vreg));
+      Gcx.emit ~gcx (MovMM size) [| dividend_mem; mk_precolored_a () |];
+      Gcx.emit ~gcx (MovIM size) [| divisor_imm; divisor_vreg |];
+      Gcx.emit ~gcx (ConvertDouble size) [||];
+      Gcx.emit ~gcx (IDiv size) [| divisor_vreg |];
       size
     | (dividend, divisor) ->
       let size = register_size_of_svalue dividend in
@@ -305,17 +302,17 @@ and gen_instructions ~gcx ~ir ~block instructions =
         let dividend_mem = emit_mem dividend in
         let divisor_mem = emit_mem divisor in
         let divisor_vreg = mk_vreg ~type_:Short in
-        Gcx.emit ~gcx (MovSX (Size8, Size16, dividend_mem, mk_short_precolored_a ()));
-        Gcx.emit ~gcx (MovSX (Size8, Size16, divisor_mem, divisor_vreg));
-        Gcx.emit ~gcx (ConvertDouble Size16);
-        Gcx.emit ~gcx (IDiv (Size16, divisor_vreg));
+        Gcx.emit ~gcx (MovSX (Size8, Size16)) [| dividend_mem; mk_short_precolored_a () |];
+        Gcx.emit ~gcx (MovSX (Size8, Size16)) [| divisor_mem; divisor_vreg |];
+        Gcx.emit ~gcx (ConvertDouble Size16) [||];
+        Gcx.emit ~gcx (IDiv Size16) [| divisor_vreg |];
         Size32
       ) else
         let dividend_mem = emit_mem dividend in
         let divisor_mem = emit_mem divisor in
-        Gcx.emit ~gcx (MovMM (size, dividend_mem, mk_precolored_a ()));
-        Gcx.emit ~gcx (ConvertDouble size);
-        Gcx.emit ~gcx (IDiv (size, divisor_mem));
+        Gcx.emit ~gcx (MovMM size) [| dividend_mem; mk_precolored_a () |];
+        Gcx.emit ~gcx (ConvertDouble size) [||];
+        Gcx.emit ~gcx (IDiv size) [| divisor_mem |];
         size
   in
   (* Generate a bit shift instruction from the target and shift arguments *)
@@ -337,17 +334,17 @@ and gen_instructions ~gcx ~ir ~block instructions =
         else
           size
       in
-      Gcx.emit ~gcx (MovMM (shift_size, shift_mem, precolored_c));
-      Gcx.emit ~gcx (MovIM (size, target_imm, result_op));
-      Gcx.emit ~gcx (mk_reg_instr size result_op)
+      Gcx.emit ~gcx (MovMM shift_size) [| shift_mem; precolored_c |];
+      Gcx.emit ~gcx (MovIM size) [| target_imm; result_op |];
+      mk_reg_instr size result_op
     | (target, SImm shift_imm) ->
       let size = register_size_of_svalue target in
       let target_mem = emit_mem target in
       let shift_value = int64_of_immediate (cast_to_immediate shift_imm) in
       let shift_imm = mk_imm ~imm:(Imm8 (Int8.of_int64 shift_value)) in
       (* Only low byte of immediate is used for shift, so truncate immediate to low byte *)
-      Gcx.emit ~gcx (MovMM (size, target_mem, result_op));
-      Gcx.emit ~gcx (mk_imm_instr size shift_imm result_op)
+      Gcx.emit ~gcx (MovMM size) [| target_mem; result_op |];
+      mk_imm_instr size shift_imm result_op
     | (target, shift) ->
       let size = register_size_of_svalue target in
       (* Only low byte is used for shift, so avoid REX prefix for small code size optimization *)
@@ -360,10 +357,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
       in
       let precolored_c = mk_precolored ~type_ C in
       let shift_mem = emit_mem shift in
-      Gcx.emit ~gcx (MovMM (shift_size, shift_mem, precolored_c));
+      Gcx.emit ~gcx (MovMM shift_size) [| shift_mem; precolored_c |];
       let target_mem = emit_mem target in
-      Gcx.emit ~gcx (MovMM (size, target_mem, result_op));
-      Gcx.emit ~gcx (mk_reg_instr size result_op));
+      Gcx.emit ~gcx (MovMM size) [| target_mem; result_op |];
+      mk_reg_instr size result_op);
     result_op
   in
   (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
@@ -374,28 +371,28 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (SImm imm, other) ->
       let size = register_size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
+      Gcx.emit ~gcx (CmpMI size) [| other_mem; imm |];
       true
     | (other, SImm imm) ->
       let size = register_size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (CmpMI (size, other_mem, imm));
+      Gcx.emit ~gcx (CmpMI size) [| other_mem; imm |];
       false
     (* Floating point comparison requires first operand to be a register, so flip if possible *)
     | (SMem (mem1, size), SReg (reg2, _)) when mem1.type_ == Double ->
-      Gcx.emit ~gcx (CmpMM (size, reg2, mem1));
+      Gcx.emit ~gcx (CmpMM size) [| reg2; mem1 |];
       true
     (* Cannot compare two memory locations at the same time. First operand must be a register for
        floating point comparisons. *)
     | (SMem (mem1, size), SMem (mem2, _)) ->
       let vreg = mk_vreg_of_op mem1 in
-      Gcx.emit ~gcx (MovMM (size, mem1, vreg));
-      Gcx.emit ~gcx (CmpMM (size, vreg, mem2));
+      Gcx.emit ~gcx (MovMM size) [| mem1; vreg |];
+      Gcx.emit ~gcx (CmpMM size) [| vreg; mem2 |];
       false
     | (v1, v2) ->
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (CmpMM (register_size_of_svalue v1, mem1, mem2));
+      Gcx.emit ~gcx (CmpMM (register_size_of_svalue v1)) [| mem1; mem2 |];
       false
   in
   let swap_compound_cc cc =
@@ -409,7 +406,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
      order of arguments may have been swapped). *)
   let gen_cmp_set_cc cc result_value_id left_val right_val =
     let result_op = operand_of_value_id ~type_:Bool result_value_id in
-    Gcx.emit ~gcx (XorMM (Size32, result_op, result_op));
+    Gcx.emit ~gcx (XorMM Size32) [| result_op; result_op |];
     let swapped = gen_cmp left_val right_val in
     let cc =
       if swapped then
@@ -419,21 +416,21 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
     match cc with
     | SingleCC cc ->
-      Gcx.emit ~gcx (SetCC (cc, result_op));
+      Gcx.emit ~gcx (SetCC cc) [| result_op |];
       SingleCC cc
     (* For compound conditions generate multiple SetCCs and And the results. Only true if all
        conditions were true (aka And/Or result is 1, aka ZF=0, equivalent to NE condition code) *)
     | AndCC (cc1, cc2) ->
       let vreg = mk_vreg ~type_:Bool in
-      Gcx.emit ~gcx (SetCC (cc1, result_op));
-      Gcx.emit ~gcx (SetCC (cc2, vreg));
-      Gcx.emit ~gcx (AndMM (Size8, vreg, result_op));
+      Gcx.emit ~gcx (SetCC cc1) [| result_op |];
+      Gcx.emit ~gcx (SetCC cc2) [| vreg |];
+      Gcx.emit ~gcx (AndMM Size8) [| vreg; result_op |];
       SingleCC NE
     | OrCC (cc1, cc2) ->
       let vreg = mk_vreg ~type_:Bool in
-      Gcx.emit ~gcx (SetCC (cc1, result_op));
-      Gcx.emit ~gcx (SetCC (cc2, vreg));
-      Gcx.emit ~gcx (OrMM (Size8, vreg, result_op));
+      Gcx.emit ~gcx (SetCC cc1) [| result_op |];
+      Gcx.emit ~gcx (SetCC cc2) [| vreg |];
+      Gcx.emit ~gcx (OrMM Size8) [| vreg; result_op |];
       SingleCC NE
   in
   let gen_cond_jmp cc result_id left_val right_val =
@@ -460,20 +457,20 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | SingleCC cc ->
       (* Note that the condition code is inverted as we emit a JmpCC to the false branch *)
       let cc = invert_condition_code cc in
-      Gcx.emit ~gcx (JmpCC (cc, block_op_of_mir_block ~gcx jump));
-      Gcx.emit ~gcx (Jmp (block_op_of_mir_block ~gcx continue))
+      Gcx.emit ~gcx (JmpCC cc) [| block_op_of_mir_block ~gcx jump |];
+      Gcx.emit ~gcx Jmp [| block_op_of_mir_block ~gcx continue |]
     | AndCC (cc1, cc2) ->
       (* Jump to jump block if either condition code is false *)
       let cc1 = invert_condition_code cc1 in
       let cc2 = invert_condition_code cc2 in
-      Gcx.emit ~gcx (JmpCC (cc1, block_op_of_mir_block ~gcx jump));
-      Gcx.emit ~gcx (JmpCC (cc2, block_op_of_mir_block ~gcx jump));
-      Gcx.emit ~gcx (Jmp (block_op_of_mir_block ~gcx continue))
+      Gcx.emit ~gcx (JmpCC cc1) [| block_op_of_mir_block ~gcx jump |];
+      Gcx.emit ~gcx (JmpCC cc2) [| block_op_of_mir_block ~gcx jump |];
+      Gcx.emit ~gcx Jmp [| block_op_of_mir_block ~gcx continue |]
     | OrCC (cc1, cc2) ->
       (* Jump to continue block if either condition code is true *)
-      Gcx.emit ~gcx (JmpCC (cc1, block_op_of_mir_block ~gcx continue));
-      Gcx.emit ~gcx (JmpCC (cc2, block_op_of_mir_block ~gcx continue));
-      Gcx.emit ~gcx (Jmp (block_op_of_mir_block ~gcx jump))
+      Gcx.emit ~gcx (JmpCC cc1) [| block_op_of_mir_block ~gcx continue |];
+      Gcx.emit ~gcx (JmpCC cc2) [| block_op_of_mir_block ~gcx continue |];
+      Gcx.emit ~gcx Jmp [| block_op_of_mir_block ~gcx jump |]
   in
 
   match instructions with
@@ -504,22 +501,19 @@ and gen_instructions ~gcx ~ir ~block instructions =
     gen_call_arguments param_types arg_vals;
 
     (* Emit call instruction *)
-    let inst =
-      match func_val.value.value with
-      | Lit (Function { name = label; _ }) ->
-        CallL (mk_function_label ~label:(label_of_mir_label label), param_types)
-      | _ ->
-        let func_mem = emit_mem (resolve_ir_value func_val) in
-        CallM (Size64, func_mem, param_types)
-    in
-    Gcx.emit ~gcx inst;
+    (match func_val.value.value with
+    | Lit (Function { name = label; _ }) ->
+      Gcx.emit ~gcx (CallL param_types) [| mk_function_label ~label:(label_of_mir_label label) |]
+    | _ ->
+      let func_mem = emit_mem (resolve_ir_value func_val) in
+      Gcx.emit ~gcx (CallM (Size64, param_types)) [| func_mem |]);
     (* Move result from return register to return operand *)
     (if has_return then
       let return_size = register_size_of_mir_value_type type_ in
       let return_reg = SystemVCallingConvention.calculate_return_register type_ in
       let return_reg_op = mk_precolored ~type_ return_reg in
       let return_op = operand_of_value_id ~type_ result_id in
-      Gcx.emit ~gcx (MovMM (return_size, return_reg_op, return_op)));
+      Gcx.emit ~gcx (MovMM return_size) [| return_reg_op; return_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -535,11 +529,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
       (match resolve_ir_value ~allow_imm64:true value with
       | SImm imm ->
         let size = size_of_immediate (cast_to_immediate imm) in
-        Gcx.emit ~gcx (MovIM (size, imm, return_reg_op))
-      | SAddr (addr, _) -> Gcx.emit ~gcx (Lea (Size64, addr, return_reg_op))
-      | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, mem, return_reg_op))
-      | SReg (reg, size) -> Gcx.emit ~gcx (MovMM (size, reg, return_reg_op))));
-    Gcx.emit ~gcx Ret
+        Gcx.emit ~gcx (MovIM size) [| imm; return_reg_op |]
+      | SAddr (addr, _) -> Gcx.emit ~gcx (Lea Size64) [| addr; return_reg_op |]
+      | SMem (mem, size) -> Gcx.emit ~gcx (MovMM size) [| mem; return_reg_op |]
+      | SReg (reg, size) -> Gcx.emit ~gcx (MovMM size) [| reg; return_reg_op |]));
+    Gcx.emit ~gcx Ret [||]
   (*
    * ===========================================
    *                Load
@@ -576,7 +570,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         | SAddr _ ->
           failwith "Expected memory or address")
     in
-    Gcx.emit ~gcx (MovMM (size, src, result_op));
+    Gcx.emit ~gcx (MovMM size) [| src; result_op |];
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -617,16 +611,16 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
 
     (match value with
-    | SImm imm -> Gcx.emit ~gcx (MovIM (size, imm, dest))
+    | SImm imm -> Gcx.emit ~gcx (MovIM size) [| imm; dest |]
     | SAddr (addr, type_) ->
       let vreg = mk_vreg ~type_ in
-      Gcx.emit ~gcx (Lea (Size64, addr, vreg));
-      Gcx.emit ~gcx (MovMM (Size64, vreg, dest))
+      Gcx.emit ~gcx (Lea Size64) [| addr; vreg |];
+      Gcx.emit ~gcx (MovMM Size64) [| vreg; dest |]
     | SMem (mem, _) ->
       let vreg = mk_vreg_of_op mem in
-      Gcx.emit ~gcx (MovMM (size, mem, vreg));
-      Gcx.emit ~gcx (MovMM (size, vreg, dest))
-    | SReg (reg, _) -> Gcx.emit ~gcx (MovMM (size, reg, dest)));
+      Gcx.emit ~gcx (MovMM size) [| mem; vreg |];
+      Gcx.emit ~gcx (MovMM size) [| vreg; dest |]
+    | SReg (reg, _) -> Gcx.emit ~gcx (MovMM size) [| reg; dest |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -642,15 +636,15 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (other, SImm imm) ->
       let size = register_size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size, other_mem, result_op));
-      Gcx.emit ~gcx (AddIM (size, imm, result_op))
+      Gcx.emit ~gcx (MovMM size) [| other_mem; result_op |];
+      Gcx.emit ~gcx (AddIM size) [| imm; result_op |]
     | (v1, v2) ->
       let size = register_size_of_svalue v1 in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (MovMM (size, mem2, result_op));
-      Gcx.emit ~gcx (AddMM (size, mem1, result_op)));
+      Gcx.emit ~gcx (MovMM size) [| mem2; result_op |];
+      Gcx.emit ~gcx (AddMM size) [| mem1; result_op |]);
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
     gen_instructions rest_instructions
   (*
@@ -666,19 +660,19 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (SImm left_imm, right) ->
       let right_mem = emit_mem right in
       let size = register_size_of_svalue right in
-      Gcx.emit ~gcx (MovIM (size, left_imm, result_op));
-      Gcx.emit ~gcx (SubMM (size, right_mem, result_op))
+      Gcx.emit ~gcx (MovIM size) [| left_imm; result_op |];
+      Gcx.emit ~gcx (SubMM size) [| right_mem; result_op |]
     | (left, SImm right_imm) ->
       let left_mem = emit_mem left in
       let size = register_size_of_svalue left in
-      Gcx.emit ~gcx (MovMM (size, left_mem, result_op));
-      Gcx.emit ~gcx (SubIM (size, right_imm, result_op))
+      Gcx.emit ~gcx (MovMM size) [| left_mem; result_op |];
+      Gcx.emit ~gcx (SubIM size) [| right_imm; result_op |]
     | (left, right) ->
       let left_mem = emit_mem left in
       let right_mem = emit_mem right in
       let size = register_size_of_svalue left in
-      Gcx.emit ~gcx (MovMM (size, left_mem, result_op));
-      Gcx.emit ~gcx (SubMM (size, right_mem, result_op)));
+      Gcx.emit ~gcx (MovMM size) [| left_mem; result_op |];
+      Gcx.emit ~gcx (SubMM size) [| right_mem; result_op |]);
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
     gen_instructions rest_instructions
   (*
@@ -695,14 +689,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (other, SImm imm) ->
       let size = min_size16 (register_size_of_svalue other) in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (IMulMIR (size, other_mem, imm, result_op))
+      Gcx.emit ~gcx (IMulMIR size) [| other_mem; imm; result_op |]
     | (v1, v2) ->
       let size = min_size16 (register_size_of_svalue v1) in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (MovMM (size, mem2, result_op));
-      Gcx.emit ~gcx (MulMR (size, mem1, result_op)));
+      Gcx.emit ~gcx (MovMM size) [| mem2; result_op |];
+      Gcx.emit ~gcx (MulMR size) [| mem1; result_op |]);
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
     gen_instructions rest_instructions
   (*
@@ -720,8 +714,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let size = register_size_of_svalue dividend in
       let dividend_mem = emit_mem dividend in
       let divisor_mem = emit_mem divisor in
-      Gcx.emit ~gcx (MovMM (size, dividend_mem, result_op));
-      Gcx.emit ~gcx (FDivMR (size, divisor_mem, result_op))
+      Gcx.emit ~gcx (MovMM size) [| dividend_mem; result_op |];
+      Gcx.emit ~gcx (FDivMR size) [| divisor_mem; result_op |]
     ) else (
       (match resolve_ir_value ~allow_imm64:true right_val with
       (* Division by a power of two can be optimized to a right shift *)
@@ -733,13 +727,13 @@ and gen_instructions ~gcx ~ir ~block instructions =
         let left = resolve_ir_value left_val in
         let left_mem = emit_mem left in
         let size = register_size_of_svalue left in
-        Gcx.emit ~gcx (MovMM (size, left_mem, result_op));
-        Gcx.emit ~gcx (SarI (size, power_of_two_imm, result_op))
+        Gcx.emit ~gcx (MovMM size) [| left_mem; result_op |];
+        Gcx.emit ~gcx (SarI size) [| power_of_two_imm; result_op |]
       (* Otherwise emit a divide instruction *)
       | _ ->
         let precolored_a = mk_precolored ~type_ A in
         let size = gen_idiv left_val right_val in
-        Gcx.emit ~gcx (MovMM (size, precolored_a, result_op)));
+        Gcx.emit ~gcx (MovMM size) [| precolored_a; result_op |]);
       maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op
     );
     gen_instructions rest_instructions
@@ -753,7 +747,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     let result_op = operand_of_value_id ~type_ result_id in
     let precolored_d = mk_precolored ~type_ D in
     let size = gen_idiv left_val right_val in
-    Gcx.emit ~gcx (MovMM (size, precolored_d, result_op));
+    Gcx.emit ~gcx (MovMM size) [| precolored_d; result_op |];
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
     gen_instructions rest_instructions
   (*
@@ -774,12 +768,12 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let double_negate_mask =
         mk_memory_address ~address:(mk_label_memory_address double_negate_mask_label) ~type_
       in
-      Gcx.emit ~gcx (MovMM (size, arg_mem, result_op));
-      Gcx.emit ~gcx (XorMM (Size128, double_negate_mask, result_op));
+      Gcx.emit ~gcx (MovMM size) [| arg_mem; result_op |];
+      Gcx.emit ~gcx (XorMM Size128) [| double_negate_mask; result_op |];
       gen_instructions rest_instructions
     ) else (
-      Gcx.emit ~gcx (MovMM (size, arg_mem, result_op));
-      Gcx.emit ~gcx (NegM (size, result_op));
+      Gcx.emit ~gcx (MovMM size) [| arg_mem; result_op |];
+      Gcx.emit ~gcx (NegM size) [| result_op |];
       maybe_truncate_bool_operand ~gcx ~if_bool:arg result_op;
       gen_instructions rest_instructions
     )
@@ -793,16 +787,16 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (if is_bool_value arg.value then (
       let arg_reg = emit_bool_as_reg arg in
       let result_op = operand_of_value_id ~type_ result_id in
-      Gcx.emit ~gcx (XorMM (Size32, result_op, result_op));
-      Gcx.emit ~gcx (TestMR (Size8, arg_reg, arg_reg));
-      Gcx.emit ~gcx (SetCC (E, result_op))
+      Gcx.emit ~gcx (XorMM Size32) [| result_op; result_op |];
+      Gcx.emit ~gcx (TestMR Size8) [| arg_reg; arg_reg |];
+      Gcx.emit ~gcx (SetCC E) [| result_op |]
     ) else
       let resolved_value = resolve_ir_value arg in
       let size = register_size_of_svalue resolved_value in
       let arg_mem = emit_mem resolved_value in
       let result_op = operand_of_value_id ~type_ result_id in
-      Gcx.emit ~gcx (MovMM (size, arg_mem, result_op));
-      Gcx.emit ~gcx (NotM (size, result_op)));
+      Gcx.emit ~gcx (MovMM size) [| arg_mem; result_op |];
+      Gcx.emit ~gcx (NotM size) [| result_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -818,15 +812,15 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (other, SImm imm) ->
       let size = register_size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size, other_mem, result_op));
-      Gcx.emit ~gcx (AndIM (size, imm, result_op))
+      Gcx.emit ~gcx (MovMM size) [| other_mem; result_op |];
+      Gcx.emit ~gcx (AndIM size) [| imm; result_op |]
     | (v1, v2) ->
       let size = register_size_of_svalue v1 in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (MovMM (size, mem2, result_op));
-      Gcx.emit ~gcx (AndMM (size, mem1, result_op)));
+      Gcx.emit ~gcx (MovMM size) [| mem2; result_op |];
+      Gcx.emit ~gcx (AndMM size) [| mem1; result_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -842,15 +836,15 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (other, SImm imm) ->
       let size = register_size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size, other_mem, result_op));
-      Gcx.emit ~gcx (OrIM (size, imm, result_op))
+      Gcx.emit ~gcx (MovMM size) [| other_mem; result_op |];
+      Gcx.emit ~gcx (OrIM size) [| imm; result_op |]
     | (v1, v2) ->
       let size = register_size_of_svalue v1 in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (MovMM (size, mem2, result_op));
-      Gcx.emit ~gcx (OrMM (size, mem1, result_op)));
+      Gcx.emit ~gcx (MovMM size) [| mem2; result_op |];
+      Gcx.emit ~gcx (OrMM size) [| mem1; result_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -866,15 +860,15 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (other, SImm imm) ->
       let size = register_size_of_svalue other in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (MovMM (size, other_mem, result_op));
-      Gcx.emit ~gcx (XorIM (size, imm, result_op))
+      Gcx.emit ~gcx (MovMM size) [| other_mem; result_op |];
+      Gcx.emit ~gcx (XorIM size) [| imm; result_op |]
     | (v1, v2) ->
       let size = register_size_of_svalue v1 in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (MovMM (size, mem2, result_op));
-      Gcx.emit ~gcx (XorMM (size, mem1, result_op)));
+      Gcx.emit ~gcx (MovMM size) [| mem2; result_op |];
+      Gcx.emit ~gcx (XorMM size) [| mem1; result_op |]);
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
     gen_instructions rest_instructions
   (*
@@ -889,8 +883,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
         result_id
         target_use
         shift_use
-        ~mk_reg_instr:(fun size mem -> ShlR (size, mem))
-        ~mk_imm_instr:(fun size imm mem -> ShlI (size, imm, mem))
+        ~mk_reg_instr:(fun size mem -> Gcx.emit ~gcx (ShlM size) [| mem |])
+        ~mk_imm_instr:(fun size imm mem -> Gcx.emit ~gcx (ShlI size) [| imm; mem |])
     in
     maybe_truncate_bool_operand ~gcx ~if_bool:target_use result_op;
     gen_instructions rest_instructions
@@ -910,8 +904,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
            result_id
            target_use
            shift_use
-           ~mk_reg_instr:(fun size mem -> SarR (size, mem))
-           ~mk_imm_instr:(fun size imm mem -> SarI (size, imm, mem)));
+           ~mk_reg_instr:(fun size mem -> Gcx.emit ~gcx (SarM size) [| mem |])
+           ~mk_imm_instr:(fun size imm mem -> Gcx.emit ~gcx (SarI size) [| imm; mem |]));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -925,8 +919,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
          result_id
          target_use
          shift_use
-         ~mk_reg_instr:(fun size mem -> ShrR (size, mem))
-         ~mk_imm_instr:(fun size imm mem -> ShrI (size, imm, mem)));
+         ~mk_reg_instr:(fun size mem -> Gcx.emit ~gcx (ShrM size) [| mem |])
+         ~mk_imm_instr:(fun size imm mem -> Gcx.emit ~gcx (ShrI size) [| imm; mem |]));
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -958,7 +952,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | [{ value = Instr { instr = Unreachable; _ }; _ }] -> ()
   | [{ value = Instr { instr = Continue continue; _ }; _ }] ->
     (* TODO: Create better structure for tracking relative block locations *)
-    Gcx.emit ~gcx (Jmp (block_op_of_mir_block ~gcx continue))
+    Gcx.emit ~gcx Jmp [| block_op_of_mir_block ~gcx continue |]
   | [{ value = Instr { instr = Branch { test; continue; jump }; _ }; _ }] ->
     let test =
       match test.value.value with
@@ -966,9 +960,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
       | _ -> test
     in
     let reg = emit_bool_as_reg test in
-    Gcx.emit ~gcx (TestMR (Size8, reg, reg));
-    Gcx.emit ~gcx (JmpCC (E, block_op_of_mir_block ~gcx jump));
-    Gcx.emit ~gcx (Jmp (block_op_of_mir_block ~gcx continue))
+    Gcx.emit ~gcx (TestMR Size8) [| reg; reg |];
+    Gcx.emit ~gcx (JmpCC E) [| block_op_of_mir_block ~gcx jump |];
+    Gcx.emit ~gcx Jmp [| block_op_of_mir_block ~gcx continue |]
   | { value = Instr { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ }; _ } :: _ ->
     failwith "Terminator instructions must be last instruction"
   (*
@@ -994,7 +988,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let return_reg = SystemVCallingConvention.calculate_return_register return_mir_type in
       let return_reg_op = mk_precolored ~type_:return_type return_reg in
       let return_op = operand_of_value_id ~type_:return_type result_id in
-      Gcx.emit ~gcx (MovMM (Size64, return_reg_op, return_op))
+      Gcx.emit ~gcx (MovMM Size64) [| return_reg_op; return_op |]
+    in
+    let emit_call param_types label =
+      Gcx.emit ~gcx (CallL param_types) [| mk_function_label ~label |]
     in
     (*
      * ===========================================
@@ -1011,7 +1008,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         param_types.(0)
         (List.hd param_mir_types)
         element_mir_ty;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_alloc_label, param_types));
+      emit_call param_types X86_64_runtime.myte_alloc_label;
       gen_return_op (Pointer Byte)
       (*
        * ===========================================
@@ -1026,7 +1023,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
       gen_call_arguments param_types pointer_args;
       gen_size_from_count_and_type ~gcx count_arg param_types.(2) count_mir_type element_mir_ty;
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_copy_label, param_types))
+      emit_call param_types X86_64_runtime.myte_copy_label
       (*
        * ===========================================
        *                myte_exit
@@ -1034,7 +1031,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_exit.name then
       let param_types = gen_call_arguments_with_types args in
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_exit_label, param_types))
+      emit_call param_types X86_64_runtime.myte_exit_label
     (*
      * ===========================================
      *                myte_write
@@ -1042,7 +1039,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
      *)
     else if name = myte_write.name then (
       let param_types = gen_call_arguments_with_types args in
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_write_label, param_types));
+      emit_call param_types X86_64_runtime.myte_write_label;
       gen_return_op Int
       (*
        * ===========================================
@@ -1051,7 +1048,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_read.name then (
       let param_types = gen_call_arguments_with_types args in
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_read_label, param_types));
+      emit_call param_types X86_64_runtime.myte_read_label;
       gen_return_op Int
       (*
        * ===========================================
@@ -1060,7 +1057,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_open.name then (
       let param_types = gen_call_arguments_with_types args in
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_open_label, param_types));
+      emit_call param_types X86_64_runtime.myte_open_label;
       gen_return_op Int
       (*
        * ===========================================
@@ -1069,7 +1066,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_close.name then (
       let param_types = gen_call_arguments_with_types args in
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_close_label, param_types));
+      emit_call param_types X86_64_runtime.myte_close_label;
       gen_return_op Int
       (*
        * ===========================================
@@ -1078,7 +1075,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        *)
     ) else if name = myte_unlink.name then (
       let param_types = gen_call_arguments_with_types args in
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_unlink_label, param_types));
+      emit_call param_types X86_64_runtime.myte_unlink_label;
       gen_return_op Int
       (*
        * ===========================================
@@ -1086,7 +1083,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_get_heap_size.name then (
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_get_heap_size_label, [||]));
+      emit_call [||] X86_64_runtime.myte_get_heap_size_label;
       gen_return_op Long
       (*
        * ===========================================
@@ -1094,7 +1091,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
        * ===========================================
        *)
     ) else if name = myte_collect.name then
-      Gcx.emit ~gcx (CallL (mk_function_label ~label:X86_64_runtime.myte_collect_label, [||]))
+      emit_call [||] X86_64_runtime.myte_collect_label
     else
       failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
     gen_instructions rest_instructions
@@ -1118,10 +1115,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (match resolve_ir_value ~allow_imm64:true arg_val with
     | SImm imm ->
       let size = size_of_immediate (cast_to_immediate imm) in
-      Gcx.emit ~gcx (MovIM (size, imm, result_op))
-    | SAddr (addr, _) -> Gcx.emit ~gcx (Lea (Size64, addr, result_op))
-    | SMem (mem, size) -> Gcx.emit ~gcx (MovMM (size, mem, result_op))
-    | SReg (reg, size) -> Gcx.emit ~gcx (MovMM (size, reg, result_op)));
+      Gcx.emit ~gcx (MovIM size) [| imm; result_op |]
+    | SAddr (addr, _) -> Gcx.emit ~gcx (Lea Size64) [| addr; result_op |]
+    | SMem (mem, size) -> Gcx.emit ~gcx (MovMM size) [| mem; result_op |]
+    | SReg (reg, size) -> Gcx.emit ~gcx (MovMM size) [| reg; result_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1138,11 +1135,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | arg ->
       let size = register_size_of_mir_value_type (type_ :> Type.t) in
       let arg_mem = emit_mem arg in
-      Gcx.emit ~gcx (MovMM (size, arg_mem, result_op)));
+      Gcx.emit ~gcx (MovMM size) [| arg_mem; result_op |]);
     (* Bools must be further truncated to only lowest bit *)
     (if type_ = Bool then
       let mask_imm = mk_imm ~imm:(Imm8 (Int8.of_int 1)) in
-      Gcx.emit ~gcx (AndIM (Size8, mask_imm, result_op)));
+      Gcx.emit ~gcx (AndIM Size8) [| mask_imm; result_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1158,9 +1155,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let result_size = register_size_of_mir_value_type (type_ :> Type.t) in
       let arg_mem = emit_mem arg in
       if arg_size <> result_size then
-        Gcx.emit ~gcx (MovSX (arg_size, result_size, arg_mem, result_op))
+        Gcx.emit ~gcx (MovSX (arg_size, result_size)) [| arg_mem; result_op |]
       else
-        Gcx.emit ~gcx (MovMM (arg_size, arg_mem, result_op)));
+        Gcx.emit ~gcx (MovMM arg_size) [| arg_mem; result_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1176,9 +1173,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let result_size = register_size_of_mir_value_type (type_ :> Type.t) in
       let arg_mem = emit_mem arg in
       if arg_size <> result_size then
-        Gcx.emit ~gcx (MovZX (arg_size, result_size, arg_mem, result_op))
+        Gcx.emit ~gcx (MovZX (arg_size, result_size)) [| arg_mem; result_op |]
       else
-        Gcx.emit ~gcx (MovMM (arg_size, arg_mem, result_op)));
+        Gcx.emit ~gcx (MovMM arg_size) [| arg_mem; result_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1196,10 +1193,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
       (* Sign extend argument to 32-bits if smaller *)
       if int_size == Size8 || int_size == Size16 then (
         let vreg = mk_vreg_of_op arg_mem in
-        Gcx.emit ~gcx (MovSX (int_size, Size32, arg_mem, vreg));
-        Gcx.emit ~gcx (ConvertIntToFloat (Size32, vreg, result_op))
+        Gcx.emit ~gcx (MovSX (int_size, Size32)) [| arg_mem; vreg |];
+        Gcx.emit ~gcx (ConvertIntToFloat Size32) [| vreg; result_op |]
       ) else
-        Gcx.emit ~gcx (ConvertIntToFloat (int_size, arg_mem, result_op)));
+        Gcx.emit ~gcx (ConvertIntToFloat int_size) [| arg_mem; result_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1214,7 +1211,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | arg ->
       let int_size = min_size32 (register_size_of_mir_value_type type_) in
       let arg_mem = emit_mem arg in
-      Gcx.emit ~gcx (ConvertFloatToInt (int_size, arg_mem, result_op)));
+      Gcx.emit ~gcx (ConvertFloatToInt int_size) [| arg_mem; result_op |]);
     gen_instructions rest_instructions
   | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
     failwith "Phi nodes must be removed before asm gen"
@@ -1247,7 +1244,7 @@ and gen_get_pointer
     | Size64 -> reg
     | _ ->
       let zero_extended_vreg = mk_vreg ~type_:Long in
-      Gcx.emit ~gcx (MovZX (size, Size64, reg, zero_extended_vreg));
+      Gcx.emit ~gcx (MovZX (size, Size64)) [| reg; zero_extended_vreg |];
       zero_extended_vreg
   in
   let set_base reg size = base := RegBase (zero_extend_reg_to_size64 reg size) in
@@ -1265,14 +1262,14 @@ and gen_get_pointer
       | (None, RegBase reg, None) -> reg
       | (None, NoBase, None) ->
         let result_vreg = mk_vreg ~type_:Int in
-        Gcx.emit ~gcx (XorMM (Size32, result_vreg, result_vreg));
+        Gcx.emit ~gcx (XorMM Size32) [| result_vreg; result_vreg |];
         result_vreg
       | (offset, base, index_and_scale) ->
         let result_vreg = mk_vreg ~type_:Long in
         let addr =
           mk_memory_address ~address:{ MemoryAddress.offset; base; index_and_scale } ~type_:Long
         in
-        Gcx.emit ~gcx (Lea (Size64, addr, result_vreg));
+        Gcx.emit ~gcx (Lea Size64) [| addr; result_vreg |];
         result_vreg
     in
 
@@ -1342,7 +1339,7 @@ and gen_get_pointer
       let scaled_vreg = mk_vreg ~type_:Long in
       let scale_imm = mk_imm ~imm:(Imm32 (Int32.of_int scale)) in
       (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
-      Gcx.emit ~gcx (IMulMIR (size, reg, scale_imm, scaled_vreg));
+      Gcx.emit ~gcx (IMulMIR size) [| reg; scale_imm; scaled_vreg |];
       add_unscaled_register scaled_vreg size
   in
 
@@ -1361,8 +1358,8 @@ and gen_get_pointer
       (match size with
       | Size32
       | Size64 ->
-        Gcx.emit ~gcx (MovMM (size, mem, vreg))
-      | _ -> Gcx.emit ~gcx (MovZX (size, Size64, mem, vreg)));
+        Gcx.emit ~gcx (MovMM size) [| mem; vreg |]
+      | _ -> Gcx.emit ~gcx (MovZX (size, Size64)) [| mem; vreg |]);
       set_base vreg Size64
     | _ -> failwith "PointerV must resolve to SReg or SMem"));
 
@@ -1390,13 +1387,13 @@ and gen_get_pointer
             (* If not, 64-bit immediate offset must first be loaded into register *)
             let offset_imm = mk_imm ~imm:(Imm64 offset) in
             let vreg = mk_vreg ~type_:Long in
-            Gcx.emit ~gcx Instruction.(MovIM (Size64, offset_imm, vreg));
+            Gcx.emit ~gcx (MovIM Size64) [| offset_imm; vreg |];
             add_scaled_register (vreg, Size64) 1
         )
       | SReg (reg, size) -> add_scaled_register (reg, size) element_size
       | SMem (mem, size) ->
         let vreg = mk_vreg_of_op mem in
-        Gcx.emit ~gcx (MovMM (size, mem, vreg));
+        Gcx.emit ~gcx (MovMM size) [| mem; vreg |];
         add_scaled_register (vreg, size) element_size
       | SAddr _ -> failwith "PointerIndex cannot be resolved to SAddr")
     | FieldIndex element_index ->
@@ -1420,7 +1417,7 @@ and gen_get_pointer
 
   let address_op = emit_current_address_calculation () in
   let result_op = operand_of_value_id ~type_:return_type result_id in
-  Gcx.emit ~gcx (MovMM (Size64, address_op, result_op))
+  Gcx.emit ~gcx (MovMM Size64) [| address_op; result_op |]
 
 and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir_type mir_ty =
   let element_size = Gcx.size_of_mir_type ~gcx mir_ty in
@@ -1440,7 +1437,7 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
       else
         (Size32, Imm32 (Int64.to_int32 total_size))
     in
-    Gcx.emit ~gcx (MovIM (size, mk_imm ~imm:total_size_imm, mk_result_op ()))
+    Gcx.emit ~gcx (MovIM size) [| mk_imm ~imm:total_size_imm; mk_result_op () |]
   (* If count is a variable multiply by size before putting in argument register *)
   | _ ->
     let count_reg =
@@ -1450,16 +1447,16 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
     in
     (* Check for special case where element size is a single byte - no multiplication required *)
     if element_size = 1 then
-      Gcx.emit ~gcx (MovMM (Size32, count_reg, mk_result_op ()))
+      Gcx.emit ~gcx (MovMM Size32) [| count_reg; mk_result_op () |]
     else
       let size_imm = mk_imm ~imm:(Imm32 (Int32.of_int element_size)) in
       (* TODO: Could overflow Size32, but count has Size32 so we do not want to use Size64 directly *)
-      Gcx.emit ~gcx (IMulMIR (Size32, count_reg, size_imm, mk_result_op ()))
+      Gcx.emit ~gcx (IMulMIR Size32) [| count_reg; size_imm; mk_result_op () |]
 
 (* Truncate a single byte operand to just its lowest bit if the test val has type bool *)
 and maybe_truncate_bool_operand ~gcx ~if_bool op =
   if is_bool_value if_bool.value then
-    Gcx.emit ~gcx (AndIM (Size8, mk_imm ~imm:(Imm8 (Int8.of_int 1)), op))
+    Gcx.emit ~gcx (AndIM Size8) [| mk_imm ~imm:(Imm8 (Int8.of_int 1)); op |]
 
 and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
   match use.value.value with
@@ -1484,7 +1481,7 @@ and resolve_ir_value ~gcx ?(allow_imm64 = false) (use : Use.t) =
       SImm (mk_imm ~imm:(Imm32 (Int64.to_int32 l)))
     else
       let vreg = mk_virtual_register ~type_:Long in
-      Gcx.emit ~gcx Instruction.(MovIM (Size64, mk_imm ~imm:(Imm64 l), vreg));
+      Gcx.emit ~gcx (MovIM Size64) [| mk_imm ~imm:(Imm64 l); vreg |];
       SReg (vreg, Size64)
   (* Double literals cannot be immediates and must be loaded from memory. Write as constant in
      data section while deduplicating double literals. *)

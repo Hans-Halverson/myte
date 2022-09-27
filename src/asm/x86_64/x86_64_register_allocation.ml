@@ -123,9 +123,9 @@ module X86_64_RegisterAllocatorContext = struct
 
   let filter_instrs f block = filter_instructions block f
 
-  let get_move_opt instr =
-    match instr.Instruction.instr with
-    | MovMM (_, src_op, dest_op)
+  let get_move_opt (instr : Instruction.t) =
+    match instr with
+    | { instr = MovMM _; operands = [| src_op; dest_op |]; _ }
       when Operand.is_reg_value src_op
            && Operand.is_reg_value dest_op
            && get_class src_op == get_class dest_op ->
@@ -135,9 +135,7 @@ module X86_64_RegisterAllocatorContext = struct
   (* Register allocation lifecycle *)
 
   class init_visitor ~cx =
-    object (this)
-      inherit X86_64_visitor.instruction_visitor as super
-
+    object
       val mutable reg_num_use_defs = OperandMap.empty
 
       val mutable initial_vregs = OperandSet.empty
@@ -146,30 +144,21 @@ module X86_64_RegisterAllocatorContext = struct
 
       method initial_vregs = initial_vregs
 
-      method visit_reg reg =
-        (match reg.Operand.value with
-        | VirtualRegister -> initial_vregs <- OperandSet.add reg initial_vregs
-        | _ -> ());
-        let reg = get_rep_register cx reg in
-        reg_num_use_defs <-
-          OperandMap.add
-            reg
-            (match OperandMap.find_opt reg reg_num_use_defs with
-            | None -> 0
-            | Some prev_count -> prev_count + 1)
-            reg_num_use_defs
-
-      method! visit_read_operand ~instr op =
-        if Operand.is_reg_value op then
-          this#visit_reg op
-        else
-          super#visit_read_operand ~instr op
-
-      method! visit_write_operand ~instr op =
-        if Operand.is_reg_value op then
-          this#visit_reg op
-        else
-          super#visit_write_operand ~instr op
+      method visit_instruction (instr : Instruction.t) =
+        instr_iter_reg_mem_operands instr (fun operand _ ->
+            if Operand.is_reg_value operand then (
+              (match operand.value with
+              | VirtualRegister -> initial_vregs <- OperandSet.add operand initial_vregs
+              | _ -> ());
+              let reg = get_rep_register cx operand in
+              reg_num_use_defs <-
+                OperandMap.add
+                  reg
+                  (match OperandMap.find_opt reg reg_num_use_defs with
+                  | None -> 1
+                  | Some prev_count -> prev_count + 1)
+                  reg_num_use_defs
+            ))
     end
 
   let init_context cx =

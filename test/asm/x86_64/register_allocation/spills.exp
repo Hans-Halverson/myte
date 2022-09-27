@@ -110,34 +110,34 @@ test.testRegisterClassesAreIndependent:
   ret
 test.testSingleSpillUsingAllDoubleRegisters:
   subq $8, %rsp
-  movq %xmm2, %xmm15
   movq %xmm6, (%rsp)
-  movq %xmm1, %xmm14
+  movq %xmm1, %xmm15
+  addsd %xmm0, %xmm15
+  movq %xmm2, %xmm14
   addsd %xmm0, %xmm14
-  movq %xmm15, %xmm13
+  movq %xmm3, %xmm13
   addsd %xmm0, %xmm13
-  movq %xmm3, %xmm12
+  movq %xmm4, %xmm12
   addsd %xmm0, %xmm12
-  movq %xmm4, %xmm11
+  movq %xmm5, %xmm11
   addsd %xmm0, %xmm11
-  movq %xmm5, %xmm10
-  addsd %xmm0, %xmm10
-  movq %xmm15, %xmm9
+  movq %xmm2, %xmm10
+  addsd %xmm1, %xmm10
+  movq %xmm3, %xmm9
   addsd %xmm1, %xmm9
-  movq %xmm3, %xmm8
+  movq %xmm4, %xmm8
   addsd %xmm1, %xmm8
-  movq %xmm4, %xmm7
+  movq %xmm5, %xmm7
   addsd %xmm1, %xmm7
   movq %xmm5, %xmm6
   addsd %xmm1, %xmm6
-  movq %xmm5, %xmm2
-  addsd %xmm1, %xmm2
   addsd %xmm0, %xmm1
-  addsd %xmm1, %xmm15
-  addsd %xmm15, %xmm3
+  addsd %xmm1, %xmm2
+  addsd %xmm2, %xmm3
   addsd %xmm3, %xmm4
   addsd %xmm4, %xmm5
-  addsd %xmm5, %xmm14
+  addsd %xmm5, %xmm15
+  addsd %xmm15, %xmm14
   addsd %xmm14, %xmm13
   addsd %xmm13, %xmm12
   addsd %xmm12, %xmm11
@@ -146,9 +146,8 @@ test.testSingleSpillUsingAllDoubleRegisters:
   addsd %xmm9, %xmm8
   addsd %xmm8, %xmm7
   addsd %xmm7, %xmm6
-  addsd %xmm6, %xmm2
   movq (%rsp), %xmm0
-  addsd %xmm2, %xmm0
+  addsd %xmm6, %xmm0
   addq $8, %rsp
   ret
 test.testSingleSpillUsingAllIntRegisters:
@@ -158,40 +157,38 @@ test.testSingleSpillUsingAllIntRegisters:
   push %r14
   push %r15
   subq $8, %rsp
-  movl %edx, (%rsp)
-  movl %ecx, %r15d
-  movl %esi, %r14d
+  movl %esi, (%rsp)
+  addl %edi, (%rsp)
+  movl %edx, %r15d
+  addl %edi, %r15d
+  movl %ecx, %r14d
   addl %edi, %r14d
-  movl (%rsp), %r13d
+  movl %r8d, %r13d
   addl %edi, %r13d
-  movl %r15d, %r12d
+  movl %r9d, %r12d
   addl %edi, %r12d
-  movl %r8d, %r11d
-  addl %edi, %r11d
-  movl %r9d, %r10d
-  addl %edi, %r10d
-  movl (%rsp), %edx
-  addl %esi, %edx
-  movl %r15d, %ecx
-  addl %esi, %ecx
+  movl %edx, %r11d
+  addl %esi, %r11d
+  movl %ecx, %r10d
+  addl %esi, %r10d
   movl %r8d, %ebx
   addl %esi, %ebx
   movl %r9d, %eax
   addl %esi, %eax
   addl %edi, %esi
-  movl (%rsp), %edi
-  addl %esi, %edi
-  addl %edi, %r15d
-  addl %r15d, %r8d
+  addl %esi, %edx
+  addl %edx, %ecx
+  addl %ecx, %r8d
   addl %r8d, %r9d
-  addl %r9d, %r14d
+  movl (%rsp), %ecx
+  addl %r9d, %ecx
+  addl %ecx, %r15d
+  addl %r15d, %r14d
   addl %r14d, %r13d
   addl %r13d, %r12d
   addl %r12d, %r11d
   addl %r11d, %r10d
-  addl %r10d, %edx
-  addl %edx, %ecx
-  addl %ecx, %ebx
+  addl %r10d, %ebx
   addl %ebx, %eax
   addl 56(%rsp), %eax
   addq $8, %rsp

@@ -3,35 +3,21 @@ open X86_64_builders
 open X86_64_calling_conventions
 open X86_64_gen_context
 open X86_64_instructions
+open X86_64_instruction_definitions
 open X86_64_register
 
-class vslot_use_def_finder =
-  object
-    inherit X86_64_visitor.instruction_visitor as super
+let find_vslot_use_defs (instr : Instruction.t) =
+  let uses = ref OperandSet.empty in
+  let defs = ref OperandSet.empty in
 
-    val mutable vslot_uses = OperandSet.empty
+  instr_iter_reg_mem_operands instr (fun operand operand_def ->
+      match operand.value with
+      | VirtualStackSlot ->
+        if operand_is_use operand_def then uses := OperandSet.add operand !uses;
+        if operand_is_def operand_def then defs := OperandSet.add operand !defs
+      | _ -> ());
 
-    val mutable vslot_defs = OperandSet.empty
-
-    method vslot_uses = vslot_uses
-
-    method vslot_defs = vslot_defs
-
-    method! visit_read_operand ~instr op =
-      match op.value with
-      | VirtualStackSlot -> vslot_uses <- OperandSet.add op vslot_uses
-      | _ -> super#visit_read_operand ~instr op
-
-    method! visit_write_operand ~instr op =
-      match op.value with
-      | VirtualStackSlot -> vslot_defs <- OperandSet.add op vslot_defs
-      | _ -> super#visit_write_operand ~instr op
-  end
-
-let find_vslot_use_defs instruction =
-  let finder = new vslot_use_def_finder in
-  finder#visit_instruction instruction;
-  (finder#vslot_uses, finder#vslot_defs)
+  (!uses, !defs)
 
 let liveness_analysis ~(gcx : Gcx.t) =
   let (_, live_out) = X86_64_liveness_analysis.analyze_virtual_stack_slots ~gcx in

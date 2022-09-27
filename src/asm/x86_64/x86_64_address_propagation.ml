@@ -2,11 +2,12 @@ open X86_64_builders
 open X86_64_calling_conventions
 open X86_64_gen_context
 open X86_64_instructions
+open X86_64_instruction_definitions
 open X86_64_register
 
 class use_def_finder color_to_op =
   object (this)
-    inherit X86_64_liveness_analysis.use_def_finder color_to_op as super
+    inherit X86_64_liveness_analysis.use_def_finder color_to_op
 
     val mutable memory_reg_uses : RegSet.t = RegSet.empty
 
@@ -21,19 +22,15 @@ class use_def_finder color_to_op =
       this#visit_instruction instr;
       (memory_reg_uses, other_reg_uses, reg_defs)
 
-    (* Find memory uses in both read and write positions. Returns whether operand has been handled. *)
-    method check_memory_use_operand (op : Operand.t) : bool =
-      match op.value with
-      | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None } ->
-        memory_reg_uses <- RegSet.add (Operand.get_physical_register_value reg) memory_reg_uses;
-        true
-      | _ -> false
-
-    method! visit_read_operand ~instr op =
-      if not (this#check_memory_use_operand op) then super#visit_read_operand ~instr op
-
-    method! visit_write_operand ~instr op =
-      if not (this#check_memory_use_operand op) then super#visit_write_operand ~instr op
+    method! visit_explicit_uses_and_defs instr =
+      instr_iter_all_operands instr (fun operand operand_def ->
+          match operand.value with
+          | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None } ->
+            memory_reg_uses <- RegSet.add (Operand.get_physical_register_value reg) memory_reg_uses
+          | _ ->
+            operand_iter_reg_mem_operands operand operand_def (fun operand operand_def ->
+                if operand_is_use operand_def then this#visit_read_operand ~instr operand;
+                if operand_is_def operand_def then this#visit_write_operand ~instr operand))
 
     method! add_register_use ~instr:_ (reg : Operand.t) =
       other_reg_uses <- RegSet.add (Operand.get_physical_register_value reg) other_reg_uses
@@ -42,39 +39,28 @@ class use_def_finder color_to_op =
       reg_defs <- RegSet.add (Operand.get_physical_register_value reg) reg_defs
   end
 
-let inline_lea_mapper =
-  object (this)
-    inherit X86_64_visitor.instruction_visitor
+let inline_at_uses (lea_instr : Instruction.t) (use_instrs : InstrSet.t) =
+  match lea_instr with
+  | { instr = Lea _; operands = [| { value = MemoryAddress addr; _ }; dest_reg |]; _ } ->
+    let reg_to_replace = Operand.get_physical_register_value dest_reg in
 
-    val mutable reg_to_replace = Register.A
-
-    val mutable address_to_coalesce = empty_memory_address
-
-    method inline_at_uses (lea_instr : Instruction.t) (use_instrs : InstrSet.t) =
-      match lea_instr.instr with
-      | Lea (_, { value = MemoryAddress addr; _ }, dest_reg) ->
-        reg_to_replace <- Operand.get_physical_register_value dest_reg;
-        address_to_coalesce <- addr;
-
-        InstrSet.iter this#visit_instruction use_instrs
-      | _ -> ()
-
-    method visit_operand op =
-      match op.Operand.value with
-      | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None }
-        when Operand.get_physical_register_value reg = reg_to_replace ->
-        op.value <- MemoryAddress address_to_coalesce
-      | _ -> ()
-
-    method! visit_read_operand ~instr:_ op = this#visit_operand op
-
-    method! visit_write_operand ~instr:_ op = this#visit_operand op
-  end
+    InstrSet.iter
+      (fun use_instr ->
+        Array.iter
+          (fun operand ->
+            match operand.Operand.value with
+            | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None }
+              when Operand.get_physical_register_value reg = reg_to_replace ->
+              operand.value <- MemoryAddress addr
+            | _ -> ())
+          use_instr.operands)
+      use_instrs
+  | _ -> ()
 
 (* Get all register arguments used in a memory operand *)
 let lea_get_reg_args (lea_instr : Instruction.t) : RegSet.t =
-  match lea_instr.instr with
-  | Lea (_, { value = MemoryAddress addr; _ }, _) ->
+  match lea_instr with
+  | { instr = Lea _; operands = [| { value = MemoryAddress addr; _ }; _ |]; _ } ->
     (match (addr.base, addr.index_and_scale) with
     | (RegBase first_reg, Some (second_reg, _)) ->
       RegSet.add
@@ -160,8 +146,8 @@ and run_on_func ~gcx ~use_def_finder func =
             def_regs;
 
           (* Add the lea address result and its args as currently live *)
-          match instr.instr with
-          | Lea (_, _, dest_reg) ->
+          match instr with
+          | { instr = Lea _; operands = [| _; dest_reg |]; _ } ->
             let lea_address_reg = Operand.get_physical_register_value dest_reg in
             current_live_leas := RegMap.add lea_address_reg instr !current_live_leas;
             all_inlinable_leas := InstrMap.add instr InstrSet.empty !all_inlinable_leas;
@@ -190,6 +176,6 @@ and run_on_func ~gcx ~use_def_finder func =
       (* Inline all remaining lea instructions at their uses *)
       InstrMap.iter
         (fun lea_instr use_instrs ->
-          inline_lea_mapper#inline_at_uses lea_instr use_instrs;
+          inline_at_uses lea_instr use_instrs;
           remove_instruction lea_instr)
         !all_inlinable_leas)
