@@ -146,6 +146,13 @@ function CommandSelector(props) {
 }
 
 function SettingsMenu(props) {
+  function onToggleShouldOptimize() {
+    props.onChangeSettings({
+      ...props.settings,
+      shouldOptimize: !props.settings.shouldOptimize,
+    })
+  }
+
   function onToggleShouldStyleTerminalOutput() {
     props.onChangeSettings({
       ...props.settings,
@@ -164,15 +171,26 @@ function SettingsMenu(props) {
         </>
       )}
       renderDropdownContents={() => (
-        <label className="checkbox headerDropdownCheckbox">
-          <input
-            type="checkbox"
-            className="headerDropdownCheckboxInput"
-            checked={props.settings.shouldStyleTerminalOutput}
-            onChange={onToggleShouldStyleTerminalOutput}
-          />
-          Style Terminal Output
-        </label>
+        <>
+          <label className="checkbox headerDropdownCheckbox">
+            <input
+              type="checkbox"
+              className="headerDropdownCheckboxInput"
+              checked={props.settings.shouldOptimize}
+              onChange={onToggleShouldOptimize}
+            />
+            Optimize
+          </label>
+          <label className="checkbox headerDropdownCheckbox">
+            <input
+              type="checkbox"
+              className="headerDropdownCheckboxInput"
+              checked={props.settings.shouldStyleTerminalOutput}
+              onChange={onToggleShouldStyleTerminalOutput}
+            />
+            Style Terminal Output
+          </label>
+        </>
       )}
     />
   );

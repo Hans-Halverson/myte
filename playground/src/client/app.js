@@ -16,7 +16,7 @@ export default function App() {
 
   function onSubmit() {
     setIsRunning(true);
-    RunRequests.send(editorText, settings.command.id).then((results) => {
+    RunRequests.send(editorText, settings.command.id, settings.shouldOptimize).then((results) => {
       if (!RunRequests.hasInflightRequest()) {
         setIsRunning(false);
       }

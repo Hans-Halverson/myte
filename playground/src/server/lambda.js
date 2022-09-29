@@ -10,9 +10,9 @@ exports.handler = async (event, context) => {
     return { statusCode: "200" };
   }
 
-  const { program, command } = JSON.parse(event.body);
+  const { program, command, optimize } = JSON.parse(event.body);
 
-  const result = await run(program, command).then(
+  const result = await run(program, command, Boolean(optimize)).then(
     (result) => result,
     (error) => {
       console.error(error);

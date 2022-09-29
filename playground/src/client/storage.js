@@ -15,6 +15,7 @@ fun main() {
 const DEFAULT_SETTINGS = {
   command: Commands.Execute,
   shouldStyleTerminalOutput: true,
+  shouldOptimize: false,
 };
 
 export const INITIAL_EDITOR_TEXT = getInitialEditorText();

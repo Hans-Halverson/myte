@@ -142,6 +142,8 @@ html {
 .headerDropdownCheckbox,
 .headerDropdownCheckbox:hover {
   color: var(--text-light);
+  display: block;
+  padding: 4px;
 }
 
 .headerDropdownCheckboxInput {

@@ -26,9 +26,9 @@ class RunEnvironment {
   }
 }
 
-async function run(program, command) {
+async function run(program, command, optimize) {
   const env = RunEnvironment.setup(program);
-  const execCommand = buildExecCommand(env, command);
+  const execCommand = buildExecCommand(env, command, optimize);
 
   return new Promise((resolve) => {
     exec(execCommand, { timeout: TIMEOUT }, (error, stdout, stderr) => {
@@ -55,20 +55,21 @@ async function run(program, command) {
   });
 }
 
-function buildExecCommand(env, command) {
+function buildExecCommand(env, command, optimize) {
   const prefix = `cd ${env.dir} && MYTEPATH=${ROOT}`;
+  const options = optimize ? '-O' : '';
 
   switch (command) {
     case Commands.Execute.id:
-      return `${prefix} ${MYTE_BIN} ${env.program} -o out && ./out`;
+      return `${prefix} ${MYTE_BIN} ${env.program} ${options} -o out && ./out`;
     case Commands.Compile.id:
-      return `${prefix} ${MYTE_BIN} ${env.program} -o out`;
+      return `${prefix} ${MYTE_BIN} ${env.program} ${options} -o out`;
     case Commands.AST.id:
-      return `${prefix} ${MYTE_BIN} ${env.program} --dump-ast`;
+      return `${prefix} ${MYTE_BIN} ${env.program} ${options} --dump-ast`;
     case Commands.MIR.id:
-      return `${prefix} ${MYTE_BIN} ${env.program} --dump-ir`;
+      return `${prefix} ${MYTE_BIN} ${env.program} ${options} --dump-ir`;
     case Commands.Asm.id:
-      return `${prefix} ${MYTE_BIN} ${env.program} --dump-asm`;
+      return `${prefix} ${MYTE_BIN} ${env.program} ${options} --dump-asm`;
   }
 }
 

@@ -10,7 +10,7 @@ export default class RunRequests {
   // The most recent request, if it is still inflight
   static inflightRequest = null;
 
-  static async send(program, command) {
+  static async send(program, command, optimize) {
     // Cancel previous request if it is in flight
     if (this.inflightRequest != null) {
       this.inflightRequest.controller.abort();
@@ -24,6 +24,7 @@ export default class RunRequests {
     const body = {
       program,
       command,
+      optimize,
     };
 
     return fetch(RUNNER_SERVICE_URL, {
