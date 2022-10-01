@@ -121,12 +121,12 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       | { instr = CmpMI _; operands = [| op; _ |]; _ } ->
         (* Resolve all instructions with a single operand that must be a register *)
         resolve_operator op
-      | { instr = IMulMIR size; operands = [| src_op; src_imm; dest_reg |]; _ } ->
+      | { instr = IMulIMR size; operands = [| src_imm; src_op; dest_reg |]; _ } ->
         resolve_operator src_op;
         force_register_write
           (size_of_immediate (cast_to_immediate src_imm))
           dest_reg
-          (fun dest_reg' -> (IMulMIR size, [| src_op; src_imm; dest_reg' |]))
+          (fun dest_reg' -> (IMulIMR size, [| src_imm; src_op; dest_reg' |]))
       | { instr = MovSX (src_size, dest_size); operands = [| src_op; dest_reg |]; _ } ->
         resolve_operator src_op;
         force_register_write dest_size dest_reg (fun reg' ->
@@ -158,10 +158,10 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
         resolve_binop_single_mem size src_op dest_op (fun s d -> (XorMM size, [| s; d |]))
       | { instr = CmpMM size; operands = [| src_op; dest_op |]; _ } ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> (CmpMM size, [| s; d |]))
-      | { instr = MulMR size; operands = [| src_op; dest_op |]; _ } ->
+      | { instr = IMulMR size; operands = [| src_op; dest_op |]; _ } ->
         resolve_operator src_op;
         force_register_read_write size dest_op (fun dest_op' ->
-            (MulMR size, [| src_op; dest_op' |]))
+            (IMulMR size, [| src_op; dest_op' |]))
       | { instr = AddSD; operands = [| src_op; dest_op |]; _ } ->
         resolve_operator src_op;
         force_register_read_write Size64 dest_op (fun dest_op' -> (AddSD, [| src_op; dest_op' |]))

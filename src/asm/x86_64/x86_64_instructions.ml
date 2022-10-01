@@ -410,7 +410,7 @@ let swap_condition_code_order cc =
   | A -> B
   | BE -> AE
   | AE -> BE
-  (* Only valid to be swapped because partity flag is only used for ucomisd, where it signals
+  (* Only valid to be swapped because parity flag is only used for ucomisd, where it signals
      whether arguments are "unordered" (at least one of the arguments was NaN). *)
   | P
   | NP ->

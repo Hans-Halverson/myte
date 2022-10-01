@@ -707,7 +707,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     | (other, SImm imm) ->
       let size = min_size16 (register_size_of_svalue other) in
       let other_mem = emit_mem other in
-      Gcx.emit ~gcx (IMulMIR size) [| other_mem; imm; result_op |]
+      Gcx.emit ~gcx (IMulIMR size) [| imm; other_mem; result_op |]
     | (v1, v2) ->
       let size = min_size16 (register_size_of_svalue v1) in
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
@@ -717,7 +717,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         if type_ == Double then
           MulSD
         else
-          MulMR size
+          IMulMR size
       in
       Gcx.emit ~gcx (MovMM size) [| mem2; result_op |];
       Gcx.emit ~gcx mul_op [| mem1; result_op |]);
@@ -1363,7 +1363,7 @@ and gen_get_pointer
       let scaled_vreg = mk_vreg ~type_:Long in
       let scale_imm = mk_imm ~imm:(Imm32 (Int32.of_int scale)) in
       (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
-      Gcx.emit ~gcx (IMulMIR size) [| reg; scale_imm; scaled_vreg |];
+      Gcx.emit ~gcx (IMulIMR size) [| scale_imm; reg; scaled_vreg |];
       add_unscaled_register scaled_vreg size
   in
 
@@ -1475,7 +1475,7 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
     else
       let size_imm = mk_imm ~imm:(Imm32 (Int32.of_int element_size)) in
       (* TODO: Could overflow Size32, but count has Size32 so we do not want to use Size64 directly *)
-      Gcx.emit ~gcx (IMulMIR Size32) [| count_reg; size_imm; mk_result_op () |]
+      Gcx.emit ~gcx (IMulIMR Size32) [| size_imm; count_reg; mk_result_op () |]
 
 (* Truncate a single byte operand to just its lowest bit if the test val has type bool *)
 and maybe_truncate_bool_operand ~gcx ~if_bool op =

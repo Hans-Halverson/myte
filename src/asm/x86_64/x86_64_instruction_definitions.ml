@@ -48,9 +48,9 @@ type instr =
   (* For sub instructions, right/dest := right/dest - left/src *)
   | SubIM of register_size
   | SubMM of register_size
-  | MulMR of register_size
+  | IMulMR of register_size
   (* Only supports 16, 32, or 64-bit MR operands, and only supports 16 or 32-bit immediates *)
-  | IMulMIR of register_size
+  | IMulIMR of register_size
   | IDiv of register_size
   (* Float operations, all have 64-bit size and require SSE registers *)
   | AddSD
@@ -191,14 +191,14 @@ let sub_im = { InstructionDef.operands = operands_im_usedef }
 
 let sub_mm = { InstructionDef.operands = operands_mm_usedef }
 
-let mul_mr = { InstructionDef.operands = operands_mr_usedef }
+let imul_mr = { InstructionDef.operands = operands_mr_usedef }
 
-let imul_mir =
+let imul_imr =
   {
     InstructionDef.operands =
       [
-        { use = Use; operand_type = RegMem };
         { use = Use; operand_type = Immediate };
+        { use = Use; operand_type = RegMem };
         { use = Def; operand_type = Register };
       ];
   }
@@ -296,8 +296,8 @@ let instr_def (instr : instr) : InstructionDef.t =
   | AddMM _ -> and_mm
   | SubIM _ -> sub_im
   | SubMM _ -> sub_mm
-  | MulMR _ -> mul_mr
-  | IMulMIR _ -> imul_mir
+  | IMulMR _ -> imul_mr
+  | IMulIMR _ -> imul_imr
   | IDiv _ -> idiv
   | AddSD -> add_sd
   | SubSD -> sub_sd

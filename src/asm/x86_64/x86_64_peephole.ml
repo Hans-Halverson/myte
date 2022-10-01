@@ -69,7 +69,7 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr =
   let open Instruction in
   match instr with
   (* Multiplication by power of two can be reduced to a left shift *)
-  | { instr = IMulMIR size; operands = [| src; { value = Immediate imm; _ }; dest_reg |]; _ }
+  | { instr = IMulIMR size; operands = [| { value = Immediate imm; _ }; src; dest_reg |]; _ }
     when Integers.is_power_of_two (int64_of_immediate imm) ->
     let power_of_two = Int8.of_int (Integers.power_of_two (int64_of_immediate imm)) in
     instr.instr <- ShlI size;
