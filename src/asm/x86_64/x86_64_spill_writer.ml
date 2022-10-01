@@ -31,33 +31,6 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       let add_after_instr new_instr new_operands =
         insert_instruction_after ~after:instr (mk_blockless_instr new_instr new_operands)
       in
-      (* Resolve instruction with two RegMem operands only one of which can be a memory *)
-      let resolve_binop_single_mem size =
-        Array.iter resolve_operand instr.operands;
-        let op1 = instr.operands.(0) in
-        let op2 = instr.operands.(1) in
-        if this#is_memory_value op1 && this#is_memory_value op2 then (
-          let op1_vreg = this#mk_vreg_of_op op1 in
-          add_before_instr (MovMM size) [| op1; op1_vreg |];
-          instr.operands.(0) <- op1_vreg
-        )
-      in
-      let resolve_commutative_mr size =
-        Array.iter resolve_operand instr.operands;
-        let op1 = instr.operands.(0) in
-        let op2 = instr.operands.(1) in
-        if this#is_memory_value op2 then
-          if this#is_memory_value op1 then (
-            (* If both operands are memory location, create and move to new vreg for second operand *)
-            let op2_vreg = this#mk_vreg_of_op op2 in
-            add_before_instr (MovMM size) [| op2; op2_vreg |];
-            instr.operands.(1) <- op2_vreg
-          ) else (
-            (* If register was resolved to memory location but memory was resolved to register, swap *)
-            instr.operands.(0) <- op2;
-            instr.operands.(1) <- op1
-          )
-      in
       match instr.instr with
       (* 64-bit immediates can only be loaded to registers *)
       | MovIM dest_size
@@ -72,6 +45,8 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
           instr.operands.(1) <- imm_vreg;
           add_after_instr (MovMM dest_size) [| imm_vreg; dest_op |]
         )
+      (* Spill instruction with two RegMem operands, only one of which can be a memory. If both
+         operands are memorys then src should be converted to a vreg. *)
       | MovMM size
       | AddMM size
       | SubMM size
@@ -79,8 +54,33 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       | OrMM size
       | XorMM size
       | CmpMM size ->
-        resolve_binop_single_mem size
-      | TestMR size -> resolve_commutative_mr size
+        Array.iter resolve_operand instr.operands;
+        let op1 = instr.operands.(0) in
+        let op2 = instr.operands.(1) in
+        if this#is_memory_value op1 && this#is_memory_value op2 then (
+          let op1_vreg = this#mk_vreg_of_op op1 in
+          add_before_instr (MovMM size) [| op1; op1_vreg |];
+          instr.operands.(0) <- op1_vreg
+        )
+      (* Spill for commutative operations where the second operand must be a register. If the
+         first operand is a register and the second is a memory, order can be switched. Otherwise
+         a vreg must be inserted. *)
+      | TestMR size ->
+        Array.iter resolve_operand instr.operands;
+        let op1 = instr.operands.(0) in
+        let op2 = instr.operands.(1) in
+        if this#is_memory_value op2 then
+          if this#is_memory_value op1 then (
+            let op2_vreg = this#mk_vreg_of_op op2 in
+            add_before_instr (MovMM size) [| op2; op2_vreg |];
+            instr.operands.(1) <- op2_vreg
+          ) else (
+            instr.operands.(0) <- op2;
+            instr.operands.(1) <- op1
+          )
+      (* Standard spilling logic. Resolve all operands, and if a memory operand is used where an
+         instruction requires a register then replace with a vreg along with movs to transfer the
+         memory value to/from that vreg. *)
       | _ ->
         instr_iteri_all_operands instr (fun i operand operand_def ->
             match operand_def.operand_type with
@@ -93,15 +93,11 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
             | Register ->
               resolve_operand operand;
               if this#is_memory_value operand then (
-                let size = operand_size instr.instr i in
+                let size = instr_operand_size instr.instr i in
                 let vreg = this#mk_vreg_of_op operand in
                 instr.operands.(i) <- vreg;
-                match operand_def.use with
-                | Use -> add_before_instr (MovMM size) [| operand; vreg |]
-                | Def -> add_after_instr (MovMM size) [| vreg; operand |]
-                | UseDef ->
-                  add_before_instr (MovMM size) [| operand; vreg |];
-                  add_after_instr (MovMM size) [| vreg; operand |]
+                if operand_is_use operand_def then add_before_instr (MovMM size) [| operand; vreg |];
+                if operand_is_def operand_def then add_after_instr (MovMM size) [| vreg; operand |]
               ))
 
     (* The base and offset in memory addresses must be a register. If the base or offset has been

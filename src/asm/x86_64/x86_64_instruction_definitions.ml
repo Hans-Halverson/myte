@@ -31,27 +31,27 @@ type instr =
   | PushM
   | PopM
   (* Data instructions *)
-  (* Allows 64-bit immediate. register_size is destination size which may not match immediate size *)
-  | MovIM of register_size
-  (* Allows 64-bit immediate. Allows SSE registers. register_size is destination size, or transferred size if SSE *)
-  | MovMM of register_size
+  (* Allows 64-bit immediate. operand_size is destination size which may not match immediate size *)
+  | MovIM of operand_size
+  (* Allows 64-bit immediate. Allows SSE registers. operand_size is destination size, or transferred size if SSE *)
+  | MovMM of operand_size
   (* Src size then dest size where src size < dest size *)
-  | MovSX of register_size * register_size
+  | MovSX of operand_size * operand_size
   (* Src size then dest size where src size < dest size *)
-  | MovZX of register_size * register_size
+  | MovZX of operand_size * operand_size
   (* Destination only supports 32 or 64 bit register *)
-  | Lea of register_size
+  | Lea of operand_size
   (* Integer operations *)
-  | NegM of register_size
-  | AddIM of register_size
-  | AddMM of register_size
+  | NegM of operand_size
+  | AddIM of operand_size
+  | AddMM of operand_size
   (* For sub instructions, right/dest := right/dest - left/src *)
-  | SubIM of register_size
-  | SubMM of register_size
-  | IMulMR of register_size
+  | SubIM of operand_size
+  | SubMM of operand_size
+  | IMulMR of operand_size
   (* Only supports 16, 32, or 64-bit MR operands, and only supports 16 or 32-bit immediates *)
-  | IMulIMR of register_size
-  | IDiv of register_size
+  | IMulIMR of operand_size
+  | IDiv of operand_size
   (* Float operations, all have 64-bit size and require SSE registers *)
   | AddSD
   (* right/dist := (right/dest) - (left/src) *)
@@ -62,38 +62,38 @@ type instr =
   | XorPD
   | UComiSD
   (* Bitwise operations *)
-  | NotM of register_size
-  | AndIM of register_size
-  | AndMM of register_size
-  | OrIM of register_size
-  | OrMM of register_size
-  | XorIM of register_size
-  | XorMM of register_size
+  | NotM of operand_size
+  | AndIM of operand_size
+  | AndMM of operand_size
+  | OrIM of operand_size
+  | OrMM of operand_size
+  | XorIM of operand_size
+  | XorMM of operand_size
   (* Bit shifts, all only support 8 bit immediates *)
-  | ShlI of register_size
-  | ShlM of register_size
-  | ShrI of register_size
-  | ShrM of register_size
-  | SarI of register_size
-  | SarM of register_size
+  | ShlI of operand_size
+  | ShlM of operand_size
+  | ShrI of operand_size
+  | ShrM of operand_size
+  | SarI of operand_size
+  | SarM of operand_size
   (* Comparisons *)
-  | CmpMI of register_size
-  | CmpMM of register_size
-  | TestMR of register_size
+  | CmpMI of operand_size
+  | CmpMM of operand_size
+  | TestMR of operand_size
   (* Only supports 8-bit destination *)
   | SetCC of condition_code
   (* Conversions *)
-  | ConvertDouble of register_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
+  | ConvertDouble of operand_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
   (* Converts with truncation towards zero *)
   (* GP register size, must be 32 or 64-bit. Converts SSE mem to GP register. *)
-  | ConvertFloatToInt of register_size
+  | ConvertFloatToInt of operand_size
   (* GP register size, must be 32 or 64-bit. Converts GP mem to SSE register *)
-  | ConvertIntToFloat of register_size
+  | ConvertIntToFloat of operand_size
   (* Control flow *)
   | Jmp
   | JmpCC of condition_code
   | CallL of param_types
-  | CallM of register_size * param_types
+  | CallM of operand_size * param_types
   | Ret
 
 module rec InstructionDef : sig
@@ -335,7 +335,7 @@ let instr_def (instr : instr) : InstructionDef.t =
 
 (* Return the size of the i'th operand for this instruction. Size of immediate operands may not
    be accurate. *)
-let operand_size (instr : instr) (i : int) : register_size =
+let instr_operand_size (instr : instr) (i : int) : operand_size =
   match instr with
   (* Instructions where all operands have the same size *)
   | MovIM size

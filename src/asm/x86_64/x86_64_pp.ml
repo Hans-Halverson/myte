@@ -232,7 +232,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
           (fun i operand ->
             let size =
               match operand.Operand.value with
-              | PhysicalRegister _ -> operand_size instr.instr i
+              | PhysicalRegister _ -> instr_operand_size instr.instr i
               | _ -> Size64
             in
             pp_operand ~size operand;

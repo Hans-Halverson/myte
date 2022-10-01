@@ -1,6 +1,6 @@
 open Basic_collections
 
-type register_size =
+type operand_size =
   | Size8
   | Size16
   | Size32
@@ -113,7 +113,7 @@ let caller_saved_registers =
       XMM15;
     ]
 
-let string_of_sized_reg (reg : Register.t) (size : register_size) : string =
+let string_of_sized_reg (reg : Register.t) (size : operand_size) : string =
   match (reg, size) with
   | (A, Size64) -> "rax"
   | (B, Size64) -> "rbx"

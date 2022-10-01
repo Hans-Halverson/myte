@@ -5,8 +5,6 @@ open X86_64_register
 
 type label = string
 
-type register = Register.t * register_size
-
 type immediate =
   | Imm8 of Int8.t
   | Imm16 of int
