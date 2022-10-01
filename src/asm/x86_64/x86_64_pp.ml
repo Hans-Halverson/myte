@@ -274,10 +274,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_sized_op "neg" size;
         pp_operand ~size mem
       | (AddMM size, [| src_mem; dest_mem |]) ->
-        if size == Size64 && dest_mem.type_ == Double then
-          pp_op "addsd"
-        else
-          pp_sized_op "add" size;
+        pp_sized_op "add" size;
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
@@ -287,10 +284,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_operand ~size dest_mem
       | (SubMM size, [| src_mem; dest_mem |]) ->
-        if size == Size64 && dest_mem.type_ == Double then
-          pp_op "subsd"
-        else
-          pp_sized_op "sub" size;
+        pp_sized_op "sub" size;
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_mem
@@ -300,10 +294,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_operand ~size dest_mem
       | (MulMR size, [| src_mem; dest_reg |]) ->
-        if size == Size64 && dest_reg.type_ == Double then
-          pp_op "mulsd"
-        else
-          pp_sized_op "imul" size;
+        pp_sized_op "imul" size;
         pp_operand ~size src_mem;
         pp_args_separator ();
         pp_operand ~size dest_reg
@@ -317,11 +308,26 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | (IDiv size, [| mem |]) ->
         pp_sized_op "idiv" size;
         pp_operand ~size mem
-      | (FDivMR size, [| src_mem; dest_reg |]) ->
-        pp_op "divsd";
-        pp_operand ~size src_mem;
+      | (AddSD, [| src_mem; dest_mem |]) ->
+        pp_op "addsd";
+        pp_operand ~size:Size64 src_mem;
         pp_args_separator ();
-        pp_operand ~size dest_reg
+        pp_operand ~size:Size64 dest_mem
+      | (SubSD, [| src_mem; dest_mem |]) ->
+        pp_op "subsd";
+        pp_operand ~size:Size64 src_mem;
+        pp_args_separator ();
+        pp_operand ~size:Size64 dest_mem
+      | (MulSD, [| src_mem; dest_reg |]) ->
+        pp_op "mulsd";
+        pp_operand ~size:Size64 src_mem;
+        pp_args_separator ();
+        pp_operand ~size:Size64 dest_reg
+      | (DivSD, [| src_mem; dest_reg |]) ->
+        pp_op "divsd";
+        pp_operand ~size:Size64 src_mem;
+        pp_args_separator ();
+        pp_operand ~size:Size64 dest_reg
       (* Bitwise operations *)
       | (NotM size, [| mem |]) ->
         pp_sized_op "not" size;
@@ -391,10 +397,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size dest_mem
       (* Comparisons - arguments intentionally flipped *)
       | (CmpMM size, [| mem1; mem2 |]) ->
-        if size == Size64 && mem1.type_ == Double then
-          pp_op "ucomisd"
-        else
-          pp_sized_op "cmp" size;
+        pp_sized_op "cmp" size;
         pp_operand ~size mem2;
         pp_args_separator ();
         pp_operand ~size mem1
@@ -403,6 +406,11 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size imm;
         pp_args_separator ();
         pp_operand ~size mem
+      | (UComiSD, [| mem1; mem2 |]) ->
+        pp_op "ucomisd";
+        pp_operand ~size:Size64 mem2;
+        pp_args_separator ();
+        pp_operand ~size:Size64 mem1
       | (TestMR size, [| mem; reg |]) ->
         pp_sized_op "test" size;
         pp_operand ~size mem;

@@ -141,18 +141,8 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       (* Resolve all operations with two operands only one of which can be a memory *)
       | { instr = MovMM size; operands = [| src_op; dest_op |]; _ } ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> (MovMM size, [| s; d |]))
-      (* Destination must be register for floating point operations *)
-      | { instr = AddMM size; operands = [| src_op; dest_op |]; _ } when dest_op.type_ = Double ->
-        resolve_operator src_op;
-        force_register_read_write size dest_op (fun dest_op' ->
-            (AddMM size, [| src_op; dest_op' |]))
       | { instr = AddMM size; operands = [| src_op; dest_op |]; _ } ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> (AddMM size, [| s; d |]))
-        (* Destination must be register for floating point operations *)
-      | { instr = SubMM size; operands = [| src_op; dest_op |]; _ } when dest_op.type_ = Double ->
-        resolve_operator src_op;
-        force_register_read_write size dest_op (fun dest_op' ->
-            (SubMM size, [| src_op; dest_op' |]))
       | { instr = SubMM size; operands = [| src_op; dest_op |]; _ } ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> (SubMM size, [| s; d |]))
       | { instr = AndMM size; operands = [| src_op; dest_op |]; _ } ->
@@ -167,19 +157,26 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
       | { instr = XorMM size; operands = [| src_op; dest_op |]; _ } ->
         resolve_binop_single_mem size src_op dest_op (fun s d -> (XorMM size, [| s; d |]))
       | { instr = CmpMM size; operands = [| src_op; dest_op |]; _ } ->
-        if src_op.type_ == Double then (
-          resolve_operator dest_op;
-          force_register_read size src_op (fun src_op' -> (CmpMM size, [| src_op'; dest_op |]))
-        ) else
-          resolve_binop_single_mem size src_op dest_op (fun s d -> (CmpMM size, [| s; d |]))
+        resolve_binop_single_mem size src_op dest_op (fun s d -> (CmpMM size, [| s; d |]))
       | { instr = MulMR size; operands = [| src_op; dest_op |]; _ } ->
         resolve_operator src_op;
         force_register_read_write size dest_op (fun dest_op' ->
             (MulMR size, [| src_op; dest_op' |]))
-      | { instr = FDivMR size; operands = [| src_op; dest_op |]; _ } ->
+      | { instr = AddSD; operands = [| src_op; dest_op |]; _ } ->
         resolve_operator src_op;
-        force_register_read_write size dest_op (fun dest_op' ->
-            (FDivMR size, [| src_op; dest_op' |]))
+        force_register_read_write Size64 dest_op (fun dest_op' -> (AddSD, [| src_op; dest_op' |]))
+      | { instr = SubSD; operands = [| src_op; dest_op |]; _ } ->
+        resolve_operator src_op;
+        force_register_read_write Size64 dest_op (fun dest_op' -> (SubSD, [| src_op; dest_op' |]))
+      | { instr = MulSD; operands = [| src_op; dest_op |]; _ } ->
+        resolve_operator src_op;
+        force_register_read_write Size64 dest_op (fun dest_op' -> (MulSD, [| src_op; dest_op' |]))
+      | { instr = DivSD; operands = [| src_op; dest_op |]; _ } ->
+        resolve_operator src_op;
+        force_register_read_write Size64 dest_op (fun dest_op' -> (DivSD, [| src_op; dest_op' |]))
+      | { instr = UComiSD; operands = [| src_op; dest_op |]; _ } ->
+        resolve_operator dest_op;
+        force_register_read Size64 src_op (fun src_op' -> (UComiSD, [| src_op'; dest_op |]))
       | { instr = ConvertIntToFloat size; operands = [| src_op; dest_op |]; _ } ->
         force_register_write size dest_op (fun dest_op' ->
             (ConvertIntToFloat size, [| src_op; dest_op' |]))

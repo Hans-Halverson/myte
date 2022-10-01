@@ -41,22 +41,25 @@ type instr =
   | MovZX of register_size * register_size
   (* Destination only supports 32 or 64 bit register *)
   | Lea of register_size
-  (* Numeric operations *)
+  (* Integer operations *)
   | NegM of register_size
   | AddIM of register_size
-  (* Allows SSE registers (with 64 bit size), if SSE then destination must be a register *)
   | AddMM of register_size
   (* For sub instructions, right/dest := right/dest - left/src *)
   | SubIM of register_size
-  (* Allows SSE registers (with 64 bit size), if SSE then destination must be a register *)
   | SubMM of register_size
-  (* Allows SSE registers (with 64 bit size). Destination register only supports 16, 32, and 64-bit arguments *)
   | MulMR of register_size
   (* Only supports 16, 32, or 64-bit MR operands, and only supports 16 or 32-bit immediates *)
   | IMulMIR of register_size
   | IDiv of register_size
-  (* Requires SSE registers (with 64 bit size). right/dest := (right/dest) / (left/src) *)
-  | FDivMR of register_size
+  (* Float operations, all have 64-bit size and require SSE registers *)
+  | AddSD
+  (* right/dist := (right/dest) - (left/src) *)
+  | SubSD
+  | MulSD
+  (* right/dest := (right/dest) / (left/src) *)
+  | DivSD
+  | UComiSD
   (* Bitwise operations *)
   | NotM of register_size
   | AndIM of register_size
@@ -75,7 +78,6 @@ type instr =
   | SarM of register_size
   (* Comparisons *)
   | CmpMI of register_size
-  (* Allows SSE registers (with 64 bit size). Must be CmpRM if SSE. *)
   | CmpMM of register_size
   | TestMR of register_size
   (* Only supports 8-bit destination *)
@@ -203,7 +205,19 @@ let imul_mir =
 
 let idiv = { InstructionDef.operands = operands_m_use }
 
-let fdiv_mr = { InstructionDef.operands = operands_mr_usedef }
+let add_sd = { InstructionDef.operands = operands_mr_usedef }
+
+let sub_sd = { InstructionDef.operands = operands_mr_usedef }
+
+let mul_sd = { InstructionDef.operands = operands_mr_usedef }
+
+let div_sd = { InstructionDef.operands = operands_mr_usedef }
+
+let ucomi_sd =
+  {
+    InstructionDef.operands =
+      [{ use = Use; operand_type = RegMem }; { use = Use; operand_type = Register }];
+  }
 
 let not_m = { InstructionDef.operands = operands_m_usedef }
 
@@ -285,7 +299,11 @@ let instr_def (instr : instr) : InstructionDef.t =
   | MulMR _ -> mul_mr
   | IMulMIR _ -> imul_mir
   | IDiv _ -> idiv
-  | FDivMR _ -> fdiv_mr
+  | AddSD -> add_sd
+  | SubSD -> sub_sd
+  | MulSD -> mul_sd
+  | DivSD -> div_sd
+  | UComiSD -> ucomi_sd
   | NotM _ -> not_m
   | AndIM _ -> and_im
   | AndMM _ -> and_mm

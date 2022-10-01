@@ -365,6 +365,12 @@ and gen_instructions ~gcx ~ir ~block instructions =
   in
   (* Generate a cmp instruction between two arguments. Return whether order was swapped. *)
   let gen_cmp left_val right_val =
+    let cmp_op size =
+      if type_of_use left_val == Double then
+        UComiSD
+      else
+        CmpMM size
+    in
     match (resolve_ir_value left_val, resolve_ir_value right_val) with
     | (SImm _, SImm _) -> failwith "Constants must be folded before gen"
     (* Comparison to immediate - swap arguments if necessary *)
@@ -380,19 +386,19 @@ and gen_instructions ~gcx ~ir ~block instructions =
       false
     (* Floating point comparison requires first operand to be a register, so flip if possible *)
     | (SMem (mem1, size), SReg (reg2, _)) when mem1.type_ == Double ->
-      Gcx.emit ~gcx (CmpMM size) [| reg2; mem1 |];
+      Gcx.emit ~gcx (cmp_op size) [| reg2; mem1 |];
       true
     (* Cannot compare two memory locations at the same time. First operand must be a register for
        floating point comparisons. *)
     | (SMem (mem1, size), SMem (mem2, _)) ->
       let vreg = mk_vreg_of_op mem1 in
       Gcx.emit ~gcx (MovMM size) [| mem1; vreg |];
-      Gcx.emit ~gcx (CmpMM size) [| vreg; mem2 |];
+      Gcx.emit ~gcx (cmp_op size) [| vreg; mem2 |];
       false
     | (v1, v2) ->
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
-      Gcx.emit ~gcx (CmpMM (register_size_of_svalue v1)) [| mem1; mem2 |];
+      Gcx.emit ~gcx (cmp_op (register_size_of_svalue v1)) [| mem1; mem2 |];
       false
   in
   let swap_compound_cc cc =
@@ -643,8 +649,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
+      let add_op =
+        if type_ == Double then
+          AddSD
+        else
+          AddMM size
+      in
       Gcx.emit ~gcx (MovMM size) [| mem2; result_op |];
-      Gcx.emit ~gcx (AddMM size) [| mem1; result_op |]);
+      Gcx.emit ~gcx add_op [| mem1; result_op |]);
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
     gen_instructions rest_instructions
   (*
@@ -671,8 +683,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let left_mem = emit_mem left in
       let right_mem = emit_mem right in
       let size = register_size_of_svalue left in
+      let sub_op =
+        if type_ == Double then
+          SubSD
+        else
+          SubMM size
+      in
       Gcx.emit ~gcx (MovMM size) [| left_mem; result_op |];
-      Gcx.emit ~gcx (SubMM size) [| right_mem; result_op |]);
+      Gcx.emit ~gcx sub_op [| right_mem; result_op |]);
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
     gen_instructions rest_instructions
   (*
@@ -695,8 +713,14 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let (v1, v2) = choose_commutative_source_dest_arg_order v1 v2 in
       let mem1 = emit_mem v1 in
       let mem2 = emit_mem v2 in
+      let mul_op =
+        if type_ == Double then
+          MulSD
+        else
+          MulMR size
+      in
       Gcx.emit ~gcx (MovMM size) [| mem2; result_op |];
-      Gcx.emit ~gcx (MulMR size) [| mem1; result_op |]);
+      Gcx.emit ~gcx mul_op [| mem1; result_op |]);
     maybe_truncate_bool_operand ~gcx ~if_bool:left_val result_op;
     gen_instructions rest_instructions
   (*
@@ -715,7 +739,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let dividend_mem = emit_mem dividend in
       let divisor_mem = emit_mem divisor in
       Gcx.emit ~gcx (MovMM size) [| dividend_mem; result_op |];
-      Gcx.emit ~gcx (FDivMR size) [| divisor_mem; result_op |]
+      Gcx.emit ~gcx DivSD [| divisor_mem; result_op |]
     ) else (
       (match resolve_ir_value ~allow_imm64:true right_val with
       (* Division by a power of two can be optimized to a right shift *)
