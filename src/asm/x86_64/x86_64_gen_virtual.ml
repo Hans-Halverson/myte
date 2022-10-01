@@ -793,7 +793,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         mk_memory_address ~address:(mk_label_memory_address double_negate_mask_label) ~type_
       in
       Gcx.emit ~gcx (MovMM size) [| arg_mem; result_op |];
-      Gcx.emit ~gcx (XorMM Size128) [| double_negate_mask; result_op |];
+      Gcx.emit ~gcx XorPD [| double_negate_mask; result_op |];
       gen_instructions rest_instructions
     ) else (
       Gcx.emit ~gcx (MovMM size) [| arg_mem; result_op |];

@@ -48,7 +48,7 @@ class use_def_finder color_to_representative_operand =
         this#visit_explicit_uses_and_defs instr
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
-      | { instr = XorMM _; operands = [| reg1; reg2 |]; _ }
+      | { instr = XorMM _ | XorPD; operands = [| reg1; reg2 |]; _ }
         when Operand.is_reg_value reg1 && reg1.id = reg2.id ->
         this#visit_write_operand ~instr reg1
       | _ -> this#visit_explicit_uses_and_defs instr

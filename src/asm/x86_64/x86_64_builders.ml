@@ -94,6 +94,15 @@ and instr_iter_all_operands (instr : Instruction.t) (f : Operand.t -> OperandDef
       f operand operand_def)
     instr_def.operands
 
+and instr_iteri_all_operands (instr : Instruction.t) (f : int -> Operand.t -> OperandDef.t -> unit)
+    : unit =
+  let instr_def = instr_def instr.instr in
+  List.iteri
+    (fun i (operand_def : OperandDef.t) ->
+      let operand = instr.operands.(i) in
+      f i operand operand_def)
+    instr_def.operands
+
 (* Iterate over all register or memory operands in an instruction. Do not iterate over memory
    addresses directly, instead iterate over their register base and index components. *)
 and instr_iter_reg_mem_operands (instr : Instruction.t) (f : Operand.t -> OperandDef.t -> unit) :

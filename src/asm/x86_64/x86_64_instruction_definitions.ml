@@ -59,6 +59,7 @@ type instr =
   | MulSD
   (* right/dest := (right/dest) / (left/src) *)
   | DivSD
+  | XorPD
   | UComiSD
   (* Bitwise operations *)
   | NotM of register_size
@@ -67,7 +68,6 @@ type instr =
   | OrIM of register_size
   | OrMM of register_size
   | XorIM of register_size
-  (* Allows SSE registers (with 128 bit size), if SSE then destination must be a register *)
   | XorMM of register_size
   (* Bit shifts, all only support 8 bit immediates *)
   | ShlI of register_size
@@ -159,7 +159,7 @@ let operands_mr_def =
   [{ OperandDef.use = Use; operand_type = RegMem }; { use = Def; operand_type = Register }]
 
 let operands_mr_usedef =
-  [{ OperandDef.use = Use; operand_type = RegMem }; { use = Def; operand_type = Register }]
+  [{ OperandDef.use = Use; operand_type = RegMem }; { use = UseDef; operand_type = Register }]
 
 let push_i = { InstructionDef.operands = [{ use = Use; operand_type = Immediate }] }
 
@@ -213,10 +213,12 @@ let mul_sd = { InstructionDef.operands = operands_mr_usedef }
 
 let div_sd = { InstructionDef.operands = operands_mr_usedef }
 
+let xor_pd = { InstructionDef.operands = operands_mr_usedef }
+
 let ucomi_sd =
   {
     InstructionDef.operands =
-      [{ use = Use; operand_type = RegMem }; { use = Use; operand_type = Register }];
+      [{ use = Use; operand_type = Register }; { use = Use; operand_type = RegMem }];
   }
 
 let not_m = { InstructionDef.operands = operands_m_usedef }
@@ -303,6 +305,7 @@ let instr_def (instr : instr) : InstructionDef.t =
   | SubSD -> sub_sd
   | MulSD -> mul_sd
   | DivSD -> div_sd
+  | XorPD -> xor_pd
   | UComiSD -> ucomi_sd
   | NotM _ -> not_m
   | AndIM _ -> and_im
@@ -329,3 +332,69 @@ let instr_def (instr : instr) : InstructionDef.t =
   | CallL _ -> call_l
   | CallM _ -> call_m
   | Ret -> ret
+
+(* Return the size of the i'th operand for this instruction. Size of immediate operands may not
+   be accurate. *)
+let operand_size (instr : instr) (i : int) : register_size =
+  match instr with
+  (* Instructions where all operands have the same size *)
+  | MovIM size
+  | MovMM size
+  | Lea size
+  | NegM size
+  | NotM size
+  | AddIM size
+  | AddMM size
+  | SubIM size
+  | SubMM size
+  | IMulMR size
+  | IMulIMR size
+  | IDiv size
+  | AndIM size
+  | AndMM size
+  | OrIM size
+  | OrMM size
+  | XorIM size
+  | XorMM size
+  | ShlI size
+  | ShlM size
+  | ShrI size
+  | ShrM size
+  | SarI size
+  | SarM size
+  | CmpMI size
+  | CmpMM size
+  | TestMR size
+  | CallM (size, _)
+  | ConvertFloatToInt size
+  | ConvertIntToFloat size ->
+    size
+  (* Instructions where operands have different sizes *)
+  | MovSX (src_size, dest_size)
+  | MovZX (src_size, dest_size) ->
+    if i == 0 then
+      src_size
+    else
+      dest_size
+  (* All stack operations are 64-bit *)
+  | PushI
+  | PushM
+  | PopM ->
+    Size64
+  (* Only 64-bit floating point operations are supported *)
+  | AddSD
+  | SubSD
+  | MulSD
+  | DivSD
+  | XorPD
+  | UComiSD ->
+    Size64
+  (* Instructions that only have byte operands *)
+  | SetCC _ -> Size8
+  (* Instructions with no sized operands *)
+  | ConvertDouble _
+  | Jmp
+  | JmpCC _
+  | CallL _
+  | Ret ->
+    failwith "No sized operands"

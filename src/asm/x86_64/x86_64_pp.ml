@@ -223,12 +223,18 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_integer_size_suffix ~buf size2;
         add_char ~buf ' '
       in
+      let pp_no_args_op op = add_string op in
       let pp_operand = pp_operand ~gcx ~pcx ~buf in
       let pp_args_separator () = add_string ", " in
-      let pp_operands ~size =
+      let pp_operands () =
         let last_operand_idx = Array.length instr.operands - 1 in
         Array.iteri
           (fun i operand ->
+            let size =
+              match operand.Operand.value with
+              | PhysicalRegister _ -> operand_size instr.instr i
+              | _ -> Size64
+            in
             pp_operand ~size operand;
             if i != last_operand_idx then pp_args_separator ())
           instr.operands
@@ -236,103 +242,88 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       match instr.instr with
       | PushI ->
         pp_op "push";
-        pp_operands ~size:Size64
+        pp_operands ()
       | PushM ->
         pp_op "push";
-        pp_operands ~size:Size64
+        pp_operands ()
       | PopM ->
         pp_op "pop";
-        pp_operands ~size:Size64
+        pp_operands ()
       | MovMM size ->
         pp_sized_op "mov" size;
-        pp_operands ~size
+        pp_operands ()
       | MovIM size ->
         pp_sized_op "mov" size;
-        pp_operands ~size
+        pp_operands ()
       | MovSX (src_size, dest_size) ->
         pp_double_sized_op "movs" src_size dest_size;
-        pp_operand ~size:src_size instr.operands.(0);
-        pp_args_separator ();
-        pp_operand ~size:dest_size instr.operands.(1)
+        pp_operands ()
       | MovZX (src_size, dest_size) ->
-        (* Zero extending 32 bit register is actually just a regular mov instruction *)
-        let (src_size, dest_size) =
-          if src_size == Size32 && dest_size == Size64 then (
-            pp_sized_op "mov" Size32;
-            (Size32, Size32)
-          ) else (
-            pp_double_sized_op "movz" src_size dest_size;
-            (src_size, dest_size)
-          )
-        in
-        pp_operand ~size:src_size instr.operands.(0);
-        pp_args_separator ();
-        pp_operand ~size:dest_size instr.operands.(1)
+        pp_double_sized_op "movz" src_size dest_size;
+        pp_operands ()
       | Lea size ->
         pp_sized_op "lea" size;
-        pp_operands ~size
+        pp_operands ()
       (* Numeric operations *)
       | NegM size ->
         pp_sized_op "neg" size;
-        pp_operands ~size
+        pp_operands ()
       | AddMM size ->
         pp_sized_op "add" size;
-        pp_operands ~size
+        pp_operands ()
       | AddIM size ->
         pp_sized_op "add" size;
-        pp_operands ~size
+        pp_operands ()
       | SubMM size ->
         pp_sized_op "sub" size;
-        pp_operands ~size
+        pp_operands ()
       | SubIM size ->
         pp_sized_op "sub" size;
-        pp_operands ~size
-      | IMulMR size ->
-        pp_sized_op "imul" size;
-        pp_operands ~size
+        pp_operands ()
+      | IMulMR size
       | IMulIMR size ->
         pp_sized_op "imul" size;
-        pp_operands ~size
+        pp_operands ()
       | IDiv size ->
         pp_sized_op "idiv" size;
-        pp_operands ~size
+        pp_operands ()
       | AddSD ->
         pp_op "addsd";
-        pp_operands ~size:Size64
+        pp_operands ()
       | SubSD ->
         pp_op "subsd";
-        pp_operands ~size:Size64
+        pp_operands ()
       | MulSD ->
         pp_op "mulsd";
-        pp_operands ~size:Size64
+        pp_operands ()
       | DivSD ->
         pp_op "divsd";
-        pp_operands ~size:Size64
+        pp_operands ()
+      | XorPD ->
+        pp_op "xorpd";
+        pp_operands ()
       (* Bitwise operations *)
       | NotM size ->
         pp_sized_op "not" size;
-        pp_operands ~size
+        pp_operands ()
       | AndMM size ->
         pp_sized_op "and" size;
-        pp_operands ~size
+        pp_operands ()
       | AndIM size ->
         pp_sized_op "and" size;
-        pp_operands ~size
+        pp_operands ()
       | OrMM size ->
         pp_sized_op "or" size;
-        pp_operands ~size
+        pp_operands ()
       | OrIM size ->
         pp_sized_op "or" size;
-        pp_operands ~size
+        pp_operands ()
       | XorMM size ->
-        if size == Size128 then
-          pp_op "xorpd"
-        else
-          pp_sized_op "xor" size;
-        pp_operands ~size
+        pp_sized_op "xor" size;
+        pp_operands ()
       | XorIM size ->
         pp_sized_op "xor" size;
-        pp_operands ~size
+        pp_operands ()
       | ShlM size ->
         pp_sized_op "shl" size;
         pp_sized_register ~buf C Size8;
@@ -340,7 +331,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size instr.operands.(0)
       | ShlI size ->
         pp_sized_op "shl" size;
-        pp_operands ~size
+        pp_operands ()
       | ShrM size ->
         pp_sized_op "shr" size;
         pp_sized_register ~buf C Size8;
@@ -348,7 +339,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size instr.operands.(0)
       | ShrI size ->
         pp_sized_op "shr" size;
-        pp_operands ~size
+        pp_operands ()
       | SarM size ->
         pp_sized_op "sar" size;
         pp_sized_register ~buf C Size8;
@@ -356,7 +347,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size instr.operands.(0)
       | SarI size ->
         pp_sized_op "sar" size;
-        pp_operands ~size
+        pp_operands ()
       (* Comparisons - arguments intentionally flipped *)
       | CmpMM size ->
         pp_sized_op "cmp" size;
@@ -375,10 +366,10 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size:Size64 instr.operands.(0)
       | TestMR size ->
         pp_sized_op "test" size;
-        pp_operands ~size
+        pp_operands ()
       | SetCC cc ->
         pp_op ("set" ^ pp_condition_code cc);
-        pp_operands ~size:Size8
+        pp_operands ()
       | ConvertDouble size ->
         let op =
           match size with
@@ -390,27 +381,27 @@ let pp_instruction ~gcx ~pcx ~buf instr =
             failwith "ConvertDouble cannot have 1-byte or 16-byte size"
         in
         pp_op op
-      | ConvertIntToFloat size ->
+      | ConvertIntToFloat _ ->
         pp_op "cvtsi2sd";
-        pp_operands ~size
-      | ConvertFloatToInt size ->
+        pp_operands ()
+      | ConvertFloatToInt _ ->
         pp_op "cvttsd2si";
-        pp_operands ~size
+        pp_operands ()
       (* Control flow *)
       | Jmp ->
         pp_op "jmp";
-        pp_operands ~size:Size64
+        pp_operands ()
       | JmpCC cc ->
         pp_op ("j" ^ pp_condition_code cc);
-        pp_operands ~size:Size64
+        pp_operands ()
       | CallM (size, _) ->
         pp_sized_op "call" size;
         add_char ~buf '*';
-        pp_operands ~size
+        pp_operands ()
       | CallL _ ->
         pp_op "call";
-        pp_operands ~size:Size64
-      | Ret -> add_string "ret")
+        pp_operands ()
+      | Ret -> pp_no_args_op "ret")
 
 let rec pp_data_value ~buf (data_value : data_value) =
   let add_directive directive value =

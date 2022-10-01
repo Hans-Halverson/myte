@@ -15,9 +15,9 @@ type immediate =
 
 module rec MemoryAddress : sig
   type t = {
-    offset: offset option;
-    base: base;
-    index_and_scale: (Operand.t * scale) option;
+    mutable offset: offset option;
+    mutable base: base;
+    mutable index_and_scale: (Operand.t * scale) option;
   }
 
   and offset =

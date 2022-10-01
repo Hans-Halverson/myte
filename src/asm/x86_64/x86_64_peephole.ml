@@ -52,6 +52,16 @@ let remove_byte_reg_reg_moves_optimization ~gcx:_ instr =
     true
   | _ -> false
 
+(* Zero extending 32 bit register is actually just a regular mov instruction since the upper bytes
+   are automatically zeroed. *)
+let simplify_32_to_64_zext_optimization ~gcx:_ instr =
+  let open Instruction in
+  match instr with
+  | { instr = MovZX (Size32, Size64); _ } ->
+    instr.instr <- MovMM Size32;
+    true
+  | _ -> false
+
 (* Loading zero to a register can be replaced by a reflexive xor for smaller instruction size *)
 let load_zero_to_register_optimization ~gcx:_ instr =
   let open Instruction in
@@ -88,7 +98,8 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr =
       true
   | _ -> false
 
-let basic_peephole_optimizations = [remove_byte_reg_reg_moves_optimization]
+let basic_peephole_optimizations =
+  [remove_byte_reg_reg_moves_optimization; simplify_32_to_64_zext_optimization]
 
 let optimizer_peephole_optimizations =
   [load_zero_to_register_optimization; power_of_two_strength_reduction_optimization]
