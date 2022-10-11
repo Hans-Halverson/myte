@@ -1,22 +1,115 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-set -e
+import os
+import shutil
+import subprocess
+import platform
+import tempfile
 
-CURRENT_DIR=$(cd "$(dirname "$0")" && pwd)
-ROOT_DIR=$(dirname "$CURRENT_DIR")
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(SCRIPTS_DIR)
+BUILD_DIR = os.path.join(ROOT_DIR, "build")
+SRC_DIR = os.path.join(ROOT_DIR, "src")
+TEST_DIR = os.path.join(ROOT_DIR, "test")
 
-BUILD_DIR="$ROOT_DIR/build"
+LIB_DIR = os.path.join(BUILD_DIR, "lib")
+LIB_GC_DIR = os.path.join(LIB_DIR, "gc")
+LIB_GC_INCLUDE_DIR = os.path.join(LIB_GC_DIR, "include")
 
-# Set up build directory
-mkdir -p "$BUILD_DIR"
+def system(*args, **kwargs):
+  ret = subprocess.call(*args, **kwargs)
+  if ret != 0:
+    exit(ret)
 
-# Build myte executable
-cd "$ROOT_DIR/src"
-opam exec -- dune build myte.exe --no-print-directory
+def ocaml_build(program, dir):
+  system(["opam", "exec", "--", "dune", "build", program, "--no-print-directory"], cwd=dir)
 
-# Build test suite
-cd "$ROOT_DIR/test"
-opam exec -- dune build run_tests.exe --no-print-directory
+def build_myte():
+  ocaml_build("myte.exe", SRC_DIR)
 
-# Build runtime
-"$CURRENT_DIR/build_runtime"
+def build_test_suite():
+  ocaml_build("run_tests.exe", TEST_DIR)
+
+def build_runtime():
+  build_boehm_gc()
+
+  # Copy library files into clean build directory
+  lib_runtime_dir = os.path.join(LIB_DIR, "runtime")
+  lib_stdlib_dir = os.path.join(LIB_DIR, "stdlib")
+
+  shutil.rmtree(lib_runtime_dir, ignore_errors=True)
+  shutil.rmtree(lib_stdlib_dir, ignore_errors=True)
+
+  shutil.copytree(os.path.join(ROOT_DIR, "lib", "runtime"), lib_runtime_dir)
+  shutil.copytree(os.path.join(ROOT_DIR, "lib", "stdlib"), lib_stdlib_dir)
+
+  # Detect host OS
+  detected_host_system = platform.system()
+  if detected_host_system == "Linux":
+    host_system = "linux"
+  elif detected_host_system == "Darwin":
+    host_system = "macos"
+  else:
+    print("Unsupported operating system", host_system)
+    exit(1)
+
+  # Filter out runtime files for other systems
+  all_systems = ["linux", "macos"]
+  source_files = []
+  for file in os.listdir(lib_runtime_dir):
+    if not file.endswith(".h") and not file.endswith(".c") and not file.endswith(".S"):
+      continue
+
+    exclude_file = False
+    for system_name in all_systems:
+      if system_name != host_system and system_name in file:
+        exclude_file = True
+
+    if not exclude_file:
+      source_files.append(file)
+
+  # Compile runtime source files
+  clang_args = ["clang", "-O2", "--include-directory", LIB_GC_INCLUDE_DIR,"-c"]
+  clang_args.extend(source_files)
+  system(clang_args, cwd=lib_runtime_dir)
+
+  # Create static archive for runtime
+  o_files = [file for file in os.listdir(lib_runtime_dir) if file.endswith(".o")]
+  ar_args = ["ar", "rcs", "libmyte.a"]
+  ar_args.extend(o_files)
+  system(ar_args, cwd=lib_runtime_dir)
+
+def build_boehm_gc():
+  libgc_path = os.path.join(LIB_GC_DIR, "libgc.a")
+
+  # Check if already built
+  if os.path.isfile(libgc_path):
+    return
+
+  with tempfile.TemporaryDirectory() as temp_dir:
+    # Unpack source code to temp directory
+    print("Unpacking Boehm GC")
+    boehm_gc_tar = os.path.join(ROOT_DIR, "deps", "gc-8.0.6.tar.gz")
+    system(["tar", "-xf", boehm_gc_tar, "-C", temp_dir, "--strip-components=1"])
+
+    # Build from source
+    print("Building Boehm GC")
+    system(["./configure", "--prefix", os.path.join(temp_dir, "out"), "--disable-threads", "--enable-static"], cwd=temp_dir)
+    system(["make", "install"], cwd=temp_dir)
+
+    # Copy source code to built lib
+    shutil.rmtree(LIB_GC_DIR, ignore_errors=True)
+    os.makedirs(LIB_GC_DIR, exist_ok=True)
+    shutil.copy(os.path.join(temp_dir, "out", "lib", "libgc.a"), libgc_path)
+    shutil.copytree(os.path.join(temp_dir, "out", "include"), LIB_GC_INCLUDE_DIR)
+
+def main():
+  # Set up build directory
+  os.makedirs(BUILD_DIR, exist_ok=True)
+
+  build_myte()
+  build_test_suite()
+  build_runtime()
+
+if __name__ == "__main__":
+  main()
