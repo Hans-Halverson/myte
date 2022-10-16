@@ -95,9 +95,14 @@ let transform_ir ~pcx program =
   Mir_transforms.transform_for_assembly ~program ~pcx
 
 let lower_to_asm ir =
-  (* Generate x86_64 program  *)
-  let gcx = X86_64_gen.gen_program ir in
-  let program_file = X86_64_pp.pp_program ~gcx in
+  (* Generate textual assembly for program *)
+  let assembly_text =
+    match Target.target_architecture () with
+    | X86_64 ->
+      let gcx = X86_64_gen.gen_program ir in
+      X86_64_pp.pp_program ~gcx
+    | AArch64 -> ".text\n_stub:\nret\n"
+  in
   let output_file =
     match Opts.output_file () with
     | None ->
@@ -107,10 +112,10 @@ let lower_to_asm ir =
   in
   let output_file = output_file ^ ".S" in
 
-  (* Write textual x86 assembly to output file *)
+  (* Write textual assembly to output file *)
   try
     let out_chan = open_out output_file in
-    output_string out_chan program_file;
+    output_string out_chan assembly_text;
     close_out out_chan;
     output_file
   with
@@ -119,7 +124,7 @@ let lower_to_asm ir =
     exit 1
 
 let gen_executable asm_file =
-  match Target.system () with
+  match Target.target_system () with
   | Target.Darwin -> Driver_mac.gen_executable asm_file
   | Linux -> Driver_linux.gen_executable asm_file
 

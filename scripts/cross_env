@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import subprocess
+
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(SCRIPTS_DIR)
+
+supported_targets = { "aarch64-linux-gnu" }
+
+def shell(*args, **kwargs):
+  ret = subprocess.call(*args, **kwargs)
+  if ret != 0:
+    exit(ret)
+
+def aarch64_linux_gnu(args):
+  target = args.target
+  docker_image_name = "myte-" + target
+
+  if args.rebuild:
+    dockerfile = os.path.join(SCRIPTS_DIR, target, "Dockerfile")
+    shell(["docker", "build", "-t", docker_image_name, "-f", dockerfile, ROOT_DIR])
+  else:
+    shell(["docker", "run", "-it", "-v", ROOT_DIR + ":/myte", docker_image_name])
+
+def print_supported_targets():
+  for target in supported_targets:
+    print('- ' + target)
+
+def main():
+  parser = argparse.ArgumentParser(description="Myte cross compiler development environment")
+  parser.add_argument("target", action="store", help="Target environment, supports aarch64-linux-gnu", nargs="?")
+  parser.add_argument("--rebuild", action="store_true", dest="rebuild", help="Rebuild the environment for this target")
+  args = parser.parse_args()
+
+  if args.target is None:
+    parser.print_usage()
+    print("Error: a target must be provided. Supported targets are:")
+    print_supported_targets()
+    exit(1)
+
+  if args.target not in supported_targets:
+    print("Error: unsupported target {}. Supported targets are:".format(args.target))
+    print_supported_targets()
+    exit(1)
+
+  if args.target == "aarch64-linux-gnu":
+    aarch64_linux_gnu(args)
+
+if __name__ == "__main__":
+  main()

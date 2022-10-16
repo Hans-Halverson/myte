@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import shutil
 import subprocess
@@ -11,50 +12,143 @@ ROOT_DIR = os.path.dirname(SCRIPTS_DIR)
 BUILD_DIR = os.path.join(ROOT_DIR, "build")
 SRC_DIR = os.path.join(ROOT_DIR, "src")
 TEST_DIR = os.path.join(ROOT_DIR, "test")
+COMMON_LIB_DIR = os.path.join(BUILD_DIR, "lib")
+DUNE_BUILD_DEFAULT_DIR = os.path.join(ROOT_DIR, "_build", "default")
 
-LIB_DIR = os.path.join(BUILD_DIR, "lib")
-LIB_GC_DIR = os.path.join(LIB_DIR, "gc")
-LIB_GC_INCLUDE_DIR = os.path.join(LIB_GC_DIR, "include")
+target_triples = {
+  "aarch64-linux-gnu": ("aarch64", "linux"),
+  "x86-64-linux-gnu": ("x86-64", "linux"),
+  "x86-64-apple-darwin": ("x86-64", "darwin"),
+}
 
-def system(*args, **kwargs):
+all_systems = ["darwin", "linux"]
+all_archs = ["aarch64", "x86-64"]
+
+def init_build_machine():
+  global build_arch
+  global build_system
+  global gcc_build_triple
+
+  # Detect build system and architecture
+  detected_arch = platform.machine()
+  if detected_arch == "x86_64":
+    build_arch = "x86-64"
+  else:
+    print("Unsupported architecture", detected_arch)
+    exit(1)
+
+  detected_system = platform.system()
+  if detected_system == "Linux":
+    build_system = "linux"
+  elif detected_system == "Darwin":
+    build_system = "darwin"
+  else:
+    print("Unsupported operating system", detected_system)
+    exit(1)
+
+  # Set up build triples
+  gcc_build_triple = get_gcc_target_triple(build_arch, build_system)
+
+def init_target_machine(args):
+  global target_arch
+  global target_system
+  global target_triple
+  global gcc_target_triple
+  global llvm_target_triple
+  global is_cross_compiling_runtime
+
+  cli_target = args.target
+  if cli_target is not None:
+    if cli_target not in target_triples:
+      print("Unsupported target", cli_target)
+      exit(1)
+    
+    (target_arch, target_system) = target_triples[cli_target]
+
+  else:
+    target_arch = build_arch
+    target_system = build_system
+
+  # Set up target triples
+  gcc_target_triple = get_gcc_target_triple(target_arch, target_system)
+  llvm_target_triple = get_llvm_target_triple(target_arch, target_system)
+  target_triple = gcc_target_triple
+
+  is_cross_compiling_runtime = target_arch != build_arch or target_system != build_system
+  if is_cross_compiling_runtime and (build_system == "darwin" or (build_system != target_system)):
+    print("Cannot build runtime for target {} on build system {}".format(gcc_target_triple, gcc_build_triple))
+    exit(1)
+
+def get_gcc_target_triple(arch, system):
+  if system == "darwin":
+    return arch + "-apple-darwin"
+  elif system == "linux":
+    return arch + "-linux-gnu"
+
+def get_llvm_target_triple(arch, system):
+  if arch == "x86-64":
+    llvm_arch = "x86_64"
+  else:
+    llvm_arch = arch
+
+  if system == "darwin":
+    return llvm_arch + "-apple-darwin"
+  elif system == "linux":
+    return llvm_arch + "-linux-gnu"
+
+def target_lib_dir():
+  return os.path.join(COMMON_LIB_DIR, target_triple)
+
+def lib_gc_dir():
+  return os.path.join(target_lib_dir(), "gc")
+
+def lib_gc_include_dir():
+  return os.path.join(lib_gc_dir(), "include")
+
+def shell(*args, **kwargs):
   ret = subprocess.call(*args, **kwargs)
   if ret != 0:
     exit(ret)
 
+def remove_file(file):
+  if os.path.exists(file):
+    os.remove(file)
+
 def ocaml_build(program, dir):
-  system(["opam", "exec", "--", "dune", "build", program, "--no-print-directory"], cwd=dir)
+  shell(["opam", "exec", "--", "dune", "build", program, "--no-print-directory"], cwd=dir)
 
 def build_myte():
   ocaml_build("myte.exe", SRC_DIR)
 
+  # Copy binary to build dir
+  output_binary = os.path.join(DUNE_BUILD_DEFAULT_DIR, "src", "myte.exe")
+  dest_binary_path = os.path.join(BUILD_DIR, "myte")
+  remove_file(dest_binary_path)
+  shutil.copy(output_binary, dest_binary_path)
+
 def build_test_suite():
   ocaml_build("run_tests.exe", TEST_DIR)
+
+  # Copy binary to build dir
+  output_binary = os.path.join(DUNE_BUILD_DEFAULT_DIR, "test", "run_tests.exe")
+  dest_binary_path = os.path.join(BUILD_DIR, "run_tests")
+  remove_file(dest_binary_path)
+  shutil.copy(output_binary, dest_binary_path)
 
 def build_runtime():
   build_boehm_gc()
 
   # Copy library files into clean build directory
-  lib_runtime_dir = os.path.join(LIB_DIR, "runtime")
-  lib_stdlib_dir = os.path.join(LIB_DIR, "stdlib")
+  lib_stdlib_dir = os.path.join(COMMON_LIB_DIR, "stdlib")
+  lib_runtime_dir = os.path.join(target_lib_dir(), "runtime")
 
-  shutil.rmtree(lib_runtime_dir, ignore_errors=True)
   shutil.rmtree(lib_stdlib_dir, ignore_errors=True)
+  shutil.rmtree(lib_runtime_dir, ignore_errors=True)
 
-  shutil.copytree(os.path.join(ROOT_DIR, "lib", "runtime"), lib_runtime_dir)
   shutil.copytree(os.path.join(ROOT_DIR, "lib", "stdlib"), lib_stdlib_dir)
-
-  # Detect host OS
-  detected_host_system = platform.system()
-  if detected_host_system == "Linux":
-    host_system = "linux"
-  elif detected_host_system == "Darwin":
-    host_system = "macos"
-  else:
-    print("Unsupported operating system", host_system)
-    exit(1)
+  shutil.copytree(os.path.join(ROOT_DIR, "lib", "runtime"), lib_runtime_dir)
 
   # Filter out runtime files for other systems
-  all_systems = ["linux", "macos"]
   source_files = []
   for file in os.listdir(lib_runtime_dir):
     if not file.endswith(".h") and not file.endswith(".c") and not file.endswith(".S"):
@@ -62,25 +156,30 @@ def build_runtime():
 
     exclude_file = False
     for system_name in all_systems:
-      if system_name != host_system and system_name in file:
+      if system_name != target_system and system_name in file:
+        exclude_file = True
+    for arch_name in all_archs:
+      if arch_name != target_arch and arch_name in file:
         exclude_file = True
 
     if not exclude_file:
       source_files.append(file)
 
   # Compile runtime source files
-  clang_args = ["clang", "-O2", "--include-directory", LIB_GC_INCLUDE_DIR,"-c"]
+  clang_args = ["clang", "-O2", "--include-directory", lib_gc_include_dir(), "-c"]
+  clang_args.extend(["-target", llvm_target_triple])
   clang_args.extend(source_files)
-  system(clang_args, cwd=lib_runtime_dir)
+  shell(clang_args, cwd=lib_runtime_dir)
 
   # Create static archive for runtime
   o_files = [file for file in os.listdir(lib_runtime_dir) if file.endswith(".o")]
-  ar_args = ["ar", "rcs", "libmyte.a"]
+  ar = gcc_target_triple + "-ar" if is_cross_compiling_runtime else "ar"
+  ar_args = [ar, "rcs", "libmyte.a"]
   ar_args.extend(o_files)
-  system(ar_args, cwd=lib_runtime_dir)
+  shell(ar_args, cwd=lib_runtime_dir)
 
 def build_boehm_gc():
-  libgc_path = os.path.join(LIB_GC_DIR, "libgc.a")
+  libgc_path = os.path.join(lib_gc_dir(), "libgc.a")
 
   # Check if already built
   if os.path.isfile(libgc_path):
@@ -90,25 +189,38 @@ def build_boehm_gc():
     # Unpack source code to temp directory
     print("Unpacking Boehm GC")
     boehm_gc_tar = os.path.join(ROOT_DIR, "deps", "gc-8.0.6.tar.gz")
-    system(["tar", "-xf", boehm_gc_tar, "-C", temp_dir, "--strip-components=1"])
+    shell(["tar", "-xf", boehm_gc_tar, "-C", temp_dir, "--strip-components=1"])
 
     # Build from source
     print("Building Boehm GC")
-    system(["./configure", "--prefix", os.path.join(temp_dir, "out"), "--disable-threads", "--enable-static"], cwd=temp_dir)
-    system(["make", "install"], cwd=temp_dir)
+    configure_args = ["./configure", "--prefix", os.path.join(temp_dir, "out"), "--disable-threads", "--enable-static"]
+    if is_cross_compiling_runtime:
+      configure_args.extend(["--build", gcc_build_triple, "--host", gcc_target_triple])
+    shell(configure_args, cwd=temp_dir)
+    shell(["make", "install"], cwd=temp_dir)
 
     # Copy source code to built lib
-    shutil.rmtree(LIB_GC_DIR, ignore_errors=True)
-    os.makedirs(LIB_GC_DIR, exist_ok=True)
+    shutil.rmtree(lib_gc_dir(), ignore_errors=True)
+    os.makedirs(lib_gc_dir(), exist_ok=True)
     shutil.copy(os.path.join(temp_dir, "out", "lib", "libgc.a"), libgc_path)
-    shutil.copytree(os.path.join(temp_dir, "out", "include"), LIB_GC_INCLUDE_DIR)
+    shutil.copytree(os.path.join(temp_dir, "out", "include"), lib_gc_include_dir())
 
 def main():
-  # Set up build directory
-  os.makedirs(BUILD_DIR, exist_ok=True)
+  parser = argparse.ArgumentParser(description="Build myte compiler and runtime")
+  parser.add_argument("--target", action="store", dest="target", help="Target to build runtime library for, defaults to host")
+  parser.add_argument("--runtime-only", action="store_true", dest="runtime_only", help="Build only the runtime library")
+  args = parser.parse_args()
 
-  build_myte()
-  build_test_suite()
+  init_build_machine()
+  init_target_machine(args)
+
+  # Set up build directory and build directory for target runtime
+  os.makedirs(target_lib_dir(), exist_ok=True)
+
+  if not args.runtime_only:
+    build_myte()
+    build_test_suite()
+
   build_runtime()
 
 if __name__ == "__main__":

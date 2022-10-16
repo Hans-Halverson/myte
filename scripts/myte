@@ -7,4 +7,4 @@ ROOT_DIR=$(dirname "$CURRENT_DIR")
 
 . "$CURRENT_DIR/setup_myte_env"
 
-"$ROOT_DIR/_build/default/src/myte.exe" "$@"
+"$ROOT_DIR/build/myte" "$@"

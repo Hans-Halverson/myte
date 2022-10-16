@@ -26,9 +26,11 @@ let installation_path = ref "<uninitialized>"
 
 let build_stdlib_path installation_path = Files.join_parts [installation_path; "lib"; "stdlib"]
 
-let build_runtime_path installation_path = Files.join_parts [installation_path; "lib"; "runtime"]
+let build_runtime_path installation_path =
+  Files.join_parts [installation_path; "lib"; Target.(target_triple !target); "runtime"]
 
-let build_gc_path installation_path = Files.join_parts [installation_path; "lib"; "gc"]
+let build_gc_path installation_path =
+  Files.join_parts [installation_path; "lib"; Target.(target_triple !target); "gc"]
 
 let get_stdlib_path () = build_stdlib_path !installation_path
 
@@ -40,7 +42,7 @@ let lib_myte_file () = Filename.concat (get_runtime_path ()) "libmyte.a"
 
 let lib_gc_file () = Filename.concat (get_gc_path ()) "libgc.a"
 
-let detect () =
+let init () =
   let is_directory path = Sys.file_exists path && Sys.is_directory path in
 
   let check_is_valid_installation path =
