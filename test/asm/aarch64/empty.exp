@@ -1,0 +1,7 @@
+  .global _main
+
+  .text
+_main:
+  b .L0
+.L0:
+  ret

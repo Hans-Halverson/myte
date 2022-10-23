@@ -127,6 +127,7 @@ let lower_to_asm ir =
     exit 1
 
 let gen_executable asm_file =
+  Installation.init_runtime ();
   match Target.target_system () with
   | Target.Darwin -> Driver_mac.gen_executable asm_file
   | Linux -> Driver_linux.gen_executable asm_file

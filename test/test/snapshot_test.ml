@@ -19,6 +19,8 @@ let exp_file_suffix = ".exp"
 
 let config_file_suffix = ".config"
 
+let skip_rest_marker = "\nSKIP_REST"
+
 let write_file file contents =
   let file_out = open_out file in
   output_string file_out contents;
@@ -112,6 +114,24 @@ let run_snapshot_test ~commands ~config ~record ~myte_files ~exp_file =
                  err)
         in
         let exp_contents = Result.value exp_contents_result ~default:"" in
+
+        (* Handle the skip rest marker by truncating actual and expected results *)
+        let (act_contents, exp_contents) =
+          if String.ends_with ~suffix:skip_rest_marker act_contents then
+            let act_contents =
+              String.sub act_contents 0 (String.length act_contents - String.length skip_rest_marker - 1)
+            in
+            let exp_contents =
+              String.sub
+                exp_contents
+                0
+                (min (String.length exp_contents) (String.length act_contents))
+            in
+            (act_contents, exp_contents)
+          else
+            (act_contents, exp_contents)
+        in
+
         if Result.is_error exp_contents_result then (
           record_snapshot ();
           Test.Failed (Result.get_error exp_contents_result)

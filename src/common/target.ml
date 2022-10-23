@@ -12,7 +12,12 @@ type machine = {
   system: system;
 }
 
+let all_architectures = [AArch64; X86_64]
+
 let empty_machine = { architecture = X86_64; system = Linux }
+
+let equal (m1 : machine) (m2 : machine) : bool =
+  m1.architecture == m2.architecture && m1.system == m2.system
 
 let host = ref empty_machine
 

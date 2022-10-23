@@ -1,5 +1,6 @@
 type opts = {
   bin: string ref;
+  cross: string ref;
   exclude: string ref;
   filter: string ref;
   record: bool ref;
@@ -12,6 +13,7 @@ let default_bin = Filename.concat (Sys.getcwd ()) "_build/default/src/myte.exe"
 let opts =
   {
     bin = ref default_bin;
+    cross = ref "";
     exclude = ref "";
     filter = ref "";
     record = ref false;
@@ -22,6 +24,7 @@ let opts =
 let spec =
   [
     ("--bin", Arg.Set_string opts.bin, " The Myte binary to test");
+    ("--cross", Arg.Set_string opts.cross, " Run cross-compilation tests for this target");
     ("--exclude", Arg.Set_string opts.exclude, " Exclude tests which match a regex");
     ("--filter", Arg.Set_string opts.filter, " Run only tests which match a regex");
     ("--record", Arg.Set opts.record, " Re-record snapshot tests");
@@ -41,11 +44,14 @@ let regexp_opt string =
 let () =
   Arg.parse spec (fun _ -> ()) "Run Myte test suite";
   let bin = !(opts.bin) in
+  let cross = !(opts.cross) in
   let exclude = regexp_opt !(opts.exclude) in
   let filter = regexp_opt !(opts.filter) in
   let record = !(opts.record) in
   let tree_full = !(opts.tree_full) in
   let tree = tree_full || !(opts.tree) in
+
+  Target.init_host ();
 
   let suite_results =
     Runner.run_suites
@@ -55,7 +61,7 @@ let () =
         Parser_tests.suite ~bin ~record;
         Analyze_tests.suite ~bin ~record;
         Mir_tests.suite ~bin ~record;
-        Asm_tests.suite ~bin ~record;
+        Asm_tests.suite ~bin ~record ~cross;
         Cli_tests.suite ~bin ~record;
         Program_tests.suite ~bin ~record;
         Self_tests.suite;

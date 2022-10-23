@@ -3,28 +3,76 @@ name: Build and test
 on: [push]
 
 jobs:
-  build-and-test:
+  build-and-test-native:
+    name: Build and test (${{ matrix.target }})
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        include:
+          - target: x86-64-apple-darwin
+            os: macos-latest
+          - target: x86-64-linux-gnu
+            os: ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 4.14.0
+          dune-cache: true
+
       - name: Install Myte dependencies
         run: opam install . --deps-only
+
       - name: Build Myte
         run: ./scripts/build
+
       - name: Run Myte tests
         run: ./scripts/run_tests
+
       - name: Bundle files
         run: tar -czf build.tgz build
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: myte-build-${{ matrix.os }}
+          name: myte-build-${{ matrix.target }}
           path: build.tgz
+
+  build-and-test-qemu:
+    runs-on: ubuntu-latest
+    name: Build and test (${{ matrix.target }})
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-linux-gnu
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker container
+        uses: docker/build-push-action@v3
+        with:
+          push: false
+          load: true
+          context: .
+          file: ./scripts/${{ matrix.target }}/Dockerfile
+          tags: myte-${{ matrix.target }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and test in Docker container
+        uses: addnab/docker-run-action@v3
+        with:
+          image: myte-${{ matrix.target }}:latest
+          options: -v ${{ github.workspace }}:/myte
+          shell: bash
+          run: |
+            ./scripts/build
+            ./scripts/build --target ${{ matrix.target }}
+            ./scripts/run_tests --cross ${{ matrix.target }}

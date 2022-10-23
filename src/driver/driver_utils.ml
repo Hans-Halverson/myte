@@ -24,7 +24,7 @@ let cc_path () =
   | None ->
     (match Target.target_system () with
     | Darwin -> "clang"
-    | Linux when Target.target_architecture () == Target.host_architecture () -> "gcc"
+    | Linux when Target.target_architecture () == Target.host_architecture () -> "cc"
     | Linux -> Target.gcc_target_triple !Target.target ^ "-gcc")
 
 let print_errors errors =
