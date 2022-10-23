@@ -38,7 +38,8 @@ type x86_64_register =
   ]
 
 type aarch64_register =
-  [ `R0
+  [ (* General purpose registers *)
+    `R0
   | `R1
   | `R2
   | `R3
@@ -70,6 +71,41 @@ type aarch64_register =
   | `R29
   | (* Link register *)
     `R30
+  | (* Stack pointer / Zero register *)
+    `R31
+  | (* Floating point and vector registers *)
+    `V0
+  | `V1
+  | `V2
+  | `V3
+  | `V4
+  | `V5
+  | `V6
+  | `V7
+  | `V8
+  | `V9
+  | `V10
+  | `V11
+  | `V12
+  | `V13
+  | `V14
+  | `V15
+  | `V16
+  | `V17
+  | `V18
+  | `V19
+  | `V20
+  | `V21
+  | `V22
+  | `V23
+  | `V24
+  | `V25
+  | `V26
+  | `V27
+  | `V28
+  | `V29
+  | `V30
+  | `V31
   ]
 
 module Register = struct

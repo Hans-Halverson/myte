@@ -1,4 +1,5 @@
 open Asm
+open Asm_calling_convention
 open Asm_instruction_definition
 open Asm_register
 open Mir_type
@@ -209,6 +210,22 @@ let mk_func_id () =
   let id = !max_func_id in
   max_func_id := id + 1;
   id
+
+let mk_function ~(param_types : param_type array) ~(return_type : Mir_type.Type.t option) :
+    Function.t =
+  {
+    Function.id = mk_func_id ();
+    params = [];
+    param_types;
+    return_type;
+    prologue = null_block;
+    blocks = [];
+    spilled_callee_saved_regs = RegSet.empty;
+    spilled_vslots = OperandSet.empty;
+    num_stack_frame_slots = 0;
+    argument_stack_slots = [];
+    num_argument_stack_slots = 0;
+  }
 
 let func_iter_blocks (func : Function.t) (f : Block.t -> unit) = List.iter f func.blocks
 

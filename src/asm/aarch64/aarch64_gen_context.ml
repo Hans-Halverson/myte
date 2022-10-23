@@ -3,6 +3,7 @@ open Aarch64_register
 open Asm
 open Asm_builders
 open Asm_calling_convention
+open Asm_instruction_definition
 open Asm_register
 open Mir_type
 
@@ -40,4 +41,47 @@ module Gcx = struct
       funcs = FunctionSet.empty;
       color_to_op;
     }
+
+  let get_block_from_mir_block ~gcx mir_block =
+    match Mir.BlockMap.find_opt mir_block gcx.mir_block_to_block with
+    | Some block -> block
+    | None ->
+      let block = mk_block ~func:null_function in
+      gcx.mir_block_to_block <- Mir.BlockMap.add mir_block block gcx.mir_block_to_block;
+      block
+
+  let start_block ~gcx ~label ~func ~mir_block =
+    let block =
+      match mir_block with
+      | None -> mk_block ~func
+      | Some mir_block -> get_block_from_mir_block ~gcx mir_block
+    in
+    block.func <- func;
+    block.label <- label;
+    gcx.current_block <- Some block
+
+  let finish_block ~gcx =
+    let block = Option.get gcx.current_block in
+    block.func.blocks <- block :: block.func.blocks;
+    gcx.current_block <- None
+
+  let start_function ~gcx param_types return_type =
+    let func = mk_function ~param_types ~return_type in
+    gcx.current_func <- Some func;
+    gcx.funcs <- FunctionSet.add func gcx.funcs;
+    func
+
+  let finish_function ~gcx =
+    let current_func = Option.get gcx.current_func in
+    current_func.blocks <- List.rev current_func.blocks;
+    gcx.current_func <- None
+
+  let emit ~gcx (instr : AArch64.instr) operands =
+    let instr = (instr :> instr) in
+    let current_block = Option.get gcx.current_block in
+    mk_instr_ ~block:current_block instr operands;
+    match (instr, operands) with
+    | (`B, [| { value = Block next_block; _ } |]) ->
+      gcx.prev_blocks <- BlockMMap.add next_block current_block gcx.prev_blocks
+    | _ -> ()
 end

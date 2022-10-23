@@ -1,10 +1,11 @@
 open Asm_calling_convention
 open Asm_register
 
-module SystemVCallingConvention = struct
-  let general_params : Register.t array = [| `DI; `SI; `D; `C; `R8; `R9 |]
+(* AArch64 Procedure Call Standard *)
+module AAPCS64 = struct
+  let general_params : Register.t array = [| `R0; `R1; `R2; `R3; `R4; `R5; `R6; `R7 |]
 
-  let float_params : Register.t array = [| `XMM0; `XMM1; `XMM2; `XMM3; `XMM4; `XMM5; `XMM6; `XMM7 |]
+  let float_params : Register.t array = [| `V0; `V1; `V2; `V3; `V4; `V5; `V6; `V7 |]
 
   let num_general_params = Array.length general_params
 

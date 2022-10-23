@@ -6,6 +6,18 @@ open X86_64_gen_context
 open X86_64_instruction_definitions
 open X86_64_register
 
+let mk_pcx ~(funcs : FunctionSet.t) =
+  (* Find set of all blocks that have an incoming jump *)
+  let incoming_jump_blocks = ref BlockSet.empty in
+  funcs_iter_blocks funcs (fun block ->
+      iter_instructions block (fun instr ->
+          match instr with
+          | { instr = `Jmp | `JmpCC _; operands = [| { value = Block next_block; _ } |]; _ } ->
+            incoming_jump_blocks := BlockSet.add next_block !incoming_jump_blocks
+          | _ -> ()));
+
+  mk_pcx ~funcs ~incoming_jump_blocks:!incoming_jump_blocks
+
 let pp_integer_size_suffix ~buf size =
   add_char
     ~buf

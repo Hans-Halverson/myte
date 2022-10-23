@@ -1,21 +1,12 @@
 open Asm
-open Asm_builders
 
 type print_context = { mutable block_print_labels: string BlockMap.t }
 
 let write_full_asm () =
   Opts.dump_full_asm () || ((not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()))
 
-let mk_pcx ~(funcs : FunctionSet.t) =
+let mk_pcx ~(funcs : FunctionSet.t) ~(incoming_jump_blocks : BlockSet.t) : print_context =
   let pcx = { block_print_labels = BlockMap.empty } in
-  (* Find set of all blocks that have an incoming jump *)
-  let incoming_jump_blocks = ref BlockSet.empty in
-  funcs_iter_blocks funcs (fun block ->
-      iter_instructions block (fun instr ->
-          match instr with
-          | { instr = `Jmp | `JmpCC _; operands = [| { value = Block next_block; _ } |]; _ } ->
-            incoming_jump_blocks := BlockSet.add next_block !incoming_jump_blocks
-          | _ -> ()));
 
   (* Determine labels for every unlabed block in program that has an incoming jump *)
   let max_label_id = ref 0 in
@@ -27,7 +18,7 @@ let mk_pcx ~(funcs : FunctionSet.t) =
           match block.label with
           | Some _ -> ()
           | None ->
-            if BlockSet.mem block !incoming_jump_blocks then (
+            if BlockSet.mem block incoming_jump_blocks then (
               let id = !max_label_id in
               max_label_id := !max_label_id + 1;
               pcx.block_print_labels <-

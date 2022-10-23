@@ -1,6 +1,7 @@
 open Asm
 open Asm_builders
 open Asm_calling_convention
+open Asm_codegen
 open Asm_instruction_definition.X86_64
 open Basic_collections
 open Mir
@@ -37,10 +38,10 @@ let rec gen ~gcx (ir : Program.t) =
   SMap.iter (fun _ func -> preprocess_function ~gcx func) ir.funcs;
 
   (* Generate all globals in program *)
-  SMap.iter (fun _ global -> gen_global_instruction_builder ~gcx ~ir global) ir.globals;
+  SMap.iter (fun _ global -> gen_global ~gcx ~ir global) ir.globals;
 
   (* Generate all functions in program *)
-  SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
+  SMap.iter (fun _ func -> gen_function ~gcx ~ir func) ir.funcs;
 
   Gcx.finish_builders ~gcx
 
@@ -49,7 +50,7 @@ and preprocess_function ~gcx func =
   let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
   gcx.mir_func_to_param_types <- FunctionMap.add func param_types gcx.mir_func_to_param_types
 
-and gen_global_instruction_builder ~gcx ~ir:_ global =
+and gen_global ~gcx ~ir:_ global =
   let label = label_of_mir_label global.name in
   match global.init_val with
   (* Fake zero size global is not generated *)
@@ -103,17 +104,10 @@ and gen_global_instruction_builder ~gcx ~ir:_ global =
     | SMem _ ->
       failwith "Global init value must be a constant")
 
-and gen_function_instruction_builder ~gcx ~ir func =
+and gen_function ~gcx ~ir func =
   let param_types = FunctionMap.find func gcx.mir_func_to_param_types in
-  let func_ = Gcx.start_function ~gcx [] param_types func.return_type in
-  let label =
-    if func == ir.main_func then
-      main_label
-    else if func.name == init_func_name then
-      init_label
-    else
-      label_of_mir_label func.name
-  in
+  let func_ = Gcx.start_function ~gcx param_types func.return_type in
+  let label = get_asm_function_label ~ir func in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
   Gcx.start_block ~gcx ~label:(Some label) ~func:func_ ~mir_block:None;

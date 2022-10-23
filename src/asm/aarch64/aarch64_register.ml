@@ -6,7 +6,7 @@ module Register = struct
   type class_ = GeneralClass
 end
 
-let all_registers =
+let general_purpose_registers =
   RegSet.of_list
     [
       `R0;
@@ -39,6 +39,49 @@ let all_registers =
       `R27;
       `R28;
       `R29;
-      (* Link register *)
       `R30;
+      `R31;
     ]
+
+let vector_registers =
+  RegSet.of_list
+    [
+      `V0;
+      `V1;
+      `V2;
+      `V3;
+      `V4;
+      `V5;
+      `V6;
+      `V7;
+      `V8;
+      `V9;
+      `V10;
+      `V11;
+      `V12;
+      `V13;
+      `V14;
+      `V15;
+      `V16;
+      `V17;
+      `V18;
+      `V19;
+      `V20;
+      `V21;
+      `V22;
+      `V23;
+      `V24;
+      `V25;
+      `V26;
+      `V27;
+      `V28;
+      `V29;
+      `V30;
+      `V31;
+    ]
+
+let all_registers = RegSet.union general_purpose_registers vector_registers
+
+(* R31 is SP or ZR depending on context *)
+let sp : Register.t = `R31
+let zr : Register.t = `R31

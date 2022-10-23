@@ -1,16 +1,14 @@
 open Asm
 open Asm_builders
 open Asm_calling_convention
+open Asm_codegen
+open Asm_instruction_definition
 open Asm_register
 open Basic_collections
 open Mir_type
 open X86_64_asm
 open X86_64_layout
 open X86_64_register
-
-let invalid_label_chars = Str.regexp "[-+<>,*():]"
-
-let label_of_mir_label label = Str.global_replace invalid_label_chars "$" label
 
 module Gcx = struct
   type t = {
@@ -113,7 +111,8 @@ module Gcx = struct
     block.func.blocks <- block :: block.func.blocks;
     gcx.current_block <- None
 
-  let emit ~gcx instr operands =
+  let emit ~gcx (instr : X86_64.instr) operands =
+    let instr = (instr :> instr) in
     let current_block = Option.get gcx.current_block in
     mk_instr_ ~block:current_block instr operands;
     match (instr, operands) with
@@ -122,22 +121,8 @@ module Gcx = struct
       gcx.prev_blocks <- BlockMMap.add next_block current_block gcx.prev_blocks
     | _ -> ()
 
-  let start_function ~gcx params param_types return_type =
-    let func =
-      {
-        Function.id = mk_func_id ();
-        params;
-        param_types;
-        return_type;
-        prologue = null_block;
-        blocks = [];
-        spilled_callee_saved_regs = RegSet.empty;
-        spilled_vslots = OperandSet.empty;
-        num_stack_frame_slots = 0;
-        argument_stack_slots = [];
-        num_argument_stack_slots = 0;
-      }
-    in
+  let start_function ~gcx param_types return_type =
+    let func = mk_function ~param_types ~return_type in
     gcx.current_func <- Some func;
     gcx.funcs <- FunctionSet.add func gcx.funcs;
     func
