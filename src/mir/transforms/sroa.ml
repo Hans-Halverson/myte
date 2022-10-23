@@ -47,8 +47,7 @@ module ScalarCollection : MultiMap.KEY_AND_VALUE_TYPE with type t = Value.t = Ma
 module ScalarSet = ScalarCollection.Set
 module ScalarMap = ScalarCollection.Map
 
-module ScalarValueMMap : MultiMap.S with type key = Value.t and type value = Value.t =
-  MultiMap.Make (ScalarCollection) (ValueCollection)
+module ScalarValueMMap = MultiMap.Make (ScalarMap) (VSet)
 
 let is_myte_alloc (instr : Instruction.t) : bool =
   match instr.instr with
@@ -141,7 +140,7 @@ module SROAContext = struct
   let iter_promotable_item_def_blocks ~cx scalar_item f =
     let iter_scalar_item_def_instrs f =
       let instrs = ScalarValueMMap.find_all scalar_item cx.scalar_items in
-      ScalarValueMMap.VSet.iter f instrs
+      VSet.iter f instrs
     in
 
     iter_scalar_item_def_instrs (fun def_instr ->

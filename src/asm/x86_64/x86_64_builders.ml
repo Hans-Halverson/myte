@@ -1,7 +1,8 @@
+open Asm
+open Asm_instruction_definition
+open Asm_register
 open Mir_type
-open X86_64_instructions
 open X86_64_instruction_definitions
-open X86_64_register
 
 (*
  * ============================
@@ -23,8 +24,8 @@ let mk_virtual_register ~(type_ : Type.t) : Operand.t = mk_operand ~value:Virtua
 let mk_virtual_register_of_value_id ~(value_id : Mir.Value.id) ~(type_ : Type.t) : Operand.t =
   Operand.of_value_id ~value:VirtualRegister ~type_ value_id
 
-let mk_memory_address ~(address : MemoryAddress.t) ~(type_ : Type.t) : Operand.t =
-  mk_operand ~value:(MemoryAddress address) ~type_
+let mk_memory_address ~(address : X86_64_MemoryAddress.t) ~(type_ : Type.t) : Operand.t =
+  mk_operand ~value:(X86_64_MemoryAddress address) ~type_
 
 let mk_imm ~(imm : immediate) : Operand.t =
   let type_ =
@@ -116,7 +117,7 @@ and operand_iter_reg_mem_operands
     (operand : Operand.t) (operand_def : OperandDef.t) (f : Operand.t -> OperandDef.t -> unit) :
     unit =
   match operand.value with
-  | MemoryAddress { offset = _; base; index_and_scale } ->
+  | X86_64_MemoryAddress { offset = _; base; index_and_scale } ->
     (match base with
     | RegBase base_reg -> f base_reg address_reg_operand_def
     | NoBase

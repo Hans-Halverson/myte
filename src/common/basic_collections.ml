@@ -17,7 +17,7 @@ module StringCollection = MakeCollection (String)
 
 module ISet = IntCollection.Set
 module IMap = IntCollection.Map
-module IIMMap = MultiMap.Make (IntCollection) (IntCollection)
+module IIMMap = MultiMap.Make (IMap) (ISet)
 module I64Set = Int64Collection.Set
 module I64Map = Int64Collection.Map
 module SSet = StringCollection.Set

@@ -62,7 +62,7 @@ let debug_print_dominator_tree ~(dt : DominatorTree.t) =
     Printf.eprintf "%s%s\n" indent Block.(id_to_string node.id);
     let children = BlockMMap.find_all node dt.children in
     depth := !depth + 1;
-    BlockMMap.VSet.iter visit children;
+    BlockSet.iter visit children;
     depth := !depth - 1
   in
   visit dt.root
@@ -233,15 +233,15 @@ let build_dominance_frontiers ~(dt : DominatorTree.t) ~(func : Function.t) =
   (* Bottom up traversal of dominator tree *)
   let rec visit block =
     let children = BlockMMap.find_all block dt.children in
-    BlockMMap.VSet.iter visit children;
+    BlockSet.iter visit children;
 
     iter_next_blocks block (fun next_block ->
         if get_idom ~dt next_block != block then
           dt.dominance_frontiers <- BlockMMap.add block next_block dt.dominance_frontiers);
 
-    BlockMMap.VSet.iter
+    BlockSet.iter
       (fun child_block ->
-        BlockMMap.VSet.iter
+        BlockSet.iter
           (fun dom_frontier_block ->
             if get_idom ~dt dom_frontier_block != block then
               dt.dominance_frontiers <-

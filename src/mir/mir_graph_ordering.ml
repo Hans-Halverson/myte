@@ -21,7 +21,7 @@ module Make (Node : NODE_TYPE) = struct
   module Map = Node.Map
   module Set = Node.Set
 
-  module MMap = MultiMap.Make (Node) (Node)
+  module MMap = MultiMap.Make (Node.Map) (Node.Set)
 
   (* Run Tarjan's strongly connected components algorithm on a graph. Return a pair containing
      a set of all SCCs, as well as a map from node to the SCC it is a part of. *)

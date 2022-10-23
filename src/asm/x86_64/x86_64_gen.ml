@@ -1,5 +1,5 @@
+open Asm
 open X86_64_gen_context
-open X86_64_instructions
 
 let gen_program ir =
   (* Filter out stdlib for printing *)

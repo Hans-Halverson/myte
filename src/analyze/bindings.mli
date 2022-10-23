@@ -181,7 +181,7 @@ module BVSet : Set.S with type elt = ValueBinding.t
 
 module BVMap : Map.S with type key = ValueBinding.t
 
-module LBVMMap : MultiMap.S with type key = Loc.t and type value = ValueBinding.t
+module LBVMMap : MultiMap.S with module KMap = LocMap and module VSet = BVSet
 
 module BTSet : Set.S with type elt = TypeBinding.t
 

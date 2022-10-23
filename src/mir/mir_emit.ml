@@ -280,7 +280,7 @@ and emit_function_body ~ecx (func : Function.t) (decl : Ast.Function.t) =
       ~return_pointer
       ~env_agg:None
       ~env_ptr:None
-      ~captures:Bindings.LBVMMap.VSet.empty;
+      ~captures:Bindings.BVSet.empty;
 
     (* Build IR for function body *)
     Ecx.set_current_block ~ecx ecx.current_func.start_block;
@@ -1208,7 +1208,7 @@ and emit_expression_without_promotion ~ecx expr : Value.t option =
       Type_context.get_anonymous_function_captures ~cx:ecx.pcx.type_ctx anon_func_node.loc
     in
     let (env_agg_elements, name_to_binding) =
-      Bindings.LBVMMap.VSet.fold
+      Bindings.BVSet.fold
         (fun binding (env_agg_elements, name_to_binding) ->
           (* Find binding MIR type, adding element if not zero sized *)
           let binding_mir_type =

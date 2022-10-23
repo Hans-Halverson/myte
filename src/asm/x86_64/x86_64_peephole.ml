@@ -1,7 +1,6 @@
+open Asm
 open X86_64_builders
-open X86_64_instructions
 open X86_64_gen_context
-open X86_64_register
 
 (* A peephole optimization is a function that takes an instruction and applies an optimization if
    possible, returning whether an edit was made *)
@@ -44,9 +43,9 @@ class peephole_optimization_runner ~(gcx : Gcx.t) (opts : peephole_optimization 
 let remove_byte_reg_reg_moves_optimization ~gcx:_ instr =
   let open Instruction in
   match instr with
-  | { instr = MovMM Size8; operands = [| src_reg; dest_reg |]; _ }
+  | { instr = `MovMM Size8; operands = [| src_reg; dest_reg |]; _ }
     when Operand.is_reg_value src_reg && Operand.is_reg_value dest_reg ->
-    instr.instr <- MovMM Size32;
+    instr.instr <- `MovMM Size32;
     instr.operands.(0) <- src_reg;
     instr.operands.(1) <- dest_reg;
     true
@@ -57,8 +56,8 @@ let remove_byte_reg_reg_moves_optimization ~gcx:_ instr =
 let simplify_32_to_64_zext_optimization ~gcx:_ instr =
   let open Instruction in
   match instr with
-  | { instr = MovZX (Size32, Size64); _ } ->
-    instr.instr <- MovMM Size32;
+  | { instr = `MovZX (Size32, Size64); _ } ->
+    instr.instr <- `MovMM Size32;
     true
   | _ -> false
 
@@ -66,9 +65,9 @@ let simplify_32_to_64_zext_optimization ~gcx:_ instr =
 let load_zero_to_register_optimization ~gcx:_ instr =
   let open Instruction in
   match instr with
-  | { instr = MovIM _; operands = [| { value = Immediate imm; _ }; dest_reg |]; _ }
+  | { instr = `MovIM _; operands = [| { value = Immediate imm; _ }; dest_reg |]; _ }
     when Int64.equal (int64_of_immediate imm) Int64.zero && Operand.is_reg_value dest_reg ->
-    instr.instr <- XorMM Size32;
+    instr.instr <- `XorMM Size32;
     instr.operands.(0) <- dest_reg;
     instr.operands.(1) <- dest_reg;
     true
@@ -79,10 +78,10 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr =
   let open Instruction in
   match instr with
   (* Multiplication by power of two can be reduced to a left shift *)
-  | { instr = IMulIMR size; operands = [| { value = Immediate imm; _ }; src; dest_reg |]; _ }
+  | { instr = `IMulIMR size; operands = [| { value = Immediate imm; _ }; src; dest_reg |]; _ }
     when Integers.is_power_of_two (int64_of_immediate imm) ->
     let power_of_two = Int8.of_int (Integers.power_of_two (int64_of_immediate imm)) in
-    instr.instr <- ShlI size;
+    instr.instr <- `ShlI size;
     instr.operands <- [| mk_imm ~imm:(Imm8 power_of_two); dest_reg |];
     let shift_instr = instr in
     (* If same register is source and dest, can shift it in place *)
@@ -93,7 +92,7 @@ let power_of_two_strength_reduction_optimization ~gcx:_ instr =
       true
     else
       (* Otherwise must move to dest register before shift *)
-      let mov_instr = mk_blockless_instr (MovMM size) [| src; dest_reg |] in
+      let mov_instr = mk_blockless_instr (`MovMM size) [| src; dest_reg |] in
       insert_instruction_before ~before:shift_instr mov_instr;
       true
   | _ -> false

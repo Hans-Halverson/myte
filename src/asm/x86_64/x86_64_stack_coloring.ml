@@ -1,10 +1,9 @@
+open Asm
+open Asm_register
 open Basic_collections
 open X86_64_builders
-open X86_64_calling_conventions
 open X86_64_gen_context
-open X86_64_instructions
 open X86_64_instruction_definitions
-open X86_64_register
 
 let find_vslot_use_defs (instr : Instruction.t) =
   let uses = ref OperandSet.empty in
@@ -43,9 +42,9 @@ let liveness_analysis ~(gcx : Gcx.t) =
 
 let resolve_to_physical_stack_slot operand offset =
   operand.Operand.value <-
-    MemoryAddress
+    X86_64_MemoryAddress
       {
-        base = RegBase (mk_precolored ~type_:Long SP);
+        base = RegBase (mk_precolored ~type_:Long `SP);
         offset = Some (ImmediateOffset (Int32.of_int offset));
         index_and_scale = None;
       }

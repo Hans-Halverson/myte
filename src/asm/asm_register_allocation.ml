@@ -1,4 +1,5 @@
-open Basic_collections
+open Asm
+open Asm_register
 
 (* Assign physical registers to all virtual registers and handle spills.
    Strategy is iterated register coalescing:
@@ -15,59 +16,18 @@ open Basic_collections
    George, L., & Appel, A. W. (1996). Iterated register coalescing.
    ACM Transactions on Programming Languages and Systems, 18(3), 300–324. *)
 
-module type RA_REGISTER = sig
-  include SORTED
-
-  type class_
-end
-
-module type RA_OPERAND = sig
-  include SORTED
-
-  val is_reg_value : t -> bool
-end
-
-module type RA_BLOCK = sig
-  include SORTED
-end
-
 module type REGISTER_ALLOCATOR_CONTEXT = sig
-  module Register : RA_REGISTER
-  module Operand : RA_OPERAND
-  module Instruction : sig
-    type t
-  end
-  module Block : RA_BLOCK
-
-  module RegSet : Set.S with type elt = Register.t
-  module RegMap : Map.S with type key = Register.t
-  module OperandSet : Set.S with type elt = Operand.t
-  module OperandMap : Map.S with type key = Operand.t
-  module InstrSet : Set.S with type elt = Instruction.t
-  module BlockMap : Map.S with type key = Block.t
-
-  module OOMMap :
-    MultiMap.S
-      with type key = Operand.t
-       and type value = Operand.t
-       and module KMap = OperandMap
-       and module VSet = OperandSet
-  module OInstrMMap :
-    MultiMap.S
-      with type key = Operand.t
-       and type value = Instruction.t
-       and module KMap = OperandMap
-       and module VSet = InstrSet
-
   type t
+
+  type register_class
 
   (* Calling conventions *)
 
-  val allocatable_registers : Register.class_ -> RegSet.t
+  val allocatable_registers : register_class -> RegSet.t
 
   val callee_saved_registers : RegSet.t
 
-  val num_allocatable_registers : Register.class_ -> int
+  val num_allocatable_registers : register_class -> int
 
   val get_rep_physical_registers : t -> Operand.t RegMap.t
 
@@ -85,7 +45,7 @@ module type REGISTER_ALLOCATOR_CONTEXT = sig
 
   val assign_physical_register : Operand.t -> Register.t -> unit
 
-  val get_class : Operand.t -> Register.class_
+  val get_class : Operand.t -> register_class
 
   (* Instruction functions *)
 
@@ -105,27 +65,14 @@ module type REGISTER_ALLOCATOR_CONTEXT = sig
 
   val get_use_defs_for_instruction : t -> Instruction.t -> Block.t -> OperandSet.t * OperandSet.t
 
+  val choose_register_from_possible : RegSet.t -> Register.t option
+
   val spill_virtual_register : t -> Operand.t -> unit
 
   val rewrite_spilled_program : t -> get_alias:(Operand.t -> Operand.t) -> unit
 end
 
 module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
-  module Register = Cx.Register
-  module Operand = Cx.Operand
-  module Instruction = Cx.Instruction
-  module Block = Cx.Block
-
-  module RegSet = Cx.RegSet
-  module RegMap = Cx.RegMap
-  module OperandSet = Cx.OperandSet
-  module OperandMap = Cx.OperandMap
-  module InstrSet = Cx.InstrSet
-  module BlockMap = Cx.BlockMap
-
-  module OOMMap = Cx.OOMMap
-  module OInstrMMap = Cx.OInstrMMap
-
   type t = {
     cx: Cx.t;
     (* Map of virtual registers live at the beginning of each block *)
@@ -509,7 +456,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         None
     in
     match opt_reg with
-    | None -> RegSet.min_elt_opt possible_regs
+    | None -> Cx.choose_register_from_possible possible_regs
     | Some (reg, _) -> Some reg
 
   (* Select a color for a vreg from a set of possible colors to choose from. Only spill a new callee

@@ -1,8 +1,8 @@
+open Asm
+open Asm_register
 open Basic_collections
 open Myte_test
 open X86_64_builders
-open X86_64_instructions
-open X86_64_register
 
 let mk_vreg id = mk_virtual_register_of_value_id ~value_id:id ~type_:Byte
 
@@ -64,17 +64,17 @@ let tests =
       (* If there is no def for a use the vreg is live in (and assumed to have come from another
          source such as function parameters. *)
       fun _ ->
-        let sets = find_liveness_sets [(block0, "start", [i1 PushM (mk_vreg 1); i0 Ret])] in
+        let sets = find_liveness_sets [(block0, "start", [i1 `PushM (mk_vreg 1); i0 `Ret])] in
         assert_liveness_sets sets 0 ~live_in:[1] ~live_out:[] );
     ( "use_stops_propagation",
       fun _ ->
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [i1 PopM (mk_vreg 0); i1 PopM (mk_vreg 1); i1 Jmp block1_op]);
-              (block1, "L1", [i1 PushM (mk_vreg 0); i1 Jmp block2_op]);
-              (block2, "L2", [i1 PushM (mk_vreg 1); i1 Jmp block3_op]);
-              (block3, "L3", [i0 Ret]);
+              (block0, "start", [i1 `PopM (mk_vreg 0); i1 `PopM (mk_vreg 1); i1 `Jmp block1_op]);
+              (block1, "L1", [i1 `PushM (mk_vreg 0); i1 `Jmp block2_op]);
+              (block2, "L2", [i1 `PushM (mk_vreg 1); i1 `Jmp block3_op]);
+              (block3, "L3", [i0 `Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];
@@ -86,8 +86,8 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [i1 PopM (mk_vreg 0); i1 PushM (mk_vreg 0); i1 Jmp block1_op]);
-              (block1, "L1", [i1 PopM (mk_vreg 1); i1 PushM (mk_vreg 1); i0 Ret]);
+              (block0, "start", [i1 `PopM (mk_vreg 0); i1 `PushM (mk_vreg 0); i1 `Jmp block1_op]);
+              (block1, "L1", [i1 `PopM (mk_vreg 1); i1 `PushM (mk_vreg 1); i0 `Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[];
@@ -98,9 +98,9 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [i1 PopM (mk_vreg 0); i1 Jmp block1_op]);
-              (block1, "L1", [i1 PushM (mk_vreg 0); i1 PopM (mk_vreg 0); i1 Jmp block2_op]);
-              (block2, "L2", [i1 PushM (mk_vreg 0); i0 Ret]);
+              (block0, "start", [i1 `PopM (mk_vreg 0); i1 `Jmp block1_op]);
+              (block1, "L1", [i1 `PushM (mk_vreg 0); i1 `PopM (mk_vreg 0); i1 `Jmp block2_op]);
+              (block2, "L2", [i1 `PushM (mk_vreg 0); i0 `Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0];
@@ -114,16 +114,16 @@ let tests =
               ( block0,
                 "start",
                 [
-                  i1 PopM (mk_vreg 0);
-                  i1 PopM (mk_vreg 1);
-                  i1 PopM (mk_vreg 2);
-                  i1 PopM (mk_vreg 3);
-                  i1 (JmpCC E) block1_op;
-                  i1 Jmp block2_op;
+                  i1 `PopM (mk_vreg 0);
+                  i1 `PopM (mk_vreg 1);
+                  i1 `PopM (mk_vreg 2);
+                  i1 `PopM (mk_vreg 3);
+                  i1 (`JmpCC E) block1_op;
+                  i1 `Jmp block2_op;
                 ] );
-              (block1, "L1", [i1 PushM (mk_vreg 0); i1 PushM (mk_vreg 3); i1 Jmp block3_op]);
-              (block2, "L2", [i1 PushM (mk_vreg 1); i1 Jmp block3_op]);
-              (block3, "L3", [i1 PushM (mk_vreg 2); i1 PushM (mk_vreg 3); i0 Ret]);
+              (block1, "L1", [i1 `PushM (mk_vreg 0); i1 `PushM (mk_vreg 3); i1 `Jmp block3_op]);
+              (block2, "L2", [i1 `PushM (mk_vreg 1); i1 `Jmp block3_op]);
+              (block3, "L3", [i1 `PushM (mk_vreg 2); i1 `PushM (mk_vreg 3); i0 `Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1; 2; 3];
@@ -137,11 +137,15 @@ let tests =
             [
               ( block0,
                 "start",
-                [i1 PopM (mk_vreg 0); i1 PopM (mk_vreg 1); i1 (JmpCC E) block1_op; i1 Jmp block3_op]
-              );
-              (block1, "L1", [i1 PushM (mk_vreg 0); i1 Jmp block2_op]);
-              (block2, "L2", [i1 PushM (mk_vreg 1); i1 Jmp block0_op]);
-              (block3, "L3", [i1 PushM (mk_vreg 0); i0 Ret]);
+                [
+                  i1 `PopM (mk_vreg 0);
+                  i1 `PopM (mk_vreg 1);
+                  i1 (`JmpCC E) block1_op;
+                  i1 `Jmp block3_op;
+                ] );
+              (block1, "L1", [i1 `PushM (mk_vreg 0); i1 `Jmp block2_op]);
+              (block2, "L2", [i1 `PushM (mk_vreg 1); i1 `Jmp block0_op]);
+              (block3, "L3", [i1 `PushM (mk_vreg 0); i0 `Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];
@@ -153,11 +157,11 @@ let tests =
         let sets =
           find_liveness_sets
             [
-              (block0, "start", [i1 PopM (mk_vreg 0); i1 PopM (mk_vreg 1); i1 Jmp block1_op]);
-              (block1, "L1", [i1 PushM (mk_vreg 0); i1 (JmpCC E) block2_op; i1 Jmp block4_op]);
-              (block2, "L2", [i1 Jmp block3_op]);
-              (block3, "L3", [i1 PopM (mk_vreg 1); i1 Jmp block1_op]);
-              (block4, "L4", [i1 PushM (mk_vreg 1); i0 Ret]);
+              (block0, "start", [i1 `PopM (mk_vreg 0); i1 `PopM (mk_vreg 1); i1 `Jmp block1_op]);
+              (block1, "L1", [i1 `PushM (mk_vreg 0); i1 (`JmpCC E) block2_op; i1 `Jmp block4_op]);
+              (block2, "L2", [i1 `Jmp block3_op]);
+              (block3, "L3", [i1 `PopM (mk_vreg 1); i1 `Jmp block1_op]);
+              (block4, "L4", [i1 `PushM (mk_vreg 1); i0 `Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 1];
@@ -172,15 +176,17 @@ let tests =
             [
               ( block0,
                 "start",
-                [i1 PopM (mk_vreg 0); i1 PopM (mk_vreg 1); i1 PopM (mk_vreg 2); i1 Jmp block1_op] );
+                [
+                  i1 `PopM (mk_vreg 0); i1 `PopM (mk_vreg 1); i1 `PopM (mk_vreg 2); i1 `Jmp block1_op;
+                ] );
               ( block1,
                 "L1",
                 [
-                  i2 (XorMM Size64) (mk_vreg 1) (mk_vreg 1);
-                  i2 (XorMM Size64) (mk_vreg 0) (mk_vreg 2);
-                  i1 Jmp block2_op;
+                  i2 (`XorMM Size64) (mk_vreg 1) (mk_vreg 1);
+                  i2 (`XorMM Size64) (mk_vreg 0) (mk_vreg 2);
+                  i1 `Jmp block2_op;
                 ] );
-              (block2, "L2", [i1 PushM (mk_vreg 1); i1 PushM (mk_vreg 2); i0 Ret]);
+              (block2, "L2", [i1 `PushM (mk_vreg 1); i1 `PushM (mk_vreg 2); i0 `Ret]);
             ]
         in
         assert_liveness_sets sets 0 ~live_in:[] ~live_out:[0; 2];

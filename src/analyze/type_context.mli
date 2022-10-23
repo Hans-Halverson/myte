@@ -77,7 +77,7 @@ val in_loop : cx:t -> bool
 
 val add_anonymous_function_capture : cx:t -> Loc.t -> ValueBinding.t -> unit
 
-val get_anonymous_function_captures : cx:t -> Loc.t -> LBVMMap.VSet.t
+val get_anonymous_function_captures : cx:t -> Loc.t -> BVSet.t
 
 val set_current_module : cx:t -> Module.t -> unit
 

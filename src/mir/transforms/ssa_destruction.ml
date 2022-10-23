@@ -31,7 +31,7 @@ let split_edges ~(ir : Program.t) =
   BlockMMap.iter
     (fun block prev_blocks ->
       (* Create and insert new blocks, keeping map from previous block to new inserted block *)
-      BlockMMap.VSet.iter (fun prev_block -> ignore (split_block_edge prev_block block)) prev_blocks)
+      BlockSet.iter (fun prev_block -> ignore (split_block_edge prev_block block)) prev_blocks)
     !edges_to_split
 
 (* Convert a collection of copies (dest value, src value) that should that occur in parallel, to
@@ -75,7 +75,7 @@ let sequentialize_parallel_copies (parallel_copies : (Value.t * Value.t) list) :
           if VVMMap.contains_key dest_val !copied_to then
             acc
           else
-            Some (dest_val, VVMMap.VSet.choose arg_vals))
+            Some (dest_val, VSet.choose arg_vals))
         !copied_from
         None
     in

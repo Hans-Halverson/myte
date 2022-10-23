@@ -26,7 +26,7 @@ module FunctionContext = struct
     return_ty: Types.Type.t;
     return_block: Block.t;
     return_pointer: Value.t option;
-    captures: Bindings.LBVMMap.VSet.t;
+    captures: Bindings.BVSet.t;
     env_agg: Aggregate.t option;
     env_ptr: Value.t option;
     mutable num_anonymous_functions: int;
@@ -37,7 +37,7 @@ module FunctionContext = struct
       return_ty = Unit;
       return_block = null_block;
       return_pointer = None;
-      captures = Bindings.LBVMMap.VSet.empty;
+      captures = Bindings.BVSet.empty;
       env_agg = None;
       env_ptr = None;
       num_anonymous_functions = 0;
@@ -52,7 +52,7 @@ module PendingAnonymousFunction = struct
     (* Function argument bindings to their MIR value *)
     arguments: Value.t BVMap.t;
     (* Bindings captured by this function *)
-    captures: Bindings.LBVMMap.VSet.t;
+    captures: Bindings.BVSet.t;
     (* Environment type, or None if no bindings were captured *)
     env_agg: Aggregate.t option;
   }
@@ -230,8 +230,7 @@ let pop_loop_context ~ecx = ecx.current_loop_contexts <- List.tl ecx.current_loo
 
 let get_loop_context ~ecx = List.hd ecx.current_loop_contexts
 
-let is_captured_binding ~ecx binding =
-  Bindings.LBVMMap.VSet.mem binding ecx.current_func_context.captures
+let is_captured_binding ~ecx binding = Bindings.BVSet.mem binding ecx.current_func_context.captures
 
 let emit_stack_alloc_in_start_block ~ecx ~type_ =
   let instr = mk_blockless_stack_alloc ~type_ in

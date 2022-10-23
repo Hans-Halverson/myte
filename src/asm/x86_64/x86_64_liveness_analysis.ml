@@ -1,7 +1,8 @@
+open Asm
+open Asm_calling_convention
+open Asm_register
 open X86_64_builders
-open X86_64_calling_conventions
 open X86_64_gen_context
-open X86_64_instructions
 open X86_64_instruction_definitions
 open X86_64_register
 
@@ -16,8 +17,8 @@ class use_def_finder color_to_representative_operand =
     method visit_instruction (instr : Instruction.t) =
       match instr with
       (* Calls implicitly use all parameter register and define all caller save registers *)
-      | { instr = CallM (_, param_types); _ }
-      | { instr = CallL param_types; _ } ->
+      | { instr = `CallM (_, param_types); _ }
+      | { instr = `CallL param_types; _ } ->
         Array.iter
           (fun param_type ->
             match param_type with
@@ -30,25 +31,25 @@ class use_def_finder color_to_representative_operand =
           caller_saved_registers;
         this#visit_explicit_uses_and_defs instr
       (* IDiv uses the value in register A and writes to registers A and D *)
-      | { instr = IDiv _; _ } ->
-        let reg_a = this#get_representative_register A in
-        let reg_d = this#get_representative_register D in
+      | { instr = `IDiv _; _ } ->
+        let reg_a = this#get_representative_register `A in
+        let reg_d = this#get_representative_register `D in
         this#add_register_use ~instr reg_a;
         this#add_register_def ~instr reg_a;
         this#add_register_def ~instr reg_d;
         this#visit_explicit_uses_and_defs instr
       (* ConvertDouble (e.g. cdq) uses the value in register A and writes to register D *)
-      | { instr = ConvertDouble _; _ } ->
-        this#add_register_use ~instr (this#get_representative_register A);
-        this#add_register_def ~instr (this#get_representative_register D);
+      | { instr = `ConvertDouble _; _ } ->
+        this#add_register_use ~instr (this#get_representative_register `A);
+        this#add_register_def ~instr (this#get_representative_register `D);
         this#visit_explicit_uses_and_defs instr
       (* Shifts with register shift argument implicitly use value in register C *)
-      | { instr = ShlM _ | ShrM _ | SarM _; _ } ->
-        this#add_register_use ~instr (this#get_representative_register C);
+      | { instr = `ShlM _ | `ShrM _ | `SarM _; _ } ->
+        this#add_register_use ~instr (this#get_representative_register `C);
         this#visit_explicit_uses_and_defs instr
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
-      | { instr = XorMM _ | XorPD; operands = [| reg1; reg2 |]; _ }
+      | { instr = `XorMM _ | `XorPD; operands = [| reg1; reg2 |]; _ }
         when Operand.is_reg_value reg1 && reg1.id = reg2.id ->
         this#visit_write_operand ~instr reg1
       | _ -> this#visit_explicit_uses_and_defs instr
@@ -103,7 +104,8 @@ class analyze_regs_init_visitor (blocks : Block.t List.t) color_to_operand =
       iter_instructions block (fun instr ->
           (* Mark block edges *)
           (match instr with
-          | { instr = Jmp | JmpCC _; operands = [| { value = Block next_block; _ } |]; block; _ } ->
+          | { instr = `Jmp | `JmpCC _; operands = [| { value = Block next_block; _ } |]; block; _ }
+            ->
             prev_blocks <- BlockMMap.add next_block block prev_blocks
           | _ -> ());
 
@@ -156,7 +158,7 @@ let analyze_regs blocks color_to_operand =
     then (
       set_add live_in block reg;
       let prev_blocks = BlockMMap.find_all block prev_blocks in
-      BlockMMap.VSet.iter
+      BlockSet.iter
         (fun prev_block ->
           if not (set_contains live_out prev_block reg) then set_add live_out prev_block reg;
           propagate_backwards ~block:prev_block ~reg)
@@ -166,8 +168,7 @@ let analyze_regs blocks color_to_operand =
 
   (* Liveness is calculated for all variables in program *)
   OBMMap.iter
-    (fun reg use_blocks ->
-      OBMMap.VSet.iter (fun block -> propagate_backwards ~block ~reg) use_blocks)
+    (fun reg use_blocks -> BlockSet.iter (fun block -> propagate_backwards ~block ~reg) use_blocks)
     reg_use_blocks;
 
   (!live_in, !live_out)
@@ -198,7 +199,7 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
     method visit_instruction instr =
       (* Mark block edges *)
       (match instr with
-      | { instr = Jmp | JmpCC _; operands = [| { value = Block next_block; _ } |]; block; _ } ->
+      | { instr = `Jmp | `JmpCC _; operands = [| { value = Block next_block; _ } |]; block; _ } ->
         prev_blocks <- BlockMMap.add next_block block prev_blocks
       | _ -> ());
 
@@ -257,7 +258,7 @@ let analyze_virtual_stack_slots ~(gcx : Gcx.t) =
     then (
       set_add live_in block vslot;
       let prev_blocks = BlockMMap.find_all block prev_blocks in
-      BlockMMap.VSet.iter
+      BlockSet.iter
         (fun prev_block ->
           if not (set_contains live_out prev_block vslot) then set_add live_out prev_block vslot;
           propagate_backwards ~block:prev_block ~vslot)
@@ -268,7 +269,7 @@ let analyze_virtual_stack_slots ~(gcx : Gcx.t) =
   (* Liveness is calculated for all variables in program *)
   OBMMap.iter
     (fun vslot use_blocks ->
-      OBMMap.VSet.iter (fun block -> propagate_backwards ~block ~vslot) use_blocks)
+      BlockSet.iter (fun block -> propagate_backwards ~block ~vslot) use_blocks)
     vslot_use_blocks;
 
   (!live_in, !live_out)

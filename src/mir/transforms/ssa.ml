@@ -77,7 +77,7 @@ module SSATransformer (Context : SSA_TRANFORMER_CONTEXT) = struct
           w := BlockSet.remove x !w;
 
           let df_x = Dominator_tree.get_dominance_frontier ~dt x in
-          BlockMMap.VSet.iter
+          BlockSet.iter
             (fun y ->
               if find_or_zero y !has_already < !iter_count then (
                 create_phi_node ~cx ~phis promotable_item y;
@@ -153,7 +153,7 @@ module SSATransformer (Context : SSA_TRANFORMER_CONTEXT) = struct
 
       (* Visit all dominated nodes in dominator tree *)
       let children = Dominator_tree.get_children ~dt block in
-      BlockMMap.VSet.iter (fun child -> search child) children;
+      BlockSet.iter (fun child -> search child) children;
 
       (* Pop definitions in each stack once all children in dominator tree have been visited *)
       iter_instructions block (fun instr_value instr ->

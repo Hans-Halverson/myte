@@ -1,11 +1,12 @@
-open Register_allocation
+open Asm
+open Asm_register
+open Asm_register_allocation
 open X86_64_builders
 open X86_64_gen_context
-open X86_64_instructions
 open X86_64_register
 
 let allocatable_general_purpose_registers =
-  RegSet.of_list [A; B; C; D; SI; DI; R8; R9; R10; R11; R12; R13; R14; R15]
+  RegSet.of_list [`A; `B; `C; `D; `SI; `DI; `R8; `R9; `R10; `R11; `R12; `R13; `R14; `R15]
 
 let num_allocatable_general_purpose_registers =
   RegSet.cardinal allocatable_general_purpose_registers - 1
@@ -13,32 +14,7 @@ let num_allocatable_general_purpose_registers =
 let num_allocatable_sse_registers = RegSet.cardinal all_sse_registers - 1
 
 module X86_64_RegisterAllocatorContext = struct
-  module Register = Register
-  module Operand = Operand
-  module Instruction = Instruction
-  module Block = Block
-
-  module RegSet = RegSet
-  module RegMap = RegMap
-  module OperandSet = OperandCollection.Set
-  module OperandMap = OperandCollection.Map
-  module InstrSet = InstructionCollection.Set
-  module BlockMap = BlockMap
-
-  module OOMMap :
-    MultiMap.S
-      with type key = Operand.t
-       and type value = Operand.t
-       and module KMap = OperandCollection.Map
-       and module VSet = OperandCollection.Set =
-    OOMMap
-  module OInstrMMap :
-    MultiMap.S
-      with type key = Operand.t
-       and type value = Instruction.t
-       and module KMap = OperandCollection.Map
-       and module VSet = InstructionCollection.Set =
-    OInstrMMap
+  type register_class = Register.class_
 
   type t = {
     func: Function.t;
@@ -125,7 +101,7 @@ module X86_64_RegisterAllocatorContext = struct
 
   let get_move_opt (instr : Instruction.t) =
     match instr with
-    | { instr = MovMM _; operands = [| src_op; dest_op |]; _ }
+    | { instr = `MovMM _; operands = [| src_op; dest_op |]; _ }
       when Operand.is_reg_value src_op
            && Operand.is_reg_value dest_op
            && get_class src_op == get_class dest_op ->
@@ -173,8 +149,27 @@ module X86_64_RegisterAllocatorContext = struct
 
   let get_use_defs_for_instruction cx instr _ = cx.find_use_defs instr
 
+  let choose_register_from_possible possible_regs =
+    let min_reg =
+      RegSet.fold
+        (fun reg min_reg ->
+          let reg_order = get_reg_order reg in
+          match min_reg with
+          | None -> Some (reg, reg_order)
+          | Some (_, min_reg_order) ->
+            if reg_order < min_reg_order then
+              Some (reg, reg_order)
+            else
+              min_reg)
+        possible_regs
+        None
+    in
+    match min_reg with
+    | None -> None
+    | Some (reg, _) -> Some reg
+
   let spill_virtual_register cx vreg =
-    cx.func.spilled_vslots <- X86_64_instructions.OperandSet.add vreg cx.func.spilled_vslots;
+    cx.func.spilled_vslots <- Asm.OperandSet.add vreg cx.func.spilled_vslots;
     vreg.value <- VirtualStackSlot
 
   let rewrite_spilled_program cx ~get_alias =

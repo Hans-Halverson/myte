@@ -53,7 +53,7 @@ end
 module MethodLocationCollection = MakeCollection (MethodLocation)
 
 module MethodSet = MethodLocationCollection.Set
-module MethodMMap = MultiMap.Make (StringCollection) (MethodLocationCollection)
+module MethodMMap = MultiMap.Make (SMap) (MethodSet)
 
 let implicit_value_imports =
   let open Std_lib in

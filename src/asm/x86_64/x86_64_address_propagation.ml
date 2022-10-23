@@ -1,9 +1,9 @@
+open Asm
+open Asm_register
 open X86_64_builders
 open X86_64_calling_conventions
 open X86_64_gen_context
-open X86_64_instructions
 open X86_64_instruction_definitions
-open X86_64_register
 
 class use_def_finder color_to_op =
   object (this)
@@ -25,7 +25,7 @@ class use_def_finder color_to_op =
     method! visit_explicit_uses_and_defs instr =
       instr_iter_all_operands instr (fun operand operand_def ->
           match operand.value with
-          | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None } ->
+          | X86_64_MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None } ->
             memory_reg_uses <- RegSet.add (Operand.get_physical_register_value reg) memory_reg_uses
           | _ ->
             operand_iter_reg_mem_operands operand operand_def (fun operand operand_def ->
@@ -41,7 +41,7 @@ class use_def_finder color_to_op =
 
 let inline_at_uses (lea_instr : Instruction.t) (use_instrs : InstrSet.t) =
   match lea_instr with
-  | { instr = Lea _; operands = [| { value = MemoryAddress addr; _ }; dest_reg |]; _ } ->
+  | { instr = `Lea _; operands = [| { value = X86_64_MemoryAddress addr; _ }; dest_reg |]; _ } ->
     let reg_to_replace = Operand.get_physical_register_value dest_reg in
 
     InstrSet.iter
@@ -49,9 +49,9 @@ let inline_at_uses (lea_instr : Instruction.t) (use_instrs : InstrSet.t) =
         Array.iter
           (fun operand ->
             match operand.Operand.value with
-            | MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None }
+            | X86_64_MemoryAddress { offset = None; base = RegBase reg; index_and_scale = None }
               when Operand.get_physical_register_value reg = reg_to_replace ->
-              operand.value <- MemoryAddress addr
+              operand.value <- X86_64_MemoryAddress addr
             | _ -> ())
           use_instr.operands)
       use_instrs
@@ -60,7 +60,7 @@ let inline_at_uses (lea_instr : Instruction.t) (use_instrs : InstrSet.t) =
 (* Get all register arguments used in a memory operand *)
 let lea_get_reg_args (lea_instr : Instruction.t) : RegSet.t =
   match lea_instr with
-  | { instr = Lea _; operands = [| { value = MemoryAddress addr; _ }; _ |]; _ } ->
+  | { instr = `Lea _; operands = [| { value = X86_64_MemoryAddress addr; _ }; _ |]; _ } ->
     (match (addr.base, addr.index_and_scale) with
     | (RegBase first_reg, Some (second_reg, _)) ->
       RegSet.add
@@ -147,7 +147,7 @@ and run_on_func ~gcx ~use_def_finder func =
 
           (* Add the lea address result and its args as currently live *)
           match instr with
-          | { instr = Lea _; operands = [| _; dest_reg |]; _ } ->
+          | { instr = `Lea _; operands = [| _; dest_reg |]; _ } ->
             let lea_address_reg = Operand.get_physical_register_value dest_reg in
             current_live_leas := RegMap.add lea_address_reg instr !current_live_leas;
             all_inlinable_leas := InstrMap.add instr InstrSet.empty !all_inlinable_leas;
@@ -170,7 +170,7 @@ and run_on_func ~gcx ~use_def_finder func =
 
       (* If last instruction is a ret then return register is still live *)
       (match (get_last_instr_opt block, return_reg) with
-      | (Some { instr = Ret; _ }, Some return_reg) -> remove_if_currently_live return_reg
+      | (Some { instr = `Ret; _ }, Some return_reg) -> remove_if_currently_live return_reg
       | _ -> ());
 
       (* Inline all remaining lea instructions at their uses *)

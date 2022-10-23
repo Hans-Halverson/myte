@@ -1,15 +1,10 @@
-open X86_64_register
-
-type param_type =
-  | ParamInRegister of Register.t
-  | ParamOnStack of int
-
-type param_types = param_type array
+open Asm_calling_convention
+open Asm_register
 
 module SystemVCallingConvention = struct
-  let general_params : Register.t array = [| DI; SI; D; C; R8; R9 |]
+  let general_params : Register.t array = [| `DI; `SI; `D; `C; `R8; `R9 |]
 
-  let float_params : Register.t array = [| XMM0; XMM1; XMM2; XMM3; XMM4; XMM5; XMM6; XMM7 |]
+  let float_params : Register.t array = [| `XMM0; `XMM1; `XMM2; `XMM3; `XMM4; `XMM5; `XMM6; `XMM7 |]
 
   let num_general_params = Array.length general_params
 
@@ -46,6 +41,6 @@ module SystemVCallingConvention = struct
 
   let calculate_return_register (return_mir_type : Mir_type.Type.t) : Register.t =
     match return_mir_type with
-    | Double -> XMM0
-    | _ -> A
+    | Double -> `XMM0
+    | _ -> `A
 end

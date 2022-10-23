@@ -1127,10 +1127,10 @@ and assert_valid_function_cfg (func : Function.t) =
       let prev_blocks_2 = BlockMMap.find_all block !prev_blocks in
 
       let is_subset_1 =
-        BlockSet.for_all (fun block -> BlockMMap.VSet.mem block prev_blocks_2) prev_blocks_1
+        BlockSet.for_all (fun block -> BlockSet.mem block prev_blocks_2) prev_blocks_1
       in
       let is_subset_2 =
-        BlockMMap.VSet.for_all (fun block -> BlockSet.mem block prev_blocks_1) prev_blocks_2
+        BlockSet.for_all (fun block -> BlockSet.mem block prev_blocks_1) prev_blocks_2
       in
 
       if (not is_subset_1) || not is_subset_2 then

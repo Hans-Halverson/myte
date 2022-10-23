@@ -1,100 +1,4 @@
-open X86_64_calling_conventions
-open X86_64_register
-
-type condition_code =
-  | E
-  | NE
-  | L
-  | LE
-  | G
-  | GE
-  | B
-  | BE
-  | A
-  | AE
-  | P
-  | NP
-
-(* Instruction opcode and metadata *)
-type instr =
-  (* Instruction Suffixes:
-       R - virtual register
-       I - immediate
-       M - memory location or virtual register
-
-       When multiple suffixes are used, first is source and second is dest when applicable.
-       All MM instructions must contain at least one register as an argument.
-
-       Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
-  (* Stack instructions, all implicitly have size of 64 bits *)
-  | PushI
-  | PushM
-  | PopM
-  (* Data instructions *)
-  (* Allows 64-bit immediate. operand_size is destination size which may not match immediate size *)
-  | MovIM of operand_size
-  (* Allows 64-bit immediate. Allows SSE registers. operand_size is destination size, or transferred size if SSE *)
-  | MovMM of operand_size
-  (* Src size then dest size where src size < dest size *)
-  | MovSX of operand_size * operand_size
-  (* Src size then dest size where src size < dest size *)
-  | MovZX of operand_size * operand_size
-  (* Destination only supports 32 or 64 bit register *)
-  | Lea of operand_size
-  (* Integer operations *)
-  | NegM of operand_size
-  | AddIM of operand_size
-  | AddMM of operand_size
-  (* For sub instructions, right/dest := right/dest - left/src *)
-  | SubIM of operand_size
-  | SubMM of operand_size
-  | IMulMR of operand_size
-  (* Only supports 16, 32, or 64-bit MR operands, and only supports 16 or 32-bit immediates *)
-  | IMulIMR of operand_size
-  | IDiv of operand_size
-  (* Float operations, all have 64-bit size and require SSE registers *)
-  | AddSD
-  (* right/dist := (right/dest) - (left/src) *)
-  | SubSD
-  | MulSD
-  (* right/dest := (right/dest) / (left/src) *)
-  | DivSD
-  | XorPD
-  | UComiSD
-  (* Bitwise operations *)
-  | NotM of operand_size
-  | AndIM of operand_size
-  | AndMM of operand_size
-  | OrIM of operand_size
-  | OrMM of operand_size
-  | XorIM of operand_size
-  | XorMM of operand_size
-  (* Bit shifts, all only support 8 bit immediates *)
-  | ShlI of operand_size
-  | ShlM of operand_size
-  | ShrI of operand_size
-  | ShrM of operand_size
-  | SarI of operand_size
-  | SarM of operand_size
-  (* Comparisons *)
-  | CmpMI of operand_size
-  | CmpMM of operand_size
-  | TestMR of operand_size
-  (* Only supports 8-bit destination *)
-  | SetCC of condition_code
-  (* Conversions *)
-  | ConvertDouble of operand_size (* Only supports 16, 32, and 64 byte sizes (cwd/cdq/cqo) *)
-  (* Converts with truncation towards zero *)
-  (* GP register size, must be 32 or 64-bit. Converts SSE mem to GP register. *)
-  | ConvertFloatToInt of operand_size
-  (* GP register size, must be 32 or 64-bit. Converts GP mem to SSE register *)
-  | ConvertIntToFloat of operand_size
-  (* Control flow *)
-  | Jmp
-  | JmpCC of condition_code
-  | CallL of param_types
-  | CallM of operand_size * param_types
-  | Ret
+open Asm_instruction_definition
 
 module rec InstructionDef : sig
   type t = { operands: OperandDef.t list }
@@ -285,116 +189,118 @@ let ret = { InstructionDef.operands = [] }
 
 let instr_def (instr : instr) : InstructionDef.t =
   match instr with
-  | PushI -> push_i
-  | PushM -> push_m
-  | PopM -> pop_m
-  | MovIM _ -> mov_im
-  | MovMM _ -> mov_mm
-  | MovSX _ -> mov_zx
-  | MovZX _ -> mov_zx
-  | Lea _ -> lea
-  | NegM _ -> neg_m
-  | AddIM _ -> and_im
-  | AddMM _ -> and_mm
-  | SubIM _ -> sub_im
-  | SubMM _ -> sub_mm
-  | IMulMR _ -> imul_mr
-  | IMulIMR _ -> imul_imr
-  | IDiv _ -> idiv
-  | AddSD -> add_sd
-  | SubSD -> sub_sd
-  | MulSD -> mul_sd
-  | DivSD -> div_sd
-  | XorPD -> xor_pd
-  | UComiSD -> ucomi_sd
-  | NotM _ -> not_m
-  | AndIM _ -> and_im
-  | AndMM _ -> and_mm
-  | OrIM _ -> or_im
-  | OrMM _ -> or_mm
-  | XorIM _ -> xor_mm
-  | XorMM _ -> xor_mm
-  | ShlI _ -> shl_i
-  | ShlM _ -> shl_m
-  | ShrI _ -> shr_i
-  | ShrM _ -> shr_m
-  | SarI _ -> sar_i
-  | SarM _ -> sar_m
-  | CmpMI _ -> cmp_mi
-  | CmpMM _ -> cmp_mm
-  | TestMR _ -> test_mr
-  | SetCC _ -> set_cc
-  | ConvertDouble _ -> convert_double
-  | ConvertFloatToInt _ -> convert_float_to_int
-  | ConvertIntToFloat _ -> convert_int_to_float
-  | Jmp -> jmp
-  | JmpCC _ -> jmp_cc
-  | CallL _ -> call_l
-  | CallM _ -> call_m
-  | Ret -> ret
+  | `PushI -> push_i
+  | `PushM -> push_m
+  | `PopM -> pop_m
+  | `MovIM _ -> mov_im
+  | `MovMM _ -> mov_mm
+  | `MovSX _ -> mov_zx
+  | `MovZX _ -> mov_zx
+  | `Lea _ -> lea
+  | `NegM _ -> neg_m
+  | `AddIM _ -> and_im
+  | `AddMM _ -> and_mm
+  | `SubIM _ -> sub_im
+  | `SubMM _ -> sub_mm
+  | `IMulMR _ -> imul_mr
+  | `IMulIMR _ -> imul_imr
+  | `IDiv _ -> idiv
+  | `AddSD -> add_sd
+  | `SubSD -> sub_sd
+  | `MulSD -> mul_sd
+  | `DivSD -> div_sd
+  | `XorPD -> xor_pd
+  | `UComiSD -> ucomi_sd
+  | `NotM _ -> not_m
+  | `AndIM _ -> and_im
+  | `AndMM _ -> and_mm
+  | `OrIM _ -> or_im
+  | `OrMM _ -> or_mm
+  | `XorIM _ -> xor_mm
+  | `XorMM _ -> xor_mm
+  | `ShlI _ -> shl_i
+  | `ShlM _ -> shl_m
+  | `ShrI _ -> shr_i
+  | `ShrM _ -> shr_m
+  | `SarI _ -> sar_i
+  | `SarM _ -> sar_m
+  | `CmpMI _ -> cmp_mi
+  | `CmpMM _ -> cmp_mm
+  | `TestMR _ -> test_mr
+  | `SetCC _ -> set_cc
+  | `ConvertDouble _ -> convert_double
+  | `ConvertFloatToInt _ -> convert_float_to_int
+  | `ConvertIntToFloat _ -> convert_int_to_float
+  | `Jmp -> jmp
+  | `JmpCC _ -> jmp_cc
+  | `CallL _ -> call_l
+  | `CallM _ -> call_m
+  | `Ret -> ret
+  | _ -> failwith "Unknown X86_64 instr"
 
 (* Return the size of the i'th operand for this instruction. Size of immediate operands may not
    be accurate. *)
-let instr_operand_size (instr : instr) (i : int) : operand_size =
+let instr_operand_size (instr : instr) (i : int) : X86_64.operand_size =
   match instr with
   (* Instructions where all operands have the same size *)
-  | MovIM size
-  | MovMM size
-  | Lea size
-  | NegM size
-  | NotM size
-  | AddIM size
-  | AddMM size
-  | SubIM size
-  | SubMM size
-  | IMulMR size
-  | IMulIMR size
-  | IDiv size
-  | AndIM size
-  | AndMM size
-  | OrIM size
-  | OrMM size
-  | XorIM size
-  | XorMM size
-  | ShlI size
-  | ShlM size
-  | ShrI size
-  | ShrM size
-  | SarI size
-  | SarM size
-  | CmpMI size
-  | CmpMM size
-  | TestMR size
-  | CallM (size, _)
-  | ConvertFloatToInt size
-  | ConvertIntToFloat size ->
+  | `MovIM size
+  | `MovMM size
+  | `Lea size
+  | `NegM size
+  | `NotM size
+  | `AddIM size
+  | `AddMM size
+  | `SubIM size
+  | `SubMM size
+  | `IMulMR size
+  | `IMulIMR size
+  | `IDiv size
+  | `AndIM size
+  | `AndMM size
+  | `OrIM size
+  | `OrMM size
+  | `XorIM size
+  | `XorMM size
+  | `ShlI size
+  | `ShlM size
+  | `ShrI size
+  | `ShrM size
+  | `SarI size
+  | `SarM size
+  | `CmpMI size
+  | `CmpMM size
+  | `TestMR size
+  | `CallM (size, _)
+  | `ConvertFloatToInt size
+  | `ConvertIntToFloat size ->
     size
   (* Instructions where operands have different sizes *)
-  | MovSX (src_size, dest_size)
-  | MovZX (src_size, dest_size) ->
+  | `MovSX (src_size, dest_size)
+  | `MovZX (src_size, dest_size) ->
     if i == 0 then
       src_size
     else
       dest_size
   (* All stack operations are 64-bit *)
-  | PushI
-  | PushM
-  | PopM ->
+  | `PushI
+  | `PushM
+  | `PopM ->
     Size64
   (* Only 64-bit floating point operations are supported *)
-  | AddSD
-  | SubSD
-  | MulSD
-  | DivSD
-  | XorPD
-  | UComiSD ->
+  | `AddSD
+  | `SubSD
+  | `MulSD
+  | `DivSD
+  | `XorPD
+  | `UComiSD ->
     Size64
   (* Instructions that only have byte operands *)
-  | SetCC _ -> Size8
+  | `SetCC _ -> Size8
   (* Instructions with no sized operands *)
-  | ConvertDouble _
-  | Jmp
-  | JmpCC _
-  | CallL _
-  | Ret ->
+  | `ConvertDouble _
+  | `Jmp
+  | `JmpCC _
+  | `CallL _
+  | `Ret ->
     failwith "No sized operands"
+  | _ -> failwith "Unknown X86_64 instr"

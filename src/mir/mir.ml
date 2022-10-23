@@ -325,14 +325,11 @@ and BlockMap : (Map.S with type key = Block.t) = BlockCollection.Map
 and FunctionSet : (Set.S with type elt = Function.t) = FunctionCollection.Set
 and FunctionMap : (Map.S with type key = Function.t) = FunctionCollection.Map
 
-and VVMMap : (MultiMap.S with type key = Value.t and type value = Value.t) =
-  MultiMap.Make (ValueCollection) (ValueCollection)
+module VVMMap = MultiMap.Make (VMap) (VSet)
 
-and BlockMMap : (MultiMap.S with type key = Block.t and type value = Block.t) =
-  MultiMap.Make (BlockCollection) (BlockCollection)
+module BlockMMap = MultiMap.Make (BlockMap) (BlockSet)
 
-and BlockIMMap : (MultiMap.S with type key = Block.t and type value = Int.t) =
-  MultiMap.Make (BlockCollection) (IntCollection)
+module BlockIMMap = MultiMap.Make (BlockMap) (ISet)
 
 let init_func_name = "_init"
 

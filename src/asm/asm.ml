@@ -1,7 +1,7 @@
+open Asm_calling_convention
+open Asm_instruction_definition
+open Asm_register
 open Basic_collections
-open X86_64_calling_conventions
-open X86_64_instruction_definitions
-open X86_64_register
 
 type label = string
 
@@ -11,7 +11,7 @@ type immediate =
   | Imm32 of Int32.t
   | Imm64 of Int64.t
 
-module rec MemoryAddress : sig
+module rec X86_64_MemoryAddress : sig
   type t = {
     mutable offset: offset option;
     mutable base: base;
@@ -33,7 +33,7 @@ module rec MemoryAddress : sig
     | Scale4
     | Scale8
 end =
-  MemoryAddress
+  X86_64_MemoryAddress
 
 and Operand : sig
   type id = int
@@ -54,7 +54,7 @@ and Operand : sig
     (* Immediate argument *)
     | Immediate of immediate
     (* Memory address (which may contain vregs as the base, offset, or index) *)
-    | MemoryAddress of MemoryAddress.t
+    | X86_64_MemoryAddress of X86_64_MemoryAddress.t
     (* Label (memory address of function or global) *)
     | Label of label
     (* Direct reference to a basic block *)
@@ -91,7 +91,7 @@ end = struct
     | PhysicalRegister of Register.t
     | VirtualRegister
     | Immediate of immediate
-    | MemoryAddress of MemoryAddress.t
+    | X86_64_MemoryAddress of X86_64_MemoryAddress.t
     | Label of label
     | Block of Block.t
     | VirtualStackSlot
@@ -119,7 +119,7 @@ end = struct
 
   let is_memory_value value =
     match value.value with
-    | MemoryAddress _
+    | X86_64_MemoryAddress _
     | VirtualStackSlot
     | FunctionStackArgument
     | FunctionArgumentStackSlot _ ->
@@ -230,27 +230,13 @@ and BlockSet : (Set.S with type elt = Block.t) = BlockCollection.Set
 and BlockMap : (Map.S with type key = Block.t) = BlockCollection.Map
 and FunctionSet : (Set.S with type elt = Function.t) = FunctionCollection.Set
 
-and BlockMMap : (MultiMap.S with type key = Block.t and type value = Block.t) =
-  MultiMap.Make (BlockCollection) (BlockCollection)
+module BlockMMap = MultiMap.Make (BlockMap) (BlockSet)
 
-and OInstrMMap :
-  (MultiMap.S
-    with type key = Operand.t
-     and type value = Instruction.t
-     and type 'a KMap.t = 'a OperandCollection.Map.t
-     and type VSet.t = InstructionCollection.Set.t) =
-  MultiMap.Make (OperandCollection) (InstructionCollection)
+module OInstrMMap = MultiMap.Make (OperandMap) (InstrSet)
 
-and OOMMap :
-  (MultiMap.S
-    with type key = Operand.t
-     and type value = Operand.t
-     and type 'a KMap.t = 'a OperandCollection.Map.t
-     and type VSet.t = OperandCollection.Set.t) =
-  MultiMap.Make (OperandCollection) (OperandCollection)
+module OOMMap = MultiMap.Make (OperandMap) (OperandSet)
 
-and OBMMap : (MultiMap.S with type key = Operand.t and type value = Block.t) =
-  MultiMap.Make (OperandCollection) (BlockCollection)
+module OBMMap = MultiMap.Make (OperandMap) (BlockSet)
 
 let string_of_oset oset =
   let elements =
@@ -309,15 +295,12 @@ let rec null_function : Function.t =
 
 and null_block : Block.t = { Block.id = 0; label = None; func = null_function; instructions = None }
 
-let empty_memory_address = { MemoryAddress.offset = None; base = NoBase; index_and_scale = None }
-
-let pointer_size = 8
-
-let mk_data_section () = Array.make 5 []
+let empty_x86_64_memory_address =
+  { X86_64_MemoryAddress.offset = None; base = NoBase; index_and_scale = None }
 
 let bytes_of_size size =
   match size with
-  | Size8 -> 1
+  | X86_64.Size8 -> 1
   | Size16 -> 2
   | Size32 -> 4
   | Size64 -> 8
@@ -325,7 +308,7 @@ let bytes_of_size size =
 
 let size_of_immediate imm =
   match imm with
-  | Imm8 _ -> Size8
+  | Imm8 _ -> X86_64.Size8
   | Imm16 _ -> Size16
   | Imm32 _ -> Size32
   | Imm64 _ -> Size64
@@ -337,7 +320,7 @@ let cast_to_immediate op =
 
 let cast_to_memory_address op =
   match op.Operand.value with
-  | MemoryAddress addr -> addr
+  | X86_64_MemoryAddress addr -> addr
   | _ -> failwith "Expected memory address operand"
 
 let cast_to_block op =
@@ -351,71 +334,3 @@ let int64_of_immediate imm =
   | Imm16 i -> Int64.of_int i
   | Imm32 i -> Int64.of_int32 i
   | Imm64 i -> i
-
-let rec align_of_data_value d =
-  match d with
-  | ImmediateData imm -> bytes_of_size (size_of_immediate imm)
-  | AsciiData _ -> 1
-  | LabelData _ -> 8
-  | SSELiteral _ -> 16
-  | ArrayData data ->
-    List.fold_left
-      (fun max_align value ->
-        let align = align_of_data_value value in
-        if align > max_align then
-          align
-        else
-          max_align)
-      1
-      data
-
-let align_to_data_section_align_index align =
-  match align with
-  | 1 -> 0
-  | 2 -> 1
-  | 4 -> 2
-  | 8 -> 3
-  | 16 -> 4
-  | _ -> failwith "Invalid alignment"
-
-(* Return the opposite of a condition code (NOT CC) *)
-let invert_condition_code cc =
-  match cc with
-  | E -> NE
-  | NE -> E
-  | L -> GE
-  | G -> LE
-  | LE -> G
-  | GE -> L
-  | B -> AE
-  | BE -> A
-  | A -> BE
-  | AE -> B
-  | P -> NP
-  | NP -> P
-
-(* Return the condition code that results from swapping the arguments *)
-let swap_condition_code_order cc =
-  match cc with
-  | E
-  | NE ->
-    cc
-  | L -> G
-  | G -> L
-  | LE -> GE
-  | GE -> LE
-  | B -> A
-  | A -> B
-  | BE -> AE
-  | AE -> BE
-  (* Only valid to be swapped because parity flag is only used for ucomisd, where it signals
-     whether arguments are "unordered" (at least one of the arguments was NaN). *)
-  | P
-  | NP ->
-    cc
-
-let main_label = "_main"
-
-let init_label = "_myte_init"
-
-let double_negate_mask_label = "_double_negate_mask"

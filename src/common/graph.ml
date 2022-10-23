@@ -2,7 +2,7 @@ module Make (IdType : MultiMap.KEY_AND_VALUE_TYPE) = struct
   module Map = IdType.Map
   module Set = IdType.Set
 
-  module MMap = MultiMap.Make (IdType) (IdType)
+  module MMap = MultiMap.Make (Map) (Set)
 
   exception CycleException of IdType.t
 

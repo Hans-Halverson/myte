@@ -1,8 +1,10 @@
+open Asm
+open Asm_calling_convention
+open Asm_register
 open Basic_collections
 open Mir_type
+open X86_64_asm
 open X86_64_builders
-open X86_64_calling_conventions
-open X86_64_instructions
 open X86_64_layout
 open X86_64_register
 
@@ -118,8 +120,8 @@ module Gcx = struct
     let current_block = Option.get gcx.current_block in
     mk_instr_ ~block:current_block instr operands;
     match (instr, operands) with
-    | (Jmp, [| { value = Block next_block; _ } |])
-    | (JmpCC _, [| { value = Block next_block; _ } |]) ->
+    | (`Jmp, [| { value = Block next_block; _ } |])
+    | (`JmpCC _, [| { value = Block next_block; _ } |]) ->
       gcx.prev_blocks <- BlockMMap.add next_block current_block gcx.prev_blocks
     | _ -> ()
 
@@ -230,7 +232,7 @@ module Gcx = struct
       match blocks with
       | block1 :: block2 :: tl ->
         (match get_last_instr_opt block1 with
-        | Some ({ instr = Jmp; operands = [| { value = Block next_block; _ } |]; _ } as jmp_instr)
+        | Some ({ instr = `Jmp; operands = [| { value = Block next_block; _ } |]; _ } as jmp_instr)
           when next_block.id = block2.id ->
           remove_instruction jmp_instr
         (* Eliminate unnecessary Jmp instructions by reordering sequences of JmpCCs:
@@ -243,16 +245,16 @@ module Gcx = struct
              ...                  ... *)
         | Some
             ({
-               instr = Jmp;
+               instr = `Jmp;
                operands = [| { value = Block jmp_block; _ } |];
                prev =
-                 { instr = JmpCC cc; operands = [| { value = Block jmp_cc_block; _ } |]; _ } as
+                 { instr = `JmpCC cc; operands = [| { value = Block jmp_cc_block; _ } |]; _ } as
                  jmp_cc_instr;
                _;
              } as jmp_instr)
           when jmp_cc_block.id == block2.id ->
           remove_instruction jmp_instr;
-          jmp_cc_instr.instr <- JmpCC (invert_condition_code cc);
+          jmp_cc_instr.instr <- `JmpCC (invert_condition_code cc);
           jmp_cc_instr.operands.(0) <- mk_block_op ~block:jmp_block
         | _ -> ());
         merge (block2 :: tl)
@@ -267,7 +269,7 @@ module Gcx = struct
         func_iter_blocks func (fun block ->
             filter_instructions block (fun { Instruction.instr; operands; _ } ->
                 match (instr, operands) with
-                | (MovMM _, [| op1; op2 |]) ->
+                | (`MovMM _, [| op1; op2 |]) ->
                   (match (op1.value, op2.value) with
                   | (PhysicalRegister reg1, PhysicalRegister reg2) when reg1 = reg2 -> false
                   | _ -> true)
@@ -282,7 +284,7 @@ module Gcx = struct
     let jump_aliases = ref BlockMap.empty in
     funcs_iter_blocks gcx.funcs (fun block ->
         match get_first_instr_opt block with
-        | Some { instr = Jmp; operands = [| { value = Block next_jump_block; _ } |]; _ }
+        | Some { instr = `Jmp; operands = [| { value = Block next_jump_block; _ } |]; _ }
           when has_single_instruction block && block.id != next_jump_block.id ->
           jump_aliases := BlockMap.add block next_jump_block !jump_aliases
         | _ -> ());
@@ -310,11 +312,11 @@ module Gcx = struct
         let open Instruction in
         iter_instructions block (fun instr ->
             match instr with
-            | { instr = Jmp; operands = [| { value = Block next_block; _ } as block_op |]; _ }
+            | { instr = `Jmp; operands = [| { value = Block next_block; _ } as block_op |]; _ }
               when BlockMap.mem next_block !jump_aliases ->
               let resolved_alias = resolve_jump_alias next_block in
               if resolved_alias != next_block then block_op.value <- Block resolved_alias
-            | { instr = JmpCC _; operands = [| { value = Block next_block; _ } as block_op |]; _ }
+            | { instr = `JmpCC _; operands = [| { value = Block next_block; _ } as block_op |]; _ }
               when BlockMap.mem next_block !jump_aliases ->
               let resolved_alias = resolve_jump_alias next_block in
               if resolved_alias != next_block then block_op.value <- Block resolved_alias

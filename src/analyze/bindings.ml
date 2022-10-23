@@ -254,7 +254,7 @@ module TypeBindingCollection = MakeCollection (TypeBinding)
 
 module BVSet = ValueBindingCollection.Set
 module BVMap = ValueBindingCollection.Map
-module LBVMMap = MultiMap.Make (Loc) (ValueBindingCollection)
+module LBVMMap = MultiMap.Make (LocMap) (BVSet)
 module BTSet = TypeBindingCollection.Set
 module BTMap = TypeBindingCollection.Map
 
