@@ -1,4 +1,5 @@
 open Asm
+open Asm_builders
 open Asm_register
 open Asm_register_allocation
 open X86_64_builders

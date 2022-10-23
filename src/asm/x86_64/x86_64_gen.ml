@@ -1,19 +1,10 @@
 open Asm
 open X86_64_gen_context
 
-let gen_program ir =
-  (* Filter out stdlib for printing *)
-  let ir =
-    (* TODO: Only use parts of stdlib that we need to, currently strip it all out *)
-    if X86_64_utils.any_dump_asm () && not (Opts.dump_stdlib ()) then
-      Mir.filter_stdlib ir
-    else
-      ir
-  in
-
+let gen ir =
   (* Generate virtual assembly *)
   let gcx = Gcx.mk () in
-  X86_64_gen_virtual.gen ~gcx ir;
+  X86_64_codegen.gen ~gcx ir;
 
   (* Optionally dump virtual assembly to stdout *)
   if Opts.dump_virtual_asm () then (
@@ -43,4 +34,5 @@ let gen_program ir =
     print_string (X86_64_pp.pp_program ~gcx);
     exit 0
   end;
+
   gcx

@@ -96,12 +96,15 @@ let transform_ir ~pcx program =
 
 let lower_to_asm ir =
   (* Generate textual assembly for program *)
+  Asm_gen.preprocess_ir ir;
   let assembly_text =
     match Target.target_architecture () with
     | X86_64 ->
-      let gcx = X86_64_gen.gen_program ir in
+      let gcx = X86_64_gen.gen ir in
       X86_64_pp.pp_program ~gcx
-    | AArch64 -> ".text\n_stub:\nret\n"
+    | AArch64 ->
+      let gcx = Aarch64_gen.gen ir in
+      Aarch64_pp.pp_program ~gcx
   in
   let output_file =
     match Opts.output_file () with

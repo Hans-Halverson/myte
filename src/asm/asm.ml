@@ -334,3 +334,7 @@ let int64_of_immediate imm =
   | Imm16 i -> Int64.of_int i
   | Imm32 i -> Int64.of_int32 i
   | Imm64 i -> i
+
+let main_label = "_main"
+
+let init_label = "_myte_init"

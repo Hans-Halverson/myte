@@ -1,80 +1,10 @@
 open Asm
+open Asm_builders
 open Asm_instruction_definition
-open X86_64_asm
-open X86_64_builders
+open Asm_pp
 open X86_64_gen_context
 open X86_64_instruction_definitions
 open X86_64_register
-
-type print_context = { mutable block_print_labels: string BlockMap.t }
-
-let write_full_asm () =
-  Opts.dump_full_asm () || ((not (Opts.dump_asm ())) && not (Opts.dump_virtual_asm ()))
-
-let mk_pcx ~(gcx : Gcx.t) =
-  let pcx = { block_print_labels = BlockMap.empty } in
-  (* Find set of all blocks that have an incoming jump *)
-  let incoming_jump_blocks = ref BlockSet.empty in
-  funcs_iter_blocks gcx.funcs (fun block ->
-      iter_instructions block (fun instr ->
-          match instr with
-          | { instr = `Jmp | `JmpCC _; operands = [| { value = Block next_block; _ } |]; _ } ->
-            incoming_jump_blocks := BlockSet.add next_block !incoming_jump_blocks
-          | _ -> ()));
-
-  (* Determine labels for every unlabed block in program that has an incoming jump *)
-  let max_label_id = ref 0 in
-  FunctionSet.iter
-    (fun func ->
-      List.iter
-        (fun block ->
-          let open Block in
-          match block.label with
-          | Some _ -> ()
-          | None ->
-            if BlockSet.mem block !incoming_jump_blocks then (
-              let id = !max_label_id in
-              max_label_id := !max_label_id + 1;
-              pcx.block_print_labels <-
-                BlockMap.add block (".L" ^ string_of_int id) pcx.block_print_labels
-            ))
-        func.Function.blocks)
-    gcx.funcs;
-  pcx
-
-let mk_buf ?(size = 1024) () = Buffer.create size
-
-let add_char ~buf c = Buffer.add_char buf c
-
-let add_string ~buf str = Buffer.add_string buf str
-
-let add_indent ~buf = Buffer.add_string buf "  "
-
-let add_line ~buf ?(indent = true) f =
-  if indent then add_indent ~buf;
-  f buf;
-  add_char ~buf '\n'
-
-let add_blank_line ~buf = add_char ~buf '\n'
-
-let add_label_line ~buf label =
-  add_line ~buf ~indent:false (fun buf ->
-      add_string ~buf label;
-      add_char ~buf ':')
-
-let quote_string str =
-  let buf = mk_buf ~size:16 () in
-  String.iter
-    (fun c ->
-      match c with
-      | '"' -> add_string ~buf "\\\""
-      | '\\' -> add_string ~buf "\\\\"
-      | '\n' -> add_string ~buf "\\n"
-      | '\t' -> add_string ~buf "\\t"
-      | '\r' -> add_string ~buf "\\r"
-      | c -> add_char ~buf c)
-    str;
-  "\"" ^ Buffer.contents buf ^ "\""
 
 let pp_integer_size_suffix ~buf size =
   add_char
@@ -85,19 +15,6 @@ let pp_integer_size_suffix ~buf size =
     | Size32 -> 'l'
     | Size64 -> 'q'
     | Size128 -> failwith "Invalid integer operand size")
-
-let pp_label_debug_prefix ~buf (block : Block.t) =
-  if Opts.dump_debug () then (
-    add_char ~buf '(';
-    add_string ~buf (string_of_int block.id);
-    add_string ~buf ") "
-  )
-
-let pp_label ~pcx block =
-  let open Block in
-  match block.label with
-  | Some label -> Some label
-  | None -> BlockMap.find_opt block pcx.block_print_labels
 
 let pp_condition_code cc =
   match cc with
@@ -201,13 +118,7 @@ and pp_memory_address ~gcx ~pcx ~buf mem =
 
 let pp_instruction ~gcx ~pcx ~buf instr =
   let open Instruction in
-  if Opts.dump_debug () then (
-    let instr_id = string_of_int instr.id in
-    let padding_size = max 0 (4 - String.length instr_id) in
-    add_char ~buf '#';
-    add_string ~buf instr_id;
-    add_string ~buf (String.make padding_size ' ')
-  );
+  pp_instr_debug_prefix ~buf ~instr;
   add_line ~buf (fun buf ->
       let add_string = add_string ~buf in
       let pp_op op =
@@ -406,61 +317,6 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `Ret -> pp_no_args_op "ret"
       | _ -> failwith "Unknown X86_64 instr")
 
-let rec pp_data_value ~buf (data_value : data_value) =
-  let add_directive directive value =
-    add_line ~buf (fun buf ->
-        add_char ~buf '.';
-        add_string ~buf directive;
-        add_char ~buf ' ';
-        add_string ~buf value)
-  in
-  let add_imm_directive imm =
-    match imm with
-    | Imm8 imm -> add_directive "byte" (Int8.to_string imm)
-    | Imm16 imm -> add_directive "value" (string_of_int imm)
-    | Imm32 imm -> add_directive "long" (Int32.to_string imm)
-    | Imm64 imm -> add_directive "quad" (Int64.to_string imm)
-  in
-  match data_value with
-  | ImmediateData imm -> add_imm_directive imm
-  | AsciiData str -> add_directive "ascii" (quote_string str)
-  | LabelData labels -> List.iter (fun label -> add_directive "quad" label) labels
-  | ArrayData values -> List.iter (pp_data_value ~buf) values
-  | SSELiteral imms -> List.iter add_imm_directive imms
-
-let pp_initialized_data_item ~buf (init_data : initialized_data_item) =
-  (* Data blocks have the form:
-     label:
-       .directive immediate *)
-  add_label_line ~buf init_data.label;
-  pp_data_value ~buf init_data.value
-
-let pp_uninitialized_data_item ~buf (uninit_data : uninitialized_data_item) =
-  add_label_line ~buf uninit_data.label;
-  add_line ~buf (fun buf ->
-      add_string ~buf ".skip ";
-      add_string ~buf (string_of_int uninit_data.size))
-
-let is_data_section_empty data_section = Array.for_all (fun data -> data = []) data_section
-
-let pp_data_section ~buf data_section section_name pp_func =
-  add_line ~buf (fun buf ->
-      add_char ~buf '.';
-      add_string ~buf section_name);
-  Array.iteri
-    (fun i data ->
-      (* Align data between data values of differing alignments *)
-      (if data <> [] && i <> 0 then
-        let alignment = string_of_int (Int.shift_left 1 i) in
-        add_line ~buf (fun buf ->
-            add_string ~buf ".balign ";
-            add_string ~buf alignment));
-
-      if i = 3 && write_full_asm () then add_label_line ~buf (section_name ^ "_bitmap_start");
-
-      if data <> [] then List.iter (pp_func ~buf) data)
-    data_section
-
 let pp_data_section_bitmap ~buf (bitmap : X86_64_bitmaps.data_section_bitmap) section_name =
   (* Write bitmap size *)
   add_label_line ~buf (section_name ^ "_bitmap_size");
@@ -491,8 +347,6 @@ let pp_data_section_bitmap ~buf (bitmap : X86_64_bitmaps.data_section_bitmap) se
           add_string ~buf (Printf.sprintf "0x%X" byte)
         done)
 
-let pp_global_directive ~buf label = add_line ~buf (fun buf -> add_string ~buf (".global " ^ label))
-
 let pp_block ~gcx ~pcx ~buf (block : Block.t) =
   (match pp_label ~pcx block with
   | None -> ()
@@ -503,35 +357,11 @@ let pp_block ~gcx ~pcx ~buf (block : Block.t) =
 
 let pp_program ~gcx =
   let open Gcx in
-  let pcx = mk_pcx ~gcx in
+  let pcx = mk_pcx ~funcs:gcx.funcs in
   let buf = mk_buf () in
-  let write_full_asm = write_full_asm () in
 
-  (* Add global directives *)
-  pp_global_directive ~buf main_label;
-  if write_full_asm then (
-    pp_global_directive ~buf init_label;
-    pp_global_directive ~buf Std_lib.std_sys_init;
-
-    pp_global_directive ~buf "bss_bitmap";
-    pp_global_directive ~buf "bss_bitmap_size";
-    pp_global_directive ~buf "bss_bitmap_start";
-
-    pp_global_directive ~buf "data_bitmap";
-    pp_global_directive ~buf "data_bitmap_size";
-    pp_global_directive ~buf "data_bitmap_start"
-  );
-
-  (* Add data sections *)
-  if write_full_asm || not (is_data_section_empty gcx.bss) then (
-    add_blank_line ~buf;
-    pp_data_section ~buf gcx.bss "bss" pp_uninitialized_data_item
-  );
-
-  if write_full_asm || not (is_data_section_empty gcx.data) then (
-    add_blank_line ~buf;
-    pp_data_section ~buf gcx.data "data" pp_initialized_data_item
-  );
+  pp_global_directives ~buf;
+  pp_data_sections ~buf ~bss:gcx.bss ~data:gcx.data;
 
   (* Add text section *)
   add_blank_line ~buf;
@@ -539,7 +369,7 @@ let pp_program ~gcx =
   FunctionSet.iter (fun func -> List.iter (pp_block ~gcx ~pcx ~buf) func.Function.blocks) gcx.funcs;
 
   (* Add data section bitmaps *)
-  if Opts.custom_gc () && write_full_asm then (
+  if Opts.custom_gc () && write_full_asm () then (
     let bss_bitmap = X86_64_bitmaps.gen_data_section_bitmap gcx.bss in
     pp_data_section_bitmap ~buf bss_bitmap "bss";
     let data_bitmap = X86_64_bitmaps.gen_data_section_bitmap gcx.data in

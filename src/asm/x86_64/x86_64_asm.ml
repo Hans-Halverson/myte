@@ -67,8 +67,4 @@ let swap_condition_code_order cc =
   | NP ->
     cc
 
-let main_label = "_main"
-
-let init_label = "_myte_init"
-
 let double_negate_mask_label = "_double_negate_mask"

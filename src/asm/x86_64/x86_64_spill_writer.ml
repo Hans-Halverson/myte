@@ -1,4 +1,6 @@
 open Asm
+open Asm_builders
+open Asm_instruction_definition
 open X86_64_builders
 open X86_64_instruction_definitions
 

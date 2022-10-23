@@ -507,8 +507,7 @@ let has_std_lib_prefix name =
 let filter_stdlib (program : Program.t) =
   let filter_stdlib_names smap = SMap.filter (fun name _ -> not (has_std_lib_prefix name)) smap in
   program.globals <- filter_stdlib_names program.globals;
-  program.funcs <- filter_stdlib_names program.funcs;
-  program
+  program.funcs <- filter_stdlib_names program.funcs
 
 let get_terminator_value (block : Block.t) : Value.t option =
   match block.instructions with

@@ -1,0 +1,4 @@
+(library
+  (name asm_aarch64)
+  (wrapped false)
+  (libraries str myte_common mir asm_common))

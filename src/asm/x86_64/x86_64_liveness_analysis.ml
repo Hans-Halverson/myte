@@ -1,9 +1,10 @@
 open Asm
+open Asm_builders
 open Asm_calling_convention
+open Asm_instruction_definition
 open Asm_register
 open X86_64_builders
 open X86_64_gen_context
-open X86_64_instruction_definitions
 open X86_64_register
 
 class use_def_finder color_to_representative_operand =

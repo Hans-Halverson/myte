@@ -1,10 +1,10 @@
 open Asm
+open Asm_builders
 open Asm_calling_convention
 open Asm_register
 open Basic_collections
 open Mir_type
 open X86_64_asm
-open X86_64_builders
 open X86_64_layout
 open X86_64_register
 
@@ -29,8 +29,6 @@ module Gcx = struct
     (* Floating point literals *)
     mutable added_double_negate_mask: bool;
     mutable float_immediates: SSet.t;
-    (* Whether the myte_init function has been generated *)
-    mutable generated_init_func: bool;
   }
 
   let mk () =
@@ -61,7 +59,6 @@ module Gcx = struct
       agg_to_layout = IMap.empty;
       added_double_negate_mask = false;
       float_immediates = SSet.empty;
-      generated_init_func = false;
     }
 
   let finish_builders ~gcx =

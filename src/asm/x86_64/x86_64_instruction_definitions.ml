@@ -1,45 +1,5 @@
 open Asm_instruction_definition
 
-module rec InstructionDef : sig
-  type t = { operands: OperandDef.t list }
-end =
-  InstructionDef
-
-and OperandDef : sig
-  type t = {
-    use: use;
-    operand_type: operand_type;
-  }
-
-  and use =
-    | Use
-    | Def
-    | UseDef
-
-  and operand_type =
-    | Immediate
-    | MemoryAddress
-    | Register
-    | RegMem
-    | Block
-    | Label
-end =
-  OperandDef
-
-let operand_is_use (operand_def : OperandDef.t) =
-  match operand_def.use with
-  | Use
-  | UseDef ->
-    true
-  | _ -> false
-
-let operand_is_def (operand_def : OperandDef.t) =
-  match operand_def.use with
-  | Def
-  | UseDef ->
-    true
-  | _ -> false
-
 (* Operand def for base and index of a MemoryAddress *)
 let address_reg_operand_def = { OperandDef.use = Use; operand_type = Register }
 

@@ -1,8 +1,8 @@
 open Asm
+open Asm_builders
 open Asm_register
 open Basic_collections
 open Myte_test
-open X86_64_builders
 
 let mk_vreg id = mk_virtual_register_of_value_id ~value_id:id ~type_:Byte
 

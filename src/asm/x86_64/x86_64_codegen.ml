@@ -1,4 +1,5 @@
 open Asm
+open Asm_builders
 open Asm_calling_convention
 open Asm_instruction_definition.X86_64
 open Basic_collections
@@ -6,7 +7,6 @@ open Mir
 open Mir_builders
 open Mir_type
 open X86_64_asm
-open X86_64_builders
 open X86_64_calling_conventions
 open X86_64_gen_context
 open X86_64_layout
@@ -41,10 +41,6 @@ let rec gen ~gcx (ir : Program.t) =
 
   (* Generate all functions in program *)
   SMap.iter (fun _ func -> gen_function_instruction_builder ~gcx ~ir func) ir.funcs;
-
-  (* Init function must exist, so generate an empty one if no init func is in MIR *)
-  if (not gcx.generated_init_func) && not (X86_64_utils.any_dump_asm ()) then
-    gen_empty_myte_init_func ~gcx;
 
   Gcx.finish_builders ~gcx
 
@@ -113,10 +109,9 @@ and gen_function_instruction_builder ~gcx ~ir func =
   let label =
     if func == ir.main_func then
       main_label
-    else if func.name == init_func_name then (
-      gcx.generated_init_func <- true;
+    else if func.name == init_func_name then
       init_label
-    ) else
+    else
       label_of_mir_label func.name
   in
   (* Create function prologue which copies all params from physical registers or stack slots to
@@ -143,15 +138,6 @@ and gen_function_instruction_builder ~gcx ~ir func =
   Gcx.emit ~gcx `Jmp [| block_op_of_mir_block ~gcx func.start_block |];
   Gcx.finish_block ~gcx;
   gen_blocks ~gcx ~ir func.start_block None func_;
-  Gcx.finish_function ~gcx
-
-and gen_empty_myte_init_func ~gcx =
-  gcx.generated_init_func <- true;
-  let func_ = Gcx.start_function ~gcx [] (Array.make 0 (ParamOnStack 0)) None in
-  Gcx.start_block ~gcx ~label:(Some init_label) ~func:func_ ~mir_block:None;
-  func_.prologue <- Option.get gcx.current_block;
-  Gcx.emit ~gcx `Ret [||];
-  Gcx.finish_block ~gcx;
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block label func =

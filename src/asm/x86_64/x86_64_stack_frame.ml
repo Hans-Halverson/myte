@@ -1,6 +1,6 @@
 open Asm
+open Asm_builders
 open Asm_register
-open X86_64_builders
 open X86_64_gen_context
 open X86_64_register
 

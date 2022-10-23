@@ -1,9 +1,10 @@
 open Asm
+open Asm_builders
+open Asm_instruction_definition
 open Asm_register
 open Basic_collections
 open X86_64_builders
 open X86_64_gen_context
-open X86_64_instruction_definitions
 
 let find_vslot_use_defs (instr : Instruction.t) =
   let uses = ref OperandSet.empty in

@@ -122,3 +122,43 @@ type instr =
   [ AArch64.instr
   | X86_64.instr
   ]
+
+module rec InstructionDef : sig
+  type t = { operands: OperandDef.t list }
+end =
+  InstructionDef
+
+and OperandDef : sig
+  type t = {
+    use: use;
+    operand_type: operand_type;
+  }
+
+  and use =
+    | Use
+    | Def
+    | UseDef
+
+  and operand_type =
+    | Immediate
+    | MemoryAddress
+    | Register
+    | RegMem
+    | Block
+    | Label
+end =
+  OperandDef
+
+let operand_is_use (operand_def : OperandDef.t) =
+  match operand_def.use with
+  | Use
+  | UseDef ->
+    true
+  | _ -> false
+
+let operand_is_def (operand_def : OperandDef.t) =
+  match operand_def.use with
+  | Def
+  | UseDef ->
+    true
+  | _ -> false
