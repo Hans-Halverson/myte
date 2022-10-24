@@ -23,7 +23,20 @@ and gen_function ~gcx ~ir func =
   Gcx.start_block ~gcx ~label:(Some label) ~func:func_ ~mir_block:None;
   func_.prologue <- Option.get gcx.current_block;
 
-  (* TODO: Initialize func.params with created operands *)
+  func_.params <-
+    List.mapi
+      (fun i param ->
+        let param_mir_type = type_of_value param in
+        let arg_id = param.id in
+        let { Argument.type_; _ } = cast_to_argument param in
+        match func_.param_types.(i) with
+        | ParamOnStack _ -> failwith "TODO: Handle stack arguments"
+        | ParamInRegister reg ->
+          let size = register_size_of_mir_value_type type_ in
+          let param_op = mk_virtual_register_of_value_id ~value_id:arg_id ~type_:param_mir_type in
+          Gcx.emit ~gcx (`MovR size) [| mk_precolored_of_operand reg param_op; param_op |];
+          param_op)
+      func.params;
 
   (* Jump to function start and gen function body *)
   Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx func.start_block |];
@@ -77,3 +90,18 @@ and gen_instructions ~gcx ~ir:_ ~block:_ instructions =
 
 and block_op_of_mir_block ~gcx mir_block =
   mk_block_op ~block:(Gcx.get_block_from_mir_block ~gcx mir_block)
+
+and register_size_of_mir_value_type value_type =
+  match value_type with
+  | Bool
+  | Byte
+  | Short
+  | Int ->
+    Size32
+  | Long
+  | Double
+  | Function
+  | Pointer _ ->
+    Size64
+  | Aggregate _ -> failwith "TODO: Cannot compile aggregate structure literals"
+  | Array _ -> failwith "TODO: Cannot compile array literals"

@@ -32,8 +32,8 @@ module X86_64 = struct
          All MM instructions must contain at least one register as an argument.
 
          Unless otherwise noted, immediates can only be 8, 16, or 32 bits. *)
-    (* Stack instructions, all implicitly have size of 64 bits *)
-    [ `PushI
+    [ (* Stack instructions, all implicitly have size of 64 bits *)
+      `PushI
     | `PushM
     | `PopM
     | (* Data instructions *)
@@ -111,8 +111,26 @@ module X86_64 = struct
 end
 
 module AArch64 = struct
+  type register_size =
+    | Size32
+    | Size64
+
   type instr =
-    [ (* Unconditional branch to label *)
+    (* Instruction Suffixes:
+         R - register
+         I - immediate
+
+         Leftmost operands are dest, rightmost operands are sources.
+
+         In description, R registers can be an X or W depending on the register_size, unless otherwise noted. *)
+    [ (* Mov Rd, #imm16 *)
+      `MovI of register_size
+    | (* Mov Rd, Rs *)
+      `MovR of
+      register_size
+      (* MovK Rd, #imm16, LSL #shift where #shift is one of 0, 16, 32, 64 *)
+    | `MovK of register_size
+    | (* Unconditional branch to label *)
       `B
     | `Ret
     ]

@@ -61,3 +61,43 @@ class virtual liveness_analyzer (func : Function.t) =
 
       (!live_in, !live_out)
   end
+
+class virtual regs_use_def_visitor =
+  object
+    method virtual visit_register_use : instr:Instruction.t -> Operand.t -> unit
+    method virtual visit_register_def : instr:Instruction.t -> Operand.t -> unit
+    method virtual visit_instruction : Instruction.t -> unit
+    method virtual visit_explicit_uses_and_defs : Instruction.t -> unit
+
+    method virtual prev_blocks : BlockMMap.t
+    method virtual mark_block_edge : Instruction.t -> unit
+  end
+
+class virtual regs_liveness_analyzer (func : Function.t) =
+  object (this)
+    inherit liveness_analyzer func
+    inherit regs_use_def_visitor
+
+    val mutable use_blocks = OBMMap.empty
+    val mutable def_blocks = OBMMap.empty
+    val mutable use_before_def_blocks = OBMMap.empty
+
+    method use_blocks = use_blocks
+    method def_blocks = def_blocks
+    method use_before_def_blocks = use_before_def_blocks
+
+    method init () =
+      func_iter_blocks func (fun block ->
+          iter_instructions block (fun instr ->
+              this#mark_block_edge instr;
+              this#visit_instruction instr))
+
+    method visit_register_use ~(instr : Instruction.t) (reg : Operand.t) =
+      use_blocks <- OBMMap.add reg instr.block use_blocks
+
+    method visit_register_def ~(instr : Instruction.t) (reg : Operand.t) =
+      let block = instr.block in
+      if OBMMap.contains reg block use_blocks && not (OBMMap.contains reg block def_blocks) then
+        use_before_def_blocks <- OBMMap.add reg block use_before_def_blocks;
+      def_blocks <- OBMMap.add reg block def_blocks
+  end

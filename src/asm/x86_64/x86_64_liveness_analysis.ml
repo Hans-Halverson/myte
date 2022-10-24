@@ -7,13 +7,21 @@ open Asm_register
 open X86_64_builders
 open X86_64_register
 
-class use_def_finder color_to_representative_operand =
+class virtual use_def_visitor color_to_representative_operand =
   object (this)
-    method add_register_use ~instr:_ (_reg : Operand.t) = ()
+    inherit Asm_liveness_analysis.regs_use_def_visitor
 
-    method add_register_def ~instr:_ (_reg : Operand.t) = ()
+    val mutable prev_blocks = BlockMMap.empty
+
+    method prev_blocks = prev_blocks
 
     method get_representative_register reg = RegMap.find reg color_to_representative_operand
+
+    method mark_block_edge (instr : Instruction.t) =
+      match instr with
+      | { instr = `Jmp | `JmpCC _; operands = [| { value = Block next_block; _ } |]; block; _ } ->
+        prev_blocks <- BlockMMap.add next_block block prev_blocks
+      | _ -> ()
 
     method visit_instruction (instr : Instruction.t) =
       match instr with
@@ -24,29 +32,29 @@ class use_def_finder color_to_representative_operand =
           (fun param_type ->
             match param_type with
             | ParamInRegister reg ->
-              this#add_register_use ~instr (this#get_representative_register reg)
+              this#visit_register_use ~instr (this#get_representative_register reg)
             | _ -> ())
           param_types;
         RegSet.iter
-          (fun reg -> this#add_register_def ~instr (this#get_representative_register reg))
+          (fun reg -> this#visit_register_def ~instr (this#get_representative_register reg))
           caller_saved_registers;
         this#visit_explicit_uses_and_defs instr
       (* IDiv uses the value in register A and writes to registers A and D *)
       | { instr = `IDiv _; _ } ->
         let reg_a = this#get_representative_register `A in
         let reg_d = this#get_representative_register `D in
-        this#add_register_use ~instr reg_a;
-        this#add_register_def ~instr reg_a;
-        this#add_register_def ~instr reg_d;
+        this#visit_register_use ~instr reg_a;
+        this#visit_register_def ~instr reg_a;
+        this#visit_register_def ~instr reg_d;
         this#visit_explicit_uses_and_defs instr
       (* ConvertDouble (e.g. cdq) uses the value in register A and writes to register D *)
       | { instr = `ConvertDouble _; _ } ->
-        this#add_register_use ~instr (this#get_representative_register `A);
-        this#add_register_def ~instr (this#get_representative_register `D);
+        this#visit_register_use ~instr (this#get_representative_register `A);
+        this#visit_register_def ~instr (this#get_representative_register `D);
         this#visit_explicit_uses_and_defs instr
       (* Shifts with register shift argument implicitly use value in register C *)
       | { instr = `ShlM _ | `ShrM _ | `SarM _; _ } ->
-        this#add_register_use ~instr (this#get_representative_register `C);
+        this#visit_register_use ~instr (this#get_representative_register `C);
         this#visit_explicit_uses_and_defs instr
       (* Xor of a register with itself zeros the register, and only counts as a def, not a use, as
          the result is completely independent of the original value in the register. *)
@@ -70,51 +78,19 @@ class use_def_finder color_to_representative_operand =
 
     method visit_read_operand ~instr op =
       match this#resolve_register op with
-      | Some reg -> this#add_register_use ~instr reg
+      | Some reg -> this#visit_register_use ~instr reg
       | None -> ()
 
     method visit_write_operand ~instr op =
       match this#resolve_register op with
-      | Some reg -> this#add_register_def ~instr reg
+      | Some reg -> this#visit_register_def ~instr reg
       | None -> ()
   end
 
 class regs_liveness_analyzer (func : Function.t) color_to_operand =
-  object (this)
-    inherit use_def_finder color_to_operand
-    inherit liveness_analyzer func
-
-    val mutable prev_blocks = BlockMMap.empty
-    val mutable use_blocks = OBMMap.empty
-    val mutable def_blocks = OBMMap.empty
-    val mutable use_before_def_blocks = OBMMap.empty
-
-    method prev_blocks = prev_blocks
-    method use_blocks = use_blocks
-    method def_blocks = def_blocks
-    method use_before_def_blocks = use_before_def_blocks
-
-    method init () = func_iter_blocks func (fun block -> this#visit_block block)
-
-    method visit_block block =
-      iter_instructions block (fun instr ->
-          (* Mark block edges *)
-          (match instr with
-          | { instr = `Jmp | `JmpCC _; operands = [| { value = Block next_block; _ } |]; block; _ }
-            ->
-            prev_blocks <- BlockMMap.add next_block block prev_blocks
-          | _ -> ());
-
-          this#visit_instruction instr)
-
-    method! add_register_use ~(instr : Instruction.t) (reg : Operand.t) =
-      use_blocks <- OBMMap.add reg instr.block use_blocks
-
-    method! add_register_def ~(instr : Instruction.t) (reg : Operand.t) =
-      let block = instr.block in
-      if OBMMap.contains reg block use_blocks && not (OBMMap.contains reg block def_blocks) then
-        use_before_def_blocks <- OBMMap.add reg block use_before_def_blocks;
-      def_blocks <- OBMMap.add reg block def_blocks
+  object
+    inherit use_def_visitor color_to_operand
+    inherit Asm_liveness_analysis.regs_liveness_analyzer func
   end
 
 class vslots_liveness_analyzer (func : Function.t) =

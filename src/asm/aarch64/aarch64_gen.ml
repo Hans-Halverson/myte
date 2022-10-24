@@ -1,3 +1,4 @@
+open Asm
 open Aarch64_gen_context
 open Basic_collections
 
@@ -16,6 +17,9 @@ let gen ir =
     print_string (Aarch64_pp.pp_program ~gcx);
     exit 0
   );
+
+  (* Perform register allocation for each function *)
+  FunctionSet.iter (fun func -> Aarch64_register_allocation.run ~gcx ~func) gcx.funcs;
 
   (* Optionally dump assembly to stdout *)
   if Opts.dump_asm () || Opts.dump_full_asm () then begin

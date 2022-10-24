@@ -6,9 +6,9 @@ open X86_64_builders
 open X86_64_calling_conventions
 open X86_64_gen_context
 
-class use_def_finder color_to_op =
+class use_def_collector color_to_op =
   object (this)
-    inherit X86_64_liveness_analysis.use_def_finder color_to_op
+    inherit X86_64_liveness_analysis.use_def_visitor color_to_op
 
     val mutable memory_reg_uses : RegSet.t = RegSet.empty
 
@@ -33,10 +33,10 @@ class use_def_finder color_to_op =
                 if operand_is_use operand_def then this#visit_read_operand ~instr operand;
                 if operand_is_def operand_def then this#visit_write_operand ~instr operand))
 
-    method! add_register_use ~instr:_ (reg : Operand.t) =
+    method visit_register_use ~instr:_ (reg : Operand.t) =
       other_reg_uses <- RegSet.add (Operand.get_physical_register_value reg) other_reg_uses
 
-    method! add_register_def ~instr:_ (reg : Operand.t) =
+    method visit_register_def ~instr:_ (reg : Operand.t) =
       reg_defs <- RegSet.add (Operand.get_physical_register_value reg) reg_defs
   end
 
@@ -74,10 +74,10 @@ let lea_get_reg_args (lea_instr : Instruction.t) : RegSet.t =
   | _ -> failwith "Expected lea instruction"
 
 let rec run ~(gcx : Gcx.t) =
-  let use_def_finder = new use_def_finder gcx.color_to_op in
-  FunctionSet.iter (run_on_func ~gcx ~use_def_finder) gcx.funcs
+  let use_def_collector = new use_def_collector gcx.color_to_op in
+  FunctionSet.iter (run_on_func ~gcx ~use_def_collector) gcx.funcs
 
-and run_on_func ~gcx ~use_def_finder func =
+and run_on_func ~gcx ~use_def_collector func =
   let liveness_analyzer =
     new X86_64_liveness_analysis.regs_liveness_analyzer func gcx.color_to_op
   in
@@ -105,7 +105,7 @@ and run_on_func ~gcx ~use_def_finder func =
       in
 
       iter_instructions block (fun instr ->
-          let (memory_reg_uses, other_reg_uses, def_regs) = use_def_finder#find_use_defs instr in
+          let (memory_reg_uses, other_reg_uses, def_regs) = use_def_collector#find_use_defs instr in
 
           (* Mark memory uses of currently live lea instruction results *)
           RegSet.iter

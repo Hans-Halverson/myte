@@ -1,4 +1,6 @@
 open Asm
+open Asm_builders
+open Asm_instruction_definition
 open Asm_register
 
 (* Assign physical registers to all virtual registers and handle spills.
@@ -16,6 +18,25 @@ open Asm_register
    George, L., & Appel, A. W. (1996). Iterated register coalescing.
    ACM Transactions on Programming Languages and Systems, 18(3), 300–324. *)
 
+class virtual use_def_collector =
+  object (this)
+    inherit Asm_liveness_analysis.regs_use_def_visitor
+
+    val mutable reg_uses : OperandSet.t = OperandSet.empty
+
+    val mutable reg_defs : OperandSet.t = OperandSet.empty
+
+    method find_use_defs instr =
+      reg_uses <- OperandSet.empty;
+      reg_defs <- OperandSet.empty;
+      this#visit_instruction instr;
+      (reg_uses, reg_defs)
+
+    method visit_register_use ~instr:_ (reg : Operand.t) = reg_uses <- OperandSet.add reg reg_uses
+
+    method visit_register_def ~instr:_ (reg : Operand.t) = reg_defs <- OperandSet.add reg reg_defs
+  end
+
 module type REGISTER_ALLOCATOR_CONTEXT = sig
   type t
 
@@ -29,45 +50,23 @@ module type REGISTER_ALLOCATOR_CONTEXT = sig
 
   val num_allocatable_registers : register_class -> int
 
-  val get_rep_physical_registers : t -> Operand.t RegMap.t
-
-  val get_spilled_callee_saved_registers : t -> RegSet.t
-
-  val add_spilled_callee_saved_register : t -> Register.t -> unit
-
   (* Operand functions *)
-
-  val is_precolored : Operand.t -> bool
-
-  val get_rep_register : t -> Operand.t -> Operand.t
-
-  val get_physical_register_opt : Operand.t -> Register.t option
-
-  val assign_physical_register : Operand.t -> Register.t -> unit
 
   val get_class : Operand.t -> register_class
 
+  val get_reg_order : Register.t -> int
+
   (* Instruction functions *)
-
-  val iter_blocks : (Block.t -> unit) -> t -> unit
-
-  val iter_instrs_rev : (Instruction.t -> unit) -> Block.t -> unit
-
-  val filter_instrs : (Instruction.t -> bool) -> Block.t -> unit
 
   val get_move_opt : Instruction.t -> (Operand.t * Operand.t) option
 
-  (* Register allocation lifecycle *)
+  val instr_iter_operands : Instruction.t -> (Operand.t -> OperandDef.t -> unit) -> unit
 
-  val init_context : t -> int OperandMap.t * OperandSet.t
+  (* Register allocation lifecycle *)
 
   val get_live_out_regs : t -> Operand.t list BlockMap.t
 
   val get_use_defs_for_instruction : t -> Instruction.t -> Block.t -> OperandSet.t * OperandSet.t
-
-  val choose_register_from_possible : RegSet.t -> Register.t option
-
-  val spill_virtual_register : t -> Operand.t -> unit
 
   val rewrite_spilled_program : t -> get_alias:(Operand.t -> Operand.t) -> unit
 end
@@ -75,6 +74,9 @@ end
 module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   type t = {
     cx: Cx.t;
+    func: Function.t;
+    (* Map of representative operands for each register *)
+    representative_precolored: Operand.t RegMap.t;
     (* Map of virtual registers live at the beginning of each block *)
     mutable live_out: Operand.t list BlockMap.t;
     (* Every register is in exactly one of these sets *)
@@ -113,9 +115,11 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     mutable color: Register.t OperandMap.t;
   }
 
-  let mk ~(cx : Cx.t) =
+  let mk ~(cx : Cx.t) ~(func : Function.t) ~(representative_precolored : Operand.t RegMap.t) =
     {
       cx;
+      func;
+      representative_precolored;
       live_out = BlockMap.empty;
       initial_vregs = OperandSet.empty;
       simplify_worklist = OperandSet.empty;
@@ -139,15 +143,61 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
       color = OperandMap.empty;
     }
 
+  (* All operands read from the instruction objects must pass through this function before they
+     can be used as registers. Resolves all physical registers to their representative operands. *)
+  let get_rep_register ~(ra : t) op =
+    match op.Operand.value with
+    | PhysicalRegister reg -> RegMap.find reg ra.representative_precolored
+    | VirtualRegister -> op
+    | _ -> failwith "Expected register"
+
+  let is_precolored op =
+    match op.Operand.value with
+    | PhysicalRegister _ -> true
+    | _ -> false
+
+  class init_visitor ~(ra : t) =
+    object
+      val mutable reg_num_use_defs = OperandMap.empty
+
+      val mutable initial_vregs = OperandSet.empty
+
+      method reg_num_use_defs = reg_num_use_defs
+
+      method initial_vregs = initial_vregs
+
+      method visit_instruction (instr : Instruction.t) =
+        Cx.instr_iter_operands instr (fun operand _ ->
+            if Operand.is_reg_value operand then (
+              (match operand.value with
+              | VirtualRegister -> initial_vregs <- OperandSet.add operand initial_vregs
+              | _ -> ());
+              let reg = get_rep_register ~ra operand in
+              reg_num_use_defs <-
+                OperandMap.add
+                  reg
+                  (match OperandMap.find_opt reg reg_num_use_defs with
+                  | None -> 1
+                  | Some prev_count -> prev_count + 1)
+                  reg_num_use_defs
+            ))
+    end
+
+  let initialize ~ra =
+    (* Collect all registers in program, splitting into precolored and other initial vregs *)
+    let init_visitor = new init_visitor ~ra in
+    func_iter_blocks ra.func (fun block -> iter_instructions block init_visitor#visit_instruction);
+    ra.reg_num_use_defs <- init_visitor#reg_num_use_defs;
+    ra.initial_vregs <- init_visitor#initial_vregs;
+    ra.interference_degree <-
+      RegMap.fold
+        (fun _ reg interference_degree -> OperandMap.add reg Int.max_int interference_degree)
+        ra.representative_precolored
+        OperandMap.empty
+
   let liveness_analysis ~(ra : t) =
     let live_out = Cx.get_live_out_regs ra.cx in
     ra.live_out <- live_out
-
-  (* All operands read from the instruction objects must pass through this function before they
-     can be used as registers. Resolves all physical registers to their representative operands. *)
-  let get_rep_register ~(ra : t) op = Cx.get_rep_register ra.cx op
-
-  let is_precolored op = Cx.is_precolored op
 
   (* Add an interference edge between two virtual registers, also updating degree *)
   let add_interference_edge ~(ra : t) reg1 reg2 =
@@ -169,11 +219,9 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     )
 
   let build_interference_graph ~(ra : t) =
-    Cx.iter_blocks
-      (fun block ->
+    func_iter_blocks ra.func (fun block ->
         let live = ref (BlockMap.find block ra.live_out |> OperandSet.of_list) in
-        Cx.iter_instrs_rev
-          (fun instr ->
+        iter_instructions_rev block (fun instr ->
             begin
               match Cx.get_move_opt instr with
               | Some (src_op, dest_op) ->
@@ -196,9 +244,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
                       add_interference_edge ~ra live_reg reg_def)
                   !live)
               reg_defs;
-            live := OperandSet.union reg_uses (OperandSet.diff !live reg_defs))
-          block)
-      ra.cx
+            live := OperandSet.union reg_uses (OperandSet.diff !live reg_defs)))
 
   let adjacent ~(ra : t) reg =
     let adjacent_regs = OOMMap.find_all reg ra.interference_graph in
@@ -441,6 +487,27 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     ra.simplify_worklist <- OperandSet.add potential_spill_vreg ra.simplify_worklist;
     freeze_moves ~ra potential_spill_vreg
 
+  (* Deterministically break ties in the case of equal priority registers, using the assigned
+     total order of all registers. *)
+  let choose_from_equal_priority possible_regs =
+    let min_reg =
+      RegSet.fold
+        (fun reg min_reg ->
+          let reg_order = Cx.get_reg_order reg in
+          match min_reg with
+          | None -> Some (reg, reg_order)
+          | Some (_, min_reg_order) ->
+            if reg_order < min_reg_order then
+              Some (reg, reg_order)
+            else
+              min_reg)
+        possible_regs
+        None
+    in
+    match min_reg with
+    | None -> None
+    | Some (reg, _) -> Some reg
+
   let find_highest_priority_reg possible_regs reg_priorities =
     let opt_reg =
       RegSet.fold
@@ -456,7 +523,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         None
     in
     match opt_reg with
-    | None -> Cx.choose_register_from_possible possible_regs
+    | None -> choose_from_equal_priority possible_regs
     | Some (reg, _) -> Some reg
 
   (* Select a color for a vreg from a set of possible colors to choose from. Only spill a new callee
@@ -464,7 +531,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   let select_color_for_vreg ~(ra : t) possible_regs reg_priorities =
     (* Unresolved vregs must always be part of a function *)
     let unused_callee_saved_regs =
-      RegSet.diff Cx.callee_saved_registers (Cx.get_spilled_callee_saved_registers ra.cx)
+      RegSet.diff Cx.callee_saved_registers ra.func.spilled_callee_saved_regs
     in
     let possible_already_used_callee_saved_regs =
       RegSet.diff possible_regs unused_callee_saved_regs
@@ -476,13 +543,13 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
       (match find_highest_priority_reg possible_unused_callee_saved_regs reg_priorities with
       | None -> None
       | Some reg ->
-        Cx.add_spilled_callee_saved_register ra.cx reg;
+        ra.func.spilled_callee_saved_regs <- RegSet.add reg ra.func.spilled_callee_saved_regs;
         Some reg)
 
   let get_color ~(ra : t) vreg =
-    match Cx.get_physical_register_opt vreg with
-    | Some reg -> Some reg
-    | None -> OperandMap.find_opt vreg ra.color
+    match vreg.Operand.value with
+    | PhysicalRegister reg -> Some reg
+    | _ -> OperandMap.find_opt vreg ra.color
 
   (* Pop nodes off the select stack and greedily assign colors to them. If no color can be assigned,
      add vreg to spill worklist. *)
@@ -537,21 +604,28 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         ra.color <- OperandMap.add vreg physical_reg ra.color
     done
 
+  let spill_virtual_register ~(ra : t) vreg =
+    ra.func.spilled_vslots <- Asm.OperandSet.add vreg ra.func.spilled_vslots;
+    vreg.value <- VirtualStackSlot
+
+  let assign_physical_register (op : Operand.t) (reg : Register.t) =
+    op.value <- PhysicalRegister reg
+
   let rewrite_program ~(ra : t) ~rewrite_all_vregs =
     (* Resolve spilled vregs to virtual stack slots *)
-    OperandSet.iter (Cx.spill_virtual_register ra.cx) ra.spilled_vregs;
+    OperandSet.iter (spill_virtual_register ~ra) ra.spilled_vregs;
 
     (* If rewriting virtual registers, rewrite all to assigned physical registers *)
     let get_alias =
       if rewrite_all_vregs then (
         OperandMap.iter
-          (fun vreg physical_reg -> Cx.assign_physical_register vreg physical_reg)
+          (fun vreg physical_reg -> assign_physical_register vreg physical_reg)
           ra.color;
 
         OperandSet.iter
           (fun vreg ->
             match get_color ~ra (get_operand_alias ~ra vreg) with
-            | Some alias_physical_reg -> Cx.assign_physical_register vreg alias_physical_reg
+            | Some alias_physical_reg -> assign_physical_register vreg alias_physical_reg
             | _ -> failwith "Alias must be colored")
           ra.coalesced_vregs;
 
@@ -576,27 +650,12 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   (* Remove all moves where both the source and destination alias to the same register, as they are
      unnecessary. *)
   let remove_coalesced_moves ~(ra : t) =
-    Cx.iter_blocks
-      (fun block ->
-        Cx.filter_instrs
-          (fun instr ->
+    func_iter_blocks ra.func (fun block ->
+        filter_instructions block (fun instr ->
             match Cx.get_move_opt instr with
             | Some (source_op, dest_op) ->
               get_operand_alias ~ra source_op != get_operand_alias ~ra dest_op
-            | None -> true)
-          block)
-      ra.cx
-
-  let initialize ~ra =
-    (* Collect all registers in program, splitting into precolored and other initial vregs *)
-    let (num_use_defs, initial_vregs) = Cx.init_context ra.cx in
-    ra.reg_num_use_defs <- num_use_defs;
-    ra.initial_vregs <- initial_vregs;
-    ra.interference_degree <-
-      RegMap.fold
-        (fun _ reg interference_degree -> OperandMap.add reg Int.max_int interference_degree)
-        (Cx.get_rep_physical_registers ra.cx)
-        OperandMap.empty
+            | None -> true))
 
   (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
      Simply the graph afterwards to remove unnecessary instructions. *)
