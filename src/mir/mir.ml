@@ -1,4 +1,5 @@
 open Basic_collections
+open Mir_builtin
 open Mir_type
 
 type label = string
@@ -306,14 +307,6 @@ end = struct
 
   let equal f1 f2 = compare f1 f2 == 0
 end
-
-and Builtin : sig
-  type t = {
-    name: string;
-    mk_return_ty: Type.t list -> Type.t option;
-  }
-end =
-  Builtin
 
 and ValueCollection : (MultiMap.KEY_AND_VALUE_TYPE with type t = Value.t) = MakeCollection (Value)
 and BlockCollection : MultiMap.KEY_AND_VALUE_TYPE = MakeCollection (Block)

@@ -124,9 +124,10 @@ module Gcx = struct
 
   let mir_function_calling_convention (_func : Mir.Function.t) = system_v_calling_convention
 
-  let start_function ~gcx (func : Mir.Function.t) param_types =
+  let start_function ~gcx ~ir (func : Mir.Function.t) param_types =
+    let label = get_asm_function_label ~ir func in
     let calling_convention = mir_function_calling_convention func in
-    let func = mk_function ~param_types ~return_type:func.return_type ~calling_convention in
+    let func = mk_function ~label ~param_types ~return_type:func.return_type ~calling_convention in
     gcx.current_func <- Some func;
     gcx.funcs <- FunctionSet.add func gcx.funcs;
     func

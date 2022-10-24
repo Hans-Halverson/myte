@@ -105,34 +105,33 @@ and gen_global ~gcx ~ir:_ global =
     | SMem _ ->
       failwith "Global init value must be a constant")
 
-and gen_function ~gcx ~ir func =
-  let param_types = FunctionMap.find func gcx.mir_func_to_param_types in
-  let func_ = Gcx.start_function ~gcx func param_types in
-  let label = get_asm_function_label ~ir func in
+and gen_function ~gcx ~ir mir_func =
+  let param_types = FunctionMap.find mir_func gcx.mir_func_to_param_types in
+  let func = Gcx.start_function ~gcx ~ir mir_func param_types in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
-  Gcx.start_block ~gcx ~label:(Some label) ~func:func_ ~mir_block:None;
-  func_.prologue <- Option.get gcx.current_block;
+  Gcx.start_block ~gcx ~label:(Some func.label) ~func ~mir_block:None;
+  func.prologue <- Option.get gcx.current_block;
 
-  func_.params <-
+  func.params <-
     List.mapi
       (fun i param ->
         let param_mir_type = type_of_value param in
         let arg_id = param.id in
         let { Argument.type_; _ } = cast_to_argument param in
-        match func_.param_types.(i) with
+        match func.param_types.(i) with
         | ParamOnStack _ -> mk_function_stack_argument ~arg_id ~type_:param_mir_type
         | ParamInRegister reg ->
           let size = operand_size_of_mir_value_type type_ in
           let param_op = mk_virtual_register_of_value_id ~value_id:arg_id ~type_:param_mir_type in
           Gcx.emit ~gcx (`MovMM size) [| mk_precolored_of_operand reg param_op; param_op |];
           param_op)
-      func.params;
+      mir_func.params;
 
   (* Jump to function start and gen function body *)
-  Gcx.emit ~gcx `Jmp [| block_op_of_mir_block ~gcx func.start_block |];
+  Gcx.emit ~gcx `Jmp [| block_op_of_mir_block ~gcx mir_func.start_block |];
   Gcx.finish_block ~gcx;
-  gen_blocks ~gcx ~ir func.start_block None func_;
+  gen_blocks ~gcx ~ir mir_func.start_block None func;
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block label func =
@@ -989,130 +988,58 @@ and gen_instructions ~gcx ~ir ~block instructions =
   | {
       id = result_id;
       value =
-        Instr { type_ = return_type; instr = Call { func = MirBuiltin { name; _ }; args; _ }; _ };
+        Instr { type_ = return_type; instr = Call { func = MirBuiltin mir_builtin; args; _ }; _ };
       _;
     }
     :: rest_instructions ->
     let open Mir_builtin in
-    (* All builtins use the platform's C calling convention *)
-    let calling_convention = system_v_calling_convention in
+    let builtin_func = X86_64_builtin.get_asm_builtin mir_builtin in
+    let calling_convention = builtin_func.calling_convention in
 
-    let gen_call_arguments_with_types arg_vals =
-      let param_mir_types = List.map type_of_use arg_vals in
-      let param_types = calling_convention#calculate_param_types param_mir_types in
-      gen_call_arguments param_types arg_vals;
-      param_types
+    (* Emit arguments for call *)
+    let param_types =
+      if mir_builtin.name = myte_alloc.name then (
+        (* Special case myte_alloc as it must calculate the size to allocation from the type *)
+        let element_mir_ty = cast_to_pointer_type return_type in
+        let param_mir_types = [Type.Int] in
+        let param_types = calling_convention#calculate_param_types param_mir_types in
+        gen_size_from_count_and_type
+          ~gcx
+          (List.hd args)
+          param_types.(0)
+          (List.hd param_mir_types)
+          element_mir_ty;
+        param_types
+      ) else if mir_builtin.name = myte_copy.name then (
+        (* Special case myte_copy as it must calculate the size to copy from the type *)
+        let element_mir_ty = cast_to_pointer_type (type_of_use (List.hd args)) in
+        let (pointer_args, count_arg) = List_utils.split_last args in
+        let count_mir_type = Type.Int in
+        let param_mir_types = List.map type_of_use pointer_args @ [count_mir_type] in
+        let param_types = calling_convention#calculate_param_types param_mir_types in
+        gen_call_arguments param_types pointer_args;
+        gen_size_from_count_and_type ~gcx count_arg param_types.(2) count_mir_type element_mir_ty;
+        param_types
+      ) else
+        (* Generic case for all otehr builtins *)
+        let param_mir_types = List.map type_of_use args in
+        let param_types = calling_convention#calculate_param_types param_mir_types in
+        gen_call_arguments param_types args;
+        param_types
     in
-    let gen_return_op return_mir_type =
+
+    (* Call builtin function *)
+    Gcx.emit ~gcx (`CallL param_types) [| mk_function_label ~label:builtin_func.label |];
+
+    (* Move return value to result register *)
+    (match builtin_func.return_type with
+    | None -> ()
+    | Some return_mir_type ->
       let return_reg = calling_convention#calculate_return_register return_mir_type in
       let return_reg_op = mk_precolored ~type_:return_type return_reg in
       let return_op = operand_of_value_id ~type_:return_type result_id in
-      Gcx.emit ~gcx (`MovMM Size64) [| return_reg_op; return_op |]
-    in
-    let emit_call param_types label =
-      Gcx.emit ~gcx (`CallL param_types) [| mk_function_label ~label |]
-    in
-    (*
-     * ===========================================
-     *                myte_alloc
-     * ===========================================
-     *)
-    if name = myte_alloc.name then (
-      let element_mir_ty = cast_to_pointer_type return_type in
-      let param_mir_types = [Type.Int] in
-      let param_types = calling_convention#calculate_param_types param_mir_types in
-      gen_size_from_count_and_type
-        ~gcx
-        (List.hd args)
-        param_types.(0)
-        (List.hd param_mir_types)
-        element_mir_ty;
-      emit_call param_types X86_64_runtime.myte_alloc_label;
-      gen_return_op (Pointer Byte)
-      (*
-       * ===========================================
-       *                myte_copy
-       * ===========================================
-       *)
-    ) else if name = myte_copy.name then (
-      let element_mir_ty = cast_to_pointer_type (type_of_use (List.hd args)) in
-      let (pointer_args, count_arg) = List_utils.split_last args in
-      let count_mir_type = Type.Int in
-      let param_mir_types = List.map type_of_use pointer_args @ [count_mir_type] in
-      let param_types = calling_convention#calculate_param_types param_mir_types in
-      gen_call_arguments param_types pointer_args;
-      gen_size_from_count_and_type ~gcx count_arg param_types.(2) count_mir_type element_mir_ty;
-      emit_call param_types X86_64_runtime.myte_copy_label
-      (*
-       * ===========================================
-       *                myte_exit
-       * ===========================================
-       *)
-    ) else if name = myte_exit.name then
-      let param_types = gen_call_arguments_with_types args in
-      emit_call param_types X86_64_runtime.myte_exit_label
-    (*
-     * ===========================================
-     *                myte_write
-     * ===========================================
-     *)
-    else if name = myte_write.name then (
-      let param_types = gen_call_arguments_with_types args in
-      emit_call param_types X86_64_runtime.myte_write_label;
-      gen_return_op Int
-      (*
-       * ===========================================
-       *                myte_read
-       * ===========================================
-       *)
-    ) else if name = myte_read.name then (
-      let param_types = gen_call_arguments_with_types args in
-      emit_call param_types X86_64_runtime.myte_read_label;
-      gen_return_op Int
-      (*
-       * ===========================================
-       *                myte_open
-       * ===========================================
-       *)
-    ) else if name = myte_open.name then (
-      let param_types = gen_call_arguments_with_types args in
-      emit_call param_types X86_64_runtime.myte_open_label;
-      gen_return_op Int
-      (*
-       * ===========================================
-       *                myte_close
-       * ===========================================
-       *)
-    ) else if name = myte_close.name then (
-      let param_types = gen_call_arguments_with_types args in
-      emit_call param_types X86_64_runtime.myte_close_label;
-      gen_return_op Int
-      (*
-       * ===========================================
-       *                myte_unlink
-       * ===========================================
-       *)
-    ) else if name = myte_unlink.name then (
-      let param_types = gen_call_arguments_with_types args in
-      emit_call param_types X86_64_runtime.myte_unlink_label;
-      gen_return_op Int
-      (*
-       * ===========================================
-       *            myte_get_heap_size
-       * ===========================================
-       *)
-    ) else if name = myte_get_heap_size.name then (
-      emit_call [||] X86_64_runtime.myte_get_heap_size_label;
-      gen_return_op Long
-      (*
-       * ===========================================
-       *              myte_collect
-       * ===========================================
-       *)
-    ) else if name = myte_collect.name then
-      emit_call [||] X86_64_runtime.myte_collect_label
-    else
-      failwith (Printf.sprintf "Cannot compile unknown builtin %s to assembly" name);
+      Gcx.emit ~gcx (`MovMM Size64) [| return_reg_op; return_op |]);
+
     gen_instructions rest_instructions
   (*
    * ===========================================

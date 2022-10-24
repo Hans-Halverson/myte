@@ -189,6 +189,7 @@ and Function : sig
 
   type t = {
     id: id;
+    label: label;
     mutable params: Operand.t list;
     param_types: param_type array;
     return_type: Mir_type.Type.t option;
@@ -282,8 +283,9 @@ type program = {
 let rec null_function : Function.t =
   {
     Function.id = 0;
+    label = "<null>";
     params = [];
-    param_types = Array.make 0 (ParamOnStack 0);
+    param_types = null_param_types;
     return_type = None;
     calling_convention = null_calling_convention;
     prologue = null_block;

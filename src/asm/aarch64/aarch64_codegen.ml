@@ -1,6 +1,5 @@
 open Aarch64_gen_context
 open Asm_builders
-open Asm_codegen
 open Mir
 open Mir_builders
 
@@ -14,34 +13,33 @@ and preprocess_function ~gcx func =
   let param_types = calling_convention#calculate_param_types param_mir_types in
   gcx.mir_func_to_param_types <- FunctionMap.add func param_types gcx.mir_func_to_param_types
 
-and gen_function ~gcx ~ir func =
-  let param_types = FunctionMap.find func gcx.mir_func_to_param_types in
-  let func_ = Gcx.start_function ~gcx func param_types in
-  let label = get_asm_function_label ~ir func in
+and gen_function ~gcx ~ir mir_func =
+  let param_types = FunctionMap.find mir_func gcx.mir_func_to_param_types in
+  let func = Gcx.start_function ~gcx ~ir mir_func param_types in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
-  Gcx.start_block ~gcx ~label:(Some label) ~func:func_ ~mir_block:None;
-  func_.prologue <- Option.get gcx.current_block;
+  Gcx.start_block ~gcx ~label:(Some func.label) ~func ~mir_block:None;
+  func.prologue <- Option.get gcx.current_block;
 
-  func_.params <-
+  func.params <-
     List.mapi
       (fun i param ->
         let param_mir_type = type_of_value param in
         let arg_id = param.id in
         let { Argument.type_; _ } = cast_to_argument param in
-        match func_.param_types.(i) with
+        match func.param_types.(i) with
         | ParamOnStack _ -> failwith "TODO: Handle stack arguments"
         | ParamInRegister reg ->
           let size = register_size_of_mir_value_type type_ in
           let param_op = mk_virtual_register_of_value_id ~value_id:arg_id ~type_:param_mir_type in
           Gcx.emit ~gcx (`MovR size) [| mk_precolored_of_operand reg param_op; param_op |];
           param_op)
-      func.params;
+      mir_func.params;
 
   (* Jump to function start and gen function body *)
-  Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx func.start_block |];
+  Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx mir_func.start_block |];
   Gcx.finish_block ~gcx;
-  gen_blocks ~gcx ~ir func.start_block None func_;
+  gen_blocks ~gcx ~ir mir_func.start_block None func;
   Gcx.finish_function ~gcx
 
 and gen_blocks ~gcx ~ir start_block label func =

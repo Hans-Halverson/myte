@@ -6,6 +6,8 @@ type param_type =
 
 type param_types = param_type array
 
+let null_param_types : param_types = Array.make 0 (ParamOnStack 0)
+
 class virtual calling_convention =
   object (this)
     method virtual general_params : Register.t array

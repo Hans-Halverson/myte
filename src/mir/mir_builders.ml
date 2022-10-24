@@ -1,5 +1,6 @@
 open Basic_collections
 open Mir
+open Mir_builtin
 open Mir_type
 
 (*
@@ -189,15 +190,21 @@ and set_call_builtin_instr
   in
   set_instr ~value ~type_ ~instr:(Call { func = MirBuiltin builtin; args = arg_uses; has_return })
 
+and mk_builtin_return_ty (builtin : Builtin.t) (args : Type.t list) : Type.t option =
+  if builtin.name = myte_alloc.name then
+    Some (Pointer (List.hd args))
+  else
+    builtin.return_type
+
 and mk_blockless_call_builtin
     (builtin : Builtin.t) (args : Value.t list) (mk_return_ty_args : Type.t list) : Value.t =
-  let return = builtin.mk_return_ty mk_return_ty_args in
+  let return = mk_builtin_return_ty builtin mk_return_ty_args in
   mk_blockless_instr (set_call_builtin_instr ~builtin ~args ~return)
 
 and mk_call_builtin
     ~(block : Block.t) (builtin : Builtin.t) (args : Value.t list) (mk_return_ty_args : Type.t list)
     : Value.t =
-  let return = builtin.mk_return_ty mk_return_ty_args in
+  let return = mk_builtin_return_ty builtin mk_return_ty_args in
   mk_block_instr ~block (set_call_builtin_instr ~builtin ~args ~return)
 
 and mk_call_builtin_no_return_ ~(block : Block.t) (builtin : Builtin.t) (args : Value.t list) =

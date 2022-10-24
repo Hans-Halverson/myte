@@ -212,11 +212,13 @@ let mk_func_id () =
   id
 
 let mk_function
+    ~(label : label)
     ~(param_types : param_type array)
     ~(return_type : Mir_type.Type.t option)
     ~(calling_convention : calling_convention) : Function.t =
   {
     Function.id = mk_func_id ();
+    label;
     params = [];
     param_types;
     return_type;
