@@ -7,6 +7,7 @@ open Asm_register
 open Basic_collections
 open Mir_type
 open X86_64_asm
+open X86_64_calling_convention
 open X86_64_layout
 open X86_64_register
 
@@ -121,8 +122,11 @@ module Gcx = struct
       gcx.prev_blocks <- BlockMMap.add next_block current_block gcx.prev_blocks
     | _ -> ()
 
-  let start_function ~gcx param_types return_type =
-    let func = mk_function ~param_types ~return_type in
+  let mir_function_calling_convention (_func : Mir.Function.t) = system_v_calling_convention
+
+  let start_function ~gcx (func : Mir.Function.t) param_types =
+    let calling_convention = mir_function_calling_convention func in
+    let func = mk_function ~param_types ~return_type:func.return_type ~calling_convention in
     gcx.current_func <- Some func;
     gcx.funcs <- FunctionSet.add func gcx.funcs;
     func

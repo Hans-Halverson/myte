@@ -192,6 +192,7 @@ and Function : sig
     mutable params: Operand.t list;
     param_types: param_type array;
     return_type: Mir_type.Type.t option;
+    calling_convention: calling_convention;
     mutable prologue: Block.t;
     mutable blocks: Block.t list;
     mutable spilled_callee_saved_regs: RegSet.t;
@@ -284,6 +285,7 @@ let rec null_function : Function.t =
     params = [];
     param_types = Array.make 0 (ParamOnStack 0);
     return_type = None;
+    calling_convention = null_calling_convention;
     prologue = null_block;
     blocks = [];
     spilled_callee_saved_regs = RegSet.empty;

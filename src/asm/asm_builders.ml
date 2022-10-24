@@ -211,13 +211,16 @@ let mk_func_id () =
   max_func_id := id + 1;
   id
 
-let mk_function ~(param_types : param_type array) ~(return_type : Mir_type.Type.t option) :
-    Function.t =
+let mk_function
+    ~(param_types : param_type array)
+    ~(return_type : Mir_type.Type.t option)
+    ~(calling_convention : calling_convention) : Function.t =
   {
     Function.id = mk_func_id ();
     params = [];
     param_types;
     return_type;
+    calling_convention;
     prologue = null_block;
     blocks = [];
     spilled_callee_saved_regs = RegSet.empty;

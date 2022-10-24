@@ -8,7 +8,7 @@ open Mir
 open Mir_builders
 open Mir_type
 open X86_64_asm
-open X86_64_calling_conventions
+open X86_64_calling_convention
 open X86_64_gen_context
 open X86_64_layout
 
@@ -46,8 +46,9 @@ let rec gen ~gcx (ir : Program.t) =
   Gcx.finish_builders ~gcx
 
 and preprocess_function ~gcx func =
+  let calling_convention = Gcx.mir_function_calling_convention func in
   let param_mir_types = List.map (fun param -> type_of_value param) func.params in
-  let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
+  let param_types = calling_convention#calculate_param_types param_mir_types in
   gcx.mir_func_to_param_types <- FunctionMap.add func param_types gcx.mir_func_to_param_types
 
 and gen_global ~gcx ~ir:_ global =
@@ -106,7 +107,7 @@ and gen_global ~gcx ~ir:_ global =
 
 and gen_function ~gcx ~ir func =
   let param_types = FunctionMap.find func gcx.mir_func_to_param_types in
-  let func_ = Gcx.start_function ~gcx param_types func.return_type in
+  let func_ = Gcx.start_function ~gcx func param_types in
   let label = get_asm_function_label ~ir func in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
@@ -482,9 +483,18 @@ and gen_instructions ~gcx ~ir ~block instructions =
       _;
     }
     :: rest_instructions ->
+    let calling_convention =
+      match func_val.value.value with
+      | Lit (Function mir_func) -> Gcx.mir_function_calling_convention mir_func
+      | _ ->
+        (* TODO: Annotate calling convention on MIR call instructions and enforce single calling
+           convention for all functions that flow to a single call instruction. *)
+        system_v_calling_convention
+    in
+
     (* Emit arguments for call *)
     let param_mir_types = List.map type_of_use arg_vals in
-    let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
+    let param_types = calling_convention#calculate_param_types param_mir_types in
     gen_call_arguments param_types arg_vals;
 
     (* Emit call instruction *)
@@ -497,7 +507,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (* Move result from return register to return operand *)
     (if has_return then
       let return_size = operand_size_of_mir_value_type type_ in
-      let return_reg = SystemVCallingConvention.calculate_return_register type_ in
+      let return_reg = calling_convention#calculate_return_register type_ in
       let return_reg_op = mk_precolored ~type_ return_reg in
       let return_op = operand_of_value_id ~type_ result_id in
       Gcx.emit ~gcx (`MovMM return_size) [| return_reg_op; return_op |]);
@@ -511,7 +521,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (match value with
     | None -> ()
     | Some value ->
-      let return_reg = SystemVCallingConvention.calculate_return_register (type_of_use value) in
+      let calling_convention = (Option.get gcx.current_func).calling_convention in
+      let return_reg = calling_convention#calculate_return_register (type_of_use value) in
       let return_reg_op = mk_precolored ~type_:(type_of_use value) return_reg in
       (match resolve_ir_value ~allow_imm64:true value with
       | SImm imm ->
@@ -983,14 +994,17 @@ and gen_instructions ~gcx ~ir ~block instructions =
     }
     :: rest_instructions ->
     let open Mir_builtin in
+    (* All builtins use the platform's C calling convention *)
+    let calling_convention = system_v_calling_convention in
+
     let gen_call_arguments_with_types arg_vals =
       let param_mir_types = List.map type_of_use arg_vals in
-      let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
+      let param_types = calling_convention#calculate_param_types param_mir_types in
       gen_call_arguments param_types arg_vals;
       param_types
     in
     let gen_return_op return_mir_type =
-      let return_reg = SystemVCallingConvention.calculate_return_register return_mir_type in
+      let return_reg = calling_convention#calculate_return_register return_mir_type in
       let return_reg_op = mk_precolored ~type_:return_type return_reg in
       let return_op = operand_of_value_id ~type_:return_type result_id in
       Gcx.emit ~gcx (`MovMM Size64) [| return_reg_op; return_op |]
@@ -1006,7 +1020,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     if name = myte_alloc.name then (
       let element_mir_ty = cast_to_pointer_type return_type in
       let param_mir_types = [Type.Int] in
-      let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
+      let param_types = calling_convention#calculate_param_types param_mir_types in
       gen_size_from_count_and_type
         ~gcx
         (List.hd args)
@@ -1025,7 +1039,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       let (pointer_args, count_arg) = List_utils.split_last args in
       let count_mir_type = Type.Int in
       let param_mir_types = List.map type_of_use pointer_args @ [count_mir_type] in
-      let param_types = SystemVCallingConvention.calculate_param_types param_mir_types in
+      let param_types = calling_convention#calculate_param_types param_mir_types in
       gen_call_arguments param_types pointer_args;
       gen_size_from_count_and_type ~gcx count_arg param_types.(2) count_mir_type element_mir_ty;
       emit_call param_types X86_64_runtime.myte_copy_label

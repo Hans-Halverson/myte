@@ -1,4 +1,5 @@
 open Aarch64_asm
+open Aarch64_calling_convention
 open Aarch64_register
 open Asm
 open Asm_builders
@@ -65,8 +66,11 @@ module Gcx = struct
     block.func.blocks <- block :: block.func.blocks;
     gcx.current_block <- None
 
-  let start_function ~gcx param_types return_type =
-    let func = mk_function ~param_types ~return_type in
+  let mir_function_calling_convention (_func : Mir.Function.t) = aapcs64
+
+  let start_function ~gcx (func : Mir.Function.t) param_types =
+    let calling_convention = mir_function_calling_convention func in
+    let func = mk_function ~param_types ~return_type:func.return_type ~calling_convention in
     gcx.current_func <- Some func;
     gcx.funcs <- FunctionSet.add func gcx.funcs;
     func

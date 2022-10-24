@@ -3,7 +3,6 @@ open Asm_builders
 open Asm_instruction_definition
 open Asm_register
 open X86_64_builders
-open X86_64_calling_conventions
 open X86_64_gen_context
 
 class use_def_collector color_to_op =
@@ -82,7 +81,7 @@ and run_on_func ~gcx ~use_def_collector func =
     new X86_64_liveness_analysis.regs_liveness_analyzer func gcx.color_to_op
   in
   let (_, live_out) = liveness_analyzer#analyze () in
-  let return_reg = Option.map SystemVCallingConvention.calculate_return_register func.return_type in
+  let return_reg = Option.map func.calling_convention#calculate_return_register func.return_type in
 
   func_iter_blocks func (fun block ->
       (* All leas that should be inlined, mapped to the instructions that use that lea's address *)

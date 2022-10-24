@@ -1,4 +1,3 @@
-open Aarch64_calling_convention
 open Aarch64_gen_context
 open Asm_builders
 open Asm_codegen
@@ -10,13 +9,14 @@ let rec gen ~(gcx : Gcx.t) (ir : Program.t) =
   Mir_builders.program_iter_funcs ir (fun func -> gen_function ~gcx ~ir func)
 
 and preprocess_function ~gcx func =
+  let calling_convention = Gcx.mir_function_calling_convention func in
   let param_mir_types = List.map (fun param -> type_of_value param) func.params in
-  let param_types = AAPCS64.calculate_param_types param_mir_types in
+  let param_types = calling_convention#calculate_param_types param_mir_types in
   gcx.mir_func_to_param_types <- FunctionMap.add func param_types gcx.mir_func_to_param_types
 
 and gen_function ~gcx ~ir func =
   let param_types = FunctionMap.find func gcx.mir_func_to_param_types in
-  let func_ = Gcx.start_function ~gcx param_types func.return_type in
+  let func_ = Gcx.start_function ~gcx func param_types in
   let label = get_asm_function_label ~ir func in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
