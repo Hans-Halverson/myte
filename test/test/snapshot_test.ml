@@ -119,7 +119,10 @@ let run_snapshot_test ~commands ~config ~record ~myte_files ~exp_file =
         let (act_contents, exp_contents) =
           if String.ends_with ~suffix:skip_rest_marker act_contents then
             let act_contents =
-              String.sub act_contents 0 (String.length act_contents - String.length skip_rest_marker - 1)
+              String.sub
+                act_contents
+                0
+                (String.length act_contents - String.length skip_rest_marker - 1)
             in
             let exp_contents =
               String.sub

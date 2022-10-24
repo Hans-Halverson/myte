@@ -25,7 +25,9 @@ let mk_blocks blocks =
 let find_liveness_sets blocks =
   let open Operand in
   let blocks = mk_blocks blocks in
-  let (live_in, live_out) = X86_64_liveness_analysis.analyze_regs blocks RegMap.empty in
+  let func = { null_function with blocks } in
+  let liveness_analyzer = new X86_64_liveness_analysis.regs_liveness_analyzer func RegMap.empty in
+  let (live_in, live_out) = liveness_analyzer#analyze () in
 
   ( BlockMap.fold
       (fun block set_as_list acc ->

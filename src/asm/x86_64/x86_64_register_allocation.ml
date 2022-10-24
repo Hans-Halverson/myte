@@ -145,7 +145,10 @@ module X86_64_RegisterAllocatorContext = struct
     (init_visitor#reg_num_use_defs, init_visitor#initial_vregs)
 
   let get_live_out_regs cx =
-    let (_, live_out) = X86_64_liveness_analysis.analyze_regs cx.func.blocks cx.gcx.color_to_op in
+    let liveness_analyzer =
+      new X86_64_liveness_analysis.regs_liveness_analyzer cx.func cx.gcx.color_to_op
+    in
+    let (_, live_out) = liveness_analyzer#analyze () in
     live_out
 
   let get_use_defs_for_instruction cx instr _ = cx.find_use_defs instr

@@ -1,10 +1,10 @@
 open Asm
 open Asm_builders
 open Asm_calling_convention
+open Asm_liveness_analysis
 open Asm_instruction_definition
 open Asm_register
 open X86_64_builders
-open X86_64_gen_context
 open X86_64_register
 
 class use_def_finder color_to_representative_operand =
@@ -79,27 +79,22 @@ class use_def_finder color_to_representative_operand =
       | None -> ()
   end
 
-class analyze_regs_init_visitor (blocks : Block.t List.t) color_to_operand =
+class regs_liveness_analyzer (func : Function.t) color_to_operand =
   object (this)
     inherit use_def_finder color_to_operand
+    inherit liveness_analyzer func
 
     val mutable prev_blocks = BlockMMap.empty
-
-    val mutable reg_use_blocks = OBMMap.empty
-
-    val mutable reg_def_blocks = OBMMap.empty
-
-    val mutable reg_use_before_def_blocks = OBMMap.empty
+    val mutable use_blocks = OBMMap.empty
+    val mutable def_blocks = OBMMap.empty
+    val mutable use_before_def_blocks = OBMMap.empty
 
     method prev_blocks = prev_blocks
+    method use_blocks = use_blocks
+    method def_blocks = def_blocks
+    method use_before_def_blocks = use_before_def_blocks
 
-    method reg_use_blocks = reg_use_blocks
-
-    method reg_def_blocks = reg_def_blocks
-
-    method reg_use_before_def_blocks = reg_use_before_def_blocks
-
-    method run () = List.iter (fun block -> this#visit_block block) blocks
+    method init () = func_iter_blocks func (fun block -> this#visit_block block)
 
     method visit_block block =
       iter_instructions block (fun instr ->
@@ -113,87 +108,31 @@ class analyze_regs_init_visitor (blocks : Block.t List.t) color_to_operand =
           this#visit_instruction instr)
 
     method! add_register_use ~(instr : Instruction.t) (reg : Operand.t) =
-      reg_use_blocks <- OBMMap.add reg instr.block reg_use_blocks
+      use_blocks <- OBMMap.add reg instr.block use_blocks
 
     method! add_register_def ~(instr : Instruction.t) (reg : Operand.t) =
       let block = instr.block in
-      if OBMMap.contains reg block reg_use_blocks && not (OBMMap.contains reg block reg_def_blocks)
-      then
-        reg_use_before_def_blocks <- OBMMap.add reg block reg_use_before_def_blocks;
-      reg_def_blocks <- OBMMap.add reg block reg_def_blocks
+      if OBMMap.contains reg block use_blocks && not (OBMMap.contains reg block def_blocks) then
+        use_before_def_blocks <- OBMMap.add reg block use_before_def_blocks;
+      def_blocks <- OBMMap.add reg block def_blocks
   end
 
-let analyze_regs blocks color_to_operand =
-  (* Calculate use and def blocks for each virtual and physical register *)
-  let init_visitor = new analyze_regs_init_visitor blocks color_to_operand in
-  init_visitor#run ();
-
-  let prev_blocks = init_visitor#prev_blocks in
-  let reg_use_blocks = init_visitor#reg_use_blocks in
-  let reg_def_blocks = init_visitor#reg_def_blocks in
-  let reg_use_before_def_blocks = init_visitor#reg_use_before_def_blocks in
-
-  (* Initialize liveness sets *)
-  let live_in = ref BlockMap.empty in
-  let live_out = ref BlockMap.empty in
-  List.iter
-    (fun block ->
-      live_in := BlockMap.add block [] !live_in;
-      live_out := BlockMap.add block [] !live_out)
-    blocks;
-
-  (* Propagate a single register backwards through the program, building liveness sets as we go *)
-  let set_contains set block reg =
-    match BlockMap.find block !set with
-    | hd :: _ when hd == reg -> true
-    | _ -> false
-  in
-  let set_add set block reg = set := BlockMap.add block (reg :: BlockMap.find block !set) !set in
-  let rec propagate_backwards ~block ~reg =
-    (* Stop backwards propagation if we reach a block that has already been visited or where the
-       reg is defined (unless the reg is used in the block before it is defined in the block) *)
-    if
-      (not (set_contains live_in block reg))
-      && ((not (OBMMap.contains reg block reg_def_blocks))
-         || OBMMap.contains reg block reg_use_before_def_blocks)
-    then (
-      set_add live_in block reg;
-      let prev_blocks = BlockMMap.find_all block prev_blocks in
-      BlockSet.iter
-        (fun prev_block ->
-          if not (set_contains live_out prev_block reg) then set_add live_out prev_block reg;
-          propagate_backwards ~block:prev_block ~reg)
-        prev_blocks
-    )
-  in
-
-  (* Liveness is calculated for all variables in program *)
-  OBMMap.iter
-    (fun reg use_blocks -> BlockSet.iter (fun block -> propagate_backwards ~block ~reg) use_blocks)
-    reg_use_blocks;
-
-  (!live_in, !live_out)
-
-class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
+class vslots_liveness_analyzer (func : Function.t) =
   object (this)
+    inherit liveness_analyzer func
+
     val mutable prev_blocks = BlockMMap.empty
-
-    val mutable vslot_use_blocks = OBMMap.empty
-
-    val mutable vslot_def_blocks = OBMMap.empty
-
-    val mutable vslot_use_before_def_blocks = OBMMap.empty
+    val mutable use_blocks = OBMMap.empty
+    val mutable def_blocks = OBMMap.empty
+    val mutable use_before_def_blocks = OBMMap.empty
 
     method prev_blocks = prev_blocks
+    method use_blocks = use_blocks
+    method def_blocks = def_blocks
+    method use_before_def_blocks = use_before_def_blocks
 
-    method vslot_use_blocks = vslot_use_blocks
-
-    method vslot_def_blocks = vslot_def_blocks
-
-    method vslot_use_before_def_blocks = vslot_use_before_def_blocks
-
-    method run () =
-      funcs_iter_blocks gcx.funcs (fun block -> iter_instructions block this#visit_instruction)
+    method init () =
+      func_iter_blocks func (fun block -> iter_instructions block this#visit_instruction)
 
     method visit_block block = iter_instructions block this#visit_instruction
 
@@ -206,8 +145,7 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
 
       (* First visit uses *)
       instr_iter_reg_mem_operands instr (fun operand operand_def ->
-          if operand_is_use operand_def then
-            vslot_use_blocks <- OBMMap.add operand instr.block vslot_use_blocks);
+          if operand_is_use operand_def then use_blocks <- OBMMap.add operand instr.block use_blocks);
 
       (* Then visit defs *)
       instr_iter_reg_mem_operands instr (fun operand operand_def ->
@@ -215,62 +153,10 @@ class analyze_virtual_stack_slots_init_visitor ~(gcx : Gcx.t) =
           | VirtualStackSlot when operand_is_def operand_def ->
             let block = instr.block in
             if
-              OBMMap.contains operand block vslot_use_blocks
-              && not (OBMMap.contains operand block vslot_def_blocks)
+              OBMMap.contains operand block use_blocks
+              && not (OBMMap.contains operand block def_blocks)
             then
-              vslot_use_before_def_blocks <- OBMMap.add operand block vslot_use_before_def_blocks;
-            vslot_def_blocks <- OBMMap.add operand block vslot_def_blocks
+              use_before_def_blocks <- OBMMap.add operand block use_before_def_blocks;
+            def_blocks <- OBMMap.add operand block def_blocks
           | _ -> ())
   end
-
-let analyze_virtual_stack_slots ~(gcx : Gcx.t) =
-  (* Calculate use and def blocks for each virtual stack slot *)
-  let init_visitor = new analyze_virtual_stack_slots_init_visitor ~gcx in
-  init_visitor#run ();
-
-  let prev_blocks = init_visitor#prev_blocks in
-  let vslot_use_blocks = init_visitor#vslot_use_blocks in
-  let vslot_def_blocks = init_visitor#vslot_def_blocks in
-  let vslot_use_before_def_blocks = init_visitor#vslot_use_before_def_blocks in
-
-  (* Initialize liveness sets *)
-  let live_in = ref BlockMap.empty in
-  let live_out = ref BlockMap.empty in
-  funcs_iter_blocks gcx.funcs (fun block ->
-      live_in := BlockMap.add block [] !live_in;
-      live_out := BlockMap.add block [] !live_out);
-
-  (* Propagate a single variable backwards through the program, building liveness sets as we go *)
-  let set_contains set block vslot =
-    match BlockMap.find block !set with
-    | hd :: _ when hd == vslot -> true
-    | _ -> false
-  in
-  let set_add set block vslot =
-    set := BlockMap.add block (vslot :: BlockMap.find block !set) !set
-  in
-  let rec propagate_backwards ~block ~vslot =
-    (* Stop backwards propagation if we reach a block that has already been visited or where the
-       var is defined (unless the var is used in the block before it is defined in the block) *)
-    if
-      (not (set_contains live_in block vslot))
-      && ((not (OBMMap.contains vslot block vslot_def_blocks))
-         || OBMMap.contains vslot block vslot_use_before_def_blocks)
-    then (
-      set_add live_in block vslot;
-      let prev_blocks = BlockMMap.find_all block prev_blocks in
-      BlockSet.iter
-        (fun prev_block ->
-          if not (set_contains live_out prev_block vslot) then set_add live_out prev_block vslot;
-          propagate_backwards ~block:prev_block ~vslot)
-        prev_blocks
-    )
-  in
-
-  (* Liveness is calculated for all variables in program *)
-  OBMMap.iter
-    (fun vslot use_blocks ->
-      BlockSet.iter (fun block -> propagate_backwards ~block ~vslot) use_blocks)
-    vslot_use_blocks;
-
-  (!live_in, !live_out)

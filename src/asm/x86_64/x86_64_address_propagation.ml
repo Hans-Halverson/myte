@@ -78,7 +78,10 @@ let rec run ~(gcx : Gcx.t) =
   FunctionSet.iter (run_on_func ~gcx ~use_def_finder) gcx.funcs
 
 and run_on_func ~gcx ~use_def_finder func =
-  let (_, live_out) = X86_64_liveness_analysis.analyze_regs func.blocks gcx.color_to_op in
+  let liveness_analyzer =
+    new X86_64_liveness_analysis.regs_liveness_analyzer func gcx.color_to_op
+  in
+  let (_, live_out) = liveness_analyzer#analyze () in
   let return_reg = Option.map SystemVCallingConvention.calculate_return_register func.return_type in
 
   func_iter_blocks func (fun block ->

@@ -39,8 +39,7 @@ let commands ~config bin target run_type files =
 
   let full_command =
     match run_type with
-    | DumpAsmOnly ->
-      Printf.sprintf "%s && echo '\nSKIP_REST'" dump_asm_command
+    | DumpAsmOnly -> Printf.sprintf "%s && echo '\nSKIP_REST'" dump_asm_command
     | Full run_command_prefix ->
       let run_command_prefix = Option.value ~default:"" run_command_prefix in
       Printf.sprintf
