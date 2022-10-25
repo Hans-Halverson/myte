@@ -13,6 +13,9 @@ class virtual calling_convention =
     method virtual general_params : Register.t array
     method virtual float_params : Register.t array
 
+    method virtual callee_saved_registers : RegSet.t
+    method virtual caller_saved_registers : RegSet.t
+
     method virtual calculate_return_register : Mir_type.Type.t -> Register.t
 
     method calculate_param_types (param_mir_types : Mir_type.Type.t list) : param_type array =
@@ -57,5 +60,7 @@ let null_calling_convention =
 
     method general_params = failwith "Unimplemented"
     method float_params = failwith "Unimplemented"
+    method callee_saved_registers = failwith "Unimplemented"
+    method caller_saved_registers = failwith "Unimplemented"
     method calculate_return_register _ = failwith "Unimplemented"
   end

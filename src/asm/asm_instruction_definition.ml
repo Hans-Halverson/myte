@@ -104,8 +104,8 @@ module X86_64 = struct
     | (* Control flow *)
       `Jmp
     | `JmpCC of condition_code
-    | `CallL of param_types
-    | `CallM of operand_size * param_types
+    | `CallL of param_types * calling_convention
+    | `CallM of operand_size * param_types * calling_convention
     | `Ret
     ]
 end

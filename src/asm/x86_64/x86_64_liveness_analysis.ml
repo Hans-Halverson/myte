@@ -5,7 +5,6 @@ open Asm_liveness_analysis
 open Asm_instruction_definition
 open Asm_register
 open X86_64_builders
-open X86_64_register
 
 class virtual use_def_visitor color_to_representative_operand =
   object (this)
@@ -25,9 +24,9 @@ class virtual use_def_visitor color_to_representative_operand =
 
     method visit_instruction (instr : Instruction.t) =
       match instr with
-      (* Calls implicitly use all parameter register and define all caller save registers *)
-      | { instr = `CallM (_, param_types); _ }
-      | { instr = `CallL param_types; _ } ->
+      (* Calls implicitly use all parameter registers and define all caller save registers *)
+      | { instr = `CallM (_, param_types, calling_convention); _ }
+      | { instr = `CallL (param_types, calling_convention); _ } ->
         Array.iter
           (fun param_type ->
             match param_type with
@@ -37,7 +36,7 @@ class virtual use_def_visitor color_to_representative_operand =
           param_types;
         RegSet.iter
           (fun reg -> this#visit_register_def ~instr (this#get_representative_register reg))
-          caller_saved_registers;
+          calling_convention#caller_saved_registers;
         this#visit_explicit_uses_and_defs instr
       (* IDiv uses the value in register A and writes to registers A and D *)
       | { instr = `IDiv _; _ } ->

@@ -32,19 +32,19 @@ module X86_64_RegisterAllocatorContext = struct
     let use_def_collector = new use_def_collector gcx.color_to_op in
     { func; gcx; find_use_defs = use_def_collector#find_use_defs }
 
-  (* Calling conventions *)
+  (* Register functions *)
 
   let allocatable_registers reg_class =
     match reg_class with
     | Register.GeneralClass -> allocatable_general_purpose_registers
     | SSEClass -> all_sse_registers
 
-  let callee_saved_registers = callee_saved_registers
-
   let num_allocatable_registers reg_class =
     match reg_class with
     | Register.GeneralClass -> num_allocatable_general_purpose_registers
     | SSEClass -> num_allocatable_sse_registers
+
+  let get_reg_order reg = get_reg_order reg
 
   (* Operand functions *)
 
@@ -52,8 +52,6 @@ module X86_64_RegisterAllocatorContext = struct
     match op.Operand.type_ with
     | Double -> Register.SSEClass
     | _ -> GeneralClass
-
-  let get_reg_order reg = get_reg_order reg
 
   (* Instruction functions *)
 

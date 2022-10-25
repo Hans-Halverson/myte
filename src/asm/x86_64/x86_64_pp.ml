@@ -319,7 +319,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `JmpCC cc ->
         pp_op ("j" ^ pp_condition_code cc);
         pp_operands ()
-      | `CallM (size, _) ->
+      | `CallM (size, _, _) ->
         pp_sized_op "call" size;
         add_char ~buf '*';
         pp_operands ()

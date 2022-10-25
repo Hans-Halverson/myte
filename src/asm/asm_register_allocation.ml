@@ -46,8 +46,6 @@ module type REGISTER_ALLOCATOR_CONTEXT = sig
 
   val allocatable_registers : register_class -> RegSet.t
 
-  val callee_saved_registers : RegSet.t
-
   val num_allocatable_registers : register_class -> int
 
   (* Operand functions *)
@@ -531,7 +529,9 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
   let select_color_for_vreg ~(ra : t) possible_regs reg_priorities =
     (* Unresolved vregs must always be part of a function *)
     let unused_callee_saved_regs =
-      RegSet.diff Cx.callee_saved_registers ra.func.spilled_callee_saved_regs
+      RegSet.diff
+        ra.func.calling_convention#callee_saved_registers
+        ra.func.spilled_callee_saved_regs
     in
     let possible_already_used_callee_saved_regs =
       RegSet.diff possible_regs unused_callee_saved_regs

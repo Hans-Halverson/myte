@@ -332,6 +332,11 @@ let cast_to_block op =
   | Block block -> block
   | _ -> failwith "Expected block operand"
 
+let cast_to_function op =
+  match op.Operand.value with
+  | Function func -> func
+  | _ -> failwith "Expected function operand"
+
 let int64_of_immediate imm =
   match imm with
   | Imm8 i -> Int8.to_int64 i

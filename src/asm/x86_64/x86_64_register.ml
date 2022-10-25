@@ -36,38 +36,6 @@ let all_registers =
   RegSet.of_list [`A; `B; `C; `D; `SI; `DI; `SP; `BP; `R8; `R9; `R10; `R11; `R12; `R13; `R14; `R15]
   |> RegSet.union all_sse_registers
 
-let callee_saved_registers = RegSet.of_list [`B; `SP; `BP; `R12; `R13; `R14; `R15]
-
-let caller_saved_registers =
-  RegSet.of_list
-    [
-      `A;
-      `C;
-      `D;
-      `SI;
-      `DI;
-      `R8;
-      `R9;
-      `R10;
-      `R11;
-      `XMM0;
-      `XMM1;
-      `XMM2;
-      `XMM3;
-      `XMM4;
-      `XMM5;
-      `XMM6;
-      `XMM7;
-      `XMM8;
-      `XMM9;
-      `XMM10;
-      `XMM11;
-      `XMM12;
-      `XMM13;
-      `XMM14;
-      `XMM15;
-    ]
-
 let get_reg_order (reg : Register.t) : int =
   match reg with
   | `A -> 0

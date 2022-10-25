@@ -508,10 +508,10 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (match func_val.value.value with
     | Lit (Function mir_func) ->
       let func = Gcx.get_func_from_mir_func ~gcx mir_func in
-      Gcx.emit ~gcx (`CallL param_types) [| mk_function_op ~func |]
+      Gcx.emit ~gcx (`CallL (param_types, calling_convention)) [| mk_function_op ~func |]
     | _ ->
       let func_mem = emit_mem (resolve_ir_value func_val) in
-      Gcx.emit ~gcx (`CallM (Size64, param_types)) [| func_mem |]);
+      Gcx.emit ~gcx (`CallM (Size64, param_types, calling_convention)) [| func_mem |]);
     (* Move result from return register to return operand *)
     (if has_return then
       let return_size = operand_size_of_mir_value_type type_ in
@@ -1038,7 +1038,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
 
     (* Call builtin function *)
-    Gcx.emit ~gcx (`CallL param_types) [| mk_function_op ~func:builtin_func |];
+    Gcx.emit ~gcx (`CallL (param_types, calling_convention)) [| mk_function_op ~func:builtin_func |];
 
     (* Move return value to result register *)
     (match builtin_func.return_type with

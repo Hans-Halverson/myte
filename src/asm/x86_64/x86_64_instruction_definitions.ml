@@ -230,7 +230,7 @@ let instr_operand_size (instr : instr) (i : int) : X86_64.operand_size =
   | `CmpMI size
   | `CmpMM size
   | `TestMR size
-  | `CallM (size, _)
+  | `CallM (size, _, _)
   | `ConvertFloatToInt size
   | `ConvertIntToFloat size ->
     size

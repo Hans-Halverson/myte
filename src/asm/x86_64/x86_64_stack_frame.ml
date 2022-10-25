@@ -2,7 +2,6 @@ open Asm
 open Asm_builders
 open Asm_register
 open X86_64_gen_context
-open X86_64_register
 
 let func_should_save_base_pointer _func = false
 
@@ -36,6 +35,7 @@ let write_function_prologues ~(gcx : Gcx.t) =
       );
 
       (* Push all used callee saved registers onto the stack *)
+      let callee_saved_registers = func.calling_convention#callee_saved_registers in
       RegSet.iter
         (fun reg ->
           if RegSet.mem reg func.spilled_callee_saved_regs then
@@ -73,6 +73,7 @@ let write_function_epilogues ~(gcx : Gcx.t) =
 
             (* Pop all saved callee saved registers off the stack. Collect into accumulator first
                so that instructions can be added in reverse order. *)
+            let callee_saved_registers = func.calling_convention#callee_saved_registers in
             let pop_instrs =
               RegSet.fold
                 (fun reg acc ->
