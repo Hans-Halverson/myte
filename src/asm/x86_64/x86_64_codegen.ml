@@ -31,25 +31,27 @@ type mir_comparison_ccs =
   | OrCC of condition_code * condition_code
 
 let rec gen ~gcx (ir : Program.t) =
+  let should_filter_stdlib = Asm_gen.should_filter_stdlib () in
+
   (* Calculate layout of all aggregate types *)
   SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
 
-  (* Calculate calling info for functions *)
-  SMap.iter (fun _ func -> preprocess_function ~gcx func) ir.funcs;
+  (* Calculate initial function info for all functions *)
+  SMap.iter (fun _ func -> preprocess_function ~gcx ~ir func) ir.funcs;
 
   (* Generate all globals in program *)
-  SMap.iter (fun _ global -> gen_global ~gcx ~ir global) ir.globals;
+  SMap.iter
+    (fun name global ->
+      if not (should_filter_stdlib && has_std_lib_prefix name) then gen_global ~gcx ~ir global)
+    ir.globals;
 
   (* Generate all functions in program *)
-  SMap.iter (fun _ func -> gen_function ~gcx ~ir func) ir.funcs;
+  SMap.iter
+    (fun name func ->
+      if not (should_filter_stdlib && has_std_lib_prefix name) then gen_function ~gcx ~ir func)
+    ir.funcs;
 
   Gcx.finish_builders ~gcx
-
-and preprocess_function ~gcx func =
-  let calling_convention = Gcx.mir_function_calling_convention func in
-  let param_mir_types = List.map (fun param -> type_of_value param) func.params in
-  let param_types = calling_convention#calculate_param_types param_mir_types in
-  gcx.mir_func_to_param_types <- FunctionMap.add func param_types gcx.mir_func_to_param_types
 
 and gen_global ~gcx ~ir:_ global =
   let label = label_of_mir_label global.name in
@@ -105,11 +107,17 @@ and gen_global ~gcx ~ir:_ global =
     | SMem _ ->
       failwith "Global init value must be a constant")
 
+and preprocess_function ~gcx ~ir mir_func =
+  let calling_convention = Gcx.mir_function_calling_convention mir_func in
+  let param_mir_types = List.map (fun param -> type_of_value param) mir_func.params in
+  let param_types = calling_convention#calculate_param_types param_mir_types in
+  Gcx.add_function ~gcx ~ir mir_func param_types
+
 and gen_function ~gcx ~ir mir_func =
-  let param_types = FunctionMap.find mir_func gcx.mir_func_to_param_types in
-  let func = Gcx.start_function ~gcx ~ir mir_func param_types in
+  let func = Gcx.get_func_from_mir_func ~gcx mir_func in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
+  Gcx.start_function ~gcx func;
   Gcx.start_block ~gcx ~label:(Some func.label) ~func ~mir_block:None;
   func.prologue <- Option.get gcx.current_block;
 
@@ -498,8 +506,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
 
     (* Emit call instruction *)
     (match func_val.value.value with
-    | Lit (Function { name = label; _ }) ->
-      Gcx.emit ~gcx (`CallL param_types) [| mk_function_label ~label:(label_of_mir_label label) |]
+    | Lit (Function mir_func) ->
+      let func = Gcx.get_func_from_mir_func ~gcx mir_func in
+      Gcx.emit ~gcx (`CallL param_types) [| mk_function_op ~func |]
     | _ ->
       let func_mem = emit_mem (resolve_ir_value func_val) in
       Gcx.emit ~gcx (`CallM (Size64, param_types)) [| func_mem |]);
@@ -1029,7 +1038,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     in
 
     (* Call builtin function *)
-    Gcx.emit ~gcx (`CallL param_types) [| mk_function_label ~label:builtin_func.label |];
+    Gcx.emit ~gcx (`CallL param_types) [| mk_function_op ~func:builtin_func |];
 
     (* Move return value to result register *)
     (match builtin_func.return_type with

@@ -1,9 +1,8 @@
 open Basic_collections
 
-let preprocess_ir (ir : Mir.Program.t) =
-  (* Filter out stdlib for printing *)
-  if Asm_utils.any_dump_asm () && not (Opts.dump_stdlib ()) then Mir.filter_stdlib ir;
+let should_filter_stdlib () = Asm_utils.any_dump_asm () && not (Opts.dump_stdlib ())
 
+let preprocess_ir (ir : Mir.Program.t) =
   (* Add empty init function if one does not exist *)
   if (not (Asm_utils.any_dump_asm ())) && not (SMap.mem Mir.init_func_name ir.funcs) then (
     let func = Mir_builders.mk_function ~name:Mir.init_func_name in

@@ -141,7 +141,7 @@ let jmp = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
 let jmp_cc = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
-let call_l = { InstructionDef.operands = [{ use = Use; operand_type = Label }] }
+let call_l = { InstructionDef.operands = [{ use = Use; operand_type = Function }] }
 
 let call_m = { InstructionDef.operands = operands_m_use }
 

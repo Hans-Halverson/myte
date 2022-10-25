@@ -79,7 +79,7 @@ let rec pp_operand ~gcx ~pcx ~buf ~size op =
     )
   | Immediate imm -> pp_immediate ~buf imm
   | X86_64_MemoryAddress addr -> pp_memory_address ~gcx ~pcx ~buf addr
-  | Label label -> add_string ~buf label
+  | Function func -> add_string ~buf func.label
   | Block block ->
     pp_label_debug_prefix ~buf block;
     add_string ~buf (Option.get (pp_label ~pcx block))

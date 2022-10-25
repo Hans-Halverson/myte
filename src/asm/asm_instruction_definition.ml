@@ -163,7 +163,7 @@ and OperandDef : sig
     | Register
     | RegMem
     | Block
-    | Label
+    | Function
 end =
   OperandDef
 

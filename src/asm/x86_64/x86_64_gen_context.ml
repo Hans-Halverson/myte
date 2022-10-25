@@ -1,6 +1,5 @@
 open Asm
 open Asm_builders
-open Asm_calling_convention
 open Asm_codegen
 open Asm_instruction_definition
 open Asm_register
@@ -21,7 +20,8 @@ module Gcx = struct
     mutable prev_blocks: BlockMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
     mutable mir_block_to_block: Block.t Mir.BlockMap.t;
-    mutable mir_func_to_param_types: param_types Mir.FunctionMap.t;
+    (* Functions indexed by their corresponding MIR function. *)
+    mutable mir_func_to_func: Function.t Mir.FunctionMap.t;
     (* Map from physical register to a representative precolored register operand *)
     mutable color_to_op: Operand.t RegMap.t;
     mutable agg_to_layout: AggregateLayout.t IMap.t;
@@ -52,7 +52,7 @@ module Gcx = struct
       current_func = None;
       prev_blocks = BlockMMap.empty;
       mir_block_to_block = Mir.BlockMap.empty;
-      mir_func_to_param_types = Mir.FunctionMap.empty;
+      mir_func_to_func = Mir.FunctionMap.empty;
       funcs = FunctionSet.empty;
       color_to_op;
       agg_to_layout = IMap.empty;
@@ -124,13 +124,18 @@ module Gcx = struct
 
   let mir_function_calling_convention (_func : Mir.Function.t) = system_v_calling_convention
 
-  let start_function ~gcx ~ir (func : Mir.Function.t) param_types =
-    let label = get_asm_function_label ~ir func in
-    let calling_convention = mir_function_calling_convention func in
-    let func = mk_function ~label ~param_types ~return_type:func.return_type ~calling_convention in
-    gcx.current_func <- Some func;
+  let add_function ~gcx ~ir (mir_func : Mir.Function.t) param_types =
+    let label = get_asm_function_label ~ir mir_func in
+    let calling_convention = mir_function_calling_convention mir_func in
+    let func =
+      mk_function ~label ~param_types ~return_type:mir_func.return_type ~calling_convention
+    in
     gcx.funcs <- FunctionSet.add func gcx.funcs;
-    func
+    gcx.mir_func_to_func <- Mir.FunctionMap.add mir_func func gcx.mir_func_to_func
+
+  let get_func_from_mir_func ~gcx mir_func = Mir.FunctionMap.find mir_func gcx.mir_func_to_func
+
+  let start_function ~gcx func = gcx.current_func <- Some func
 
   let finish_function ~gcx =
     let current_func = Option.get gcx.current_func in

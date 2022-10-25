@@ -87,7 +87,7 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
         instr_iteri_all_operands instr (fun i operand operand_def ->
             match operand_def.operand_type with
             | Immediate
-            | Label
+            | Function
             | Block ->
               ()
             | MemoryAddress -> this#force_registers_in_address ~instr operand

@@ -37,7 +37,8 @@ let mk_imm ~(imm : immediate) : Operand.t =
   in
   mk_operand ~value:(Immediate imm) ~type_
 
-let mk_function_label ~(label : label) : Operand.t = mk_operand ~value:(Label label) ~type_:Function
+let mk_function_op ~(func : Function.t) : Operand.t =
+  mk_operand ~value:(Function func) ~type_:Function
 
 let mk_block_op ~(block : Block.t) = mk_operand ~value:(Block block) ~type_:Long
 

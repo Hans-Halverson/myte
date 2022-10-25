@@ -1,23 +1,32 @@
 open Aarch64_gen_context
 open Asm_builders
+open Basic_collections
 open Mir
 open Mir_builders
 
 let rec gen ~(gcx : Gcx.t) (ir : Program.t) =
-  Mir_builders.program_iter_funcs ir (fun func -> preprocess_function ~gcx func);
-  Mir_builders.program_iter_funcs ir (fun func -> gen_function ~gcx ~ir func)
+  let should_filter_stdlib = Asm_gen.should_filter_stdlib () in
 
-and preprocess_function ~gcx func =
-  let calling_convention = Gcx.mir_function_calling_convention func in
-  let param_mir_types = List.map (fun param -> type_of_value param) func.params in
+  (* Calculate initial function info for all functions *)
+  Mir_builders.program_iter_funcs ir (fun func -> preprocess_function ~gcx ~ir func);
+
+  (* Generate all functions in program *)
+  SMap.iter
+    (fun name func ->
+      if not (should_filter_stdlib && has_std_lib_prefix name) then gen_function ~gcx ~ir func)
+    ir.funcs
+
+and preprocess_function ~gcx ~ir mir_func =
+  let calling_convention = Gcx.mir_function_calling_convention mir_func in
+  let param_mir_types = List.map (fun param -> type_of_value param) mir_func.params in
   let param_types = calling_convention#calculate_param_types param_mir_types in
-  gcx.mir_func_to_param_types <- FunctionMap.add func param_types gcx.mir_func_to_param_types
+  Gcx.add_function ~gcx ~ir mir_func param_types
 
 and gen_function ~gcx ~ir mir_func =
-  let param_types = FunctionMap.find mir_func gcx.mir_func_to_param_types in
-  let func = Gcx.start_function ~gcx ~ir mir_func param_types in
+  let func = Gcx.get_func_from_mir_func ~gcx mir_func in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
+  Gcx.start_function ~gcx func;
   Gcx.start_block ~gcx ~label:(Some func.label) ~func ~mir_block:None;
   func.prologue <- Option.get gcx.current_block;
 

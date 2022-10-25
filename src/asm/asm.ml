@@ -55,8 +55,8 @@ and Operand : sig
     | Immediate of immediate
     (* Memory address (which may contain vregs as the base, offset, or index) *)
     | X86_64_MemoryAddress of X86_64_MemoryAddress.t
-    (* Label (memory address of function or global) *)
-    | Label of label
+    (* Direct reference to a function *)
+    | Function of Function.t
     (* Direct reference to a basic block *)
     | Block of Block.t
     | VirtualStackSlot
@@ -92,7 +92,7 @@ end = struct
     | VirtualRegister
     | Immediate of immediate
     | X86_64_MemoryAddress of X86_64_MemoryAddress.t
-    | Label of label
+    | Function of Function.t
     | Block of Block.t
     | VirtualStackSlot
     | FunctionStackArgument

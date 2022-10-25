@@ -55,6 +55,6 @@ and operand_iter_reg_mem_operands
   | FunctionArgumentStackSlot _ ->
     f operand operand_def
   | Immediate _
-  | Label _
+  | Function _
   | Block _ ->
     ()
