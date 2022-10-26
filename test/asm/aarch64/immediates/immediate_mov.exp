@@ -2,284 +2,166 @@
 
   .text
 test.boolFalse:
-  b .L0
-.L0:
   mov w0, wzr
   ret
 test.boolTrue:
-  b .L1
-.L1:
   movz w0, #1
-  mov w0, w0
   ret
 test.byteMax:
-  b .L2
-.L2:
   movz w0, #127
-  mov w0, w0
   ret
 test.byteOne:
-  b .L3
-.L3:
   movz w0, #1
-  mov w0, w0
   ret
 test.byteZero:
-  b .L4
-.L4:
   mov w0, wzr
   ret
 test.intMax:
-  b .L5
-.L5:
   movz w0, #65535
   movk w0, #32767, lsl #16
-  mov w0, w0
   ret
 test.intMaxOneChunk:
-  b .L6
-.L6:
   movz w0, #65535
-  mov w0, w0
   ret
 test.intMinTwoChunks:
-  b .L7
-.L7:
   movz w0, #0
   movk w0, #1, lsl #16
-  mov w0, w0
   ret
 test.intOne:
-  b .L8
-.L8:
   movz w0, #1
-  mov w0, w0
   ret
 test.intTwoChunks:
-  b .L9
-.L9:
   movz w0, #9999
   movk w0, #1, lsl #16
-  mov w0, w0
   ret
 test.intZero:
-  b .L10
-.L10:
   mov w0, wzr
   ret
 test.longFourChunks:
-  b .L11
-.L11:
   movz x0, #16384
   movk x0, #15954, lsl #16
   movk x0, #30233, lsl #32
   movk x0, #35, lsl #48
-  mov x0, x0
   ret
 test.longMax:
-  b .L12
-.L12:
   movz x0, #65535
   movk x0, #65535, lsl #16
   movk x0, #65535, lsl #32
   movk x0, #32767, lsl #48
-  mov x0, x0
   ret
 test.longMaxOneChunk:
-  b .L13
-.L13:
   movz x0, #65535
-  mov x0, x0
   ret
 test.longMaxThreeChunks:
-  b .L14
-.L14:
   movz x0, #65535
   movk x0, #65535, lsl #16
   movk x0, #65535, lsl #32
-  mov x0, x0
   ret
 test.longMaxTwoChunks:
-  b .L15
-.L15:
   movz x0, #65535
   movk x0, #65535, lsl #16
-  mov x0, x0
   ret
 test.longMinFourChunks:
-  b .L16
-.L16:
   movz x0, #0
   movk x0, #0, lsl #16
   movk x0, #0, lsl #32
   movk x0, #1, lsl #48
-  mov x0, x0
   ret
 test.longMinThreeChunks:
-  b .L17
-.L17:
   movz x0, #0
   movk x0, #0, lsl #16
   movk x0, #1, lsl #32
-  mov x0, x0
   ret
 test.longMinTwoChunks:
-  b .L18
-.L18:
   movz x0, #0
   movk x0, #1, lsl #16
-  mov x0, x0
   ret
 test.longOne:
-  b .L19
-.L19:
   movz x0, #1
-  mov x0, x0
   ret
 test.longThreeChunks:
-  b .L20
-.L20:
   movz x0, #42495
   movk x0, #16794, lsl #16
   movk x0, #21, lsl #32
-  mov x0, x0
   ret
 test.longTwoChunks:
-  b .L21
-.L21:
   movz x0, #9999
   movk x0, #1, lsl #16
-  mov x0, x0
   ret
 test.longZero:
-  b .L22
-.L22:
   mov x0, xzr
   ret
 _main:
-  b .L23
-.L23:
   mov w0, wzr
   ret
 test.negByteMin:
-  b .L24
-.L24:
   movn w0, #127
-  mov w0, w0
   ret
 test.negByteNegOne:
-  b .L25
-.L25:
   movn w0, #0
-  mov w0, w0
   ret
 test.negIntMaxOneChunk:
-  b .L26
-.L26:
   movn w0, #65535
-  mov w0, w0
   ret
 test.negIntMin:
-  b .L27
-.L27:
   movn w0, #65535
   movk w0, #32768, lsl #16
-  mov w0, w0
   ret
 test.negIntMinTwoChunks:
-  b .L28
-.L28:
   movn w0, #0
   movk w0, #65534, lsl #16
-  mov w0, w0
   ret
 test.negIntNegOne:
-  b .L29
-.L29:
   movn w0, #0
-  mov w0, w0
   ret
 test.negLongFourChunks:
-  b .L30
-.L30:
   movn x0, #37850
   movk x0, #2519, lsl #16
   movk x0, #52058, lsl #32
   movk x0, #65532, lsl #48
-  mov x0, x0
   ret
 test.negLongMaxOneChunk:
-  b .L31
-.L31:
   movn x0, #65535
-  mov x0, x0
   ret
 test.negLongMaxThreeChunks:
-  b .L32
-.L32:
   movn x0, #65535
   movk x0, #0, lsl #16
   movk x0, #0, lsl #32
-  mov x0, x0
   ret
 test.negLongMaxTwoChunks:
-  b .L33
-.L33:
   movn x0, #65535
   movk x0, #0, lsl #16
-  mov x0, x0
   ret
 test.negLongMin:
-  b .L34
-.L34:
   movn x0, #65535
   movk x0, #0, lsl #16
   movk x0, #0, lsl #32
   movk x0, #32768, lsl #48
-  mov x0, x0
   ret
 test.negLongMinFourChunks:
-  b .L35
-.L35:
   movn x0, #0
   movk x0, #65535, lsl #16
   movk x0, #65535, lsl #32
   movk x0, #65534, lsl #48
-  mov x0, x0
   ret
 test.negLongMinThreeChunks:
-  b .L36
-.L36:
   movn x0, #0
   movk x0, #65535, lsl #16
   movk x0, #65534, lsl #32
-  mov x0, x0
   ret
 test.negLongMinTwoChunks:
-  b .L37
-.L37:
   movn x0, #0
   movk x0, #65534, lsl #16
-  mov x0, x0
   ret
 test.negLongNegOne:
-  b .L38
-.L38:
   movn x0, #0
-  mov x0, x0
   ret
 test.negLongThreeChunks:
-  b .L39
-.L39:
   movn x0, #2745
   movk x0, #424, lsl #16
   movk x0, #65508, lsl #32
-  mov x0, x0
   ret
 test.negLongTwoChunks:
-  b .L40
-.L40:
   movn x0, #12685
   movk x0, #51767, lsl #16
-  mov x0, x0
   ret

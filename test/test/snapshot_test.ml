@@ -95,8 +95,7 @@ let run_snapshot_test ~commands ~config ~record ~myte_files ~exp_file =
           | Unix.WEXITED _ -> ()
           | _ -> failwith (Printf.sprintf "Command: %s failed to complete" formatted_command)
         end;
-        (* Optionally re-record snapshot *)
-        let record_snapshot () = if record then write_file exp_file act_contents in
+
         (* Read contents of exp file *)
         let exp_contents_result =
           try
@@ -134,6 +133,9 @@ let run_snapshot_test ~commands ~config ~record ~myte_files ~exp_file =
           else
             (act_contents, exp_contents)
         in
+
+        (* Optionally re-record snapshot *)
+        let record_snapshot () = if record then write_file exp_file act_contents in
 
         if Result.is_error exp_contents_result then (
           record_snapshot ();

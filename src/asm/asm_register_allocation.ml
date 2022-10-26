@@ -647,15 +647,15 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     ra.aliases <- OperandMap.empty;
     ra.color <- OperandMap.empty
 
-  (* Remove all moves where both the source and destination alias to the same register, as they are
+  (* Remove all moves where both the source and destination are the same register, as they are
      unnecessary. *)
   let remove_coalesced_moves ~(ra : t) =
     func_iter_blocks ra.func (fun block ->
         filter_instructions block (fun instr ->
             match Cx.get_move_opt instr with
-            | Some (source_op, dest_op) ->
-              get_operand_alias ~ra source_op != get_operand_alias ~ra dest_op
-            | None -> true))
+            | Some ({ value = PhysicalRegister reg1; _ }, { value = PhysicalRegister reg2; _ }) ->
+              reg1 != reg2
+            | _ -> true))
 
   (* Allocate physical registers (colors) to each virtual register using iterated register coalescing.
      Simply the graph afterwards to remove unnecessary instructions. *)

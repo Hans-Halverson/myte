@@ -220,42 +220,6 @@ module Gcx = struct
     in
     gcx.agg_to_layout <- IMap.add agg.id agg_layout gcx.agg_to_layout
 
-  (* Simplify Jmp instructions, removing unnecessary Jmp instructions when possible *)
-  let simplify_jumps ~gcx =
-    let rec merge blocks =
-      match blocks with
-      | block1 :: block2 :: tl ->
-        (match get_last_instr_opt block1 with
-        | Some ({ instr = `Jmp; operands = [| { value = Block next_block; _ } |]; _ } as jmp_instr)
-          when next_block.id = block2.id ->
-          remove_instruction jmp_instr
-        (* Eliminate unnecessary Jmp instructions by reordering sequences of JmpCCs:
-
-             JmpCC block1
-             Jmp block2           JmpCC block2 (with inverse CC)
-           block1:              block1:
-             ...                  ...
-           block2:              block2:
-             ...                  ... *)
-        | Some
-            ({
-               instr = `Jmp;
-               operands = [| { value = Block jmp_block; _ } |];
-               prev =
-                 { instr = `JmpCC cc; operands = [| { value = Block jmp_cc_block; _ } |]; _ } as
-                 jmp_cc_instr;
-               _;
-             } as jmp_instr)
-          when jmp_cc_block.id == block2.id ->
-          remove_instruction jmp_instr;
-          jmp_cc_instr.instr <- `JmpCC (invert_condition_code cc);
-          jmp_cc_instr.operands.(0) <- mk_block_op ~block:jmp_block
-        | _ -> ());
-        merge (block2 :: tl)
-      | _ -> ()
-    in
-    FunctionSet.iter (fun func -> merge func.blocks) gcx.funcs
-
   let remove_redundant_moves ~gcx =
     (* Remove reflexive move instructions *)
     FunctionSet.iter
@@ -269,50 +233,4 @@ module Gcx = struct
                   | _ -> true)
                 | _ -> true)))
       gcx.funcs
-
-  (* Find all empty blocks that only contain an unconditional jump. Remove them and rewrite other
-     jumps in graph to skip over them (may skip an entire chain). *)
-  let compress_jump_aliases ~gcx =
-    let open Block in
-    (* Find all jump aliases in program *)
-    let jump_aliases = ref BlockMap.empty in
-    funcs_iter_blocks gcx.funcs (fun block ->
-        match get_first_instr_opt block with
-        | Some { instr = `Jmp; operands = [| { value = Block next_jump_block; _ } |]; _ }
-          when has_single_instruction block && block.id != next_jump_block.id ->
-          jump_aliases := BlockMap.add block next_jump_block !jump_aliases
-        | _ -> ());
-    (* Filter out jump alias blocks *)
-    FunctionSet.iter
-      (fun func ->
-        let open Function in
-        func.blocks <-
-          List.filter
-            (fun block ->
-              if BlockMap.mem block !jump_aliases && block.func.prologue != block then (
-                gcx.prev_blocks <- BlockMMap.remove_key block gcx.prev_blocks;
-                false
-              ) else
-                true)
-            func.blocks)
-      gcx.funcs;
-    (* Rewrite jumps to skip over jump alias blocks *)
-    let rec resolve_jump_alias block =
-      match BlockMap.find_opt block !jump_aliases with
-      | None -> block
-      | Some alias -> resolve_jump_alias alias
-    in
-    funcs_iter_blocks gcx.funcs (fun block ->
-        let open Instruction in
-        iter_instructions block (fun instr ->
-            match instr with
-            | { instr = `Jmp; operands = [| { value = Block next_block; _ } as block_op |]; _ }
-              when BlockMap.mem next_block !jump_aliases ->
-              let resolved_alias = resolve_jump_alias next_block in
-              if resolved_alias != next_block then block_op.value <- Block resolved_alias
-            | { instr = `JmpCC _; operands = [| { value = Block next_block; _ } as block_op |]; _ }
-              when BlockMap.mem next_block !jump_aliases ->
-              let resolved_alias = resolve_jump_alias next_block in
-              if resolved_alias != next_block then block_op.value <- Block resolved_alias
-            | _ -> ()))
 end

@@ -21,6 +21,9 @@ let gen ir =
   (* Perform register allocation for each function *)
   FunctionSet.iter (fun func -> Aarch64_register_allocation.run ~gcx ~func) gcx.funcs;
 
+  Aarch64_simplify_cfg.compress_branch_aliases ~gcx;
+  Aarch64_simplify_cfg.simplify_branches ~gcx;
+
   (* Optionally dump assembly to stdout *)
   if Opts.dump_asm () || Opts.dump_full_asm () then begin
     print_string (Aarch64_pp.pp_program ~gcx);
