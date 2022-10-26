@@ -1,12 +1,17 @@
 open Asm_instruction_definition
 
-let operands_ri_def =
-  [{ OperandDef.use = Def; operand_type = Register }; { use = Use; operand_type = Immediate }]
-
 let operands_rr_def =
   [{ OperandDef.use = Def; operand_type = Register }; { use = Use; operand_type = Register }]
 
-let mov_i = { InstructionDef.operands = operands_ri_def }
+let mov_i =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Def; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
 
 let mov_r = { InstructionDef.operands = operands_rr_def }
 
@@ -26,7 +31,7 @@ let instr_def (instr : instr) : InstructionDef.t =
 let instr_register_size (instr : instr) : AArch64.register_size =
   match instr with
   (* Instructions where all registers have the same size *)
-  | `MovI size
+  | `MovI (size, _)
   | `MovR size ->
     size
   (* Instructions with no sized operands *)

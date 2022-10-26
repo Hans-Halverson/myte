@@ -135,7 +135,9 @@ module Gcx = struct
 
   let get_func_from_mir_func ~gcx mir_func = Mir.FunctionMap.find mir_func gcx.mir_func_to_func
 
-  let start_function ~gcx func = gcx.current_func <- Some func
+  let start_function ~gcx func =
+    gcx.current_func <- Some func;
+    gcx.mir_block_to_block <- Mir.BlockMap.empty
 
   let finish_function ~gcx =
     let current_func = Option.get gcx.current_func in

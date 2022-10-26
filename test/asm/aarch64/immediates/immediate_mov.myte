@@ -1,0 +1,52 @@
+module test
+
+// Positive numbers
+fun boolFalse(): Bool = false
+fun boolTrue(): Bool = true
+
+fun byteZero(): Byte = 0
+fun byteOne(): Byte = 1
+fun byteMax(): Byte = 127
+
+fun intZero(): Int = 0
+fun intOne(): Int = 1
+fun intMaxOneChunk(): Int = 65535
+fun intMinTwoChunks(): Int = 65536
+fun intTwoChunks(): Int = 75535
+fun intMax(): Int = 2147483647
+
+fun longZero(): Long = 0
+fun longOne(): Long = 1
+fun longMaxOneChunk(): Long = 65535
+fun longMinTwoChunks(): Long = 65536
+fun longTwoChunks(): Long = 75535
+fun longMaxTwoChunks(): Long = 4294967295
+fun longMinThreeChunks(): Long = 4294967296
+fun longThreeChunks(): Long = 91294967295
+fun longMaxThreeChunks(): Long = 281474976710655
+fun longMinFourChunks(): Long = 281474976710656
+fun longFourChunks(): Long = 9981474976710656
+fun longMax(): Long = 9223372036854775807
+
+// Negative numbers
+fun negByteNegOne(): Byte = -1
+fun negByteMin(): Byte = -128
+
+fun negIntNegOne(): Int = -1
+fun negIntMaxOneChunk(): Int = -65536
+fun negIntMinTwoChunks(): Int = -65537
+fun negIntMin(): Int = -2147483648
+
+fun negLongNegOne(): Long = -1
+fun negLongMaxOneChunk(): Long = -65536
+fun negLongMinTwoChunks(): Long = -65537
+fun negLongTwoChunks(): Long = -902312334
+fun negLongMaxTwoChunks(): Long = -4294967296
+fun negLongMinThreeChunks(): Long = -4294967297
+fun negLongThreeChunks(): Long = -120231234234
+fun negLongMaxThreeChunks(): Long = -281474976710656
+fun negLongMinFourChunks(): Long = -281474976710657
+fun negLongFourChunks(): Long = -902312334234587
+fun negLongMin(): Long = -9223372036854775808
+
+fun main() {}

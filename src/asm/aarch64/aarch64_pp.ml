@@ -74,17 +74,24 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       let pp_no_args_op op = add_string op in
       let operands = instr.operands in
       match instr.instr with
-      | `MovI _
-      | `MovR _ ->
-        pp_op_and_operands "mov"
-      | `MovK size ->
-        pp_op "movk";
+      | `MovR _ -> pp_op_and_operands "mov"
+      | `MovI (size, suffix) ->
+        let op =
+          match suffix with
+          | Z -> "movz"
+          | N -> "movn"
+          | K -> "movk"
+        in
+        pp_op op;
         pp_operand ~size operands.(0);
         pp_args_separator ();
         pp_operand ~size operands.(1);
-        pp_args_separator ();
-        add_string "lsl ";
-        pp_operand ~size operands.(2)
+        (* A zero shift is left out *)
+        if not (is_zero_immediate (cast_to_immediate operands.(2))) then (
+          pp_args_separator ();
+          add_string "lsl ";
+          pp_operand ~size operands.(2)
+        )
       | `Ret -> pp_no_args_op "ret"
       | `B ->
         pp_op "b";

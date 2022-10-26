@@ -71,8 +71,10 @@ type aarch64_register =
   | `R29
   | (* Link register *)
     `R30
-  | (* Stack pointer / Zero register *)
-    `R31
+  | (* Stack pointer *)
+    `SP
+  | (* Zero register *)
+    `ZR
   | (* Floating point and vector registers *)
     `V0
   | `V1

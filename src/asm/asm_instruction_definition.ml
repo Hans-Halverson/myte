@@ -115,6 +115,11 @@ module AArch64 = struct
     | Size32
     | Size64
 
+  type movi_suffix =
+    | Z
+    | N
+    | K
+
   type instr =
     (* Instruction Suffixes:
          R - register
@@ -123,13 +128,12 @@ module AArch64 = struct
          Leftmost operands are dest, rightmost operands are sources.
 
          In description, R registers can be an X or W depending on the register_size, unless otherwise noted. *)
-    [ (* Mov Rd, #imm16 *)
-      `MovI of register_size
+    [ (* Mov Rd, #imm16, LSL #shift where #shift is one of 0, 16, 32, 64.
+         Suffixes: Z for zeroing, N is for writing inverse, K is for keeping other bits *)
+      `MovI of
+      register_size * movi_suffix
     | (* Mov Rd, Rs *)
-      `MovR of
-      register_size
-      (* MovK Rd, #imm16, LSL #shift where #shift is one of 0, 16, 32, 64 *)
-    | `MovK of register_size
+      `MovR of register_size
     | (* Unconditional branch to label *)
       `B
     | `Ret

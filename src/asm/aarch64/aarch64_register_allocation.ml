@@ -7,7 +7,7 @@ open Asm_register_allocation
 module Register = Aarch64_register.Register
 
 let allocatable_general_purpose_registers =
-  RegSet.diff general_purpose_registers (RegSet.of_list [`R18; `R30; `R31])
+  RegSet.diff general_purpose_registers (RegSet.of_list [`R18; `R30])
 
 let num_allocatable_general_purpose_registers =
   RegSet.cardinal allocatable_general_purpose_registers - 1

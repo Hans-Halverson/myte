@@ -4,4 +4,5 @@
 _main:
   b .L0
 .L0:
+  mov w0, wzr
   ret

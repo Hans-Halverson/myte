@@ -43,7 +43,6 @@ let general_purpose_registers =
       `R28;
       `R29;
       `R30;
-      `R31;
     ]
 
 let vector_registers =
@@ -86,11 +85,8 @@ let vector_registers =
 (* R30 is the link register *)
 let lr : Register.t = `R30
 
-(* R31 is SP or ZR depending on context *)
-let sp : Register.t = `R31
-let zr : Register.t = `R31
-
-let all_registers = RegSet.union general_purpose_registers vector_registers
+let all_registers =
+  RegSet.union general_purpose_registers vector_registers |> RegSet.add `SP |> RegSet.add `ZR
 
 let string_of_sized_reg (reg : Register.t) (size : AArch64.register_size) : string =
   let general_prefix () =
@@ -104,6 +100,8 @@ let string_of_sized_reg (reg : Register.t) (size : AArch64.register_size) : stri
     | _ -> failwith "Invalid AArch64 register and size"
   in
   match reg with
+  | `SP -> "sp"
+  | `ZR -> general_prefix () ^ "zr"
   | `R0 -> general_prefix () ^ "0"
   | `R1 -> general_prefix () ^ "1"
   | `R2 -> general_prefix () ^ "2"
@@ -135,7 +133,6 @@ let string_of_sized_reg (reg : Register.t) (size : AArch64.register_size) : stri
   | `R28 -> general_prefix () ^ "28"
   | `R29 -> general_prefix () ^ "29"
   | `R30 -> general_prefix () ^ "30"
-  | `R31 -> general_prefix () ^ "31"
   | `V0 -> vector_prefix () ^ "0"
   | `V1 -> vector_prefix () ^ "1"
   | `V2 -> vector_prefix () ^ "2"
@@ -172,6 +169,7 @@ let string_of_sized_reg (reg : Register.t) (size : AArch64.register_size) : stri
 
 let debug_string_of_reg (reg : Register.t) : string = string_of_sized_reg reg AArch64.Size64
 
+(* Only allocatable registers have a class *)
 let register_class reg =
   match reg with
   | `R0
@@ -204,8 +202,7 @@ let register_class reg =
   | `R27
   | `R28
   | `R29
-  | `R30
-  | `R31 ->
+  | `R30 ->
     Register.GeneralClass
   | `V0
   | `V1
@@ -242,6 +239,7 @@ let register_class reg =
     VectorClass
   | _ -> failwith "Unknown AArch64 register"
 
+(* Only allocatable registers have an order *)
 let get_reg_order (reg : Register.t) : int =
   match reg with
   | `R0 -> 0
@@ -275,7 +273,6 @@ let get_reg_order (reg : Register.t) : int =
   | `R28 -> 28
   | `R29 -> 29
   | `R30 -> 30
-  | `R31 -> 31
   | `V0 -> 32
   | `V1 -> 33
   | `V2 -> 34

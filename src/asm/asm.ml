@@ -344,6 +344,13 @@ let int64_of_immediate imm =
   | Imm32 i -> Int64.of_int32 i
   | Imm64 i -> i
 
+let is_zero_immediate imm =
+  match imm with
+  | Imm8 i -> Int8.to_int i == 0
+  | Imm16 i -> i == 0
+  | Imm32 i -> Int32.equal i 0l
+  | Imm64 i -> Int64.equal i 0L
+
 let main_label = "_main"
 
 let init_label = "_myte_init"

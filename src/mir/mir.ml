@@ -477,10 +477,20 @@ let cast_to_phi (instr : Instruction.t) : Instruction.Phi.t =
 
 let int64_of_literal lit =
   match lit with
-  | Literal.Byte lit -> Int8.to_int64 lit
+  | Literal.Bool false -> 0L
+  | Bool true -> 1L
+  | Byte lit -> Int8.to_int64 lit
   | Int lit -> Int64.of_int32 lit
   | Long lit -> lit
-  | _ -> failwith "Expected byte, int, or long"
+  | _ -> failwith "Expected integer literal"
+
+let is_zero_literal lit =
+  match lit with
+  | Literal.Bool lit -> not lit
+  | Byte lit -> Int8.to_int lit == 0
+  | Int lit -> Int32.equal lit 0l
+  | Long lit -> Int64.equal lit 0L
+  | _ -> failwith "Expected integer literal"
 
 let std_lib_string_prefix = ".stdS"
 

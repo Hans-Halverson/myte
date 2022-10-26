@@ -25,7 +25,6 @@ let aapcs64 =
           `R28;
           `R29;
           `R30;
-          `R31;
           `V8;
           `V9;
           `V10;
@@ -90,6 +89,6 @@ let aapcs64 =
 
     method calculate_return_register (return_mir_type : Mir_type.Type.t) : Register.t =
       match return_mir_type with
-      | Double -> `XMM0
-      | _ -> `A
+      | Double -> `V0
+      | _ -> `R0
   end
