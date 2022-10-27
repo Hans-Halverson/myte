@@ -1,0 +1,23 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.one:
+  movz w0, #1
+  ret
+test.test1:
+  mov w4, w0
+  mov x3, x1
+  mov w19, w2
+  mov w0, w19
+  mov w1, w4
+  mov x2, x3
+  bl test.one
+  mov w1, w0
+  mov w0, w19
+  bl test.two
+  ret
+test.two:
+  ret

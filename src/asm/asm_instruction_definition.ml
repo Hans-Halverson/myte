@@ -136,6 +136,11 @@ module AArch64 = struct
       `MovR of register_size
     | (* Unconditional branch to label *)
       `B
+    | (* Function call to label *)
+      `BL of param_types * calling_convention
+    | (* Indirect function call through register. Register is always 64 bits. *)
+      `BLR of
+      param_types * calling_convention
     | `Ret
     ]
 end

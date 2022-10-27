@@ -38,6 +38,7 @@ let pp_operand ~pcx ~buf ~size op =
       add_string ~buf (string_of_int op.id)
     )
   | Immediate imm -> pp_immediate ~buf imm
+  | Function func -> add_string ~buf func.label
   | Block block ->
     pp_label_debug_prefix ~buf block;
     add_string ~buf (Option.get (pp_label ~pcx block))
@@ -95,6 +96,12 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `Ret -> pp_no_args_op "ret"
       | `B ->
         pp_op "b";
+        pp_operands ()
+      | `BL _ ->
+        pp_op "bl";
+        pp_operands ()
+      | `BLR _ ->
+        pp_op "blr";
         pp_operands ()
       | _ -> failwith "Unknown AArch64 instr")
 

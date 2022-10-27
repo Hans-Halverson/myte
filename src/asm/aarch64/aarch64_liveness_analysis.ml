@@ -1,6 +1,7 @@
 open Aarch64_builders
 open Aarch64_register
 open Asm
+open Asm_calling_convention
 open Asm_instruction_definition
 open Asm_register
 
@@ -22,6 +23,20 @@ class virtual use_def_visitor color_to_representative_operand =
 
     method visit_instruction (instr : Instruction.t) =
       match instr with
+      (* Calls implicitly use all parameter registers and define all caller save registers *)
+      | { instr = `BL (param_types, calling_convention); _ }
+      | { instr = `BLR (param_types, calling_convention); _ } ->
+        Array.iter
+          (fun param_type ->
+            match param_type with
+            | ParamInRegister reg ->
+              this#visit_register_use ~instr (this#get_representative_register reg)
+            | _ -> ())
+          param_types;
+        RegSet.iter
+          (fun reg -> this#visit_register_def ~instr (this#get_representative_register reg))
+          calling_convention#caller_saved_registers;
+        this#visit_explicit_uses_and_defs instr
       (* Return without argument implicitly uses link register *)
       | { instr = `Ret; _ } ->
         this#visit_register_use ~instr (this#get_representative_register lr);

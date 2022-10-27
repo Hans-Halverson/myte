@@ -541,3 +541,8 @@ let string_of_instr_set (instr_values : Value.t Seq.t) : string =
     |> String.concat ", "
   in
   "(" ^ elements ^ ")"
+
+let is_zero_size_global (use : Use.t) =
+  match use.value.value with
+  | Lit (Global { name; _ }) when name = zero_size_name -> true
+  | _ -> false

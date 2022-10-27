@@ -15,8 +15,8 @@ module Gcx = struct
     mutable funcs: FunctionSet.t;
     mutable data: data;
     mutable bss: bss;
-    mutable current_block: Block.t option;
-    mutable current_func: Function.t option;
+    mutable current_block: Block.t;
+    mutable current_func: Function.t;
     mutable prev_blocks: BlockMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
     mutable mir_block_to_block: Block.t Mir.BlockMap.t;
@@ -48,8 +48,8 @@ module Gcx = struct
     {
       data = mk_data_section ();
       bss = mk_data_section ();
-      current_block = None;
-      current_func = None;
+      current_block = null_block;
+      current_func = null_function;
       prev_blocks = BlockMMap.empty;
       mir_block_to_block = Mir.BlockMap.empty;
       mir_func_to_func = Mir.FunctionMap.empty;
@@ -105,16 +105,16 @@ module Gcx = struct
     in
     block.func <- func;
     block.label <- label;
-    gcx.current_block <- Some block
+    gcx.current_block <- block
 
   let finish_block ~gcx =
-    let block = Option.get gcx.current_block in
+    let block = gcx.current_block in
     block.func.blocks <- block :: block.func.blocks;
-    gcx.current_block <- None
+    gcx.current_block <- null_block
 
   let emit ~gcx (instr : X86_64.instr) operands =
     let instr = (instr :> instr) in
-    let current_block = Option.get gcx.current_block in
+    let current_block = gcx.current_block in
     mk_instr_ ~block:current_block instr operands;
     match (instr, operands) with
     | (`Jmp, [| { value = Block next_block; _ } |])
@@ -136,23 +136,13 @@ module Gcx = struct
   let get_func_from_mir_func ~gcx mir_func = Mir.FunctionMap.find mir_func gcx.mir_func_to_func
 
   let start_function ~gcx func =
-    gcx.current_func <- Some func;
+    gcx.current_func <- func;
     gcx.mir_block_to_block <- Mir.BlockMap.empty
 
   let finish_function ~gcx =
-    let current_func = Option.get gcx.current_func in
+    let current_func = gcx.current_func in
     current_func.blocks <- List.rev current_func.blocks;
-    gcx.current_func <- None
-
-  let mk_function_argument_stack_slot ~gcx ~i ~type_ =
-    (* Return stack slot operand if one already exists for function, otherwise create new stack slot
-       operand for function and return it. *)
-    let current_func = Option.get gcx.current_func in
-    if current_func.num_argument_stack_slots <= i then
-      current_func.num_argument_stack_slots <- i + 1;
-    let op = mk_function_argument_stack_slot ~i ~type_ in
-    current_func.argument_stack_slots <- op :: current_func.argument_stack_slots;
-    op
+    gcx.current_func <- null_function
 
   let get_agg_layout ~gcx agg = IMap.find agg.Aggregate.id gcx.agg_to_layout
 

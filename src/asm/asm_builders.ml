@@ -42,11 +42,16 @@ let mk_function_op ~(func : Function.t) : Operand.t =
 
 let mk_block_op ~(block : Block.t) = mk_operand ~value:(Block block) ~type_:Long
 
-let mk_function_argument_stack_slot ~(i : int) ~(type_ : Type.t) : Operand.t =
-  mk_operand ~value:(FunctionArgumentStackSlot i) ~type_
-
 let mk_function_stack_argument ~(arg_id : int) ~(type_ : Type.t) : Operand.t =
   Operand.of_value_id ~value:FunctionStackArgument arg_id ~type_
+
+(* Return stack slot operand if one already exists for function, otherwise create new stack slot
+   operand for function and return it. *)
+let mk_function_argument_stack_slot ~(func : Function.t) ~(i : int) ~(type_ : Type.t) =
+  if func.num_argument_stack_slots <= i then func.num_argument_stack_slots <- i + 1;
+  let op = mk_operand ~value:(FunctionArgumentStackSlot i) ~type_ in
+  func.argument_stack_slots <- op :: func.argument_stack_slots;
+  op
 
 (*
  * ============================

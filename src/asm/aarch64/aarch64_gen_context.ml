@@ -13,8 +13,8 @@ module Gcx = struct
     mutable funcs: FunctionSet.t;
     mutable data: data;
     mutable bss: bss;
-    mutable current_block: Block.t option;
-    mutable current_func: Function.t option;
+    mutable current_block: Block.t;
+    mutable current_func: Function.t;
     mutable prev_blocks: BlockMMap.t;
     (* Blocks indexed by their corresponding MIR block. Not all blocks may be in this map. *)
     mutable mir_block_to_block: Block.t Mir.BlockMap.t;
@@ -35,8 +35,8 @@ module Gcx = struct
     {
       data = mk_data_section ();
       bss = mk_data_section ();
-      current_block = None;
-      current_func = None;
+      current_block = null_block;
+      current_func = null_function;
       prev_blocks = BlockMMap.empty;
       mir_block_to_block = Mir.BlockMap.empty;
       mir_func_to_func = Mir.FunctionMap.empty;
@@ -60,12 +60,12 @@ module Gcx = struct
     in
     block.func <- func;
     block.label <- label;
-    gcx.current_block <- Some block
+    gcx.current_block <- block
 
   let finish_block ~gcx =
-    let block = Option.get gcx.current_block in
+    let block = gcx.current_block in
     block.func.blocks <- block :: block.func.blocks;
-    gcx.current_block <- None
+    gcx.current_block <- null_block
 
   let mir_function_calling_convention (_func : Mir.Function.t) = aapcs64
 
@@ -81,17 +81,17 @@ module Gcx = struct
   let get_func_from_mir_func ~gcx mir_func = Mir.FunctionMap.find mir_func gcx.mir_func_to_func
 
   let start_function ~gcx func =
-    gcx.current_func <- Some func;
+    gcx.current_func <- func;
     gcx.mir_block_to_block <- Mir.BlockMap.empty
 
   let finish_function ~gcx =
-    let current_func = Option.get gcx.current_func in
+    let current_func = gcx.current_func in
     current_func.blocks <- List.rev current_func.blocks;
-    gcx.current_func <- None
+    gcx.current_func <- null_function
 
   let emit ~gcx (instr : AArch64.instr) operands =
     let instr = (instr :> instr) in
-    let current_block = Option.get gcx.current_block in
+    let current_block = gcx.current_block in
     mk_instr_ ~block:current_block instr operands;
     match (instr, operands) with
     | (`B, [| { value = Block next_block; _ } |]) ->

@@ -1,0 +1,11 @@
+module test
+
+fun one(x: Int, y: Bool, z: Long): Int = 1
+fun two(x: Int, y: Int) {}
+
+fun test1(y: Bool, z: Long, x: Int) {
+  val a = one(x, y, z);
+  two(x, a);
+}
+
+fun main() {}

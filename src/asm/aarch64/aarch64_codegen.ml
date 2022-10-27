@@ -1,6 +1,8 @@
+open Aarch64_calling_convention
 open Aarch64_gen_context
 open Asm
 open Asm_builders
+open Asm_calling_convention
 open Basic_collections
 open Mir
 open Mir_builders
@@ -17,6 +19,8 @@ let imm_48 = mk_imm ~imm:(Imm8 (Int8.of_int 48))
 
 let mk_vreg = mk_virtual_register
 
+let mk_vreg_of_value_id value_id = mk_virtual_register_of_value_id ~value_id
+
 let rec gen ~(gcx : Gcx.t) (ir : Program.t) =
   let should_filter_stdlib = Asm_gen.should_filter_stdlib () in
 
@@ -26,7 +30,7 @@ let rec gen ~(gcx : Gcx.t) (ir : Program.t) =
   (* Generate all functions in program *)
   SMap.iter
     (fun name func ->
-      if not (should_filter_stdlib && has_std_lib_prefix name) then gen_function ~gcx ~ir func)
+      if not (should_filter_stdlib && has_std_lib_prefix name) then gen_function ~gcx func)
     ir.funcs
 
 and preprocess_function ~gcx ~ir mir_func =
@@ -35,13 +39,13 @@ and preprocess_function ~gcx ~ir mir_func =
   let param_types = calling_convention#calculate_param_types param_mir_types in
   Gcx.add_function ~gcx ~ir mir_func param_types
 
-and gen_function ~gcx ~ir mir_func =
+and gen_function ~gcx mir_func =
   let func = Gcx.get_func_from_mir_func ~gcx mir_func in
   (* Create function prologue which copies all params from physical registers or stack slots to
      temporaries *)
   Gcx.start_function ~gcx func;
   Gcx.start_block ~gcx ~label:(Some func.label) ~func ~mir_block:None;
-  func.prologue <- Option.get gcx.current_block;
+  func.prologue <- gcx.current_block;
 
   func.params <-
     List.mapi
@@ -54,17 +58,17 @@ and gen_function ~gcx ~ir mir_func =
         | ParamInRegister reg ->
           let size = register_size_of_mir_value_type type_ in
           let param_op = mk_virtual_register_of_value_id ~value_id:arg_id ~type_:param_mir_type in
-          Gcx.emit ~gcx (`MovR size) [| mk_precolored_of_operand reg param_op; param_op |];
+          Gcx.emit ~gcx (`MovR size) [| param_op; mk_precolored_of_operand reg param_op |];
           param_op)
       mir_func.params;
 
   (* Jump to function start and gen function body *)
   Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx mir_func.start_block |];
   Gcx.finish_block ~gcx;
-  gen_blocks ~gcx ~ir mir_func.start_block None func;
+  gen_blocks ~gcx mir_func.start_block None func;
   Gcx.finish_function ~gcx
 
-and gen_blocks ~gcx ~ir start_block label func =
+and gen_blocks ~gcx start_block label func =
   let ordered_blocks = Mir_graph_ordering.get_ordered_cfg start_block in
   List.iteri
     (fun i mir_block ->
@@ -78,13 +82,84 @@ and gen_blocks ~gcx ~ir start_block label func =
       let instructions =
         fold_instructions mir_block [] (fun instr_val _ acc -> instr_val :: acc) |> List.rev
       in
-      gen_instructions ~gcx ~ir ~block:mir_block instructions;
+      gen_instructions ~gcx instructions;
       Gcx.finish_block ~gcx)
     ordered_blocks
 
-and gen_instructions ~gcx ~ir:_ ~block:_ instructions =
+and gen_instructions ~gcx instructions =
+  let gen_instructions = gen_instructions ~gcx in
+  let gen_call_arguments param_types arg_vals =
+    (* First move function arguments that are passed in stack slots *)
+    List.iteri
+      (fun i arg_val ->
+        match param_types.(i) with
+        | ParamInRegister _ -> ()
+        | ParamOnStack stack_slot_idx ->
+          let arg_type = type_of_use arg_val in
+          let arg_stack_slot_op =
+            mk_function_argument_stack_slot ~func:gcx.current_func ~i:stack_slot_idx ~type_:arg_type
+          in
+          let arg_size = register_size_of_mir_value_type arg_type in
+          let arg_op = gen_value ~gcx arg_val in
+          Gcx.emit ~gcx (`MovR arg_size) [| arg_stack_slot_op; arg_op |])
+      arg_vals;
+    (* Then move function arguments that are passed in registers​ *)
+    List.iteri
+      (fun i arg_val ->
+        match param_types.(i) with
+        | ParamOnStack _ -> ()
+        | ParamInRegister _ when is_zero_size_global arg_val -> ()
+        | ParamInRegister reg ->
+          let arg_op = gen_value ~gcx arg_val in
+          let arg_size = register_size_of_mir_use arg_val in
+          let precolored_reg = mk_precolored ~type_:(type_of_use arg_val) reg in
+          Gcx.emit ~gcx (`MovR arg_size) [| precolored_reg; arg_op |])
+      arg_vals
+  in
   match instructions with
   | [] -> ()
+  (*
+   * ===========================================
+   *                   Call
+   * ===========================================
+   *)
+  | {
+      id = result_id;
+      value =
+        Instr { type_; instr = Call { func = Value func_val; args = arg_vals; has_return }; _ };
+      _;
+    }
+    :: rest_instructions ->
+    let calling_convention =
+      match func_val.value.value with
+      | Lit (Function mir_func) -> Gcx.mir_function_calling_convention mir_func
+      | _ ->
+        (* TODO: Annotate calling convention on MIR call instructions and enforce single calling
+           convention for all functions that flow to a single call instruction. *)
+        aapcs64
+    in
+
+    (* Emit arguments for call *)
+    let param_mir_types = List.map type_of_use arg_vals in
+    let param_types = calling_convention#calculate_param_types param_mir_types in
+    gen_call_arguments param_types arg_vals;
+
+    (* Emit call instruction *)
+    (match func_val.value.value with
+    | Lit (Function mir_func) ->
+      let func = Gcx.get_func_from_mir_func ~gcx mir_func in
+      Gcx.emit ~gcx (`BL (param_types, calling_convention)) [| mk_function_op ~func |]
+    | _ ->
+      let func_op = gen_value ~gcx func_val in
+      Gcx.emit ~gcx (`BLR (param_types, calling_convention)) [| func_op |]);
+    (* Move result from return register to return operand *)
+    (if has_return then
+      let return_size = register_size_of_mir_value_type type_ in
+      let return_reg = calling_convention#calculate_return_register type_ in
+      let return_reg_op = mk_precolored ~type_ return_reg in
+      let result_op = mk_vreg_of_value_id ~type_ result_id in
+      Gcx.emit ~gcx (`MovR return_size) [| result_op; return_reg_op |]);
+    gen_instructions rest_instructions
   (*
    * ===========================================
    *                   Ret
@@ -95,7 +170,7 @@ and gen_instructions ~gcx ~ir:_ ~block:_ instructions =
     | None -> ()
     | Some value ->
       let size = register_size_of_mir_use value in
-      let calling_convention = (Option.get gcx.current_func).calling_convention in
+      let calling_convention = gcx.current_func.calling_convention in
       let return_reg = calling_convention#calculate_return_register (type_of_use value) in
       let return_reg_op = mk_precolored ~type_:(type_of_use value) return_reg in
       let value_vreg = gen_value ~gcx value in

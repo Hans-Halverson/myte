@@ -119,7 +119,7 @@ and gen_function ~gcx ~ir mir_func =
      temporaries *)
   Gcx.start_function ~gcx func;
   Gcx.start_block ~gcx ~label:(Some func.label) ~func ~mir_block:None;
-  func.prologue <- Option.get gcx.current_block;
+  func.prologue <- gcx.current_block;
 
   func.params <-
     List.mapi
@@ -202,7 +202,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
         | ParamOnStack stack_slot_idx ->
           let arg_type = type_of_use arg_val in
           let argument_stack_slot_op =
-            Gcx.mk_function_argument_stack_slot ~gcx ~i:stack_slot_idx ~type_:arg_type
+            mk_function_argument_stack_slot ~func:gcx.current_func ~i:stack_slot_idx ~type_:arg_type
           in
           (match resolve_ir_value arg_val with
           | SImm imm ->
@@ -216,7 +216,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
           | SMem (mem, size) -> Gcx.emit ~gcx (`MovMM size) [| mem; argument_stack_slot_op |]
           | SReg (reg, size) -> Gcx.emit ~gcx (`MovMM size) [| reg; argument_stack_slot_op |]))
       arg_vals;
-    (* Then move function arguments that are passed in stack slots​ *)
+    (* Then move function arguments that are passed in registers​ *)
     List.iteri
       (fun i arg_val ->
         match param_types.(i) with
@@ -529,7 +529,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (match value with
     | None -> ()
     | Some value ->
-      let calling_convention = (Option.get gcx.current_func).calling_convention in
+      let calling_convention = gcx.current_func.calling_convention in
       let return_reg = calling_convention#calculate_return_register (type_of_use value) in
       let return_reg_op = mk_precolored ~type_:(type_of_use value) return_reg in
       (match resolve_ir_value ~allow_imm64:true value with
@@ -1523,8 +1523,3 @@ and mk_label_memory_address label =
     base = IPBase;
     index_and_scale = None;
   }
-
-and is_zero_size_global use =
-  match use.value.value with
-  | Lit (Global { name; _ }) when name = zero_size_name -> true
-  | _ -> false
