@@ -64,6 +64,14 @@ let pp_instruction ~gcx ~pcx ~buf instr =
             if i != last_operand_idx then pp_args_separator ())
           instr.operands
       in
+      let pp_lsl_immediate ~size op =
+        (* A zero shift is left out *)
+        if not (is_zero_immediate (cast_to_immediate op)) then (
+          pp_args_separator ();
+          add_string "lsl ";
+          pp_operand ~size op
+        )
+      in
       let pp_op op =
         add_string op;
         add_char ~buf ' '
@@ -87,12 +95,29 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operand ~size operands.(0);
         pp_args_separator ();
         pp_operand ~size operands.(1);
-        (* A zero shift is left out *)
-        if not (is_zero_immediate (cast_to_immediate operands.(2))) then (
-          pp_args_separator ();
-          add_string "lsl ";
-          pp_operand ~size operands.(2)
-        )
+        pp_lsl_immediate ~size operands.(2)
+      | `AddI size ->
+        pp_op "add";
+        pp_operand ~size operands.(0);
+        pp_args_separator ();
+        pp_operand ~size operands.(1);
+        pp_args_separator ();
+        pp_operand ~size operands.(2);
+        pp_lsl_immediate ~size operands.(3)
+      | `AddR _ ->
+        pp_op "add";
+        pp_operands ()
+      | `SubI size ->
+        pp_op "sub";
+        pp_operand ~size operands.(0);
+        pp_args_separator ();
+        pp_operand ~size operands.(1);
+        pp_args_separator ();
+        pp_operand ~size operands.(2);
+        pp_lsl_immediate ~size operands.(3)
+      | `SubR _ ->
+        pp_op "sub";
+        pp_operands ()
       | `Ret -> pp_no_args_op "ret"
       | `B ->
         pp_op "b";

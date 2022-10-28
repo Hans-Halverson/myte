@@ -134,6 +134,14 @@ module AArch64 = struct
       register_size * movi_suffix
     | (* Mov Rd, Rs *)
       `MovR of register_size
+    | (* Add Rd, Rs, #imm12, LSL #shift where #shift is one of 0, 12 *)
+      `AddI of register_size
+    | (* Add Rd, Rs1, Rs2 *)
+      `AddR of register_size
+    | (* Add Rd, Rs, #imm12, LSL #shift where #shift is one of 0, 12 *)
+      `SubI of register_size
+    | (* Add Rd, Rs1, Rs2 *)
+      `SubR of register_size
     | (* Unconditional branch to label *)
       `B
     | (* Function call to label *)

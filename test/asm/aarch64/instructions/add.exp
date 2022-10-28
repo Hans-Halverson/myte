@@ -1,0 +1,111 @@
+  .global _main
+
+  .text
+test.addByteImmLeft:
+  add w0, w0, #60
+  ret
+test.addByteImmRight:
+  add w0, w0, #60
+  ret
+test.addByteNegImm:
+  sub w0, w0, #7
+  ret
+test.addByteRegs:
+  add w0, w0, w1
+  ret
+test.addIntByteLeft:
+  add w0, w0, #60
+  ret
+test.addIntByteRight:
+  add w0, w0, #60
+  ret
+test.addIntDoubleAdd:
+  add w1, w0, #226, lsl #12
+  add w1, w0, #1697
+  mov w0, w1
+  ret
+test.addIntLoadImmToReg:
+  movz w1, #30
+  movk w1, #25600, lsl #16
+  add w0, w0, w1
+  ret
+test.addIntMaxDoubleAdd:
+  add w1, w0, #4095, lsl #12
+  add w1, w0, #4095
+  mov w0, w1
+  ret
+test.addIntMaxSingleAdd:
+  add w0, w0, #4095
+  ret
+test.addIntMinDoubleAdd:
+  add w1, w0, #1, lsl #12
+  add w1, w0, #0
+  mov w0, w1
+  ret
+test.addIntMinLoadImmToReg:
+  movz w1, #0
+  movk w1, #256, lsl #16
+  add w0, w0, w1
+  ret
+test.addIntNegDoubleImm:
+  sub w1, w0, #226, lsl #12
+  sub w1, w0, #1697
+  mov w0, w1
+  ret
+test.addIntNegImm:
+  sub w0, w0, #7
+  ret
+test.addIntNegLeftImm:
+  sub w0, w0, #7
+  ret
+test.addIntNegLoadImmToReg:
+  movn w1, #29
+  movk w1, #39935, lsl #16
+  add w0, w0, w1
+  ret
+test.addIntRegs:
+  add w0, w0, w1
+  ret
+test.addLongDoubleAdd:
+  add x1, x0, #226, lsl #12
+  add x1, x0, #1697
+  mov x0, x1
+  ret
+test.addLongImmLeft:
+  add x0, x0, #60
+  ret
+test.addLongImmRight:
+  add x0, x0, #60
+  ret
+test.addLongLoadImmToReg:
+  movz x1, #30
+  movk x1, #25600, lsl #16
+  add x0, x0, x1
+  ret
+test.addLongMaxDoubleAdd:
+  add x1, x0, #4095, lsl #12
+  add x1, x0, #4095
+  mov x0, x1
+  ret
+test.addLongMaxSingleAdd:
+  add x0, x0, #4095
+  ret
+test.addLongMinDoubleAdd:
+  add x1, x0, #1, lsl #12
+  add x1, x0, #0
+  mov x0, x1
+  ret
+test.addLongMinLoadImmToReg:
+  movz x1, #0
+  movk x1, #256, lsl #16
+  add x0, x0, x1
+  ret
+test.addLongNegImm:
+  sub x0, x0, #7
+  ret
+test.addLongRegs:
+  add x0, x0, x1
+  ret
+_main:
+  mov w0, wzr
+  ret

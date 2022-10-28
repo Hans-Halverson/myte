@@ -11,6 +11,8 @@ let imm_0 = mk_imm ~imm:(Imm8 (Int8.of_int 0))
 
 let imm_1 = mk_imm ~imm:(Imm8 (Int8.of_int 1))
 
+let imm_12 = mk_imm ~imm:(Imm8 (Int8.of_int 12))
+
 let imm_16 = mk_imm ~imm:(Imm8 (Int8.of_int 16))
 
 let imm_32 = mk_imm ~imm:(Imm8 (Int8.of_int 32))
@@ -188,12 +190,76 @@ and gen_instructions ~gcx instructions =
     Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx continue |]
   | { value = Instr { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ }; _ } :: _ ->
     failwith "Terminator instructions must be last instruction"
+  (*
+   * ===========================================
+   *                   Add
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Add, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    (match (gen_add_sub_value ~gcx left_val, gen_add_sub_value ~gcx right_val) with
+    | ({ value = Immediate _; _ }, { value = Immediate _; _ }) ->
+      failwith "Constants must be folded before codegen"
+    | ({ value = Immediate imm; _ }, reg_op)
+    | (reg_op, { value = Immediate imm; _ }) ->
+      let n = int64_of_immediate imm in
+      if Integers.int64_less_than n 0L then
+        gen_add_sub_i ~gcx (`SubI size) result_op reg_op (Int64.neg n)
+      else
+        gen_add_sub_i ~gcx (`AddI size) result_op reg_op n
+    | (reg_op1, reg_op2) -> Gcx.emit ~gcx (`AddR size) [| result_op; reg_op1; reg_op2 |]);
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                   Sub
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Sub, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let left_op = gen_value ~gcx left_val in
+    (match gen_add_sub_value ~gcx right_val with
+    | { value = Immediate imm; _ } ->
+      let n = int64_of_immediate imm in
+      if Integers.int64_less_than n 0L then
+        gen_add_sub_i ~gcx (`AddI size) result_op left_op (Int64.neg n)
+      else
+        gen_add_sub_i ~gcx (`SubI size) result_op left_op n
+    | right_op -> Gcx.emit ~gcx (`SubR size) [| result_op; left_op; right_op |]);
+    gen_instructions rest_instructions
   | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
     failwith "Phi nodes must be removed before asm gen"
   | { value = Instr { instr = Mir.Instruction.StackAlloc _; _ }; _ } :: _ ->
     failwith "StackAlloc instructions removed before asm gen"
   | { value = Instr _; _ } :: _ -> failwith "Unimplemented MIR instruction"
   | { value = Lit _ | Argument _; _ } :: _ -> failwith "Expected instruction value"
+
+and gen_add_sub_i ~gcx instr dest_op reg_op n =
+  (* n < 2^12 fits in a single add or sub instruction *)
+  if Integers.int64_less_than n 4096L then
+    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm ~imm:(Imm64 n); imm_0 |]
+  else
+    (* n >= 2^12 is split into two add or sub instructions for low and high 12-bit chunks *)
+    let low_12_bits = Int64.logand n 4095L in
+    let high_12_bits = Int64.shift_right n 12 |> Int64.logand 4095L in
+    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm ~imm:(Imm64 high_12_bits); imm_12 |];
+    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm ~imm:(Imm64 low_12_bits); imm_0 |]
+
+(* Generate an operand that can be used in add or sub instructions. 24-bit immediates are allowed,
+   but larger immediates must be loaded to a register. *)
+   and gen_add_sub_value ~gcx (use : Use.t) : Operand.t =
+   match use.value.value with
+   | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) ->
+     let n = int64_of_literal lit in
+     (* -2^24 < n < 2^24 can be encoded as immediate in 1 or 2 add/sub instructions *)
+     if Integers.int64_less_than (-16777216L) n && Integers.int64_less_than n 16777216L then
+       mk_imm ~imm:(Imm64 n)
+     else
+       gen_mov_immediate ~gcx lit
+   | _ -> gen_value ~gcx use
 
 and block_op_of_mir_block ~gcx mir_block =
   mk_block_op ~block:(Gcx.get_block_from_mir_block ~gcx mir_block)
@@ -219,7 +285,6 @@ and gen_mov_immediate ~gcx (lit : Literal.t) : Operand.t =
     let vreg = mk_vreg ~type_ in
 
     let is_greater_than x y = Int64.compare x y != -1 in
-    let is_less_than x y = Int64.compare x y == -1 in
 
     (if is_greater_than n 0L then (
       (* First 16 bit chunk is always loaded with a movz *)
@@ -243,13 +308,13 @@ and gen_mov_immediate ~gcx (lit : Literal.t) : Operand.t =
       Gcx.emit ~gcx (`MovI (register_size, N)) [| vreg; get_imm16_chunk inverted_bytes 0; imm_0 |];
 
       (* n < -2^16 *)
-      if is_less_than n (-65536L) then (
+      if Integers.int64_less_than n (-65536L) then (
         Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
         (* n < -2^32 *)
-        if is_less_than n (-4294967296L) then (
+        if Integers.int64_less_than n (-4294967296L) then (
           Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
           (* n < -2^48 *)
-          if is_less_than n (-281474976710656L) then
+          if Integers.int64_less_than n (-281474976710656L) then
             Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
         )
       ));

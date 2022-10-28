@@ -1,0 +1,125 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.subByteImmLeft:
+  movz w1, #60
+  sub w0, w1, w0
+  ret
+test.subByteImmRight:
+  sub w0, w0, #60
+  ret
+test.subByteNegImm:
+  add w0, w0, #7
+  ret
+test.subByteRegs:
+  sub w0, w0, w1
+  ret
+test.subIntByteLeft:
+  movz w1, #60
+  sub w0, w1, w0
+  ret
+test.subIntByteRight:
+  sub w0, w0, #60
+  ret
+test.subIntDoubleSub:
+  sub w1, w0, #226, lsl #12
+  sub w1, w0, #1697
+  mov w0, w1
+  ret
+test.subIntLeftImmAboveDoubleSubRange:
+  movz w1, #30
+  movk w1, #25600, lsl #16
+  sub w0, w1, w0
+  ret
+test.subIntLeftImmInDoubleSubRange:
+  movz w1, #9889
+  movk w1, #14, lsl #16
+  sub w0, w1, w0
+  ret
+test.subIntLoadImmToReg:
+  movz w1, #30
+  movk w1, #25600, lsl #16
+  sub w0, w0, w1
+  ret
+test.subIntMaxDoubleSub:
+  sub w1, w0, #4095, lsl #12
+  sub w1, w0, #4095
+  mov w0, w1
+  ret
+test.subIntMaxSingleSub:
+  sub w0, w0, #4095
+  ret
+test.subIntMinDoubleSub:
+  sub w1, w0, #1, lsl #12
+  sub w1, w0, #0
+  mov w0, w1
+  ret
+test.subIntMinLoadImmToReg:
+  movz w1, #0
+  movk w1, #256, lsl #16
+  sub w0, w0, w1
+  ret
+test.subIntNegDoubleImm:
+  add w1, w0, #226, lsl #12
+  add w1, w0, #1697
+  mov w0, w1
+  ret
+test.subIntNegImm:
+  add w0, w0, #7
+  ret
+test.subIntNegLeftImm:
+  movn w1, #6
+  sub w0, w1, w0
+  ret
+test.subIntNegLoadImmToReg:
+  movn w1, #29
+  movk w1, #39935, lsl #16
+  sub w0, w0, w1
+  ret
+test.subIntRegs:
+  sub w0, w0, w1
+  ret
+test.subLongDoubleSub:
+  sub x1, x0, #226, lsl #12
+  sub x1, x0, #1697
+  mov x0, x1
+  ret
+test.subLongImmLeft:
+  movz x1, #60
+  sub x0, x1, x0
+  ret
+test.subLongImmRight:
+  sub x0, x0, #60
+  ret
+test.subLongLoadImmToReg:
+  movz x1, #30
+  movk x1, #25600, lsl #16
+  sub x0, x0, x1
+  ret
+test.subLongMaxDoubleSub:
+  sub x1, x0, #4095, lsl #12
+  sub x1, x0, #4095
+  mov x0, x1
+  ret
+test.subLongMaxSingleSub:
+  sub x0, x0, #4095
+  ret
+test.subLongMinDoubleSub:
+  sub x1, x0, #1, lsl #12
+  sub x1, x0, #0
+  mov x0, x1
+  ret
+test.subLongMinLoadImmToReg:
+  movz x1, #0
+  movk x1, #256, lsl #16
+  sub x0, x0, x1
+  ret
+test.subLongNegImm:
+  add x0, x0, #7
+  ret
+test.subLongRegs:
+  sub x0, x0, x1
+  ret

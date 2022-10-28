@@ -1,0 +1,39 @@
+module test
+
+fun subByteRegs(x: Byte, y: Byte): Byte = x - y
+fun subByteImmRight(x: Byte): Byte = x - 60
+fun subByteImmLeft(x: Byte): Byte = 60 - x
+
+fun subIntRegs(x: Int, y: Int): Int = x - y
+fun subIntByteLeft(x: Int): Int = 60 - x
+fun subIntByteRight(x: Int): Int = x - 60
+
+fun subLongRegs(x: Long, y: Long): Long = x - y
+fun subLongImmLeft(x: Long): Long = 60 - x
+fun subLongImmRight(x: Long): Long = x - 60
+
+fun subIntMaxSingleSub(x: Int): Int = x - 4095
+fun subIntMinDoubleSub(x: Int): Int = x - 4096
+fun subIntDoubleSub(x: Int): Int = x - 927393
+fun subIntMaxDoubleSub(x: Int): Int = x - 16777215
+fun subIntMinLoadImmToReg(x: Int): Int = x - 16777216
+fun subIntLoadImmToReg(x: Int): Int = x - 1677721630
+
+fun subLongMaxSingleSub(x: Long): Long = x - 4095
+fun subLongMinDoubleSub(x: Long): Long = x - 4096
+fun subLongDoubleSub(x: Long): Long = x - 927393
+fun subLongMaxDoubleSub(x: Long): Long = x - 16777215
+fun subLongMinLoadImmToReg(x: Long): Long = x - 16777216
+fun subLongLoadImmToReg(x: Long): Long = x - 1677721630
+
+fun subByteNegImm(x: Byte): Byte = x - (-7)
+fun subIntNegImm(x: Int): Int = x - (-7)
+fun subLongNegImm(x: Long): Long = x - (-7)
+fun subIntNegLeftImm(x: Int): Int = (-7) - x
+fun subIntNegDoubleImm(x: Int): Int = x - (-927393)
+fun subIntNegLoadImmToReg(x: Int): Int = x - (-1677721630)
+
+fun subIntLeftImmInDoubleSubRange(x: Int): Int = 927393 - x
+fun subIntLeftImmAboveDoubleSubRange(x: Int): Int = 1677721630 - x
+
+fun main() {}

@@ -1,0 +1,36 @@
+module test
+
+fun addByteRegs(x: Byte, y: Byte): Byte = x + y
+fun addByteImmRight(x: Byte): Byte = x + 60
+fun addByteImmLeft(x: Byte): Byte = 60 + x
+
+fun addIntRegs(x: Int, y: Int): Int = x + y
+fun addIntByteLeft(x: Int): Int = 60 + x
+fun addIntByteRight(x: Int): Int = x + 60
+
+fun addLongRegs(x: Long, y: Long): Long = x + y
+fun addLongImmLeft(x: Long): Long = 60 + x
+fun addLongImmRight(x: Long): Long = x + 60
+
+fun addIntMaxSingleAdd(x: Int): Int = x + 4095
+fun addIntMinDoubleAdd(x: Int): Int = x + 4096
+fun addIntDoubleAdd(x: Int): Int = x + 927393
+fun addIntMaxDoubleAdd(x: Int): Int = x + 16777215
+fun addIntMinLoadImmToReg(x: Int): Int = x + 16777216
+fun addIntLoadImmToReg(x: Int): Int = x + 1677721630
+
+fun addLongMaxSingleAdd(x: Long): Long = x + 4095
+fun addLongMinDoubleAdd(x: Long): Long = x + 4096
+fun addLongDoubleAdd(x: Long): Long = x + 927393
+fun addLongMaxDoubleAdd(x: Long): Long = x + 16777215
+fun addLongMinLoadImmToReg(x: Long): Long = x + 16777216
+fun addLongLoadImmToReg(x: Long): Long = x + 1677721630
+
+fun addByteNegImm(x: Byte): Byte = x + (-7)
+fun addIntNegImm(x: Int): Int = x + (-7)
+fun addLongNegImm(x: Long): Long = x + (-7)
+fun addIntNegLeftImm(x: Int): Int = (-7) + x
+fun addIntNegDoubleImm(x: Int): Int = x + (-927393)
+fun addIntNegLoadImmToReg(x: Int): Int = x + (-1677721630)
+
+fun main() {}
