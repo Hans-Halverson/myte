@@ -128,7 +128,7 @@ and gen_function ~gcx ~ir mir_func =
         let arg_id = param.id in
         let { Argument.type_; _ } = cast_to_argument param in
         match func.param_types.(i) with
-        | ParamOnStack _ -> mk_function_stack_argument ~arg_id ~type_:param_mir_type
+        | ParamOnStack index -> mk_function_stack_argument ~arg_id ~index ~type_:param_mir_type
         | ParamInRegister reg ->
           let size = operand_size_of_mir_value_type type_ in
           let param_op = mk_virtual_register_of_value_id ~value_id:arg_id ~type_:param_mir_type in
@@ -490,6 +490,8 @@ and gen_instructions ~gcx ~ir ~block instructions =
       _;
     }
     :: rest_instructions ->
+    gcx.current_func.is_leaf <- false;
+
     let calling_convention =
       match func_val.value.value with
       | Lit (Function mir_func) -> Gcx.mir_function_calling_convention mir_func
@@ -1002,6 +1004,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
     }
     :: rest_instructions ->
     let open Mir_builtin in
+    gcx.current_func.is_leaf <- false;
     let builtin_func = X86_64_builtin.get_asm_builtin mir_builtin in
     let calling_convention = builtin_func.calling_convention in
 

@@ -1,7 +1,6 @@
 open Asm
 open Asm_builders
 open Asm_instruction_definition
-open Asm_register
 open Basic_collections
 open X86_64_builders
 open X86_64_gen_context
@@ -42,16 +41,7 @@ let liveness_analysis func =
           live := OperandSet.union vslot_uses (OperandSet.diff !live vslot_defs)));
   !graph
 
-let resolve_to_physical_stack_slot operand offset =
-  operand.Operand.value <-
-    X86_64_MemoryAddress
-      {
-        base = RegBase (mk_precolored ~type_:Long `SP);
-        offset = Some (ImmediateOffset (Int32.of_int offset));
-        index_and_scale = None;
-      }
-
-let allocate_stack_slots ~(gcx : Gcx.t) =
+let color_stack_slots ~(gcx : Gcx.t) =
   FunctionSet.iter
     (fun func ->
       let open Function in
@@ -83,59 +73,26 @@ let allocate_stack_slots ~(gcx : Gcx.t) =
               None
           in
           (* Color vslot. If no such non-interfering color exists, create new stack slot. *)
-          match color_opt with
-          | Some color ->
-            color_to_stack_slots :=
-              IMap.add
-                color
-                (OperandSet.add vslot (IMap.find color !color_to_stack_slots))
-                !color_to_stack_slots
-          | None ->
-            color_to_stack_slots :=
-              IMap.add !max_stack_slot (OperandSet.singleton vslot) !color_to_stack_slots;
-            max_stack_slot := !max_stack_slot + 1)
+          let stack_slot_index =
+            match color_opt with
+            | Some color ->
+              color_to_stack_slots :=
+                IMap.add
+                  color
+                  (OperandSet.add vslot (IMap.find color !color_to_stack_slots))
+                  !color_to_stack_slots;
+              color
+            | None ->
+              let stack_slot_index = !max_stack_slot in
+              color_to_stack_slots :=
+                IMap.add stack_slot_index (OperandSet.singleton vslot) !color_to_stack_slots;
+              max_stack_slot := stack_slot_index + 1;
+              stack_slot_index
+          in
+          vslot.value <- StackSlot (func.num_argument_stack_slots + stack_slot_index))
         func.spilled_vslots;
 
       (* Calculate total size of stack frame and its sections *)
       let num_local_stack_slots = !max_stack_slot in
-      let arguments_stack_frame_section_size = func.num_argument_stack_slots * 8 in
-
-      func.num_stack_frame_slots <- func.num_argument_stack_slots + num_local_stack_slots;
-      let stack_frame_size = func.num_stack_frame_slots * 8 in
-
-      (* Write physical addresses in stack for each argument stack slot in function *)
-      List.iter
-        (fun stack_slot_op ->
-          let i =
-            match stack_slot_op.Operand.value with
-            | FunctionArgumentStackSlot i -> i
-            | _ -> failwith "Expected FunctionArgumentStackSlot"
-          in
-          resolve_to_physical_stack_slot stack_slot_op (i * 8))
-        func.argument_stack_slots;
-
-      (* Write physical addresses in stack for each vslot in function *)
-      IMap.iter
-        (fun color vslots ->
-          OperandSet.iter
-            (fun vslot ->
-              let offset = (color * 8) + arguments_stack_frame_section_size in
-              resolve_to_physical_stack_slot vslot offset)
-            vslots)
-        !color_to_stack_slots;
-
-      (* Write physical addresses for each param passed on stack now that stack frame size is known *)
-      let num_used_callee_saved_regs = RegSet.cardinal func.spilled_callee_saved_regs in
-      List.iteri
-        (fun i param_op ->
-          let param_type = func.param_types.(i) in
-          match param_type with
-          | ParamInRegister _ -> ()
-          | ParamOnStack i ->
-            (* Offset must reach past entire stack frame, then all used callee saved registers that were
-               pushed on stack, then return address pushed onto stack from call instruction, and then
-               finally can start accessing function arguments that were pushed onto stack. *)
-            let offset = stack_frame_size + ((num_used_callee_saved_regs + i + 1) * 8) in
-            resolve_to_physical_stack_slot param_op offset)
-        func.params)
+      func.num_stack_frame_slots <- func.num_argument_stack_slots + num_local_stack_slots)
     gcx.funcs

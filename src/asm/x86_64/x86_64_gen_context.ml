@@ -209,18 +209,4 @@ module Gcx = struct
       { AggregateLayout.agg; size = !current_offset; alignment; elements = Array.of_list elements }
     in
     gcx.agg_to_layout <- IMap.add agg.id agg_layout gcx.agg_to_layout
-
-  let remove_redundant_moves ~gcx =
-    (* Remove reflexive move instructions *)
-    FunctionSet.iter
-      (fun func ->
-        func_iter_blocks func (fun block ->
-            filter_instructions block (fun { Instruction.instr; operands; _ } ->
-                match (instr, operands) with
-                | (`MovMM _, [| op1; op2 |]) ->
-                  (match (op1.value, op2.value) with
-                  | (PhysicalRegister reg1, PhysicalRegister reg2) when reg1 = reg2 -> false
-                  | _ -> true)
-                | _ -> true)))
-      gcx.funcs
 end

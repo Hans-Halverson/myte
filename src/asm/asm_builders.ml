@@ -42,14 +42,15 @@ let mk_function_op ~(func : Function.t) : Operand.t =
 
 let mk_block_op ~(block : Block.t) = mk_operand ~value:(Block block) ~type_:Long
 
-let mk_function_stack_argument ~(arg_id : int) ~(type_ : Type.t) : Operand.t =
-  Operand.of_value_id ~value:FunctionStackArgument arg_id ~type_
+(* Function stack arguments appear at the bottom of the caller's stack frame *)
+let mk_function_stack_argument ~(arg_id : int) ~(index : int) ~(type_ : Type.t) : Operand.t =
+  Operand.of_value_id ~value:(StackSlot (-1 - index)) arg_id ~type_
 
 (* Return stack slot operand if one already exists for function, otherwise create new stack slot
    operand for function and return it. *)
 let mk_function_argument_stack_slot ~(func : Function.t) ~(i : int) ~(type_ : Type.t) =
   if func.num_argument_stack_slots <= i then func.num_argument_stack_slots <- i + 1;
-  let op = mk_operand ~value:(FunctionArgumentStackSlot i) ~type_ in
+  let op = mk_operand ~value:(StackSlot i) ~type_ in
   func.argument_stack_slots <- op :: func.argument_stack_slots;
   op
 
@@ -236,6 +237,7 @@ let mk_function
     num_stack_frame_slots = 0;
     argument_stack_slots = [];
     num_argument_stack_slots = 0;
+    is_leaf = true;
   }
 
 let func_iter_blocks (func : Function.t) (f : Block.t -> unit) = List.iter f func.blocks

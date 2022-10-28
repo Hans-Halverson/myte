@@ -59,13 +59,12 @@ and Operand : sig
     | Function of Function.t
     (* Direct reference to a basic block *)
     | Block of Block.t
+    (* Slot in the current function's stack frame. Contains arguments passed to callee functions
+       at the bottom of the frame starting at index 0, followed by virtual stack slots after coloring.
+       Stack slot -1 represents the bottom of the caller function's stack frame. This is used to
+       reference arguments passed to by the caller to the current function on the stack. *)
+    | StackSlot of int
     | VirtualStackSlot
-    (* An argument to the current function that is passed on the stack. These arguments appear at
-       the bottom of the previous function's stack frame. *)
-    | FunctionStackArgument
-    (* An argument to pass to a callee function on the stack. These arguments appear at this bottom
-       of the current function's stack frame. Int is the index of the argument. *)
-    | FunctionArgumentStackSlot of int
 
   val of_value_id : value:value -> type_:Mir_type.Type.t -> id -> t
 
@@ -94,9 +93,8 @@ end = struct
     | X86_64_MemoryAddress of X86_64_MemoryAddress.t
     | Function of Function.t
     | Block of Block.t
+    | StackSlot of int
     | VirtualStackSlot
-    | FunctionStackArgument
-    | FunctionArgumentStackSlot of int
 
   let mk ~id ~value ~type_ = { id; value; type_ }
 
@@ -120,9 +118,8 @@ end = struct
   let is_memory_value value =
     match value.value with
     | X86_64_MemoryAddress _
-    | VirtualStackSlot
-    | FunctionStackArgument
-    | FunctionArgumentStackSlot _ ->
+    | StackSlot _
+    | VirtualStackSlot ->
       true
     | _ -> false
 
@@ -203,6 +200,9 @@ and Function : sig
        element in list is at bottom of stack frame (closest to callee function's stack frame). *)
     mutable argument_stack_slots: Operand.t list;
     mutable num_argument_stack_slots: int;
+    (* Whether this is a leaf function (includes no calls, including recursive calls). Is true until
+       a call is added. *)
+    mutable is_leaf: bool;
   }
 end =
   Function
@@ -295,6 +295,7 @@ let rec null_function : Function.t =
     num_stack_frame_slots = 0;
     argument_stack_slots = [];
     num_argument_stack_slots = 0;
+    is_leaf = true;
   }
 
 and null_block : Block.t = { Block.id = 0; label = None; func = null_function; instructions = None }
@@ -336,6 +337,11 @@ let cast_to_function op =
   match op.Operand.value with
   | Function func -> func
   | _ -> failwith "Expected function operand"
+
+let cast_to_stack_slot op =
+  match op.Operand.value with
+  | StackSlot index -> index
+  | _ -> failwith "Expected stack slot operand"
 
 let int64_of_immediate imm =
   match imm with

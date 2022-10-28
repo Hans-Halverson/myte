@@ -50,9 +50,8 @@ and operand_iter_reg_mem_operands
     | None -> ())
   | PhysicalRegister _
   | VirtualRegister
-  | VirtualStackSlot
-  | FunctionStackArgument
-  | FunctionArgumentStackSlot _ ->
+  | StackSlot _
+  | VirtualStackSlot ->
     f operand operand_def
   | Immediate _
   | Function _

@@ -57,12 +57,8 @@ let pp_virtual_stack_slot ~buf op =
   add_string ~buf "VSLOT:";
   add_string ~buf (string_of_int op.Operand.id)
 
-let pp_function_stack_argument ~buf op =
-  add_string ~buf "STACK_ARG:";
-  add_string ~buf (string_of_int op.Operand.id)
-
-let pp_function_argument_stack_slot ~buf op =
-  add_string ~buf "ARG_STACK_SLOT:";
+let pp_stack_slot ~buf op =
+  add_string ~buf "STACK_SLOT:";
   add_string ~buf (string_of_int op.Operand.id)
 
 let pp_sized_register ~buf reg size =
@@ -83,17 +79,15 @@ let rec pp_operand ~gcx ~pcx ~buf ~size op =
   | Block block ->
     pp_label_debug_prefix ~buf block;
     add_string ~buf (Option.get (pp_label ~pcx block))
+  (* The following operand types should be resolved before printing non-virtual asm *)
+  | StackSlot _ when Opts.dump_virtual_asm () -> pp_stack_slot ~buf op
   | VirtualStackSlot when Opts.dump_virtual_asm () -> pp_virtual_stack_slot ~buf op
-  | FunctionStackArgument when Opts.dump_virtual_asm () -> pp_function_stack_argument ~buf op
-  | FunctionArgumentStackSlot _ when Opts.dump_virtual_asm () ->
-    pp_function_argument_stack_slot ~buf op
   | VirtualRegister when Opts.dump_virtual_asm () ->
     add_char ~buf '%';
     add_string ~buf (string_of_int op.id)
   | VirtualRegister
-  | VirtualStackSlot
-  | FunctionStackArgument
-  | FunctionArgumentStackSlot _ ->
+  | StackSlot _
+  | VirtualStackSlot ->
     failwith "Must be resolved before printing"
 
 and pp_memory_address ~gcx ~pcx ~buf mem =

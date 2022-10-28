@@ -16,15 +16,11 @@ let gen ir =
   FunctionSet.iter (fun func -> X86_64_register_allocation.run ~gcx ~func) gcx.funcs;
 
   (* Color and allocate physical stack slots for virtual stack slots *)
-  X86_64_stack_coloring.allocate_stack_slots ~gcx;
-
-  (* Simplify program, write function prologue and epilogue *)
-  (* Gcx.remove_redundant_moves ~gcx; *)
-  X86_64_simplify_cfg.compress_jump_aliases ~gcx;
-  X86_64_stack_frame.write_function_prologues ~gcx;
-  X86_64_stack_frame.write_function_epilogues ~gcx;
+  X86_64_stack_coloring.color_stack_slots ~gcx;
+  X86_64_stack_frame.write_stack_frame ~gcx;
 
   (* Apply optimizations *)
+  X86_64_simplify_cfg.compress_jump_aliases ~gcx;
   X86_64_address_propagation.run ~gcx;
   X86_64_peephole.run_peephole_optimizations ~gcx;
   X86_64_simplify_cfg.simplify_jumps ~gcx;
