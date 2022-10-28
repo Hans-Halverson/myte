@@ -1,0 +1,41 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.mulByteImmReg:
+  movz w1, #60
+  mul w0, w1, w0
+  ret
+test.mulByteRegImm:
+  movz w1, #60
+  mul w0, w0, w1
+  ret
+test.mulByteRegs:
+  mul w0, w0, w1
+  ret
+test.mulIntImmReg:
+  movz w1, #257
+  mul w0, w1, w0
+  ret
+test.mulIntRegImm:
+  movz w1, #257
+  mul w0, w0, w1
+  ret
+test.mulIntRegs:
+  mul w0, w0, w1
+  ret
+test.mulLongImmReg:
+  movz x1, #52428
+  movk x1, #3276, lsl #16
+  mul x0, x1, x0
+  ret
+test.mulLongRegImm:
+  movz x1, #52428
+  movk x1, #3276, lsl #16
+  mul x0, x0, x1
+  ret
+test.mulLongRegs:
+  mul x0, x0, x1
+  ret

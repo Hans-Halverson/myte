@@ -230,6 +230,19 @@ and gen_instructions ~gcx instructions =
         gen_add_sub_i ~gcx (`SubI size) result_op left_op n
     | right_op -> Gcx.emit ~gcx (`SubR size) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                   Mul
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Mul, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let left_op = gen_value ~gcx left_val in
+    let right_op = gen_value ~gcx right_val in
+    Gcx.emit ~gcx (`Mul size) [| result_op; left_op; right_op |];
+    gen_instructions rest_instructions
   | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
     failwith "Phi nodes must be removed before asm gen"
   | { value = Instr { instr = Mir.Instruction.StackAlloc _; _ }; _ } :: _ ->
@@ -250,16 +263,16 @@ and gen_add_sub_i ~gcx instr dest_op reg_op n =
 
 (* Generate an operand that can be used in add or sub instructions. 24-bit immediates are allowed,
    but larger immediates must be loaded to a register. *)
-   and gen_add_sub_value ~gcx (use : Use.t) : Operand.t =
-   match use.value.value with
-   | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) ->
-     let n = int64_of_literal lit in
-     (* -2^24 < n < 2^24 can be encoded as immediate in 1 or 2 add/sub instructions *)
-     if Integers.int64_less_than (-16777216L) n && Integers.int64_less_than n 16777216L then
-       mk_imm ~imm:(Imm64 n)
-     else
-       gen_mov_immediate ~gcx lit
-   | _ -> gen_value ~gcx use
+and gen_add_sub_value ~gcx (use : Use.t) : Operand.t =
+  match use.value.value with
+  | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) ->
+    let n = int64_of_literal lit in
+    (* -2^24 < n < 2^24 can be encoded as immediate in 1 or 2 add/sub instructions *)
+    if Integers.int64_less_than (-16777216L) n && Integers.int64_less_than n 16777216L then
+      mk_imm ~imm:(Imm64 n)
+    else
+      gen_mov_immediate ~gcx lit
+  | _ -> gen_value ~gcx use
 
 and block_op_of_mir_block ~gcx mir_block =
   mk_block_op ~block:(Gcx.get_block_from_mir_block ~gcx mir_block)

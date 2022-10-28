@@ -38,6 +38,8 @@ let sub_i = { InstructionDef.operands = operands_add_sub_i }
 
 let sub_r = { InstructionDef.operands = operands_rrr }
 
+let mul = { InstructionDef.operands = operands_rrr }
+
 let b = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
 let bl = { InstructionDef.operands = [{ use = Use; operand_type = Function }] }
@@ -54,6 +56,7 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `AddR _ -> add_r
   | `SubI _ -> sub_i
   | `SubR _ -> sub_r
+  | `Mul _ -> mul
   | `B -> b
   | `BL _ -> bl
   | `BLR _ -> blr
@@ -69,7 +72,8 @@ let instr_register_size (instr : instr) : AArch64.register_size =
   | `AddI size
   | `AddR size
   | `SubI size
-  | `SubR size ->
+  | `SubR size
+  | `Mul size ->
     size
   (* Registers must be 64 bits *)
   | `BLR _

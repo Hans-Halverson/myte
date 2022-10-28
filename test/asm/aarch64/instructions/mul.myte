@@ -1,0 +1,15 @@
+module test
+
+fun mulByteRegs(x: Byte, y: Byte): Byte = x * y
+fun mulByteImmReg(x: Byte): Byte = 60 * x
+fun mulByteRegImm(x: Byte): Byte = x * 60
+
+fun mulIntRegs(x: Int, y: Int): Int = x * y
+fun mulIntRegImm(x: Int): Int = x * 257
+fun mulIntImmReg(x: Int): Int = 257 * x
+
+fun mulLongRegs(x: Long, y: Long): Long = x * y
+fun mulLongRegImm(x: Long): Long = x * 214748364
+fun mulLongImmReg(x: Long): Long = 214748364 * x
+
+fun main() {}

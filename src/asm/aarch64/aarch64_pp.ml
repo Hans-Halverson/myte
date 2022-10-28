@@ -118,6 +118,9 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `SubR _ ->
         pp_op "sub";
         pp_operands ()
+      | `Mul _ ->
+        pp_op "mul";
+        pp_operands ()
       | `Ret -> pp_no_args_op "ret"
       | `B ->
         pp_op "b";

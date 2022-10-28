@@ -142,6 +142,8 @@ module AArch64 = struct
       `SubI of register_size
     | (* Add Rd, Rs1, Rs2 *)
       `SubR of register_size
+    | (* Mul Rd, Rs1, Rs2 *)
+      `Mul of register_size
     | (* Unconditional branch to label *)
       `B
     | (* Function call to label *)
