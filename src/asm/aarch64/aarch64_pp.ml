@@ -57,7 +57,7 @@ let pp_instruction ~gcx ~pcx ~buf instr =
           (fun i operand ->
             let size =
               match operand.Operand.value with
-              | PhysicalRegister _ -> instr_register_size instr.instr
+              | PhysicalRegister _ -> instr_register_size instr.instr i
               | _ -> Size64
             in
             pp_operand ~size operand;
@@ -120,6 +120,22 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operands ()
       | `Mul _ ->
         pp_op "mul";
+        pp_operands ()
+      | `SDiv _ ->
+        pp_op "sdiv";
+        pp_operands ()
+      | `MSub _ ->
+        pp_op "msub";
+        pp_operands ()
+      | `Sxt (_, subregister_size) ->
+        let suffix =
+          match subregister_size with
+          | B -> "b"
+          | H -> "h"
+          | W -> "w"
+          | X -> failwith "Invalid subregister size for sdiv"
+        in
+        pp_op ("sxt" ^ suffix);
         pp_operands ()
       | `Ret -> pp_no_args_op "ret"
       | `B ->

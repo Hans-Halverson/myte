@@ -3,6 +3,7 @@ open Aarch64_gen_context
 open Asm
 open Asm_builders
 open Asm_calling_convention
+open Asm_instruction_definition.AArch64
 open Basic_collections
 open Mir
 open Mir_builders
@@ -22,6 +23,8 @@ let imm_48 = mk_imm ~imm:(Imm8 (Int8.of_int 48))
 let mk_vreg = mk_virtual_register
 
 let mk_vreg_of_value_id value_id = mk_virtual_register_of_value_id ~value_id
+
+let mk_vreg_of_op (op : Operand.t) = mk_virtual_register ~type_:op.type_
 
 let rec gen ~(gcx : Gcx.t) (ir : Program.t) =
   let should_filter_stdlib = Asm_gen.should_filter_stdlib () in
@@ -243,6 +246,29 @@ and gen_instructions ~gcx instructions =
     let right_op = gen_value ~gcx right_val in
     Gcx.emit ~gcx (`Mul size) [| result_op; left_op; right_op |];
     gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                   Div
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Div, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    ignore (gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val);
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                   Rem
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Rem, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let div_result_op = mk_vreg ~type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let (left_op, right_op) = gen_sdiv ~gcx ~type_ ~result_op:div_result_op ~left_val ~right_val in
+    Gcx.emit ~gcx (`MSub size) [| result_op; div_result_op; right_op; left_op |];
+    gen_instructions rest_instructions
   | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
     failwith "Phi nodes must be removed before asm gen"
   | { value = Instr { instr = Mir.Instruction.StackAlloc _; _ }; _ } :: _ ->
@@ -273,6 +299,36 @@ and gen_add_sub_value ~gcx (use : Use.t) : Operand.t =
     else
       gen_mov_immediate ~gcx lit
   | _ -> gen_value ~gcx use
+
+and gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val =
+  let size = register_size_of_mir_value_type type_ in
+  let subregister_size = subregister_size_of_mir_value_type type_ in
+  (* Subregister immediates are always sign extended to register size when loaded. Non-immediate
+     operands must be explictly sign extended to register size. *)
+  let gen_subregister_value use =
+    let op = gen_value ~gcx use in
+    match use.Use.value.value with
+    | Lit _ -> op
+    | _ ->
+      let sext_op = mk_vreg_of_op op in
+      Gcx.emit ~gcx (`Sxt (size, subregister_size)) [| sext_op; op |];
+      sext_op
+  in
+  let (left_op, right_op) =
+    match subregister_size with
+    | B
+    | H ->
+      let left_op = gen_subregister_value left_val in
+      let right_op = gen_subregister_value right_val in
+      (left_op, right_op)
+    | W
+    | X ->
+      let left_op = gen_value ~gcx left_val in
+      let right_op = gen_value ~gcx right_val in
+      (left_op, right_op)
+  in
+  Gcx.emit ~gcx (`SDiv size) [| result_op; left_op; right_op |];
+  (left_op, right_op)
 
 and block_op_of_mir_block ~gcx mir_block =
   mk_block_op ~block:(Gcx.get_block_from_mir_block ~gcx mir_block)
@@ -366,3 +422,18 @@ and register_size_of_mir_value_type value_type =
   | Array _ -> failwith "TODO: Cannot compile array literals"
 
 and register_size_of_mir_use mir_use = register_size_of_mir_value_type (type_of_use mir_use)
+
+and subregister_size_of_mir_value_type value_type =
+  match value_type with
+  | Bool
+  | Byte ->
+    B
+  | Short -> H
+  | Int -> W
+  | Long
+  | Double
+  | Function
+  | Pointer _ ->
+    X
+  | Aggregate _ -> failwith "TODO: Cannot compile aggregate structure literals"
+  | Array _ -> failwith "TODO: Cannot compile array literals"

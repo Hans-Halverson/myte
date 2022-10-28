@@ -1,0 +1,55 @@
+  .global _main
+
+  .text
+test.divByteImmReg:
+  movz w1, #60
+  sxtb w0, w0
+  sdiv w0, w1, w0
+  ret
+test.divByteNegImmReg:
+  movn w1, #59
+  sxtb w0, w0
+  sdiv w0, w1, w0
+  ret
+test.divByteRegImm:
+  sxtb w1, w0
+  movz w0, #60
+  sdiv w0, w1, w0
+  ret
+test.divByteRegNegImm:
+  sxtb w1, w0
+  movn w0, #59
+  sdiv w0, w1, w0
+  ret
+test.divByteRegs:
+  sxtb w2, w0
+  sxtb w0, w1
+  sdiv w0, w2, w0
+  ret
+test.divIntImmReg:
+  movz w1, #257
+  sdiv w0, w1, w0
+  ret
+test.divIntRegImm:
+  movz w1, #257
+  sdiv w0, w0, w1
+  ret
+test.divIntRegs:
+  sdiv w0, w0, w1
+  ret
+test.divLongImmReg:
+  movz x1, #52428
+  movk x1, #3276, lsl #16
+  sdiv x0, x1, x0
+  ret
+test.divLongRegImm:
+  movz x1, #52428
+  movk x1, #3276, lsl #16
+  sdiv x0, x0, x1
+  ret
+test.divLongRegs:
+  sdiv x0, x0, x1
+  ret
+_main:
+  mov w0, wzr
+  ret

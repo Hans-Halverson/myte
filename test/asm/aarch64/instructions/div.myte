@@ -1,0 +1,17 @@
+module test
+
+fun divByteRegs(x: Byte, y: Byte): Byte = x / y
+fun divByteImmReg(x: Byte): Byte = 60 / x
+fun divByteRegImm(x: Byte): Byte = x / 60
+fun divByteNegImmReg(x: Byte): Byte = -60 / x
+fun divByteRegNegImm(x: Byte): Byte = x / -60
+
+fun divIntRegs(x: Int, y: Int): Int = x / y
+fun divIntRegImm(x: Int): Int = x / 257
+fun divIntImmReg(x: Int): Int = 257 / x
+
+fun divLongRegs(x: Long, y: Long): Long = x / y
+fun divLongRegImm(x: Long): Long = x / 214748364
+fun divLongImmReg(x: Long): Long = 214748364 / x
+
+fun main() {}

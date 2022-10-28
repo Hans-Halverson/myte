@@ -115,6 +115,12 @@ module AArch64 = struct
     | Size32
     | Size64
 
+  type subregister_size =
+    | B
+    | H
+    | W
+    | X
+
   type movi_suffix =
     | Z
     | N
@@ -144,6 +150,13 @@ module AArch64 = struct
       `SubR of register_size
     | (* Mul Rd, Rs1, Rs2 *)
       `Mul of register_size
+    | (* SDiv Rd, Rs1, Rs2 *)
+      `SDiv of register_size
+    | (* MSub Rd, Rs1, Rs2, Rs3 where Rd = Rs3 - Rs1 * Rs2 *)
+      `MSub of register_size
+    | (* Sign extend subregister (Byte, Halfword, or Word) to full register (W or X) *)
+      `Sxt of
+      register_size * subregister_size
     | (* Unconditional branch to label *)
       `B
     | (* Function call to label *)
