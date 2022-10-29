@@ -54,6 +54,8 @@ let msub = { InstructionDef.operands = operands_rrrr }
 
 let neg = { InstructionDef.operands = operands_rr }
 
+let mvn = { InstructionDef.operands = operands_rr }
+
 let cmp_i =
   {
     InstructionDef.operands =
@@ -104,6 +106,7 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `SDiv _ -> sdiv
   | `MSub _ -> msub
   | `Neg _ -> neg
+  | `Mvn _ -> mvn
   | `CmpI _ -> cmp_i
   | `CmpR _ -> cmp_r
   | `CmnI _ -> cmn_i
@@ -133,6 +136,7 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `SDiv size
   | `MSub size
   | `Neg size
+  | `Mvn size
   | `CmpI size
   | `CmpR (size, _)
   | `CmnI size

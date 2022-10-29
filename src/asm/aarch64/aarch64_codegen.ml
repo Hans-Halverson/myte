@@ -318,6 +318,19 @@ and gen_instructions ~gcx instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
+   *                   Rem
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Rem, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let div_result_op = mk_vreg ~type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let (left_op, right_op) = gen_sdiv ~gcx ~type_ ~result_op:div_result_op ~left_val ~right_val in
+    Gcx.emit ~gcx (`MSub size) [| result_op; div_result_op; right_op; left_op |];
+    gen_instructions rest_instructions
+    (*
+   * ===========================================
    *                   Neg
    * ===========================================
    *)
@@ -330,16 +343,19 @@ and gen_instructions ~gcx instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
-   *                   Rem
+   *                    Not
    * ===========================================
    *)
-  | { id = result_id; value = Instr { instr = Binary (Rem, left_val, right_val); type_; _ }; _ }
-    :: rest_instructions ->
+  | { id = result_id; value = Instr { instr = Unary (Not, arg); type_; _ }; _ } :: rest_instructions
+    ->
     let size = register_size_of_mir_value_type type_ in
-    let div_result_op = mk_vreg ~type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    let (left_op, right_op) = gen_sdiv ~gcx ~type_ ~result_op:div_result_op ~left_val ~right_val in
-    Gcx.emit ~gcx (`MSub size) [| result_op; div_result_op; right_op; left_op |];
+    let arg_op = gen_value ~gcx arg in
+    if is_bool_value arg.value then (
+      Gcx.emit ~gcx (`CmpI size) [| arg_op; imm_0 |];
+      Gcx.emit ~gcx (`CSet (size, EQ)) [| result_op |]
+    ) else
+      Gcx.emit ~gcx (`Mvn size) [| result_op; arg_op |];
     gen_instructions rest_instructions
   | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
     failwith "Phi nodes must be removed before asm gen"
@@ -351,7 +367,6 @@ and gen_instructions ~gcx instructions =
           {
             instr =
               ( Binary ((And | Or | Xor | Shl | Shr | Shrl), _, _)
-              | Unary (Not, _)
               | Call { func = MirBuiltin _; _ }
               | GetPointer _ | Load _ | Store _ | Cast _ | Trunc _ | SExt _ | ZExt _ | IntToFloat _
               | FloatToInt _ );

@@ -174,6 +174,8 @@ module AArch64 = struct
       `MSub of register_size
     | (* Neg Rd, Rs *)
       `Neg of register_size
+    | (* Bitwise not: Mvn Rd, Rs *)
+      `Mvn of register_size
     | (* Cmp Rs, #imm12 *)
       `CmpI of register_size
     | (* Cmp Rs1, Rs2 where Rs2 has the specified extension *)

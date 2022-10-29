@@ -1,0 +1,15 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.notByteReg:
+  mvn w0, w0
+  ret
+test.notIntReg:
+  mvn w0, w0
+  ret
+test.notLongReg:
+  mvn x0, x0
+  ret

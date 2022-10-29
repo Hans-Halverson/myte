@@ -158,6 +158,9 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `Neg _ ->
         pp_op "neg";
         pp_operands ()
+      | `Mvn _ ->
+        pp_op "mvn";
+        pp_operands ()
       | `CmpI _ ->
         pp_op "cmp";
         pp_operands ()
