@@ -80,6 +80,12 @@ let b = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
 let b_cond = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
+let cbz =
+  {
+    InstructionDef.operands =
+      [{ use = Use; operand_type = Register }; { use = Use; operand_type = Block }];
+  }
+
 let bl = { InstructionDef.operands = [{ use = Use; operand_type = Function }] }
 
 let blr = { InstructionDef.operands = [{ use = Use; operand_type = Register }] }
@@ -105,7 +111,9 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `Sxt _ -> sxt
   | `B -> b
   | `BCond _ -> b_cond
-  | `BL _ -> bl
+  | `Cbz _
+  | `BL _ ->
+    bl
   | `BLR _ -> blr
   | `Ret -> ret
   | _ -> failwith "Unknown X86_64 instr"
@@ -128,7 +136,8 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `CmpI size
   | `CmpR (size, _)
   | `CmnI size
-  | `CSet (size, _) ->
+  | `CSet (size, _)
+  | `Cbz size ->
     size
   (* Registers must be 64 bits *)
   | `BLR _ -> Size64

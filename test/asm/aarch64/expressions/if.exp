@@ -1,0 +1,67 @@
+  .global _main
+
+  .text
+test.bool:
+  movz w0, #1
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.testConditionReused:
+  cmp w0, #10
+  cset w19, lt
+  b.ge .L0
+  movz w0, #1
+  bl test.use$Int$
+  b .L1
+.L0:
+  movz w0, #2
+  bl test.use$Int$
+.L1:
+  mov w0, w19
+  bl test.use$Bool$
+  ret
+test.testIfWithExpressions:
+  mov w19, w0
+  mov w20, w1
+  bl test.bool
+  cbz w0, .L2
+  add w0, w19, w20
+  b .L3
+.L2:
+  mul w0, w19, w20
+  add w0, w0, w19
+.L3:
+  ret
+test.testNestedIfStatementInExpressionPosition:
+  bl test.bool
+  cbz w0, .L5
+  bl test.bool
+  cbz w0, .L4
+  movz w0, #1
+  b .L7
+.L4:
+  movz w0, #2
+  b .L7
+.L5:
+  bl test.bool
+  cbz w0, .L6
+  movz w0, #3
+  b .L7
+.L6:
+  movz w0, #4
+.L7:
+  ret
+test.testSimpleIf:
+  bl test.bool
+  cbz w0, .L8
+  movz w0, #1
+  b .L9
+.L8:
+  movz w0, #2
+.L9:
+  ret
+test.use$Bool$:
+  ret
+test.use$Int$:
+  ret

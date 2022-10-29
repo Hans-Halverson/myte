@@ -242,6 +242,15 @@ and gen_instructions ~gcx instructions =
   | [{ value = Instr { instr = Unreachable; _ }; _ }] -> ()
   | [{ value = Instr { instr = Continue continue; _ }; _ }] ->
     Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx continue |]
+  | [{ value = Instr { instr = Branch { test; continue; jump }; _ }; _ }] ->
+    let test =
+      match test.value.value with
+      | Lit _ -> failwith "Dead branch pruning must have already occurred"
+      | _ -> test
+    in
+    let test_op = gen_value ~gcx test in
+    Gcx.emit ~gcx (`Cbz Size32) [| test_op; block_op_of_mir_block ~gcx jump |];
+    Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx continue |]
   | { value = Instr { instr = Ret _ | Continue _ | Branch _ | Unreachable; _ }; _ } :: _ ->
     failwith "Terminator instructions must be last instruction"
   (*
@@ -336,7 +345,22 @@ and gen_instructions ~gcx instructions =
     failwith "Phi nodes must be removed before asm gen"
   | { value = Instr { instr = Mir.Instruction.StackAlloc _; _ }; _ } :: _ ->
     failwith "StackAlloc instructions removed before asm gen"
-  | { value = Instr _; _ } :: _ -> failwith "Unimplemented MIR instruction"
+  | {
+      value =
+        Instr
+          {
+            instr =
+              ( Binary ((And | Or | Xor | Shl | Shr | Shrl), _, _)
+              | Unary (Not, _)
+              | Call { func = MirBuiltin _; _ }
+              | GetPointer _ | Load _ | Store _ | Cast _ | Trunc _ | SExt _ | ZExt _ | IntToFloat _
+              | FloatToInt _ );
+            _;
+          };
+      _;
+    }
+    :: _ ->
+    failwith "Unimplemented MIR instruction"
   | { value = Lit _ | Argument _; _ } :: _ -> failwith "Expected instruction value"
 
 (* Generate a cmp instruction between two arguments. Return whether order was swapped.

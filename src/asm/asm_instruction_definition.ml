@@ -189,6 +189,8 @@ module AArch64 = struct
       `B
     | (* Conditional branch to label *)
       `BCond of cond
+    | (* Branch to label if Rs is zero: Cbz Rs, label *)
+      `Cbz of register_size
     | (* Function call to label *)
       `BL of param_types * calling_convention
     | (* Indirect function call through register. Register is always 64 bits. *)

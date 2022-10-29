@@ -94,7 +94,8 @@ module Gcx = struct
     let current_block = gcx.current_block in
     mk_instr_ ~block:current_block instr operands;
     match (instr, operands) with
-    | ((`B | `BCond _), [| { value = Block next_block; _ } |]) ->
+    | ((`B | `BCond _ | `Cbz _), [| { value = Block next_block; _ } |])
+    | (`Cbz _, [| _; { value = Block next_block; _ } |]) ->
       gcx.prev_blocks <- BlockMMap.add next_block current_block gcx.prev_blocks
     | _ -> ()
 end

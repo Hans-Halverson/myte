@@ -1,0 +1,38 @@
+module test
+
+fun bool(): Bool = true
+
+fun use<T>(x: T) {}
+
+fun testSimpleIf(): Int = if (bool()) { 1 } else { 2 }
+
+fun testIfWithExpressions(x: Int, y: Int): Int =
+  if (bool()) { x + y } else { x * y + x }
+
+fun testNestedIfStatementInExpressionPosition(): Int {
+  return if(bool()) {
+    if(bool()) {
+      1
+    } else {
+      2
+    }
+  } else {
+    if(bool()) {
+      3
+    } else {
+      4
+    }
+  };
+}
+
+fun testConditionReused(x: Int) {
+  val cond = x < 10;
+  if (cond) {
+    use(1);
+  } else {
+    use(2);
+  }
+  use(cond);
+}
+
+fun main() {}

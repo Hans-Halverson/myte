@@ -16,7 +16,9 @@ class compress_branch_aliases ~(gcx : Gcx.t) ~func =
       func_iter_blocks func (fun block ->
           iter_instructions block (fun instr ->
               match instr with
-              | { instr = `B | `BCond _; operands = [| block_op |]; _ } -> f block_op
+              | { instr = `B | `BCond _; operands = [| block_op |]; _ }
+              | { instr = `Cbz _; operands = [| _; block_op |]; _ } ->
+                f block_op
               | _ -> ()))
 
     method on_removed_block block = gcx.prev_blocks <- BlockMMap.remove_key block gcx.prev_blocks

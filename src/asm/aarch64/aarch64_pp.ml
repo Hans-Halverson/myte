@@ -12,7 +12,8 @@ let mk_pcx ~(funcs : FunctionSet.t) =
   funcs_iter_blocks funcs (fun block ->
       iter_instructions block (fun instr ->
           match instr with
-          | { instr = `B | `BCond _; operands = [| { value = Block next_block; _ } |]; _ } ->
+          | { instr = `B | `BCond _; operands = [| { value = Block next_block; _ } |]; _ }
+          | { instr = `Cbz _; operands = [| _; { value = Block next_block; _ } |]; _ } ->
             incoming_jump_blocks := BlockSet.add next_block !incoming_jump_blocks
           | _ -> ()));
 
@@ -191,6 +192,9 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `BCond cond ->
         let op = "b." ^ string_of_cond cond in
         pp_op op;
+        pp_operands ()
+      | `Cbz _ ->
+        pp_op "cbz";
         pp_operands ()
       | `BL _ ->
         pp_op "bl";
