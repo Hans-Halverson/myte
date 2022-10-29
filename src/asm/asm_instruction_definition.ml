@@ -154,6 +154,8 @@ module AArch64 = struct
       `SDiv of register_size
     | (* MSub Rd, Rs1, Rs2, Rs3 where Rd = Rs3 - Rs1 * Rs2 *)
       `MSub of register_size
+    | (* Neg Rd, Rs *)
+      `Neg of register_size
     | (* Sign extend subregister (Byte, Halfword, or Word) to full register (W or X) *)
       `Sxt of
       register_size * subregister_size

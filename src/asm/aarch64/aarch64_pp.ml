@@ -127,6 +127,9 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `MSub _ ->
         pp_op "msub";
         pp_operands ()
+      | `Neg _ ->
+        pp_op "neg";
+        pp_operands ()
       | `Sxt (_, subregister_size) ->
         let suffix =
           match subregister_size with

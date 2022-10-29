@@ -258,6 +258,18 @@ and gen_instructions ~gcx instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
+   *                   Neg
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Unary (Neg, arg); type_; _ }; _ } :: rest_instructions
+    ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let arg_op = gen_value ~gcx arg in
+    Gcx.emit ~gcx (`Neg size) [| result_op; arg_op |];
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
    *                   Rem
    * ===========================================
    *)

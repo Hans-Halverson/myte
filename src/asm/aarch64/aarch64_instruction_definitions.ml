@@ -52,6 +52,8 @@ let sdiv = { InstructionDef.operands = operands_rrr }
 
 let msub = { InstructionDef.operands = operands_rrrr }
 
+let neg = { InstructionDef.operands = operands_rr }
+
 let sxt = { InstructionDef.operands = operands_rr }
 
 let b = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
@@ -73,6 +75,7 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `Mul _ -> mul
   | `SDiv _ -> sdiv
   | `MSub _ -> msub
+  | `Neg _ -> neg
   | `Sxt _ -> sxt
   | `B -> b
   | `BL _ -> bl
@@ -93,7 +96,8 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `SubR size
   | `Mul size
   | `SDiv size
-  | `MSub size ->
+  | `MSub size
+  | `Neg size ->
     size
   (* Registers must be 64 bits *)
   | `BLR _ -> Size64
