@@ -1,0 +1,98 @@
+module test
+
+fun testCompareRegisterRegister(p1: Int, p2: Int): Bool {
+  if (p1 == p2) {
+    return p1 == p2;
+  } else if (p1 != p2) {
+    return p1 != p2;
+  } else if (p1 < p2) {
+    return p1 < p2;
+  } else if (p1 <= p2) {
+    return p1 <= p2;
+  } else if (p1 > p2) {
+    return p1 > p2;
+  } else if (p1 >= p2) {
+    return p1 >= p2;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareRegisterImmediate(x: Int): Bool {
+  if (x == 3) {
+    return x == 3;
+  } else if (x != 3) {
+    return x != 3;
+  } else if (x < 3) {
+    return x < 3;
+  } else if (x <= 3) {
+    return x <= 3;
+  } else if (x > 3) {
+    return x > 3;
+  } else if (x >= 3) {
+    return x >= 3;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareImmediateRegister(x: Int): Bool {
+  if (3 == x) {
+    return 3 == x;
+  } else if (3 != x) {
+    return 3 != x;
+  } else if (3 < x) {
+    return 3 < x;
+  } else if (3 <= x) {
+    return 3 <= x;
+  } else if (3 > x) {
+    return 3 > x;
+  } else if (3 >= x) {
+    return 3 >= x;
+  } else {
+    return true;
+  }
+}
+
+// Other types
+
+fun testCompareByteRegs(x: Byte, y: Byte): Bool = x < y
+fun testCompareByteRegImm(x: Byte): Bool = x < 63
+fun testCompareByteImmReg(x: Byte): Bool = 63 < x
+
+fun testCompareLongRegs(x: Long, y: Long): Bool = x < y
+fun testCompareLongRegImm(x: Long): Bool = x < 63
+fun testCompareLongImmReg(x: Long): Bool = 63 < x
+
+fun testCompareBoolRegs(x: Bool, y: Bool): Bool = x == y
+fun testCompareBoolRegImm(x: Bool): Bool = x == true
+fun testCompareBoolImmReg(x: Bool): Bool = true == x
+
+fun testCompareUnitRegs(x: Unit, y: Unit): Bool = x == y
+fun testCompareUnitRegImm(x: Unit): Bool = x == ()
+fun testCompareUnitImmReg(x: Unit): Bool = () == x
+
+// Immediate sizes
+
+fun testCompareIntMaxImm(x: Int): Bool = x < 4095
+fun testCompareIntMinLoadedImm(x: Int): Bool = x < 4096
+fun testCompareIntLoadedImm(x: Int): Bool = x < 12345
+fun testCompareIntDoubleLoadImm(x: Int): Bool = x < 1234567
+
+// Negative numbers
+
+fun testCompareByteRegNegImm(x: Byte): Bool = x < -63
+fun testCompareByteNegImmReg(x: Byte): Bool = -63 < x
+
+fun testCompareIntRegNegImm(x: Int): Bool = x < -63
+fun testCompareIntNegImmReg(x: Int): Bool = -63 < x
+
+fun testCompareLongRegNegImm(x: Long): Bool = x < -63
+fun testCompareLongNegImmReg(x: Long): Bool = -63 < x
+
+fun testCompareIntMaxNegImm(x: Int): Bool = x < -4095
+fun testCompareIntNegImmLoad(x: Int): Bool = x < -4096
+fun testCompareLongMaxNegImm(x: Long): Bool = x < -4095
+fun testCompareLongNegImmLoad(x: Long): Bool = x < -4096
+
+fun main() {}

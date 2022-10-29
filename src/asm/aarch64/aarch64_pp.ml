@@ -3,6 +3,7 @@ open Aarch64_instruction_definitions
 open Aarch64_register
 open Asm
 open Asm_builders
+open Asm_instruction_definition
 open Asm_pp
 
 let mk_pcx ~(funcs : FunctionSet.t) =
@@ -11,7 +12,7 @@ let mk_pcx ~(funcs : FunctionSet.t) =
   funcs_iter_blocks funcs (fun block ->
       iter_instructions block (fun instr ->
           match instr with
-          | { instr = `B; operands = [| { value = Block next_block; _ } |]; _ } ->
+          | { instr = `B | `BCond _; operands = [| { value = Block next_block; _ } |]; _ } ->
             incoming_jump_blocks := BlockSet.add next_block !incoming_jump_blocks
           | _ -> ()));
 
@@ -43,6 +44,32 @@ let pp_operand ~pcx ~buf ~size op =
     pp_label_debug_prefix ~buf block;
     add_string ~buf (Option.get (pp_label ~pcx block))
   | _ -> failwith "Printing operand not yet implemented"
+
+let pp_extend ~buf (extend : AArch64.extend) =
+  let pp str =
+    add_string ~buf ", ";
+    add_string ~buf str
+  in
+  match extend with
+  (* Noops which do not need to be written *)
+  | UXTX
+  | SXTX ->
+    ()
+  | UXTB -> pp "uxtb"
+  | UXTH -> pp "uxth"
+  | UXTW -> pp "uxtw"
+  | SXTB -> pp "sxtb"
+  | SXTH -> pp "sxth"
+  | SXTW -> pp "sxtw"
+
+let string_of_cond (cond : AArch64.cond) =
+  match cond with
+  | EQ -> "eq"
+  | NE -> "ne"
+  | LT -> "lt"
+  | LE -> "le"
+  | GT -> "gt"
+  | GE -> "ge"
 
 let pp_instruction ~gcx ~pcx ~buf instr =
   ignore gcx;
@@ -130,6 +157,23 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `Neg _ ->
         pp_op "neg";
         pp_operands ()
+      | `CmpI _ ->
+        pp_op "cmp";
+        pp_operands ()
+      | `CmpR (size, extend) ->
+        pp_op "cmp";
+        pp_operand ~size operands.(0);
+        pp_args_separator ();
+        pp_operand ~size operands.(1);
+        pp_extend ~buf extend
+      | `CmnI _ ->
+        pp_op "cmn";
+        pp_operands ()
+      | `CSet (_, cond) ->
+        pp_op "cset";
+        pp_operands ();
+        pp_args_separator ();
+        add_string (string_of_cond cond)
       | `Sxt (_, subregister_size) ->
         let suffix =
           match subregister_size with
@@ -143,6 +187,10 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `Ret -> pp_no_args_op "ret"
       | `B ->
         pp_op "b";
+        pp_operands ()
+      | `BCond cond ->
+        let op = "b." ^ string_of_cond cond in
+        pp_op op;
         pp_operands ()
       | `BL _ ->
         pp_op "bl";

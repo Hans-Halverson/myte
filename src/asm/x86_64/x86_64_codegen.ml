@@ -955,14 +955,9 @@ and gen_instructions ~gcx ~ir ~block instructions =
    *)
   | [
    { id = result_id; value = Instr { instr = Cmp (cmp, left_val, right_val); _ }; _ };
-   {
-     value =
-       Instr
-         { instr = Branch { test = { value = { id; value = Instr _ | Argument _; _ }; _ }; _ }; _ };
-     _;
-   };
+   { value = Instr { instr = Branch { test; _ }; _ }; _ };
   ]
-    when result_id == id ->
+    when result_id == test.value.id ->
     let cc = cc_of_mir_comparison cmp (type_of_use left_val) in
     gen_cond_jmp cc result_id left_val right_val
   | { id = result_id; value = Instr { instr = Cmp (cmp, left_val, right_val); _ }; _ }

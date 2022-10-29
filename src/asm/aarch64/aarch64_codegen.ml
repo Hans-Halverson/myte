@@ -1,3 +1,4 @@
+open Aarch64_asm
 open Aarch64_calling_convention
 open Aarch64_gen_context
 open Asm
@@ -125,6 +126,17 @@ and gen_instructions ~gcx instructions =
   | [] -> ()
   (*
    * ===========================================
+   *                   Mov
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Mov arg; type_; _ }; _ } :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let arg_op = gen_value ~gcx arg in
+    Gcx.emit ~gcx (`MovR size) [| result_op; arg_op |];
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
    *                   Call
    * ===========================================
    *)
@@ -183,6 +195,45 @@ and gen_instructions ~gcx instructions =
       let value_vreg = gen_value ~gcx value in
       Gcx.emit ~gcx (`MovR size) [| return_reg_op; value_vreg |]);
     Gcx.emit ~gcx `Ret [||]
+  (*
+   * ===========================================
+   *              Cmp then Branch
+   * ===========================================
+   *)
+  | [
+   { id = result_id; value = Instr { instr = Cmp (cmp, left_val, right_val); _ }; _ };
+   { value = Instr { instr = Branch { test; continue; jump }; _ }; _ };
+  ]
+    when result_id == test.value.id ->
+    let cond = cond_of_mir_comparison cmp in
+    let cond =
+      (* If the only use of the comparison is in this branch instruction, only need to generate
+         a comparison instruction and use the current flags. *)
+      if value_has_single_use left_val.user then
+        let swapped = gen_cmp ~gcx left_val right_val in
+        if swapped then
+          swap_cond_order cond
+        else
+          cond
+      (* Otherwise the result of the comparison is used elsewhere, so we must load to a register
+         with a CSet instruction. We can still emit a BCond directly off the current flags though. *)
+      else
+        gen_cmp_cset ~gcx cond result_id left_val right_val
+    in
+    (* Note that the condition code is inverted as we emit a BCond to the false branch *)
+    let cond = invert_cond cond in
+    Gcx.emit ~gcx (`BCond cond) [| block_op_of_mir_block ~gcx jump |];
+    Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx continue |]
+  (*
+   * ===========================================
+   *                    Cmp
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Cmp (cmp, left_val, right_val); _ }; _ }
+    :: rest_instructions ->
+    let cond = cond_of_mir_comparison cmp in
+    ignore (gen_cmp_cset ~gcx cond result_id left_val right_val);
+    gen_instructions rest_instructions
   (*
    * ===========================================
    *                Terminators
@@ -288,6 +339,102 @@ and gen_instructions ~gcx instructions =
   | { value = Instr _; _ } :: _ -> failwith "Unimplemented MIR instruction"
   | { value = Lit _ | Argument _; _ } :: _ -> failwith "Expected instruction value"
 
+(* Generate a cmp instruction between two arguments. Return whether order was swapped.
+   All registers must be sign extended before comparison. *)
+and gen_cmp ~gcx left_val right_val =
+  let mir_type = type_of_use left_val in
+
+  let (left_op, left_is_sext) = gen_cmp_value ~gcx left_val in
+  let (right_op, right_is_sext) = gen_cmp_value ~gcx right_val in
+
+  match (left_op.value, right_op.value) with
+  | (Immediate _, Immediate _) -> failwith "Constants must be folded before codegen"
+  (* Comparison to immediate - swap operands if necessary *)
+  | (_, Immediate _) ->
+    gen_cmp_i ~gcx left_op right_op mir_type;
+    false
+  | (Immediate _, _) ->
+    gen_cmp_i ~gcx right_op left_op mir_type;
+    true
+  (* Comparison of registers - swap operands if only one needs sign extension *)
+  | (_, _) ->
+    let size = register_size_of_mir_value_type mir_type in
+    let extend =
+      match subregister_size_of_mir_value_type mir_type with
+      | B -> SXTB
+      | H -> SXTH
+      | W
+      | X ->
+        SXTX
+    in
+    if (not left_is_sext) && right_is_sext then (
+      Gcx.emit ~gcx (`CmpR (size, extend)) [| right_op; left_op |];
+      true
+    ) else
+      let left_sext_op =
+        if left_is_sext then
+          left_op
+        else
+          gen_sign_extended_op ~gcx ~type_:mir_type left_op
+      in
+      Gcx.emit ~gcx (`CmpR (size, extend)) [| left_sext_op; right_op |];
+      false
+
+and gen_cmp_i ~gcx reg_op imm_op mir_type =
+  let size = register_size_of_mir_value_type mir_type in
+  let n = int64_of_immediate (cast_to_immediate imm_op) in
+  let (instr, imm_op) =
+    if Integers.int64_less_than n 0L then
+      (`CmnI size, mk_imm ~imm:(Imm64 (Int64.neg n)))
+    else
+      (`CmpI size, imm_op)
+  in
+  let reg_sext_op = gen_sign_extended_op ~gcx ~type_:mir_type reg_op in
+  Gcx.emit ~gcx instr [| reg_sext_op; imm_op |]
+
+(* Generate an operand that can be used in cmp instructions. 12-bit immediates are allowed, larger
+   immediates must be loaded to a register. Return operand and whether it is sign extended. *)
+and gen_cmp_value ~gcx (use : Use.t) : Operand.t * bool =
+  match use.value.value with
+  | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) ->
+    let n = int64_of_literal lit in
+    (* -2^12 < n < 2^12 *)
+    let op =
+      if Integers.int64_less_than (-4096L) n && Integers.int64_less_than n 4096L then
+        mk_imm ~imm:(Imm64 n)
+      else
+        gen_mov_immediate ~gcx lit
+    in
+    (* Loaded immediates are always sign extended *)
+    (op, true)
+  | _ ->
+    let subregister_size = subregister_size_of_mir_value_type (type_of_use use) in
+    let is_sext =
+      match subregister_size with
+      | B
+      | H ->
+        false
+      | W
+      | X ->
+        true
+    in
+    (gen_value ~gcx use, is_sext)
+
+(* Generate a comparison and CSet instruction to load the result of the comparison to a register.
+   Return the condition that was used in the cmp (may be different than the input condition code, as
+   order of arguments may have been swapped). *)
+and gen_cmp_cset ~gcx cond result_id left_val right_val =
+  let result_op = mk_vreg_of_value_id ~type_:Bool result_id in
+  let swapped = gen_cmp ~gcx left_val right_val in
+  let cond =
+    if swapped then
+      swap_cond_order cond
+    else
+      cond
+  in
+  Gcx.emit ~gcx (`CSet (Size32, cond)) [| result_op |];
+  cond
+
 and gen_add_sub_i ~gcx instr dest_op reg_op n =
   (* n < 2^12 fits in a single add or sub instruction *)
   if Integers.int64_less_than n 4096L then
@@ -311,6 +458,19 @@ and gen_add_sub_value ~gcx (use : Use.t) : Operand.t =
     else
       gen_mov_immediate ~gcx lit
   | _ -> gen_value ~gcx use
+
+and gen_sign_extended_op ~gcx ~type_ op =
+  let subregister_size = subregister_size_of_mir_value_type type_ in
+  match subregister_size with
+  | B
+  | H ->
+    let size = register_size_of_mir_value_type type_ in
+    let sext_op = mk_vreg_of_op op in
+    Gcx.emit ~gcx (`Sxt (size, subregister_size)) [| sext_op; op |];
+    sext_op
+  | W
+  | X ->
+    op
 
 and gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val =
   let size = register_size_of_mir_value_type type_ in
@@ -449,3 +609,12 @@ and subregister_size_of_mir_value_type value_type =
     X
   | Aggregate _ -> failwith "TODO: Cannot compile aggregate structure literals"
   | Array _ -> failwith "TODO: Cannot compile array literals"
+
+and cond_of_mir_comparison cmp =
+  match cmp with
+  | Mir.Instruction.Eq -> EQ
+  | Neq -> NE
+  | Lt -> LT
+  | LtEq -> LE
+  | Gt -> GT
+  | GtEq -> GE

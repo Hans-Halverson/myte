@@ -17,7 +17,7 @@ class virtual use_def_visitor color_to_representative_operand =
 
     method mark_block_edge (instr : Instruction.t) =
       match instr with
-      | { instr = `B; operands = [| { value = Block next_block; _ } |]; block; _ } ->
+      | { instr = `B | `BCond _; operands = [| { value = Block next_block; _ } |]; block; _ } ->
         prev_blocks <- BlockMMap.add next_block block prev_blocks
       | _ -> ()
 

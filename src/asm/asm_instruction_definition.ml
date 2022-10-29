@@ -126,6 +126,24 @@ module AArch64 = struct
     | N
     | K
 
+  type cond =
+    | EQ
+    | NE
+    | LT
+    | LE
+    | GT
+    | GE
+
+  type extend =
+    | UXTB
+    | UXTH
+    | UXTW
+    | UXTX
+    | SXTB
+    | SXTH
+    | SXTW
+    | SXTX
+
   type instr =
     (* Instruction Suffixes:
          R - register
@@ -156,11 +174,21 @@ module AArch64 = struct
       `MSub of register_size
     | (* Neg Rd, Rs *)
       `Neg of register_size
+    | (* Cmp Rs, #imm12 *)
+      `CmpI of register_size
+    | (* Cmp Rs1, Rs2 where Rs2 has the specified extension *)
+      `CmpR of register_size * extend
+    | (* Cmn Rs, #imm12 *)
+      `CmnI of register_size
+    | (* CSet Rs with the specified cond *)
+      `CSet of register_size * cond
     | (* Sign extend subregister (Byte, Halfword, or Word) to full register (W or X) *)
       `Sxt of
       register_size * subregister_size
     | (* Unconditional branch to label *)
       `B
+    | (* Conditional branch to label *)
+      `BCond of cond
     | (* Function call to label *)
       `BL of param_types * calling_convention
     | (* Indirect function call through register. Register is always 64 bits. *)

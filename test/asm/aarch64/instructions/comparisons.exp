@@ -1,0 +1,241 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.testCompareBoolImmReg:
+  sxtb w0, w0
+  cmp w0, #1
+  cset w0, eq
+  ret
+test.testCompareBoolRegImm:
+  sxtb w0, w0
+  cmp w0, #1
+  cset w0, eq
+  ret
+test.testCompareBoolRegs:
+  sxtb w0, w0
+  cmp w0, w1, sxtb
+  cset w0, eq
+  ret
+test.testCompareByteImmReg:
+  sxtb w0, w0
+  cmp w0, #63
+  cset w0, gt
+  ret
+test.testCompareByteNegImmReg:
+  sxtb w0, w0
+  cmn w0, #63
+  cset w0, gt
+  ret
+test.testCompareByteRegImm:
+  sxtb w0, w0
+  cmp w0, #63
+  cset w0, lt
+  ret
+test.testCompareByteRegNegImm:
+  sxtb w0, w0
+  cmn w0, #63
+  cset w0, lt
+  ret
+test.testCompareByteRegs:
+  sxtb w0, w0
+  cmp w0, w1, sxtb
+  cset w0, lt
+  ret
+test.testCompareImmediateRegister:
+  cmp w0, #3
+  b.ne .L0
+  cmp w0, #3
+  cset w0, eq
+  b .L6
+.L0:
+  cmp w0, #3
+  b.eq .L1
+  cmp w0, #3
+  cset w0, ne
+  b .L6
+.L1:
+  cmp w0, #3
+  b.le .L2
+  cmp w0, #3
+  cset w0, gt
+  b .L6
+.L2:
+  cmp w0, #3
+  b.lt .L3
+  cmp w0, #3
+  cset w0, ge
+  b .L6
+.L3:
+  cmp w0, #3
+  b.ge .L4
+  cmp w0, #3
+  cset w0, lt
+  b .L6
+.L4:
+  cmp w0, #3
+  b.gt .L5
+  cmp w0, #3
+  cset w0, le
+  b .L6
+.L5:
+  movz w0, #1
+.L6:
+  ret
+test.testCompareIntDoubleLoadImm:
+  movz w1, #54919
+  movk w1, #18, lsl #16
+  cmp w0, w1
+  cset w0, lt
+  ret
+test.testCompareIntLoadedImm:
+  movz w1, #12345
+  cmp w0, w1
+  cset w0, lt
+  ret
+test.testCompareIntMaxImm:
+  cmp w0, #4095
+  cset w0, lt
+  ret
+test.testCompareIntMaxNegImm:
+  cmn w0, #4095
+  cset w0, lt
+  ret
+test.testCompareIntMinLoadedImm:
+  movz w1, #4096
+  cmp w0, w1
+  cset w0, lt
+  ret
+test.testCompareIntNegImmLoad:
+  movn w1, #4095
+  cmp w0, w1
+  cset w0, lt
+  ret
+test.testCompareIntNegImmReg:
+  cmn w0, #63
+  cset w0, gt
+  ret
+test.testCompareIntRegNegImm:
+  cmn w0, #63
+  cset w0, lt
+  ret
+test.testCompareLongImmReg:
+  cmp x0, #63
+  cset w0, gt
+  ret
+test.testCompareLongMaxNegImm:
+  cmn x0, #4095
+  cset w0, lt
+  ret
+test.testCompareLongNegImmLoad:
+  movn x1, #4095
+  cmp x0, x1
+  cset w0, lt
+  ret
+test.testCompareLongNegImmReg:
+  cmn x0, #63
+  cset w0, gt
+  ret
+test.testCompareLongRegImm:
+  cmp x0, #63
+  cset w0, lt
+  ret
+test.testCompareLongRegNegImm:
+  cmn x0, #63
+  cset w0, lt
+  ret
+test.testCompareLongRegs:
+  cmp x0, x1
+  cset w0, lt
+  ret
+test.testCompareRegisterImmediate:
+  cmp w0, #3
+  b.ne .L7
+  cmp w0, #3
+  cset w0, eq
+  b .L13
+.L7:
+  cmp w0, #3
+  b.eq .L8
+  cmp w0, #3
+  cset w0, ne
+  b .L13
+.L8:
+  cmp w0, #3
+  b.ge .L9
+  cmp w0, #3
+  cset w0, lt
+  b .L13
+.L9:
+  cmp w0, #3
+  b.gt .L10
+  cmp w0, #3
+  cset w0, le
+  b .L13
+.L10:
+  cmp w0, #3
+  b.le .L11
+  cmp w0, #3
+  cset w0, gt
+  b .L13
+.L11:
+  cmp w0, #3
+  b.lt .L12
+  cmp w0, #3
+  cset w0, ge
+  b .L13
+.L12:
+  movz w0, #1
+.L13:
+  ret
+test.testCompareRegisterRegister:
+  cmp w0, w1
+  b.ne .L14
+  cmp w0, w1
+  cset w0, eq
+  b .L20
+.L14:
+  cmp w0, w1
+  b.eq .L15
+  cmp w0, w1
+  cset w0, ne
+  b .L20
+.L15:
+  cmp w0, w1
+  b.ge .L16
+  cmp w0, w1
+  cset w0, lt
+  b .L20
+.L16:
+  cmp w0, w1
+  b.gt .L17
+  cmp w0, w1
+  cset w0, le
+  b .L20
+.L17:
+  cmp w0, w1
+  b.le .L18
+  cmp w0, w1
+  cset w0, gt
+  b .L20
+.L18:
+  cmp w0, w1
+  b.lt .L19
+  cmp w0, w1
+  cset w0, ge
+  b .L20
+.L19:
+  movz w0, #1
+.L20:
+  ret
+test.testCompareUnitImmReg:
+  movz w0, #1
+  ret
+test.testCompareUnitRegImm:
+  movz w0, #1
+  ret
+test.testCompareUnitRegs:
+  movz w0, #1
+  ret

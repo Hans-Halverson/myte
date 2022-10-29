@@ -54,9 +54,31 @@ let msub = { InstructionDef.operands = operands_rrrr }
 
 let neg = { InstructionDef.operands = operands_rr }
 
+let cmp_i =
+  {
+    InstructionDef.operands =
+      [{ use = Use; operand_type = Register }; { use = Use; operand_type = Immediate }];
+  }
+
+let cmp_r =
+  {
+    InstructionDef.operands =
+      [{ use = Use; operand_type = Register }; { use = Use; operand_type = Register }];
+  }
+
+let cmn_i =
+  {
+    InstructionDef.operands =
+      [{ use = Use; operand_type = Register }; { use = Use; operand_type = Immediate }];
+  }
+
+let cset = { InstructionDef.operands = [{ use = Def; operand_type = Register }] }
+
 let sxt = { InstructionDef.operands = operands_rr }
 
 let b = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
+
+let b_cond = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
 let bl = { InstructionDef.operands = [{ use = Use; operand_type = Function }] }
 
@@ -76,8 +98,13 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `SDiv _ -> sdiv
   | `MSub _ -> msub
   | `Neg _ -> neg
+  | `CmpI _ -> cmp_i
+  | `CmpR _ -> cmp_r
+  | `CmnI _ -> cmn_i
+  | `CSet _ -> cset
   | `Sxt _ -> sxt
   | `B -> b
+  | `BCond _ -> b_cond
   | `BL _ -> bl
   | `BLR _ -> blr
   | `Ret -> ret
@@ -97,7 +124,11 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `Mul size
   | `SDiv size
   | `MSub size
-  | `Neg size ->
+  | `Neg size
+  | `CmpI size
+  | `CmpR (size, _)
+  | `CmnI size
+  | `CSet (size, _) ->
     size
   (* Registers must be 64 bits *)
   | `BLR _ -> Size64
@@ -109,6 +140,7 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
       Size32
   (* Instructions with no sized operands *)
   | `B
+  | `BCond _
   | `BL _
   | `Ret ->
     failwith "No sized operands"
