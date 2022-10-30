@@ -25,6 +25,8 @@ let imm_byte_mask = mk_imm64 ~n:255L
 
 let imm_half_word_mask = mk_imm64 ~n:65535L
 
+let imm_word_mask = mk_imm64 ~n:4294967295L
+
 let mk_vreg = mk_virtual_register
 
 let mk_vreg_of_value_id value_id = mk_virtual_register_of_value_id ~value_id
@@ -130,10 +132,14 @@ and gen_instructions ~gcx instructions =
   | [] -> ()
   (*
    * ===========================================
-   *        Copy Instructions (Mov, Cast)
+   *    Copy Instructions (Mov, Cast, Trunc)
    * ===========================================
    *)
-  | { id = result_id; value = Instr { instr = Mov arg_val | Cast arg_val; type_; _ }; _ }
+  | {
+      id = result_id;
+      value = Instr { instr = Mov arg_val | Cast arg_val | Trunc arg_val; type_; _ };
+      _;
+    }
     :: rest_instructions ->
     gen_mov ~gcx ~type_ result_id arg_val;
     gen_instructions rest_instructions
@@ -449,6 +455,34 @@ and gen_instructions ~gcx instructions =
        let target_op = gen_zero_extended_value ~gcx target_val in
        Gcx.emit ~gcx (`LsrI size) [| result_op; target_op; shift_op |]);
     gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  SExt
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { type_; instr = SExt arg_val; _ }; _ } :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let subregister_size = subregister_size_of_mir_value_type (type_of_use arg_val) in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let arg_op = gen_value ~gcx arg_val in
+    Gcx.emit ~gcx (`Sxt (size, subregister_size)) [| result_op; arg_op |];
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  ZExt
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { type_; instr = ZExt arg_val; _ }; _ } :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let subregister_size = subregister_size_of_mir_value_type (type_of_use arg_val) in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let arg_op = gen_value ~gcx arg_val in
+    (match subregister_size with
+    | B -> Gcx.emit ~gcx (`AndI size) [| result_op; arg_op; imm_byte_mask |]
+    | H -> Gcx.emit ~gcx (`AndI size) [| result_op; arg_op; imm_half_word_mask |]
+    | W -> Gcx.emit ~gcx (`AndI size) [| result_op; arg_op; imm_word_mask |]
+    | X -> Gcx.emit ~gcx (`MovR size) [| result_op; arg_op |]);
+    gen_instructions rest_instructions
   | {
       value =
         Instr
@@ -456,8 +490,7 @@ and gen_instructions ~gcx instructions =
             instr =
               ( Binary ((And | Or | Xor), _, _)
               | Call { func = MirBuiltin _; _ }
-              | GetPointer _ | Load _ | Store _ | Trunc _ | SExt _ | ZExt _ | IntToFloat _
-              | FloatToInt _ );
+              | GetPointer _ | Load _ | Store _ | IntToFloat _ | FloatToInt _ );
             _;
           };
       _;

@@ -1,0 +1,15 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.sextByteToInt:
+  sxtb w0, w0
+  ret
+test.sextByteToLong:
+  sxtb x0, w0
+  ret
+test.sextIntToLong:
+  sxtw x0, w0
+  ret

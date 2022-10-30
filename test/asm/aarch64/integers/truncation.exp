@@ -1,0 +1,15 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.truncIntToByte:
+  mov w0, w1
+  ret
+test.truncLongToByte:
+  mov w0, w1
+  ret
+test.truncLongToInt:
+  mov w0, w1
+  ret

@@ -1,0 +1,17 @@
+module test
+
+fun use<T>(x: T) {}
+
+fun truncIntToByte(a: Bool, x: Int): Byte {
+  return x.toByte();
+}
+
+fun truncLongToByte(a: Bool, x: Long): Byte {
+  return x.toByte();
+}
+
+fun truncLongToInt(a: Bool, x: Long): Int {
+  return x.toInt();
+}
+
+fun main() {}
