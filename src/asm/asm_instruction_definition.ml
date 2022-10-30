@@ -176,6 +176,23 @@ module AArch64 = struct
       `Neg of register_size
     | (* Bitwise not: Mvn Rd, Rs *)
       `Mvn of register_size
+    | (* And Rd, Rs, #imm where #imm is a bitmask immediate *)
+      `AndI of register_size
+    | (* Immediate shifts: Shift Rd, Rs, #shift where 0 <= shift < 32 or 64
+           Register shifts: Shift Rd, Rs1, Rs2 where only low 5 (or 6) bits of Rs2 are used *)
+      `LslI of
+      register_size
+    | `LslR of register_size
+    | `LsrI of register_size
+    | `LsrR of register_size
+    | `AsrI of register_size
+    | `AsrR of register_size
+    | (* Signed and unsigned bitfield extract: Bfx Rd, Rs, #imm1, #imm2.
+         #imm1 is the number of bits to rotate right, and #imm2 is the number of bits on the right
+         to extract. The rest of the bits will be sign extended or not depending on instruction. *)
+      `Sbfx of
+      register_size
+    | `Ubfx of register_size
     | (* Cmp Rs, #imm12 *)
       `CmpI of register_size
     | (* Cmp Rs1, Rs2 where Rs2 has the specified extension *)

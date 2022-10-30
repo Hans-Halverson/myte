@@ -1,0 +1,43 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.shrlByteImmReg:
+  movz w1, #6
+  lsr w0, w1, w0
+  ret
+test.shrlByteRegImm:
+  ubfx w0, w0, #6, #2
+  ret
+test.shrlByteRegs:
+  and w0, w0, #255
+  lsr w0, w0, w1
+  ret
+test.shrlIntImmReg:
+  movz w1, #6
+  lsr w0, w1, w0
+  ret
+test.shrlIntRegImm:
+  lsr w0, w0, #6
+  ret
+test.shrlIntRegs:
+  lsr w0, w0, w1
+  ret
+test.shrlLongImmReg:
+  movz x1, #6
+  lsr x0, x1, x0
+  ret
+test.shrlLongRegImm:
+  lsr x0, x0, #6
+  ret
+test.shrlLongRegs:
+  lsr x0, x0, x1
+  ret
+test.shrlTruncIntImm:
+  lsr w0, w0, #1
+  ret
+test.shrlTruncLongImm:
+  lsr w0, w0, #2
+  ret

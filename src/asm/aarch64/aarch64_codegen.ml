@@ -21,6 +21,10 @@ let imm_32 = mk_imm ~imm:(Imm8 (Int8.of_int 32))
 
 let imm_48 = mk_imm ~imm:(Imm8 (Int8.of_int 48))
 
+let imm_byte_mask = mk_imm64 ~n:255L
+
+let imm_half_word_mask = mk_imm64 ~n:65535L
+
 let mk_vreg = mk_virtual_register
 
 let mk_vreg_of_value_id value_id = mk_virtual_register_of_value_id ~value_id
@@ -126,14 +130,12 @@ and gen_instructions ~gcx instructions =
   | [] -> ()
   (*
    * ===========================================
-   *                   Mov
+   *        Copy Instructions (Mov, Cast)
    * ===========================================
    *)
-  | { id = result_id; value = Instr { instr = Mov arg; type_; _ }; _ } :: rest_instructions ->
-    let size = register_size_of_mir_value_type type_ in
-    let result_op = mk_vreg_of_value_id ~type_ result_id in
-    let arg_op = gen_value ~gcx arg in
-    Gcx.emit ~gcx (`MovR size) [| result_op; arg_op |];
+  | { id = result_id; value = Instr { instr = Mov arg_val | Cast arg_val; type_; _ }; _ }
+    :: rest_instructions ->
+    gen_mov ~gcx ~type_ result_id arg_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -357,18 +359,104 @@ and gen_instructions ~gcx instructions =
     ) else
       Gcx.emit ~gcx (`Mvn size) [| result_op; arg_op |];
     gen_instructions rest_instructions
-  | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
-    failwith "Phi nodes must be removed before asm gen"
-  | { value = Instr { instr = Mir.Instruction.StackAlloc _; _ }; _ } :: _ ->
-    failwith "StackAlloc instructions removed before asm gen"
+  (*
+   * ===========================================
+   *                  Shl
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Shl, target_val, shift_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let target_op = gen_value ~gcx target_val in
+    let shift_op = gen_shift_value ~gcx ~size shift_val in
+    let instr =
+      match shift_op.Operand.value with
+      | Immediate _ -> `LslI size
+      | _ -> `LslR size
+    in
+    Gcx.emit ~gcx instr [| result_op; target_op; shift_op |];
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  Shr
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Shr, target_val, shift_val); type_; _ }; _ }
+    :: rest_instructions ->
+    (* Arithmetic right shift is a no-op on bools and cannot be represented by shr instruction *)
+    (if is_bool_value target_val.value then
+      gen_mov ~gcx ~type_ result_id target_val
+    else
+      let size = register_size_of_mir_value_type type_ in
+      let result_op = mk_vreg_of_value_id ~type_ result_id in
+      let shift_op = gen_shift_value ~gcx ~size shift_val in
+      match shift_op.Operand.value with
+      | Immediate imm ->
+        let subregister_size = subregister_size_of_mir_value_type type_ in
+        (match subregister_size with
+        (* Right shift by a known constant is modeled as a signed bitfield extract that extracts
+           just the bits in the shifted subregister range. *)
+        | B ->
+          let n = int64_of_immediate imm in
+          let num_bits_remaining = mk_imm64 ~n:(Int64.sub 8L n) in
+          let target_op = gen_value ~gcx target_val in
+          Gcx.emit ~gcx (`Sbfx size) [| result_op; target_op; shift_op; num_bits_remaining |]
+        | H ->
+          let n = int64_of_immediate imm in
+          let num_bits_remaining = mk_imm64 ~n:(Int64.sub 16L n) in
+          let target_op = gen_value ~gcx target_val in
+          Gcx.emit ~gcx (`Sbfx size) [| result_op; target_op; shift_op; num_bits_remaining |]
+        | W
+        | X ->
+          let target_op = gen_value ~gcx target_val in
+          Gcx.emit ~gcx (`AsrI size) [| result_op; target_op; shift_op |])
+      | _ ->
+        let target_op = gen_sign_extended_value ~gcx target_val in
+        Gcx.emit ~gcx (`AsrR size) [| result_op; target_op; shift_op |]);
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                  Shrl
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Shrl, target_val, shift_val); type_; _ }; _ }
+    :: rest_instructions ->
+    (let size = register_size_of_mir_value_type type_ in
+     let result_op = mk_vreg_of_value_id ~type_ result_id in
+     let shift_op = gen_shift_value ~gcx ~size shift_val in
+     match shift_op.Operand.value with
+     | Immediate imm ->
+       let subregister_size = subregister_size_of_mir_value_type type_ in
+       (match subregister_size with
+       (* Right shift by a known constant is modeled as an unsigned bitfield extract that extracts
+          just the bits in the shifted subregister range. *)
+       | B ->
+         let n = int64_of_immediate imm in
+         let num_bits_remaining = mk_imm64 ~n:(Int64.sub 8L n) in
+         let target_op = gen_value ~gcx target_val in
+         Gcx.emit ~gcx (`Ubfx size) [| result_op; target_op; shift_op; num_bits_remaining |]
+       | H ->
+         let n = int64_of_immediate imm in
+         let num_bits_remaining = mk_imm64 ~n:(Int64.sub 16L n) in
+         let target_op = gen_value ~gcx target_val in
+         Gcx.emit ~gcx (`Ubfx size) [| result_op; target_op; shift_op; num_bits_remaining |]
+       | W
+       | X ->
+         let target_op = gen_value ~gcx target_val in
+         Gcx.emit ~gcx (`LsrR size) [| result_op; target_op; shift_op |])
+     | _ ->
+       let target_op = gen_zero_extended_value ~gcx target_val in
+       Gcx.emit ~gcx (`LsrI size) [| result_op; target_op; shift_op |]);
+    gen_instructions rest_instructions
   | {
       value =
         Instr
           {
             instr =
-              ( Binary ((And | Or | Xor | Shl | Shr | Shrl), _, _)
+              ( Binary ((And | Or | Xor), _, _)
               | Call { func = MirBuiltin _; _ }
-              | GetPointer _ | Load _ | Store _ | Cast _ | Trunc _ | SExt _ | ZExt _ | IntToFloat _
+              | GetPointer _ | Load _ | Store _ | Trunc _ | SExt _ | ZExt _ | IntToFloat _
               | FloatToInt _ );
             _;
           };
@@ -376,7 +464,17 @@ and gen_instructions ~gcx instructions =
     }
     :: _ ->
     failwith "Unimplemented MIR instruction"
+  | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
+    failwith "Phi nodes must be removed before asm gen"
+  | { value = Instr { instr = Mir.Instruction.StackAlloc _; _ }; _ } :: _ ->
+    failwith "StackAlloc instructions removed before asm gen"
   | { value = Lit _ | Argument _; _ } :: _ -> failwith "Expected instruction value"
+
+and gen_mov ~gcx ~type_ result_id arg_val =
+  let size = register_size_of_mir_value_type type_ in
+  let result_op = mk_vreg_of_value_id ~type_ result_id in
+  let arg_op = gen_value ~gcx arg_val in
+  Gcx.emit ~gcx (`MovR size) [| result_op; arg_op |]
 
 (* Generate a cmp instruction between two arguments. Return whether order was swapped.
    All registers must be sign extended before comparison. *)
@@ -424,7 +522,7 @@ and gen_cmp_i ~gcx reg_op imm_op mir_type =
   let n = int64_of_immediate (cast_to_immediate imm_op) in
   let (instr, imm_op) =
     if Integers.int64_less_than n 0L then
-      (`CmnI size, mk_imm ~imm:(Imm64 (Int64.neg n)))
+      (`CmnI size, mk_imm64 ~n:(Int64.neg n))
     else
       (`CmpI size, imm_op)
   in
@@ -440,7 +538,7 @@ and gen_cmp_value ~gcx (use : Use.t) : Operand.t * bool =
     (* -2^12 < n < 2^12 *)
     let op =
       if Integers.int64_less_than (-4096L) n && Integers.int64_less_than n 4096L then
-        mk_imm ~imm:(Imm64 n)
+        mk_imm64 ~n
       else
         gen_mov_immediate ~gcx lit
     in
@@ -477,13 +575,13 @@ and gen_cmp_cset ~gcx cond result_id left_val right_val =
 and gen_add_sub_i ~gcx instr dest_op reg_op n =
   (* n < 2^12 fits in a single add or sub instruction *)
   if Integers.int64_less_than n 4096L then
-    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm ~imm:(Imm64 n); imm_0 |]
+    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm64 ~n; imm_0 |]
   else
     (* n >= 2^12 is split into two add or sub instructions for low and high 12-bit chunks *)
     let low_12_bits = Int64.logand n 4095L in
     let high_12_bits = Int64.shift_right n 12 |> Int64.logand 4095L in
-    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm ~imm:(Imm64 high_12_bits); imm_12 |];
-    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm ~imm:(Imm64 low_12_bits); imm_0 |]
+    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm64 ~n:high_12_bits; imm_12 |];
+    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm64 ~n:low_12_bits; imm_0 |]
 
 (* Generate an operand that can be used in add or sub instructions. 24-bit immediates are allowed,
    but larger immediates must be loaded to a register. *)
@@ -493,11 +591,12 @@ and gen_add_sub_value ~gcx (use : Use.t) : Operand.t =
     let n = int64_of_literal lit in
     (* -2^24 < n < 2^24 can be encoded as immediate in 1 or 2 add/sub instructions *)
     if Integers.int64_less_than (-16777216L) n && Integers.int64_less_than n 16777216L then
-      mk_imm ~imm:(Imm64 n)
+      mk_imm64 ~n
     else
       gen_mov_immediate ~gcx lit
   | _ -> gen_value ~gcx use
 
+(* Sign extend an operand to its full register width, if needed *)
 and gen_sign_extended_op ~gcx ~type_ op =
   let subregister_size = subregister_size_of_mir_value_type type_ in
   match subregister_size with
@@ -510,6 +609,35 @@ and gen_sign_extended_op ~gcx ~type_ op =
   | W
   | X ->
     op
+
+(* Generate a sign extended value that fits the full register *)
+and gen_sign_extended_value ~gcx (use : Use.t) =
+  match use.value.value with
+  | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) -> gen_mov_immediate ~gcx lit
+  | _ ->
+    let type_ = type_of_use use in
+    let op = gen_value ~gcx use in
+    gen_sign_extended_op ~gcx ~type_ op
+
+(* Generate a zero extended value that fits the full register *)
+and gen_zero_extended_value ~gcx (use : Use.t) =
+  match use.value.value with
+  | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) -> gen_mov_immediate ~gcx lit
+  | _ ->
+    let op = gen_value ~gcx use in
+    let subregister_size = subregister_size_of_mir_value_type (type_of_use use) in
+    (match subregister_size with
+    | B ->
+      let zext_op = mk_vreg_of_op op in
+      Gcx.emit ~gcx (`AndI Size32) [| zext_op; op; imm_byte_mask |];
+      zext_op
+    | H ->
+      let zext_op = mk_vreg_of_op op in
+      Gcx.emit ~gcx (`AndI Size32) [| zext_op; op; imm_half_word_mask |];
+      zext_op
+    | W
+    | X ->
+      op)
 
 and gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val =
   let size = register_size_of_mir_value_type type_ in
@@ -541,8 +669,16 @@ and gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val =
   Gcx.emit ~gcx (`SDiv size) [| result_op; left_op; right_op |];
   (left_op, right_op)
 
-and block_op_of_mir_block ~gcx mir_block =
-  mk_block_op ~block:(Gcx.get_block_from_mir_block ~gcx mir_block)
+and gen_shift_value ~gcx ~size shift_val =
+  match shift_val.Use.value.value with
+  | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) ->
+    (* Only low bits are used for shift, so truncate immediate *)
+    let n = int64_of_literal lit in
+    if size == Size64 then
+      mk_imm64 ~n:(Int64.logand n 63L)
+    else
+      mk_imm64 ~n:(Int64.logand n 31L)
+  | _ -> gen_value ~gcx shift_val
 
 (* Generate an immediate value loaded to a register. Only 16 bits can be moved in a single
    instruction, if more are required then additional movk instructions must be used. *)
@@ -616,6 +752,9 @@ and gen_value ~gcx (use : Use.t) =
   | Instr { type_; _ }
   | Argument { type_; _ } ->
     mk_virtual_register_of_value_id ~value_id:use.value.id ~type_
+
+and block_op_of_mir_block ~gcx mir_block =
+  mk_block_op ~block:(Gcx.get_block_from_mir_block ~gcx mir_block)
 
 and register_size_of_mir_value_type value_type =
   match value_type with

@@ -1,0 +1,42 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.shlByteImmReg:
+  movz w1, #6
+  lsl w0, w1, w0
+  ret
+test.shlByteRegImm:
+  lsl w0, w0, #6
+  ret
+test.shlByteRegs:
+  lsl w0, w0, w1
+  ret
+test.shlIntImmReg:
+  movz w1, #6
+  lsl w0, w1, w0
+  ret
+test.shlIntRegImm:
+  lsl w0, w0, #6
+  ret
+test.shlIntRegs:
+  lsl w0, w0, w1
+  ret
+test.shlLongImmReg:
+  movz x1, #6
+  lsl x0, x1, x0
+  ret
+test.shlLongRegImm:
+  lsl x0, x0, #6
+  ret
+test.shlLongRegs:
+  lsl x0, x0, x1
+  ret
+test.shlTruncIntImm:
+  lsl w0, w0, #1
+  ret
+test.shlTruncLongImm:
+  lsl w0, w0, #2
+  ret

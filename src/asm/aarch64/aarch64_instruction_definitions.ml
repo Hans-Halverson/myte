@@ -26,6 +26,28 @@ let operands_add_sub_i =
     { use = Use; operand_type = Immediate };
   ]
 
+let operands_bitwise_i =
+  [
+    { OperandDef.use = Def; operand_type = Register };
+    { use = Use; operand_type = Register };
+    { use = Use; operand_type = Immediate };
+  ]
+
+let operands_shift_i =
+  [
+    { OperandDef.use = Def; operand_type = Register };
+    { use = Use; operand_type = Register };
+    { use = Use; operand_type = Immediate };
+  ]
+
+let operands_bfx =
+  [
+    { OperandDef.use = Def; operand_type = Register };
+    { use = Use; operand_type = Register };
+    { use = Use; operand_type = Immediate };
+    { use = Use; operand_type = Immediate };
+  ]
+
 let mov_i =
   {
     InstructionDef.operands =
@@ -55,6 +77,24 @@ let msub = { InstructionDef.operands = operands_rrrr }
 let neg = { InstructionDef.operands = operands_rr }
 
 let mvn = { InstructionDef.operands = operands_rr }
+
+let and_i = { InstructionDef.operands = operands_bitwise_i }
+
+let lsl_i = { InstructionDef.operands = operands_shift_i }
+
+let lsl_r = { InstructionDef.operands = operands_rrr }
+
+let lsr_i = { InstructionDef.operands = operands_shift_i }
+
+let lsr_r = { InstructionDef.operands = operands_rrr }
+
+let asr_i = { InstructionDef.operands = operands_shift_i }
+
+let asr_r = { InstructionDef.operands = operands_rrr }
+
+let sbfx = { InstructionDef.operands = operands_bfx }
+
+let ubfx = { InstructionDef.operands = operands_bfx }
 
 let cmp_i =
   {
@@ -107,6 +147,15 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `MSub _ -> msub
   | `Neg _ -> neg
   | `Mvn _ -> mvn
+  | `AndI _ -> and_i
+  | `LslI _ -> lsl_i
+  | `LslR _ -> lsl_r
+  | `LsrI _ -> lsr_i
+  | `LsrR _ -> lsr_r
+  | `AsrI _ -> asr_i
+  | `AsrR _ -> asr_r
+  | `Sbfx _ -> sbfx
+  | `Ubfx _ -> ubfx
   | `CmpI _ -> cmp_i
   | `CmpR _ -> cmp_r
   | `CmnI _ -> cmn_i
@@ -137,6 +186,15 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `MSub size
   | `Neg size
   | `Mvn size
+  | `AndI size
+  | `LslI size
+  | `LslR size
+  | `LsrI size
+  | `LsrR size
+  | `AsrI size
+  | `AsrR size
+  | `Sbfx size
+  | `Ubfx size
   | `CmpI size
   | `CmpR (size, _)
   | `CmnI size

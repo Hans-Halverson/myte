@@ -37,6 +37,8 @@ let mk_imm ~(imm : immediate) : Operand.t =
   in
   mk_operand ~value:(Immediate imm) ~type_
 
+let mk_imm64 ~(n : Int64.t) : Operand.t = mk_operand ~value:(Immediate (Imm64 n)) ~type_:Long
+
 let mk_function_op ~(func : Function.t) : Operand.t =
   mk_operand ~value:(Function func) ~type_:Function
 

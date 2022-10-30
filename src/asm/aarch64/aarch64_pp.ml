@@ -161,6 +161,27 @@ let pp_instruction ~gcx ~pcx ~buf instr =
       | `Mvn _ ->
         pp_op "mvn";
         pp_operands ()
+      | `AndI _ ->
+        pp_op "and";
+        pp_operands ()
+      | `LslI _
+      | `LslR _ ->
+        pp_op "lsl";
+        pp_operands ()
+      | `LsrI _
+      | `LsrR _ ->
+        pp_op "lsr";
+        pp_operands ()
+      | `AsrI _
+      | `AsrR _ ->
+        pp_op "asr";
+        pp_operands ()
+      | `Sbfx _ ->
+        pp_op "sbfx";
+        pp_operands ()
+      | `Ubfx _ ->
+        pp_op "ubfx";
+        pp_operands ()
       | `CmpI _ ->
         pp_op "cmp";
         pp_operands ()

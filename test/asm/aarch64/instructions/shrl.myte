@@ -1,0 +1,19 @@
+module test
+
+fun shrlByteRegs(x: Byte, y: Byte): Byte = x >>> y
+fun shrlByteImmReg(x: Byte): Byte = 6 >>> x
+fun shrlByteRegImm(x: Byte): Byte = x >>> 6
+
+fun shrlIntRegs(x: Int, y: Int): Int = x >>> y
+fun shrlIntRegImm(x: Int): Int = x >>> 6
+fun shrlIntImmReg(x: Int): Int = 6 >>> x
+
+fun shrlLongRegs(x: Long, y: Long): Long = x >>> y
+fun shrlLongRegImm(x: Long): Long = x >>> 6
+fun shrlLongImmReg(x: Long): Long = 6 >>> x
+
+// Testing truncation of shift immediate to low bits
+fun shrlTruncIntImm(x: Int): Int = x >>> 257
+fun shrlTruncLongImm(x: Int): Int = x >>> 2147483650
+
+fun main() {}
