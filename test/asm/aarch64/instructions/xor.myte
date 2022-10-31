@@ -1,0 +1,15 @@
+module test
+
+fun xorByteRegs(x: Byte, y: Byte): Byte = x ^ y
+fun xorByteImmReg(x: Byte): Byte = 60 ^ x
+fun xorByteRegImm(x: Byte): Byte = x ^ 60
+
+fun xorIntRegs(x: Int, y: Int): Int = x ^ y
+fun xorIntRegImm(x: Int): Int = x ^ 60
+fun xorIntImmReg(x: Int): Int = 60 ^ x
+
+fun xorLongRegs(x: Long, y: Long): Long = x ^ y
+fun xorLongRegImm(x: Long): Long = x ^ 60
+fun xorLongImmReg(x: Long): Long = 60 ^ x
+
+fun main() {}

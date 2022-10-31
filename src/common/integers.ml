@@ -98,16 +98,6 @@ let zext_int32_to_int64 x =
 
 let is_power_of_two x = Int64.equal 0L (Int64.logand x (Int64.sub x 1L))
 
-(* Find rightmost bit that is set, index of bit minus 1 is power of two *)
-let power_of_two x =
-  let rec find_set_bit x i =
-    if Int64.equal 1L x then
-      i
-    else
-      find_set_bit (Int64.shift_right_logical x 1) (i + 1)
-  in
-  find_set_bit x 0
-
 let int64_of_char char = Int64.of_int (int_of_char char)
 
 let int64_less_than x y = Int64.compare x y == -1
@@ -117,3 +107,116 @@ let char_to_string char =
     "\""
   else
     Char.escaped char
+
+(* Find number of trailing zeros (starting from the lowest bit) using de Bruijn indices:
+   http://supertech.csail.mit.edu/papers/debruijn.pdf *)
+
+let debruijn_ctz32_table = [|
+	 0;  1; 28;  2; 29; 14; 24; 3;
+  30; 22; 20; 15; 25; 17;  4; 8;
+	31; 27; 13; 23; 21; 19; 16; 7;
+  26; 12; 18;  6; 11;  5; 10; 9
+|] [@@ocamlformat "disable"]
+
+let debruijn_ctz64_table = [|
+   0;  1; 48;  2; 57; 49; 28;  3;
+  61; 58; 50; 42; 38; 29; 17;  4;
+  62; 55; 59; 36; 53; 51; 43; 22;
+  45; 39; 33; 30; 24; 18; 12;  5;
+  63; 47; 56; 27; 60; 41; 37; 16;
+  54; 35; 52; 21; 44; 32; 23; 11;
+  46; 26; 40; 15; 34; 20; 31; 10;
+  25; 14; 19;  9; 13;  8;  7;  6
+|] [@@ocamlformat "disable"]
+
+let int32_ctz (x : Int32.t) =
+  if Int32.equal x 0l then
+    32
+  else
+    let index =
+      Int32.shift_right_logical (Int32.mul (Int32.logand x (Int32.neg x)) 0x077CB531l) 27
+    in
+    debruijn_ctz32_table.(Int32.to_int index)
+
+let int64_ctz (x : Int64.t) =
+  if Int64.equal x 0L then
+    64
+  else
+    let index =
+      Int64.shift_right_logical (Int64.mul (Int64.logand x (Int64.neg x)) 0x03f79d71b4cb0a89L) 58
+    in
+    debruijn_ctz64_table.(Int64.to_int index)
+
+(* Find number of leading zeros (starting from the highest bit) by first finding which byte
+   contains the highest one by binary searching by bytes. Then look up the byte in a lookup table
+   to find the (inverse of the) number of leading zeros in that byte. *)
+
+let byte_clz_table = [|
+  0; 1; 2; 2; 3; 3; 3; 3; 4; 4; 4; 4; 4; 4; 4; 4;
+  5; 5; 5; 5; 5; 5; 5; 5; 5; 5; 5; 5; 5; 5; 5; 5;
+  6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6;
+  6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6; 6;
+  7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7;
+  7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7;
+  7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7;
+  7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7; 7;
+  8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8;
+  8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8;
+  8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8;
+  8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8;
+  8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8;
+  8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8;
+  8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8;
+  8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8; 8
+|] [@@ocamlformat "disable"]
+
+let int32_clz (n32 : Int32.t) =
+  let (n16, offset) =
+    if Int32.unsigned_compare n32 0xFFFFl == 1 then
+      (Int32.shift_right_logical n32 16, 16)
+    else
+      (n32, 0)
+  in
+  let (n8, offset) =
+    if Int32.unsigned_compare n16 0xFFl == 1 then
+      (Int32.shift_right_logical n16 8, offset + 8)
+    else
+      (n16, offset)
+  in
+  32 - (offset + byte_clz_table.(Int32.to_int n8))
+
+let int64_clz (n64 : Int64.t) =
+  let (n32, offset) =
+    if Int64.unsigned_compare n64 0xFFFFFFFFL == 1 then
+      (Int64.shift_right_logical n64 32, 32)
+    else
+      (n64, 0)
+  in
+  let (n16, offset) =
+    if Int64.unsigned_compare n32 0xFFFFL == 1 then
+      (Int64.shift_right_logical n32 16, offset + 16)
+    else
+      (n32, offset)
+  in
+  let (n8, offset) =
+    if Int64.unsigned_compare n16 0xFFL == 1 then
+      (Int64.shift_right_logical n16 8, offset + 8)
+    else
+      (n16, offset)
+  in
+  64 - (offset + byte_clz_table.(Int64.to_int n8))
+
+(* Rotate an integer left by the specified number of bits. Rotate left by passing a negative
+   rotate argument. *)
+
+let int32_rotate_left (x : Int32.t) (n : int) =
+  let n_mod_31 = n land 31 in
+  let high_bits = Int32.shift_left x n_mod_31 in
+  let low_bits = Int32.shift_right_logical x (32 - n_mod_31) in
+  Int32.logor high_bits low_bits
+
+let int64_rotate_left (x : Int64.t) (n : int) =
+  let n_mod_64 = n land 63 in
+  let high_bits = Int64.shift_left x n_mod_64 in
+  let low_bits = Int64.shift_right_logical x (64 - n_mod_64) in
+  Int64.logor high_bits low_bits

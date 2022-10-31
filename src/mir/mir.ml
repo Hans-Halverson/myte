@@ -484,6 +484,15 @@ let int64_of_literal lit =
   | Long lit -> lit
   | _ -> failwith "Expected integer literal"
 
+let int32_of_literal lit =
+  match lit with
+  | Literal.Bool false -> 0l
+  | Bool true -> 1l
+  | Byte lit -> Int8.to_int32 lit
+  | Int lit -> lit
+  | Long lit -> Int64.to_int32 lit
+  | _ -> failwith "Expected integer literal"
+
 let is_zero_literal lit =
   match lit with
   | Literal.Bool lit -> not lit

@@ -80,6 +80,16 @@ let mvn = { InstructionDef.operands = operands_rr }
 
 let and_i = { InstructionDef.operands = operands_bitwise_i }
 
+let and_r = { InstructionDef.operands = operands_rrr }
+
+let orr_i = { InstructionDef.operands = operands_bitwise_i }
+
+let orr_r = { InstructionDef.operands = operands_rrr }
+
+let eor_i = { InstructionDef.operands = operands_bitwise_i }
+
+let eor_r = { InstructionDef.operands = operands_rrr }
+
 let lsl_i = { InstructionDef.operands = operands_shift_i }
 
 let lsl_r = { InstructionDef.operands = operands_rrr }
@@ -148,6 +158,11 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `Neg _ -> neg
   | `Mvn _ -> mvn
   | `AndI _ -> and_i
+  | `AndR _ -> and_r
+  | `OrrI _ -> orr_i
+  | `OrrR _ -> orr_r
+  | `EorI _ -> eor_i
+  | `EorR _ -> eor_r
   | `LslI _ -> lsl_i
   | `LslR _ -> lsl_r
   | `LsrI _ -> lsr_i
@@ -187,6 +202,11 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `Neg size
   | `Mvn size
   | `AndI size
+  | `AndR size
+  | `OrrI size
+  | `OrrR size
+  | `EorI size
+  | `EorR size
   | `LslI size
   | `LslR size
   | `LsrI size

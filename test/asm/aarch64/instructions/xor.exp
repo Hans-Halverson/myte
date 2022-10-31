@@ -1,0 +1,33 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.xorByteImmReg:
+  eor w0, w0, #60
+  ret
+test.xorByteRegImm:
+  eor w0, w0, #60
+  ret
+test.xorByteRegs:
+  eor w0, w0, w1
+  ret
+test.xorIntImmReg:
+  eor w0, w0, #60
+  ret
+test.xorIntRegImm:
+  eor w0, w0, #60
+  ret
+test.xorIntRegs:
+  eor w0, w0, w1
+  ret
+test.xorLongImmReg:
+  eor x0, x0, #60
+  ret
+test.xorLongRegImm:
+  eor x0, x0, #60
+  ret
+test.xorLongRegs:
+  eor x0, x0, x1
+  ret

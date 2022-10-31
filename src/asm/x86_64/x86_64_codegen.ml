@@ -748,7 +748,7 @@ and gen_instructions ~gcx ~ir ~block instructions =
       | SImm imm
         when Opts.optimize ()
              && Integers.is_power_of_two (int64_of_immediate (cast_to_immediate imm)) ->
-        let power_of_two = Integers.power_of_two (int64_of_immediate (cast_to_immediate imm)) in
+        let power_of_two = Integers.int64_ctz (int64_of_immediate (cast_to_immediate imm)) in
         let power_of_two_imm = mk_imm ~imm:(Imm8 (Int8.of_int power_of_two)) in
         let left = resolve_ir_value left_val in
         let left_mem = emit_mem left in

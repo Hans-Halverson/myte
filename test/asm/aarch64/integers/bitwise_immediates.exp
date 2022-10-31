@@ -1,0 +1,104 @@
+  .global _main
+
+  .text
+test.intComplexImm1:
+  and w0, w0, #252645135
+  ret
+test.intComplexImm2:
+  and w0, w0, #268374015
+  ret
+test.intComplexLoad1:
+  movz w1, #3855
+  and w0, w0, w1
+  ret
+test.intComplexLoad2:
+  movz w1, #3854
+  movk w1, #3855, lsl #16
+  and w0, w0, w1
+  ret
+test.intImm0:
+  and w0, w0, wzr
+  ret
+test.intImm1:
+  and w0, w0, #1
+  ret
+test.intImm10:
+  movz w1, #10
+  and w0, w0, w1
+  ret
+test.intImm2:
+  and w0, w0, #2
+  ret
+test.intImm3:
+  and w0, w0, #3
+  ret
+test.intImm4:
+  and w0, w0, #4
+  ret
+test.intImm5:
+  movz w1, #5
+  and w0, w0, w1
+  ret
+test.intImm6:
+  and w0, w0, #6
+  ret
+test.intImm7:
+  and w0, w0, #7
+  ret
+test.intImm8:
+  and w0, w0, #8
+  ret
+test.intImm9:
+  movz w1, #9
+  and w0, w0, w1
+  ret
+test.intImmNeg1:
+  movn w1, #0
+  and w0, w0, w1
+  ret
+test.longComplexImm1:
+  and x0, x0, #1085102592571150095
+  ret
+test.longComplexImm2:
+  and x0, x0, #1152657617789587455
+  ret
+test.longComplexLoad1:
+  movz x1, #3855
+  and x0, x0, x1
+  ret
+test.longComplexLoad2:
+  movz x1, #3855
+  movk x1, #3855, lsl #16
+  and x0, x0, x1
+  ret
+test.longComplexLoad3:
+  movz x1, #4095
+  movk x1, #4079, lsl #16
+  movk x1, #4095, lsl #32
+  movk x1, #4095, lsl #48
+  and x0, x0, x1
+  ret
+test.longImm10:
+  movz x1, #10
+  and x0, x0, x1
+  ret
+test.longImm3:
+  and x0, x0, #3
+  ret
+test.longImm4:
+  and x0, x0, #4
+  ret
+test.longImm5:
+  movz x1, #5
+  and x0, x0, x1
+  ret
+test.longImm6:
+  and x0, x0, #6
+  ret
+test.longImm9:
+  movz x1, #9
+  and x0, x0, x1
+  ret
+_main:
+  mov w0, wzr
+  ret

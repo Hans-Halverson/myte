@@ -1,0 +1,43 @@
+module test
+
+// Can be used as immediate, simple immediates
+fun intImm1(x: Int): Int = x & 1
+fun intImm2(x: Int): Int = x & 2
+fun intImm3(x: Int): Int = x & 3
+fun intImm4(x: Int): Int = x & 4
+fun intImm6(x: Int): Int = x & 6
+fun intImm7(x: Int): Int = x & 7
+fun intImm8(x: Int): Int = x & 8
+
+// Cannot be used as immediate, must be loaded to register
+fun intImm5(x: Int): Int = x & 5
+fun intImm9(x: Int): Int = x & 9
+fun intImm10(x: Int): Int = x & 10
+
+// Cannot be encoded due to special cases
+fun intImm0(x: Int): Int = x & 0
+fun intImmNeg1(x: Int): Int = x & -1
+
+// Long immediates
+fun longImm3(x: Long): Long = x & 3
+fun longImm4(x: Long): Long = x & 4
+fun longImm5(x: Long): Long = x & 5
+fun longImm6(x: Long): Long = x & 6
+fun longImm9(x: Long): Long = x & 9
+fun longImm10(x: Long): Long = x & 10
+
+// Complex immediates
+fun intComplexImm1(x: Int): Int = x & 0x0F0F0F0F
+fun intComplexImm2(x: Int): Int = x & 0x0FFF0FFF
+
+fun intComplexLoad1(x: Int): Int = x & 0x0F0F
+fun intComplexLoad2(x: Int): Int = x & 0x0F0F0F0E
+
+fun longComplexImm1(x: Long): Long = x & 0x0F0F0F0F0F0F0F0F
+fun longComplexImm2(x: Long): Long = x & 0x0FFF0FFF0FFF0FFF
+
+fun longComplexLoad1(x: Long): Long = x & 0x0F0F
+fun longComplexLoad2(x: Long): Long = x & 0x0F0F0F0F
+fun longComplexLoad3(x: Long): Long = x & 0x0FFF0FFF0FEF0FFF
+
+fun main() {}

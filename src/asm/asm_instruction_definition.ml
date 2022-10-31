@@ -176,10 +176,17 @@ module AArch64 = struct
       `Neg of register_size
     | (* Bitwise not: Mvn Rd, Rs *)
       `Mvn of register_size
-    | (* And Rd, Rs, #imm where #imm is a bitmask immediate *)
-      `AndI of register_size
+    | (* Immediate bitwise ops: Op Rd, Rs, #imm where #imm is a bitmask immediate
+         Register bitwise ops: Op Rd, Rs1, Rs2 *)
+      `AndI of
+      register_size
+    | `AndR of register_size
+    | `OrrI of register_size
+    | `OrrR of register_size
+    | `EorI of register_size
+    | `EorR of register_size
     | (* Immediate shifts: Shift Rd, Rs, #shift where 0 <= shift < 32 or 64
-           Register shifts: Shift Rd, Rs1, Rs2 where only low 5 (or 6) bits of Rs2 are used *)
+         Register shifts: Shift Rd, Rs1, Rs2 where only low 5 (or 6) bits of Rs2 are used *)
       `LslI of
       register_size
     | `LslR of register_size

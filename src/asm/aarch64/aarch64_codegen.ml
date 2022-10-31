@@ -367,6 +367,63 @@ and gen_instructions ~gcx instructions =
     gen_instructions rest_instructions
   (*
    * ===========================================
+   *                    And
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (And, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let left_op = gen_bitmask_value ~gcx left_val in
+    let right_op = gen_bitmask_value ~gcx right_val in
+    (match (left_op, right_op) with
+    | ({ Operand.value = Immediate _; _ }, { value = Immediate _; _ }) ->
+      failwith "Constants must be folded before codegen"
+    | (({ value = Immediate _; _ } as imm_op), reg_op)
+    | (reg_op, ({ value = Immediate _; _ } as imm_op)) ->
+      Gcx.emit ~gcx (`AndI size) [| result_op; reg_op; imm_op |]
+    | _ -> Gcx.emit ~gcx (`AndR size) [| result_op; left_op; right_op |]);
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                    Or
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Or, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let left_op = gen_bitmask_value ~gcx left_val in
+    let right_op = gen_bitmask_value ~gcx right_val in
+    (match (left_op, right_op) with
+    | ({ value = Immediate _; _ }, { value = Immediate _; _ }) ->
+      failwith "Constants must be folded before codegen"
+    | (({ value = Immediate _; _ } as imm_op), reg_op)
+    | (reg_op, ({ value = Immediate _; _ } as imm_op)) ->
+      Gcx.emit ~gcx (`OrrI size) [| result_op; reg_op; imm_op |]
+    | _ -> Gcx.emit ~gcx (`OrrR size) [| result_op; left_op; right_op |]);
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                    Xor
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Binary (Xor, left_val, right_val); type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let left_op = gen_bitmask_value ~gcx left_val in
+    let right_op = gen_bitmask_value ~gcx right_val in
+    (match (left_op, right_op) with
+    | ({ value = Immediate _; _ }, { value = Immediate _; _ }) ->
+      failwith "Constants must be folded before codegen"
+    | (({ value = Immediate _; _ } as imm_op), reg_op)
+    | (reg_op, ({ value = Immediate _; _ } as imm_op)) ->
+      Gcx.emit ~gcx (`EorI size) [| result_op; reg_op; imm_op |]
+    | _ -> Gcx.emit ~gcx (`EorR size) [| result_op; left_op; right_op |]);
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
    *                  Shl
    * ===========================================
    *)
@@ -488,8 +545,7 @@ and gen_instructions ~gcx instructions =
         Instr
           {
             instr =
-              ( Binary ((And | Or | Xor), _, _)
-              | Call { func = MirBuiltin _; _ }
+              ( Call { func = MirBuiltin _; _ }
               | GetPointer _ | Load _ | Store _ | IntToFloat _ | FloatToInt _ );
             _;
           };
@@ -701,6 +757,57 @@ and gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val =
   in
   Gcx.emit ~gcx (`SDiv size) [| result_op; left_op; right_op |];
   (left_op, right_op)
+
+and gen_bitmask_value ~gcx (use : Use.t) =
+  match use.value.value with
+  | Lit ((Bool _ | Byte _ | Int _) as lit) ->
+    let n = int32_of_literal lit in
+    if can_encode_bitmask_imm32 n then
+      mk_imm32 ~n
+    else
+      gen_value ~gcx use
+  | Lit (Long n) ->
+    if can_encode_bitmask_imm64 n then
+      mk_imm64 ~n
+    else
+      gen_value ~gcx use
+  | _ -> gen_value ~gcx use
+
+(* Using algorithm for detecting and encoding aarch64 bitmask immediates from:
+   https://dougallj.wordpress.com/2021/10/30/bit-twiddling-optimising-aarch64-logical-immediate-encoding-and-decoding/ *)
+and can_encode_bitmask_imm64 n =
+  if Int64.equal n 0L || Int64.equal n (-1L) then
+    false
+  else
+    (* Normalize number by rotating so that the first one is in the least significant bit,
+       meaning the number starts with the sequence of ones and ends with the sequence of zeros. *)
+    let rotate = Integers.int64_ctz (Int64.logand n (Int64.succ n)) in
+    let normalized = Integers.int64_rotate_left n (-rotate) in
+
+    (* Find the length of the leading zeros and trailing ones sequences to find total size of the
+       repeated sequence. *)
+    let leading_zeros = Integers.int64_clz normalized in
+    let trailing_ones = Integers.int64_ctz (Int64.lognot normalized) in
+    let size = leading_zeros + trailing_ones in
+
+    (* Encodable if the entire number consists of the same subsequence repeated throughout the entire
+       number. Check this by seeing if rotating by the repeated sequence size gives the same number. *)
+    let rotated = Integers.int64_rotate_left n size in
+    Int64.equal rotated n
+
+and can_encode_bitmask_imm32 n =
+  if Int32.equal n 0l || Int32.equal n (-1l) then
+    false
+  else
+    let rotate = Integers.int32_ctz (Int32.logand n (Int32.succ n)) in
+    let normalized = Integers.int32_rotate_left n (-rotate) in
+
+    let leading_zeros = Integers.int32_clz normalized in
+    let trailing_ones = Integers.int32_ctz (Int32.lognot normalized) in
+    let size = leading_zeros + trailing_ones in
+
+    let rotated = Integers.int32_rotate_left n size in
+    Int32.equal rotated n
 
 and gen_shift_value ~gcx ~size shift_val =
   match shift_val.Use.value.value with
