@@ -1,0 +1,26 @@
+module test
+
+// Leaf functions do not save link register
+fun isLeaf(x: Int, y: Int): Int = x + y
+
+// Non-leaf functions must save link register
+fun nonLeaf(x: Int) = use(x)
+
+fun spilledCalleeSavedOdd(x: Int): Int {
+  use(x);
+  return x;
+}
+
+fun spilledCalleeSavedEven(x: Int, y: Int): Int {
+  use(x);
+  return x + y;
+}
+
+fun spilledCalleeSavedMany(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int {
+  use(p1);
+  return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

@@ -144,6 +144,14 @@ module AArch64 = struct
     | SXTW
     | SXTX
 
+  type addressing_mode =
+    (* Do not update base register *)
+    | Offset
+    (* Update base register before indexing *)
+    | PreIndex
+    (* Update base register after indexing *)
+    | PostIndex
+
   type instr =
     (* Instruction Suffixes:
          R - register
@@ -158,6 +166,19 @@ module AArch64 = struct
       register_size * movi_suffix
     | (* Mov Rd, Rs *)
       `MovR of register_size
+    | (* LdrI/StrI Rd, [Rs, #imm] with any addressing mode.
+         - (all modes) #imm must be between -256 and 255
+         - (32-bit offset) #imm must be a multiple of 4 between 0 and 16380
+         - (64-bit offset) #imm must be a multiple of 8 between 0 and 32760 *)
+      `LdrI of
+      register_size * addressing_mode
+    | `StrI of register_size * addressing_mode
+    | (* Ldp/Stp Rd1, Rd2, [Rs, #imm] with any addressing mode. For 32-bit registers #imm is any
+         multiple of 4 between -256 and 252, for 64-bit registers #imm is any multiple of 8
+         between -512 and 504. *)
+      `Ldp of
+      register_size * addressing_mode
+    | `Stp of register_size * addressing_mode
     | (* Add Rd, Rs, #imm12, LSL #shift where #shift is one of 0, 12 *)
       `AddI of register_size
     | (* Add Rd, Rs1, Rs2 *)

@@ -8,6 +8,7 @@ _main:
   mov w0, wzr
   ret
 test.testConditionReused:
+  stp x19, x30, [sp, #-16]!
   cmp w0, #10
   cset w19, lt
   b.ge .L0
@@ -20,8 +21,11 @@ test.testConditionReused:
 .L1:
   mov w0, w19
   bl test.use$Bool$
+  ldp x19, x30, [sp], #16
   ret
 test.testIfWithExpressions:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
   mov w19, w0
   mov w20, w1
   bl test.bool
@@ -32,8 +36,11 @@ test.testIfWithExpressions:
   mul w0, w19, w20
   add w0, w0, w19
 .L3:
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
   ret
 test.testNestedIfStatementInExpressionPosition:
+  str x30, [sp, #-16]!
   bl test.bool
   cbz w0, .L5
   bl test.bool
@@ -51,8 +58,10 @@ test.testNestedIfStatementInExpressionPosition:
 .L6:
   movz w0, #4
 .L7:
+  ldr x30, [sp], #16
   ret
 test.testSimpleIf:
+  str x30, [sp, #-16]!
   bl test.bool
   cbz w0, .L8
   movz w0, #1
@@ -60,6 +69,7 @@ test.testSimpleIf:
 .L8:
   movz w0, #2
 .L9:
+  ldr x30, [sp], #16
   ret
 test.use$Bool$:
   ret

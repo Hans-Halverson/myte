@@ -8,6 +8,7 @@ test.one:
   movz w0, #1
   ret
 test.test1:
+  stp x19, x30, [sp, #-16]!
   mov w4, w0
   mov x3, x1
   mov w19, w2
@@ -18,6 +19,7 @@ test.test1:
   mov w1, w0
   mov w0, w19
   bl test.two
+  ldp x19, x30, [sp], #16
   ret
 test.two:
   ret

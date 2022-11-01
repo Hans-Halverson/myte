@@ -67,6 +67,11 @@ let hd_opt lst =
   | [] -> None
   | hd :: _ -> Some hd
 
+let tl_or_empty lst =
+  match lst with
+  | [] -> []
+  | _ :: tl -> tl
+
 let rec drop i lst =
   match (i, lst) with
   | (_, []) -> []
@@ -129,3 +134,8 @@ let rec transpose matrix =
   | [] :: _ ->
     []
   | matrix -> List.map List.hd matrix :: transpose (List.map List.tl matrix)
+
+let is_pair lst =
+  match lst with
+  | [_; _] -> true
+  | _ -> false

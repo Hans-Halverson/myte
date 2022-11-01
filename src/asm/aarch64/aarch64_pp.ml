@@ -63,6 +63,25 @@ let pp_extend ~buf (extend : AArch64.extend) =
   | SXTH -> pp "sxth"
   | SXTW -> pp "sxtw"
 
+let pp_immediate_address ~pcx ~buf (mode : AArch64.addressing_mode) reg_op imm_op =
+  let add_char = add_char ~buf in
+  let add_string = add_string ~buf in
+  let pp_operand = pp_operand ~pcx ~buf ~size:Size64 in
+  add_char '[';
+  pp_operand reg_op;
+  match mode with
+  | Offset ->
+    add_string ", ";
+    pp_operand imm_op;
+    add_char ']'
+  | PreIndex ->
+    add_string ", ";
+    pp_operand imm_op;
+    add_string "]!"
+  | PostIndex ->
+    add_string "], ";
+    pp_operand imm_op
+
 let string_of_cond (cond : AArch64.cond) =
   match cond with
   | EQ -> "eq"
@@ -124,6 +143,30 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_operand ~size operands.(1);
         pp_lsl_immediate ~size operands.(2)
+      | `LdrI (size, mode) ->
+        pp_op "ldr";
+        pp_operand ~size operands.(0);
+        pp_args_separator ();
+        pp_immediate_address ~pcx ~buf mode operands.(1) operands.(2)
+      | `StrI (size, mode) ->
+        pp_op "str";
+        pp_operand ~size operands.(0);
+        pp_args_separator ();
+        pp_immediate_address ~pcx ~buf mode operands.(1) operands.(2)
+      | `Ldp (size, mode) ->
+        pp_op "ldp";
+        pp_operand ~size operands.(0);
+        pp_args_separator ();
+        pp_operand ~size operands.(1);
+        pp_args_separator ();
+        pp_immediate_address ~pcx ~buf mode operands.(2) operands.(3)
+      | `Stp (size, mode) ->
+        pp_op "stp";
+        pp_operand ~size operands.(0);
+        pp_args_separator ();
+        pp_operand ~size operands.(1);
+        pp_args_separator ();
+        pp_immediate_address ~pcx ~buf mode operands.(2) operands.(3)
       | `AddI size ->
         pp_op "add";
         pp_operand ~size operands.(0);

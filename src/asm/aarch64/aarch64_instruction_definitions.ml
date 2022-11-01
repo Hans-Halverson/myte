@@ -128,6 +128,90 @@ let cset = { InstructionDef.operands = [{ use = Def; operand_type = Register }] 
 
 let sxt = { InstructionDef.operands = operands_rr }
 
+let ldr_i_offset =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Def; operand_type = Register };
+        { use = Use; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
+
+let ldr_i_pre_post =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Def; operand_type = Register };
+        { use = UseDef; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
+
+let str_i_offset =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Use; operand_type = Register };
+        { use = Use; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
+
+let str_i_pre_post =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Use; operand_type = Register };
+        { use = UseDef; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
+
+let ldp_offset =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Def; operand_type = Register };
+        { use = Def; operand_type = Register };
+        { use = Use; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
+
+let ldp_pre_post =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Def; operand_type = Register };
+        { use = Def; operand_type = Register };
+        { use = UseDef; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
+
+let stp_offset =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Use; operand_type = Register };
+        { use = Use; operand_type = Register };
+        { use = Use; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
+
+let stp_pre_post =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Use; operand_type = Register };
+        { use = Use; operand_type = Register };
+        { use = UseDef; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
+
 let b = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
 let b_cond = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
@@ -176,6 +260,14 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `CmnI _ -> cmn_i
   | `CSet _ -> cset
   | `Sxt _ -> sxt
+  | `LdrI (_, Offset) -> ldr_i_offset
+  | `LdrI (_, (PreIndex | PostIndex)) -> ldr_i_pre_post
+  | `StrI (_, Offset) -> str_i_offset
+  | `StrI (_, (PreIndex | PostIndex)) -> str_i_pre_post
+  | `Ldp (_, Offset) -> ldp_offset
+  | `Ldp (_, (PreIndex | PostIndex)) -> ldp_pre_post
+  | `Stp (_, Offset) -> stp_offset
+  | `Stp (_, (PreIndex | PostIndex)) -> stp_pre_post
   | `B -> b
   | `BCond _ -> b_cond
   | `Cbz _
@@ -229,6 +321,18 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
       size
     else
       Size32
+  | `LdrI (size, _)
+  | `StrI (size, _) ->
+    if i == 0 then
+      size
+    else
+      Size64
+  | `Ldp (size, _)
+  | `Stp (size, _) ->
+    if i == 0 || i == 1 then
+      size
+    else
+      Size64
   (* Instructions with no sized operands *)
   | `B
   | `BCond _
