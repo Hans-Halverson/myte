@@ -207,6 +207,9 @@ module AArch64 = struct
       `Ldp of
       register_size * addressing_mode
     | `Stp of register_size * addressing_mode
+    | (* AdrP Rd, label loads the 4kb page address of the label to a register. The lower 12 bits
+         of the label's address must be added later to form the complete address. *)
+      `AdrP
     | (* Add Rd, Rs, #imm12, LSL #shift where #shift is one of 0, 12 *)
       `AddI of register_size
     | (* AddR may have the followign forms depending on number of operands suplied:
@@ -307,6 +310,7 @@ and OperandDef : sig
     | RegMem
     | Block
     | Function
+    | Label
 end =
   OperandDef
 

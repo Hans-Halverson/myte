@@ -48,6 +48,8 @@ let mk_function_op ~(func : Function.t) : Operand.t =
 
 let mk_block_op ~(block : Block.t) = mk_operand ~value:(Block block) ~type_:Long
 
+let mk_label_op ~(label : label) = mk_operand ~value:(Label label) ~type_:Long
+
 (* Function stack arguments appear at the bottom of the caller's stack frame *)
 let mk_function_stack_argument ~(arg_id : int) ~(index : int) ~(type_ : Type.t) : Operand.t =
   Operand.of_value_id ~value:(StackSlot (-1 - index)) arg_id ~type_

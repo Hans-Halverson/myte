@@ -1,0 +1,20 @@
+module test
+
+type Tup (Int)
+
+var b: Byte = 0
+var i: Int = 0
+var l: Long = 0
+var t: Tup = Tup (1)
+
+fun testReassignGlobals(x: Int, y: Long, z: Tup) {
+  b = 4;
+  i = x;
+  l = y * 13;
+  t = z;
+  t = Tup (2);
+}
+
+fun main() {
+  testReassignGlobals(0, 0, Tup (0));
+}

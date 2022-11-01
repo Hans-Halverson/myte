@@ -1,0 +1,24 @@
+module test
+
+var b: Byte = 0
+var i: Int = 0
+var l: Long = 0
+var f: () -> Byte = getByte
+
+fun getByte(): Byte = 1
+
+fun testReferencing(x: Int) {
+  b;
+  i;
+  l;
+  f;
+
+  i + x;
+  i + i;
+
+  f();
+}
+
+fun main() {
+  testReferencing(0);
+}

@@ -12,6 +12,10 @@ open Mir
 open Mir_builders
 open Mir_type
 
+type get_pointer_offset =
+  | ImmediateOffset of Int64.t
+  | LabelOffset of Operand.t
+
 let imm_0 = mk_imm ~imm:(Imm8 (Int8.of_int 0))
 
 let imm_1 = mk_imm ~imm:(Imm8 (Int8.of_int 1))
@@ -322,8 +326,17 @@ and gen_instructions ~gcx instructions =
     let size = register_size_of_mir_value_type type_ in
     let subregister_size = subregister_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    let pointer_op = gen_value ~gcx pointer in
-    Gcx.emit ~gcx (`LdrR (size, subregister_size, true, LSL)) [| result_op; pointer_op |];
+    (match pointer.value.value with
+    | Lit (Function { name; _ })
+    | Lit (Global { name; _ }) ->
+      let (high_bits_reg, low_bits_offset) =
+        gen_adrp_and_low_bits ~gcx ~type_:(type_of_use pointer) name
+      in
+      let ldr = `LdrI (size, subregister_size, true, Offset) in
+      Gcx.emit ~gcx ldr [| result_op; high_bits_reg; low_bits_offset |]
+    | _ ->
+      let pointer_op = gen_value ~gcx pointer in
+      Gcx.emit ~gcx (`LdrR (size, subregister_size, true, LSL)) [| result_op; pointer_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -333,9 +346,18 @@ and gen_instructions ~gcx instructions =
   | { value = Instr { instr = Store (pointer, arg); _ }; _ } :: rest_instructions ->
     let type_ = pointer_value_element_type pointer.value in
     let subregister_size = subregister_size_of_mir_value_type type_ in
-    let pointer_op = gen_value ~gcx pointer in
     let arg_op = gen_value ~gcx arg in
-    Gcx.emit ~gcx (`StrR (subregister_size, LSL)) [| arg_op; pointer_op |];
+    (match pointer.value.value with
+    | Lit (Function { name; _ })
+    | Lit (Global { name; _ }) ->
+      let (high_bits_reg, low_bits_offset) =
+        gen_adrp_and_low_bits ~gcx ~type_:(type_of_use pointer) name
+      in
+      let str = `StrI (subregister_size, Offset) in
+      Gcx.emit ~gcx str [| arg_op; high_bits_reg; low_bits_offset |]
+    | _ ->
+      let pointer_op = gen_value ~gcx pointer in
+      Gcx.emit ~gcx (`StrR (subregister_size, LSL)) [| arg_op; pointer_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1017,49 +1039,72 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   let { pointer; pointer_offset; offsets } = get_pointer_instr in
 
   (* Add address of root pointer *)
-  let pointer_reg =
+  let (base, immediate_offset) =
     match pointer.value.value with
-    | Lit (Global _) -> failwith "TODO: Handle globals"
+    | Lit (Global { name; _ }) ->
+      let (high_bits_reg, low_bits_offset) =
+        gen_adrp_and_low_bits ~gcx ~type_:(type_of_use pointer) name
+      in
+      (high_bits_reg, Some (LabelOffset low_bits_offset))
     | Lit (NullPointer _) -> failwith "TODO: Handle null pointer, since ZR cannot be base"
-    | _ -> gen_value ~gcx pointer
+    | _ ->
+      let pointer_reg = gen_value ~gcx pointer in
+      (pointer_reg, None)
   in
 
-  let base = ref pointer_reg in
-  let immediate_offset = ref None in
+  let base = ref base in
+  let immediate_offset = ref immediate_offset in
   let scaled_reg_offset = ref None in
 
   let emit_current_address_calculation () =
-    match (!immediate_offset, !scaled_reg_offset) with
-    | (None, None) -> ()
-    | (Some imm_offset, None) ->
-      let new_base = mk_vreg ~type_:Long in
-      gen_add_n ~gcx ~result_op:new_base ~type_:Long !base imm_offset;
-      base := new_base
-    | (None, Some (reg, reg_mir_type, scale)) ->
-      let new_base = mk_vreg ~type_:Long in
-      if scale == 1 then
-        Gcx.emit ~gcx (`AddR (Size64, noop_extend)) [| new_base; !base; reg |]
-      else
-        let subregister_size = subregister_size_of_mir_value_type reg_mir_type in
-        let extend = sign_extend_of_subregister_size subregister_size in
-        let shift_imm =
-          match scale with
-          | 2 -> imm_1
-          | 4 -> imm_2
-          | 8 -> imm_3
-          | _ -> failwith "Invalid scale"
-        in
-        Gcx.emit ~gcx (`AddR (Size64, extend)) [| new_base; !base; reg; shift_imm |]
-    | (Some _, Some _) -> failwith "Can only have one offset type"
+    let new_base =
+      match (!immediate_offset, !scaled_reg_offset) with
+      | (None, None) -> !base
+      | (Some (LabelOffset label_offset), None) ->
+        let new_base = mk_vreg ~type_:Long in
+        Gcx.emit ~gcx (`AddI Size64) [| new_base; !base; label_offset; imm_0 |];
+        new_base
+      | (Some (ImmediateOffset imm_offset), None) ->
+        let new_base = mk_vreg ~type_:Long in
+        gen_add_n ~gcx ~result_op:new_base ~type_:Long !base imm_offset;
+        new_base
+      | (None, Some (reg, reg_mir_type, scale)) ->
+        let new_base = mk_vreg ~type_:Long in
+        (if scale == 1 then
+          Gcx.emit ~gcx (`AddR (Size64, noop_extend)) [| new_base; !base; reg |]
+        else
+          let subregister_size = subregister_size_of_mir_value_type reg_mir_type in
+          let extend = sign_extend_of_subregister_size subregister_size in
+          let shift_imm =
+            match scale with
+            | 2 -> imm_1
+            | 4 -> imm_2
+            | 8 -> imm_3
+            | _ -> failwith "Invalid scale"
+          in
+          Gcx.emit ~gcx (`AddR (Size64, extend)) [| new_base; !base; reg; shift_imm |]);
+        new_base
+      | (Some _, Some _) -> failwith "Can only have one offset type"
+    in
+
+    base := new_base;
+    immediate_offset := None;
+    scaled_reg_offset := None
   in
 
   let add_fixed_offset new_offset =
     if !scaled_reg_offset != None then emit_current_address_calculation ();
     match !immediate_offset with
-    | None -> immediate_offset := Some new_offset
-    | Some existing_offset ->
+    | None -> immediate_offset := Some (ImmediateOffset new_offset)
+    (* Combine immediate offsets *)
+    | Some (ImmediateOffset existing_offset) ->
       let combined_offset = Int64.add new_offset existing_offset in
-      immediate_offset := Some combined_offset
+      immediate_offset := Some (ImmediateOffset combined_offset)
+    (* Immediate offset can be added to label *)
+    | Some (LabelOffset label_op) ->
+      let label = cast_to_label label_op in
+      let new_label = Printf.sprintf "%s+%s" label (Int64.to_string new_offset) in
+      immediate_offset := Some (LabelOffset (mk_label_op ~label:new_label))
   in
 
   let add_scaled_register (reg, reg_mir_type) scale =
@@ -1182,18 +1227,31 @@ and gen_load_immediate_to_reg ~gcx ~(type_ : Type.t) (n : Int64.t) (vreg : Opera
       )
     )
 
+(* Generate an AdrP instruction that loads the high bits of a label to a register. Also return
+   the offset for the low 12 bits, which need to be added to the high bits register to form a
+   complete address in an Add, Ldr, or Str instruction. *)
+and gen_adrp_and_low_bits ~gcx ~type_ name =
+  let label = label_of_mir_label name in
+  let vreg = mk_vreg ~type_ in
+  Gcx.emit ~gcx `AdrP [| vreg; mk_label_op ~label |];
+  (vreg, mk_label_op ~label:(":lo12:" ^ label))
+
 and gen_value ~gcx (use : Use.t) =
   match use.value.value with
   | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) -> gen_mov_immediate ~gcx lit
   | Lit (Double _) -> failwith "TODO: Support floating point literals"
-  | Lit (Function _)
-  | Lit (Global _) ->
-    failwith "TODO: Support functions and globals"
+  | Lit (Function { name; _ })
+  | Lit (Global { name; _ }) ->
+    let (high_bits_reg, low_bits_offset) =
+      gen_adrp_and_low_bits ~gcx ~type_:(type_of_use use) name
+    in
+    Gcx.emit ~gcx (`AddI Size64) [| high_bits_reg; high_bits_reg; low_bits_offset; imm_0 |];
+    high_bits_reg
   | Lit (NullPointer _) -> mk_precolored ~type_:(Pointer Byte) `ZR
   | Lit (ArrayString _)
   | Lit (ArrayVtable _) ->
-    failwith "TODO: Cannot compile array literals"
-  | Lit (AggregateClosure _) -> failwith "TODO: Cannot compile aggregate literals"
+    failwith "TODO: Cannot codegen array literals"
+  | Lit (AggregateClosure _) -> failwith "TODO: Cannot codegen aggregate literals"
   | Instr { type_; _ }
   | Argument { type_; _ } ->
     mk_virtual_register_of_value_id ~value_id:use.value.id ~type_
@@ -1213,8 +1271,8 @@ and register_size_of_mir_value_type value_type =
   | Function
   | Pointer _ ->
     Size64
-  | Aggregate _ -> failwith "TODO: Cannot compile aggregate structure literals"
-  | Array _ -> failwith "TODO: Cannot compile array literals"
+  | Aggregate _ -> failwith "TODO: Cannot codegen aggregate structure literals"
+  | Array _ -> failwith "TODO: Cannot codegen array literals"
 
 and register_size_of_mir_use mir_use = register_size_of_mir_value_type (type_of_use mir_use)
 
@@ -1230,8 +1288,8 @@ and subregister_size_of_mir_value_type value_type =
   | Function
   | Pointer _ ->
     X
-  | Aggregate _ -> failwith "TODO: Cannot compile aggregate structure literals"
-  | Array _ -> failwith "TODO: Cannot compile array literals"
+  | Aggregate _ -> failwith "TODO: Cannot codegen aggregate structure literals"
+  | Array _ -> failwith "TODO: Cannot codegen array literals"
 
 and cond_of_mir_comparison cmp =
   match cmp with

@@ -57,8 +57,8 @@ _main:
   call test.use$Byte$
   movl $125, %edi
   call test.use$Int$
-  movl $125, %edi
-  call test.use$Int$
+  movq $125, %rdi
+  call test.use$Long$
   movq test.immConstantF(%rip), %rdi
   call test.use$Function$
   movb test.constantB(%rip), %dil

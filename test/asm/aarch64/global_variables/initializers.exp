@@ -7,6 +7,8 @@ test.b:
 test.i:
   .skip 4
   .balign 8
+test.f:
+  .skip 8
 test.l:
   .skip 8
 
@@ -19,12 +21,23 @@ test.constantBool:
 test.constantI:
   .long 123
   .balign 8
+_closure$test.getByte:
+  .quad test.getByte
+  .quad 0
+test.constantF:
+  .quad _closure$test.getByte
 test.constantL:
   .quad 123
+test.immConstantF:
+  .quad _closure$test.getByte
 
   .text
 test.getByte:
   movz w0, #22
+  ret
+test.getFunction:
+  adrp x0, _closure$test.getByte
+  add x0, x0, :lo12:_closure$test.getByte
   ret
 test.getInt:
   movz w0, #23
@@ -33,5 +46,48 @@ test.getLong:
   movz x0, #24
   ret
 _main:
+  str x30, [sp, #-16]!
+  movz w0, #125
+  bl test.use$Byte$
+  movz w0, #125
+  bl test.use$Int$
+  movz x0, #125
+  bl test.use$Long$
+  adrp x0, test.immConstantF
+  ldr x0, [x0, :lo12:test.immConstantF]
+  bl test.use$Function$
+  adrp x0, test.constantB
+  ldrsb w0, [x0, :lo12:test.constantB]
+  bl test.use$Byte$
+  adrp x0, test.constantI
+  ldr w0, [x0, :lo12:test.constantI]
+  bl test.use$Int$
+  adrp x0, test.constantL
+  ldr x0, [x0, :lo12:test.constantL]
+  bl test.use$Long$
+  adrp x0, test.constantF
+  ldr x0, [x0, :lo12:test.constantF]
+  bl test.use$Function$
+  adrp x0, test.b
+  ldrsb w0, [x0, :lo12:test.b]
+  bl test.use$Byte$
+  adrp x0, test.i
+  ldr w0, [x0, :lo12:test.i]
+  bl test.use$Int$
+  adrp x0, test.l
+  ldr x0, [x0, :lo12:test.l]
+  bl test.use$Long$
+  adrp x0, test.f
+  ldr x0, [x0, :lo12:test.f]
+  bl test.use$Function$
   mov w0, wzr
+  ldr x30, [sp], #16
+  ret
+test.use$Byte$:
+  ret
+test.use$Function$:
+  ret
+test.use$Int$:
+  ret
+test.use$Long$:
   ret

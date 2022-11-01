@@ -44,6 +44,7 @@ let pp_operand ~pcx ~buf ~size op =
   | Block block ->
     pp_label_debug_prefix ~buf block;
     add_string ~buf (Option.get (pp_label ~pcx block))
+  | Label label -> add_string ~buf label
   | _ -> failwith "Printing operand not yet implemented"
 
 let pp_extend ~buf (extend : AArch64.extend) =
@@ -123,16 +124,18 @@ let string_of_cond (cond : AArch64.cond) =
   | GT -> "gt"
   | GE -> "ge"
 
-let ldr_suffix (load_size : AArch64.subregister_size) (is_signed : bool) =
-  match (is_signed, load_size) with
-  | (_, X)
-  | (false, W) ->
+let ldr_suffix
+    (dest_size : AArch64.register_size) (load_size : AArch64.subregister_size) (is_signed : bool) =
+  match (is_signed, load_size, dest_size) with
+  | (_, X, _)
+  | (_, W, Size32)
+  | (false, W, Size64) ->
     ""
-  | (false, B) -> "b"
-  | (false, H) -> "h"
-  | (true, B) -> "sb"
-  | (true, H) -> "sh"
-  | (true, W) -> "sw"
+  | (false, B, _) -> "b"
+  | (false, H, _) -> "h"
+  | (true, B, _) -> "sb"
+  | (true, H, _) -> "sh"
+  | (true, W, Size64) -> "sw"
 
 let str_suffix (store_size : AArch64.subregister_size) =
   match store_size with
@@ -194,7 +197,7 @@ let pp_instruction ~pcx ~buf instr =
         pp_operand ~size operands.(1);
         pp_lsl_immediate ~size operands.(2)
       | `LdrI (dest_size, load_size, is_signed, mode) ->
-        pp_op ("ldr" ^ ldr_suffix load_size is_signed);
+        pp_op ("ldr" ^ ldr_suffix dest_size load_size is_signed);
         pp_operand ~size:dest_size operands.(0);
         pp_args_separator ();
         pp_immediate_address ~pcx ~buf mode operands.(1) operands.(2)
@@ -204,7 +207,7 @@ let pp_instruction ~pcx ~buf instr =
         pp_args_separator ();
         pp_immediate_address ~pcx ~buf mode operands.(1) operands.(2)
       | `LdrR (dest_size, load_size, is_signed, extend) ->
-        pp_op ("ldr" ^ ldr_suffix load_size is_signed);
+        pp_op ("ldr" ^ ldr_suffix dest_size load_size is_signed);
         pp_operand ~size:dest_size operands.(0);
         pp_args_separator ();
         pp_offset_address ~pcx ~buf instr.instr operands extend
@@ -227,6 +230,9 @@ let pp_instruction ~pcx ~buf instr =
         pp_operand ~size operands.(1);
         pp_args_separator ();
         pp_immediate_address ~pcx ~buf mode operands.(2) operands.(3)
+      | `AdrP ->
+        pp_op "adrp";
+        pp_operands ()
       | `AddI size ->
         pp_op "add";
         pp_operand ~size operands.(0);

@@ -85,6 +85,7 @@ let rec pp_operand ~gcx ~pcx ~buf ~size op =
   | VirtualRegister when Opts.dump_virtual_asm () ->
     add_char ~buf '%';
     add_string ~buf (string_of_int op.id)
+  | Label _ -> failwith "Labels not used in x86 assembly"
   | VirtualRegister
   | StackSlot _
   | VirtualStackSlot ->

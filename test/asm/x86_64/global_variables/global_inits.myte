@@ -3,7 +3,7 @@ module test
 // Immutable constants are inlined and do not have init blocks
 val immConstantB: Byte = 125
 val immConstantI: Int = 125
-val immConstantL: Int = 125
+val immConstantL: Long = 125
 val immConstantF: () -> Byte = getByte
 
 // Mutable constants are put in data section and do not have init blocks

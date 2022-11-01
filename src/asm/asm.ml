@@ -59,6 +59,8 @@ and Operand : sig
     | Function of Function.t
     (* Direct reference to a basic block *)
     | Block of Block.t
+    (* Textual label, often address of a function or global *)
+    | Label of label
     (* Slot in the current function's stack frame. Contains arguments passed to callee functions
        at the bottom of the frame starting at index 0, followed by virtual stack slots after coloring.
        Stack slot -1 represents the bottom of the caller function's stack frame. This is used to
@@ -93,6 +95,7 @@ end = struct
     | X86_64_MemoryAddress of X86_64_MemoryAddress.t
     | Function of Function.t
     | Block of Block.t
+    | Label of label
     | StackSlot of int
     | VirtualStackSlot
 
@@ -342,6 +345,11 @@ let cast_to_stack_slot op =
   match op.Operand.value with
   | StackSlot index -> index
   | _ -> failwith "Expected stack slot operand"
+
+let cast_to_label op =
+  match op.Operand.value with
+  | Label label -> label
+  | _ -> failwith "Expected label operand"
 
 let int64_of_immediate imm =
   match imm with

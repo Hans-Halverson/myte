@@ -88,7 +88,8 @@ class spill_writer ~(get_alias : Operand.t -> Operand.t) =
             match operand_def.operand_type with
             | Immediate
             | Function
-            | Block ->
+            | Block
+            | Label ->
               ()
             | MemoryAddress -> this#force_registers_in_address ~instr operand
             | RegMem -> resolve_operand operand

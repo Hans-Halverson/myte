@@ -55,5 +55,6 @@ and operand_iter_reg_mem_operands
     f operand operand_def
   | Immediate _
   | Function _
-  | Block _ ->
+  | Block _
+  | Label _ ->
     ()

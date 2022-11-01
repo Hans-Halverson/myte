@@ -1,25 +1,23 @@
 module test
 
-// TODO: Uncomment lines when globals can be loaded
-
 // Immutable constants are inlined and do not have init blocks
 val immConstantB: Byte = 125
 val immConstantI: Int = 125
-val immConstantL: Int = 125
-// val immConstantF: () -> Byte = getByte
+val immConstantL: Long = 125
+val immConstantF: () -> Byte = getByte
 
 // Mutable constants are put in data section and do not have init blocks
 var constantB: Byte = 123
 var constantI: Int = 123
 var constantL: Long = 123
 var constantBool: Bool = true
-// var constantF: () -> Byte = getByte
+var constantF: () -> Byte = getByte
 
 // Non-constants are put in bss section and have init blocks
 val b: Byte = getByte()
 val i: Int = getInt()
 val l: Long = getLong()
-// val f: () -> Byte = getFunction()
+val f: () -> Byte = getFunction()
 
 // Unused constants are not generated
 val unused: Int = 999
@@ -27,21 +25,21 @@ val unused: Int = 999
 fun getByte(): Byte = 22
 fun getInt(): Int = 23
 fun getLong(): Long = 24
-// fun getFunction(): () -> Byte = getByte
+fun getFunction(): () -> Byte = getByte
 
 fun use<T>(x: T) {}
 
 fun main() {
-  // use(immConstantB);
-  // use(immConstantI);
-  // use(immConstantL);
-  // use(immConstantF);
-  // use(constantB);
-  // use(constantI);
-  // use(constantL);
-  // use(constantF);
-  // use(b);
-  // use(i);
-  // use(l);
-  // use(f);
+  use(immConstantB);
+  use(immConstantI);
+  use(immConstantL);
+  use(immConstantF);
+  use(constantB);
+  use(constantI);
+  use(constantL);
+  use(constantF);
+  use(b);
+  use(i);
+  use(l);
+  use(f);
 }

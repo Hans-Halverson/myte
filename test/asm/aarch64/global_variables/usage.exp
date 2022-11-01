@@ -1,0 +1,54 @@
+  .global _main
+
+  .data
+test.b:
+  .byte 0
+  .balign 4
+test.i:
+  .long 0
+  .balign 8
+_closure$test.getByte:
+  .quad test.getByte
+  .quad 0
+test.f:
+  .quad _closure$test.getByte
+test.l:
+  .quad 0
+
+  .text
+test.getByte:
+  movz w0, #1
+  ret
+_main:
+  str x30, [sp, #-16]!
+  mov w0, wzr
+  bl test.testReferencing
+  mov w0, wzr
+  ldr x30, [sp], #16
+  ret
+test.testReferencing:
+  str x30, [sp, #-16]!
+  adrp x1, test.b
+  ldrsb w1, [x1, :lo12:test.b]
+  adrp x1, test.i
+  ldr w1, [x1, :lo12:test.i]
+  adrp x1, test.l
+  ldr x1, [x1, :lo12:test.l]
+  adrp x1, test.f
+  ldr x1, [x1, :lo12:test.f]
+  adrp x1, test.i
+  ldr w1, [x1, :lo12:test.i]
+  add w0, w1, w0
+  adrp x0, test.i
+  ldr w1, [x0, :lo12:test.i]
+  adrp x0, test.i
+  ldr w0, [x0, :lo12:test.i]
+  add w0, w1, w0
+  adrp x0, test.f
+  ldr x0, [x0, :lo12:test.f]
+  ldr x1, [x0]
+  add x0, x0, #8
+  ldr x0, [x0]
+  blr x1
+  ldr x30, [sp], #16
+  ret

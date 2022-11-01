@@ -61,6 +61,12 @@ let mov_i =
 
 let mov_r = { InstructionDef.operands = operands_rr }
 
+let adr_p =
+  {
+    InstructionDef.operands =
+      [{ OperandDef.use = Def; operand_type = Register }; { use = Use; operand_type = Label }];
+  }
+
 let add_i = { InstructionDef.operands = operands_add_sub_i }
 
 let add_r =
@@ -264,6 +270,7 @@ let instr_def (instr : instr) : InstructionDef.t =
   match instr with
   | `MovI _ -> mov_i
   | `MovR _ -> mov_r
+  | `AdrP -> adr_p
   | `AddI _ -> add_i
   | `AddR _ -> add_r
   | `SubI _ -> sub_i
@@ -354,7 +361,9 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `Cbz size ->
     size
   (* Registers must be 64 bits *)
-  | `BLR _ -> Size64
+  | `AdrP
+  | `BLR _ ->
+    Size64
   (* Instructions with operands that have different register sizes *)
   | `Sxt (size, _) ->
     if i == 0 then
