@@ -69,17 +69,8 @@ let mk_snapshot_suite
 
 let suite ~bin ~record ~cross =
   let host = !Target.host in
+  let cross_target = cross in
   let mk_snapshot_suite = mk_snapshot_suite ~bin ~record in
-  let cross_target =
-    if not (String.equal cross "") then
-      let cross_target = Target.parse_target_string cross in
-      if Target.equal host cross_target then
-        None
-      else
-        Some cross_target
-    else
-      None
-  in
   let snapshot_suites =
     List.map
       (fun arch ->
@@ -87,22 +78,10 @@ let suite ~bin ~record ~cross =
         if arch == host.architecture && cross_target == None then
           mk_snapshot_suite ~target:host ~run_type:(Full None)
         (* If cross target was specified, also run full tests for cross architecture *)
-        else if cross_target != None && arch == (Option.get cross_target).architecture then
+        else if cross_target != None && arch == (Option.get cross_target).Target.architecture then
           let cross_target = Option.get cross_target in
-          match (host.system, cross_target.system) with
-          | (Linux, Linux) ->
-            let run_command_prefix =
-              match cross_target.architecture with
-              | AArch64 -> "qemu-aarch64 -L /usr/aarch64-linux-gnu "
-              | X86_64 -> "qemu-x86_64 -L /usr/x86_64-linux-gnu "
-            in
-            mk_snapshot_suite ~target:cross_target ~run_type:(Full (Some run_command_prefix))
-          | _ ->
-            failwith
-              (Printf.sprintf
-                 "Cross testing for %s on %s not supported"
-                 (Target.target_triple cross_target)
-                 (Target.target_triple host))
+          let run_command_prefix = Cross.get_cross_run_prefix ~host ~cross_target in
+          mk_snapshot_suite ~target:cross_target ~run_type:(Full (Some run_command_prefix))
         (* Only dump assembly for other architectures *)
         else
           let linux_target = { Target.system = Linux; architecture = arch } in

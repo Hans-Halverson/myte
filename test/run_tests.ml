@@ -44,7 +44,7 @@ let regexp_opt string =
 let () =
   Arg.parse spec (fun _ -> ()) "Run Myte test suite";
   let bin = !(opts.bin) in
-  let cross = !(opts.cross) in
+  let cross = Cross.parse_cross_target !(opts.cross) in
   let exclude = regexp_opt !(opts.exclude) in
   let filter = regexp_opt !(opts.filter) in
   let record = !(opts.record) in
@@ -63,7 +63,7 @@ let () =
         Mir_tests.suite ~bin ~record;
         Asm_tests.suite ~bin ~record ~cross;
         Cli_tests.suite ~bin ~record;
-        Program_tests.suite ~bin ~record;
+        Program_tests.suite ~bin ~record ~cross;
         Self_tests.suite;
       ]
   in
