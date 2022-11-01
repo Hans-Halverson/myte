@@ -4,7 +4,9 @@ open Aarch64_gen_context
 open Asm
 open Asm_builders
 open Asm_calling_convention
+open Asm_codegen
 open Asm_instruction_definition.AArch64
+open Asm_layout
 open Basic_collections
 open Mir
 open Mir_builders
@@ -36,14 +38,34 @@ let mk_vreg_of_op (op : Operand.t) = mk_virtual_register ~type_:op.type_
 let rec gen ~(gcx : Gcx.t) (ir : Program.t) =
   let should_filter_stdlib = Asm_gen.should_filter_stdlib () in
 
+  (* Calculate layout of all aggregate types *)
+  SMap.iter (fun _ agg -> add_agg_layout ~agg_cache:gcx.agg_cache agg) ir.types;
+
   (* Calculate initial function info for all functions *)
   Mir_builders.program_iter_funcs ir (fun func -> preprocess_function ~gcx ~ir func);
+
+  (* Generate all globals in program *)
+  gen_globals ~gcx ~ir;
 
   (* Generate all functions in program *)
   SMap.iter
     (fun name func ->
       if not (should_filter_stdlib && has_std_lib_prefix name) then gen_function ~gcx func)
-    ir.funcs
+    ir.funcs;
+
+  Gcx.finish_builders ~gcx
+
+and gen_globals ~gcx ~ir =
+  let should_filter_stdlib = Asm_gen.should_filter_stdlib () in
+  let builder = new globals_builder ~agg_cache:gcx.agg_cache in
+
+  SMap.iter
+    (fun name global ->
+      if not (should_filter_stdlib && has_std_lib_prefix name) then builder#gen_global global)
+    ir.globals;
+
+  gcx.data <- builder#data;
+  gcx.bss <- builder#bss
 
 and preprocess_function ~gcx ~ir mir_func =
   let calling_convention = Gcx.mir_function_calling_convention mir_func in

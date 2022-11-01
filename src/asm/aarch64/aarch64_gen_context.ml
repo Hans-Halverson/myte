@@ -1,10 +1,10 @@
-open Aarch64_asm
 open Aarch64_calling_convention
 open Aarch64_register
 open Asm
 open Asm_builders
 open Asm_codegen
 open Asm_instruction_definition
+open Asm_layout
 open Asm_register
 open Mir_type
 
@@ -22,6 +22,7 @@ module Gcx = struct
     mutable mir_func_to_func: Function.t Mir.FunctionMap.t;
     (* Map from physical register to a representative precolored register operand *)
     mutable color_to_op: Operand.t RegMap.t;
+    agg_cache: AggregateLayoutCache.t;
   }
 
   let mk () =
@@ -42,7 +43,12 @@ module Gcx = struct
       mir_func_to_func = Mir.FunctionMap.empty;
       funcs = FunctionSet.empty;
       color_to_op;
+      agg_cache = AggregateLayoutCache.mk ();
     }
+
+  let finish_builders ~gcx =
+    gcx.data <- Array.map List.rev gcx.data;
+    gcx.bss <- Array.map List.rev gcx.bss
 
   let get_block_from_mir_block ~gcx mir_block =
     match Mir.BlockMap.find_opt mir_block gcx.mir_block_to_block with

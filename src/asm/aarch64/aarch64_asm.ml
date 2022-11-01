@@ -1,7 +1,5 @@
 open Asm_instruction_definition
 
-let mk_data_section () = Array.make 5 []
-
 (* Return the opposite of a condition code (NOT cond) *)
 let invert_cond cond =
   match cond with

@@ -2,6 +2,8 @@
 
   .data
   .balign 8
+test.global:
+  .quad 4619567317775286272
 _float$1.:
   .quad 4607182418800017408
 _float$2.:
@@ -10,7 +12,7 @@ _float$2.:
   .text
 _main:
   push %rbx
-  movl $48, %edi
+  movl $56, %edi
   call __myte_alloc
   movq %rax, %rbx
   movq _float$1.(%rip), %xmm0
@@ -25,11 +27,13 @@ _main:
   movq %xmm0, 32(%rbx)
   movq _float$1.(%rip), %xmm0
   movq %xmm0, 40(%rbx)
+  movq test.global(%rip), %xmm0
+  movq %xmm0, 48(%rbx)
   movl $16, %edi
   call __myte_alloc
   movq %rbx, 8(%rax)
-  movl $6, (%rax)
-  movl $6, 4(%rax)
+  movl $7, (%rax)
+  movl $7, 4(%rax)
   movl $0, %eax
   pop %rbx
   ret

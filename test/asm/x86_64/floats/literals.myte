@@ -1,5 +1,7 @@
 module test
 
+var global: Double = 7.0
+
 fun main() {
-  val x: Vec<Double> = [1.0, 2.0, 1.0, 1.0, 2.0, 1.0];
+  val x: Vec<Double> = [1.0, 2.0, 1.0, 1.0, 2.0, 1.0, global];
 }

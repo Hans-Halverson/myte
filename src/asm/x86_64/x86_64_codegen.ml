@@ -3,6 +3,7 @@ open Asm_builders
 open Asm_calling_convention
 open Asm_codegen
 open Asm_instruction_definition.X86_64
+open Asm_layout
 open Basic_collections
 open Mir
 open Mir_builders
@@ -10,7 +11,6 @@ open Mir_type
 open X86_64_asm
 open X86_64_calling_convention
 open X86_64_gen_context
-open X86_64_layout
 
 type resolved_source_value =
   (* An immediate value *)
@@ -30,20 +30,17 @@ type mir_comparison_ccs =
   (* Condition is true if at least one condition code is set *)
   | OrCC of condition_code * condition_code
 
-let rec gen ~gcx (ir : Program.t) =
+let rec gen ~(gcx : Gcx.t) (ir : Program.t) =
   let should_filter_stdlib = Asm_gen.should_filter_stdlib () in
 
   (* Calculate layout of all aggregate types *)
-  SMap.iter (fun _ agg -> Gcx.build_agg_layout ~gcx agg) ir.types;
+  SMap.iter (fun _ agg -> add_agg_layout ~agg_cache:gcx.agg_cache agg) ir.types;
 
   (* Calculate initial function info for all functions *)
   SMap.iter (fun _ func -> preprocess_function ~gcx ~ir func) ir.funcs;
 
   (* Generate all globals in program *)
-  SMap.iter
-    (fun name global ->
-      if not (should_filter_stdlib && has_std_lib_prefix name) then gen_global ~gcx ~ir global)
-    ir.globals;
+  gen_globals ~gcx ~ir;
 
   (* Generate all functions in program *)
   SMap.iter
@@ -53,59 +50,17 @@ let rec gen ~gcx (ir : Program.t) =
 
   Gcx.finish_builders ~gcx
 
-and gen_global ~gcx ~ir:_ global =
-  let label = label_of_mir_label global.name in
-  match global.init_val with
-  (* Fake zero size global is not generated *)
-  | _ when global.name = zero_size_name -> ()
-  (* If uninitialized, place global variable in bss section *)
-  | None ->
-    let size = Gcx.size_of_mir_type ~gcx global.type_ in
-    let align = Gcx.alignment_of_mir_type ~gcx global.type_ in
-    let is_pointer = is_pointer_type global.type_ in
-    Gcx.add_bss ~gcx { label; value = (); size; is_pointer } align
-  (* Array literal is known at compile time, so insert into initialized data section *)
-  | Some { value = { value = Lit (ArrayString data); _ }; _ } ->
-    let size = String.length data in
-    Gcx.add_data ~gcx { label; value = AsciiData data; size; is_pointer = false }
-  | Some { value = { value = Lit (ArrayVtable (_, func_labels)); _ }; _ } ->
-    let label_values =
-      List.map
-        (fun func_use ->
-          let func = cast_to_function_literal func_use.Use.value in
-          label_of_mir_label func.name)
-        func_labels
-    in
-    let size = List.length label_values * pointer_size in
-    Gcx.add_data ~gcx { label; value = LabelData label_values; size; is_pointer = false }
-  (* Aggregate closure globals are special cased, with 0 set as environment *)
-  | Some { value = { value = Lit (AggregateClosure (_, func_use)); _ }; _ } ->
-    let func = cast_to_function_literal func_use.value in
-    let func_data = LabelData [label_of_mir_label func.name] in
-    let env_data = ImmediateData (Imm64 0L) in
-    Gcx.add_data
-      ~gcx
-      { label; value = ArrayData [func_data; env_data]; size = ptr_size * 2; is_pointer = false }
-  (* Pointer and function literals are labels, so insert into initialized data section *)
-  | Some { value = { value = Lit (Global { name = init_label; _ }); _ }; _ }
-  | Some { value = { value = Lit (Function { name = init_label; _ }); _ }; _ } ->
-    let init_label = label_of_mir_label init_label in
-    let is_pointer = is_pointer_type global.type_ in
-    let data = { label; value = LabelData [init_label]; size = pointer_size; is_pointer } in
-    Gcx.add_data ~gcx data
-  (* Global is initialized to immediate, so insert into initialized data section *)
-  | Some init_val ->
-    (match resolve_ir_value ~gcx ~allow_imm64:true init_val with
-    | SImm imm ->
-      let imm = cast_to_immediate imm in
-      let size = bytes_of_size (size_of_immediate imm) in
-      let is_pointer = is_pointer_type global.type_ in
-      let data = { label; value = ImmediateData imm; size; is_pointer } in
-      Gcx.add_data ~gcx data
-    | SAddr _
-    | SReg _
-    | SMem _ ->
-      failwith "Global init value must be a constant")
+and gen_globals ~gcx ~ir =
+  let should_filter_stdlib = Asm_gen.should_filter_stdlib () in
+  let builder = new globals_builder ~agg_cache:gcx.agg_cache in
+
+  SMap.iter
+    (fun name global ->
+      if not (should_filter_stdlib && has_std_lib_prefix name) then builder#gen_global global)
+    ir.globals;
+
+  gcx.data <- builder#data;
+  gcx.bss <- builder#bss
 
 and preprocess_function ~gcx ~ir mir_func =
   let calling_convention = Gcx.mir_function_calling_convention mir_func in
@@ -1327,8 +1282,9 @@ and gen_get_pointer
       (* TODO: Handle sign extending byte arguments to 32/64 bits (movzbl/q) *)
       let element_size =
         match ty with
-        | Type.Array (ty, _) -> Gcx.size_of_mir_type ~gcx ty
-        | _ -> Gcx.size_of_mir_type ~gcx ty
+        | Type.Array (ty, _)
+        | ty ->
+          size_of_mir_type ~agg_cache:gcx.agg_cache ty
       in
       (match resolve_ir_value ~gcx ~allow_imm64:true pointer_offset with
       | SImm imm ->
@@ -1355,7 +1311,7 @@ and gen_get_pointer
       (match ty with
       | Aggregate ({ Aggregate.elements; _ } as agg) ->
         (* Find offset of aggregate element in aggregate's layout, add add it to address *)
-        let agg_layout = Gcx.get_agg_layout ~gcx agg in
+        let agg_layout = AggregateLayoutCache.get gcx.agg_cache agg in
         let { AggregateElement.offset; _ } = AggregateLayout.get_element agg_layout element_index in
         if offset <> 0 then add_fixed_offset (Int32.of_int offset);
         (* Update current type to element type *)
@@ -1375,7 +1331,7 @@ and gen_get_pointer
   Gcx.emit ~gcx (`MovMM Size64) [| address_op; result_op |]
 
 and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir_type mir_ty =
-  let element_size = Gcx.size_of_mir_type ~gcx mir_ty in
+  let element_size = size_of_mir_type ~agg_cache:gcx.agg_cache mir_ty in
   let mk_result_op () =
     match count_param_type with
     | ParamInRegister reg -> mk_precolored ~type_:count_param_mir_type reg

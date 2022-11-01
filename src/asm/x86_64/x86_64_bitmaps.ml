@@ -1,5 +1,4 @@
 open Asm
-open X86_64_asm
 
 (* A bitmap indicating whether pointer-sized words in the data section are pointers. The data
    section is already arranged so that all data items with a pointer-sized alignment are grouped

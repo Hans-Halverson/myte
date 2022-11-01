@@ -1,0 +1,37 @@
+  .global _main
+
+  .bss
+test.b:
+  .skip 1
+  .balign 4
+test.i:
+  .skip 4
+  .balign 8
+test.l:
+  .skip 8
+
+  .data
+test.constantB:
+  .byte 123
+test.constantBool:
+  .byte 1
+  .balign 4
+test.constantI:
+  .long 123
+  .balign 8
+test.constantL:
+  .quad 123
+
+  .text
+test.getByte:
+  movz w0, #22
+  ret
+test.getInt:
+  movz w0, #23
+  ret
+test.getLong:
+  movz x0, #24
+  ret
+_main:
+  mov w0, wzr
+  ret

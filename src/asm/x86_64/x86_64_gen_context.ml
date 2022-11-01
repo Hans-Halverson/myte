@@ -2,12 +2,12 @@ open Asm
 open Asm_builders
 open Asm_codegen
 open Asm_instruction_definition
+open Asm_layout
 open Asm_register
 open Basic_collections
 open Mir_type
 open X86_64_asm
 open X86_64_calling_convention
-open X86_64_layout
 open X86_64_register
 
 module Gcx = struct
@@ -24,7 +24,7 @@ module Gcx = struct
     mutable mir_func_to_func: Function.t Mir.FunctionMap.t;
     (* Map from physical register to a representative precolored register operand *)
     mutable color_to_op: Operand.t RegMap.t;
-    mutable agg_to_layout: AggregateLayout.t IMap.t;
+    agg_cache: AggregateLayoutCache.t;
     (* Floating point literals *)
     mutable added_double_negate_mask: bool;
     mutable float_immediates: SSet.t;
@@ -55,7 +55,7 @@ module Gcx = struct
       mir_func_to_func = Mir.FunctionMap.empty;
       funcs = FunctionSet.empty;
       color_to_op;
-      agg_to_layout = IMap.empty;
+      agg_cache = AggregateLayoutCache.mk ();
       added_double_negate_mask = false;
       float_immediates = SSet.empty;
     }
@@ -64,13 +64,9 @@ module Gcx = struct
     gcx.data <- Array.map List.rev gcx.data;
     gcx.bss <- Array.map List.rev gcx.bss
 
-  let add_data ~gcx init_data =
-    let align_index = align_to_data_section_align_index (align_of_data_value init_data.value) in
-    gcx.data.(align_index) <- init_data :: gcx.data.(align_index)
+  let add_data ~gcx init_data = add_data gcx.data init_data
 
-  let add_bss ~gcx uninit_data align =
-    let align_index = align_to_data_section_align_index align in
-    gcx.bss.(align_index) <- uninit_data :: gcx.bss.(align_index)
+  let add_bss ~gcx uninit_data align = add_bss gcx.bss uninit_data align
 
   let add_double_negate_mask ~gcx =
     if not gcx.added_double_negate_mask then (
@@ -143,70 +139,4 @@ module Gcx = struct
     let current_func = gcx.current_func in
     current_func.blocks <- List.rev current_func.blocks;
     gcx.current_func <- null_function
-
-  let get_agg_layout ~gcx agg = IMap.find agg.Aggregate.id gcx.agg_to_layout
-
-  let rec size_of_mir_type ~gcx mir_type =
-    match mir_type with
-    | Type.Bool
-    | Byte ->
-      1
-    | Short -> 2
-    | Int -> 4
-    | Long
-    | Double
-    | Function
-    | Pointer _ ->
-      8
-    | Aggregate agg ->
-      let agg_layout = get_agg_layout ~gcx agg in
-      agg_layout.size
-    | Array (ty, size) -> size_of_mir_type ~gcx ty * size
-
-  let rec alignment_of_mir_type ~gcx mir_type =
-    match mir_type with
-    | Type.Aggregate agg ->
-      let agg_layout = get_agg_layout ~gcx agg in
-      agg_layout.alignment
-    | Array (ty, _) -> alignment_of_mir_type ~gcx ty
-    | _ -> size_of_mir_type ~gcx mir_type
-
-  let build_agg_layout ~gcx agg =
-    let open Aggregate in
-    let current_offset = ref 0 in
-    let largest_alignment = ref 0 in
-
-    (* Calculate offsets for each aggregate element *)
-    let elements =
-      List.map
-        (fun (_, ty) ->
-          let size = size_of_mir_type ~gcx ty in
-          let alignment = alignment_of_mir_type ~gcx ty in
-          largest_alignment := max alignment !largest_alignment;
-
-          (* Add padding to align element *)
-          let align_overflow = !current_offset mod alignment in
-          if align_overflow <> 0 then current_offset := !current_offset + (size - align_overflow);
-
-          let offset = !current_offset in
-          current_offset := offset + size;
-          { AggregateElement.offset; size })
-        agg.elements
-    in
-
-    (* Aggregate has alignment of its largest element. Aggregate size must be multiple of alignment,
-       so insert padding to end of aggregate if necessary. *)
-    let alignment = !largest_alignment in
-    let align_overflow =
-      if alignment = 0 then
-        0
-      else
-        !current_offset mod alignment
-    in
-    if align_overflow <> 0 then current_offset := !current_offset + (alignment - align_overflow);
-
-    let agg_layout =
-      { AggregateLayout.agg; size = !current_offset; alignment; elements = Array.of_list elements }
-    in
-    gcx.agg_to_layout <- IMap.add agg.id agg_layout gcx.agg_to_layout
 end

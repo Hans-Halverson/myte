@@ -360,3 +360,5 @@ let is_zero_immediate imm =
 let main_label = "_main"
 
 let init_label = "_myte_init"
+
+let pointer_size = 8
