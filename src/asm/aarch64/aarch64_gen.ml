@@ -21,6 +21,8 @@ let gen ir =
   (* Perform register allocation for each function *)
   FunctionSet.iter (fun func -> Aarch64_register_allocation.run ~gcx ~func) gcx.funcs;
 
+  (* Color and allocate physical stack slots for virtual stack slots *)
+  Aarch64_stack_coloring.color_stack_slots ~gcx;
   Aarch64_stack_frame.write_stack_frame ~gcx;
 
   Aarch64_simplify_cfg.compress_branch_aliases ~gcx;

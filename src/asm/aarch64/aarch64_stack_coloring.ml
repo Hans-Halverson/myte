@@ -1,15 +1,15 @@
 open Asm
-open X86_64_builders
-open X86_64_gen_context
+open Aarch64_builders
+open Aarch64_gen_context
 
 class stack_coloring =
   object
     inherit Asm_stack_coloring.stack_coloring
 
-    method iter_operands instr f = instr_iter_reg_mem_operands instr f
+    method iter_operands instr f = instr_iter_all_operands instr f
 
     method calculate_live_out func =
-      let liveness_analyzer = new X86_64_liveness_analysis.vslots_liveness_analyzer func in
+      let liveness_analyzer = new Aarch64_liveness_analysis.vslots_liveness_analyzer func in
       let (_, live_out) = liveness_analyzer#analyze () in
       live_out
   end

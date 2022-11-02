@@ -1,6 +1,7 @@
 open Aarch64_builders
 open Aarch64_register
 open Asm
+open Asm_builders
 open Asm_calling_convention
 open Asm_instruction_definition
 open Asm_register
@@ -70,4 +71,49 @@ class regs_liveness_analyzer (func : Function.t) color_to_operand =
   object
     inherit use_def_visitor color_to_operand
     inherit Asm_liveness_analysis.regs_liveness_analyzer func
+  end
+
+class vslots_liveness_analyzer (func : Function.t) =
+  object (this)
+    inherit Asm_liveness_analysis.liveness_analyzer func
+
+    val mutable prev_blocks = BlockMMap.empty
+    val mutable use_blocks = OBMMap.empty
+    val mutable def_blocks = OBMMap.empty
+    val mutable use_before_def_blocks = OBMMap.empty
+
+    method prev_blocks = prev_blocks
+    method use_blocks = use_blocks
+    method def_blocks = def_blocks
+    method use_before_def_blocks = use_before_def_blocks
+
+    method init () =
+      func_iter_blocks func (fun block -> iter_instructions block this#visit_instruction)
+
+    method visit_block block = iter_instructions block this#visit_instruction
+
+    method visit_instruction instr =
+      (* Mark block edges *)
+      (match instr with
+      | { instr = `B | `BCond _; operands = [| { value = Block next_block; _ } |]; block; _ }
+      | { instr = `Cbz _; operands = [| _; { value = Block next_block; _ } |]; block; _ } ->
+        prev_blocks <- BlockMMap.add next_block block prev_blocks
+      | _ -> ());
+
+      (* First visit uses *)
+      instr_iter_all_operands instr (fun operand operand_def ->
+          if operand_is_use operand_def then use_blocks <- OBMMap.add operand instr.block use_blocks);
+
+      (* Then visit defs *)
+      instr_iter_all_operands instr (fun operand operand_def ->
+          match operand.value with
+          | VirtualStackSlot when operand_is_def operand_def ->
+            let block = instr.block in
+            if
+              OBMMap.contains operand block use_blocks
+              && not (OBMMap.contains operand block def_blocks)
+            then
+              use_before_def_blocks <- OBMMap.add operand block use_before_def_blocks;
+            def_blocks <- OBMMap.add operand block def_blocks
+          | _ -> ())
   end
