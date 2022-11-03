@@ -10,6 +10,7 @@ open Asm_layout
 open Basic_collections
 open Mir
 open Mir_builders
+open Mir_type
 
 let imm_0 = mk_imm ~imm:(Imm8 (Int8.of_int 0))
 
@@ -562,15 +563,71 @@ and gen_instructions ~gcx instructions =
     | W -> Gcx.emit ~gcx (`AndI size) [| result_op; arg_op; imm_word_mask |]
     | X -> Gcx.emit ~gcx (`MovR size) [| result_op; arg_op |]);
     gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                Call Builtin
+   * ===========================================
+   *)
   | {
+      id = result_id;
       value =
-        Instr
-          {
-            instr =
-              ( Call { func = MirBuiltin _; _ }
-              | GetPointer _ | Load _ | Store _ | IntToFloat _ | FloatToInt _ );
-            _;
-          };
+        Instr { type_ = return_type; instr = Call { func = MirBuiltin mir_builtin; args; _ }; _ };
+      _;
+    }
+    :: rest_instructions ->
+    let open Mir_builtin in
+    gcx.current_func.is_leaf <- false;
+    let builtin_func = Aarch64_builtin.get_asm_builtin mir_builtin in
+    let calling_convention = builtin_func.calling_convention in
+
+    (* Emit arguments for call *)
+    let param_types =
+      if mir_builtin.name = myte_alloc.name then (
+        (* Special case myte_alloc as it must calculate the size to allocation from the type *)
+        let element_mir_ty = cast_to_pointer_type return_type in
+        let param_mir_types = [Type.Int] in
+        let param_types = calling_convention#calculate_param_types param_mir_types in
+        gen_size_from_count_and_type
+          ~gcx
+          (List.hd args)
+          param_types.(0)
+          (List.hd param_mir_types)
+          element_mir_ty;
+        param_types
+      ) else if mir_builtin.name = myte_copy.name then (
+        (* Special case myte_copy as it must calculate the size to copy from the type *)
+        let element_mir_ty = cast_to_pointer_type (type_of_use (List.hd args)) in
+        let (pointer_args, count_arg) = List_utils.split_last args in
+        let count_mir_type = Type.Int in
+        let param_mir_types = List.map type_of_use pointer_args @ [count_mir_type] in
+        let param_types = calling_convention#calculate_param_types param_mir_types in
+        gen_call_arguments param_types pointer_args;
+        gen_size_from_count_and_type ~gcx count_arg param_types.(2) count_mir_type element_mir_ty;
+        param_types
+      ) else
+        (* Generic case for all other builtins *)
+        let param_mir_types = List.map type_of_use args in
+        let param_types = calling_convention#calculate_param_types param_mir_types in
+        gen_call_arguments param_types args;
+        param_types
+    in
+
+    (* Call builtin function *)
+    Gcx.emit ~gcx (`BL (param_types, calling_convention)) [| mk_function_op ~func:builtin_func |];
+
+    (* Move return value to result register *)
+    (match builtin_func.return_type with
+    | None -> ()
+    | Some return_mir_type ->
+      let return_size = register_size_of_mir_value_type return_mir_type in
+      let return_reg = calling_convention#calculate_return_register return_mir_type in
+      let return_reg_op = mk_precolored ~type_:return_type return_reg in
+      let return_op = mk_vreg_of_value_id ~type_:return_type result_id in
+      Gcx.emit ~gcx (`MovR return_size) [| return_op; return_reg_op |]);
+
+    gen_instructions rest_instructions
+  | {
+      value = Instr { instr = GetPointer _ | Load _ | Store _ | IntToFloat _ | FloatToInt _; _ };
       _;
     }
     :: _ ->
@@ -842,6 +899,31 @@ and gen_shift_value ~gcx ~size shift_val =
       mk_imm64 ~n:(Int64.logand n 31L)
   | _ -> gen_value ~gcx shift_val
 
+and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir_type mir_ty =
+  let element_size = size_of_mir_type ~agg_cache:gcx.agg_cache mir_ty in
+  let result_op =
+    match count_param_type with
+    | ParamInRegister reg -> mk_precolored ~type_:count_param_mir_type reg
+    | ParamOnStack _ -> failwith "Cannot pass builtin size argument on stack"
+  in
+  match count_use.value.value with
+  (* If count is a literal precalculate total requested size *)
+  | Lit ((Byte _ | Int _ | Long _) as count_lit) ->
+    let count = int64_of_literal count_lit in
+    let total_size = Int64.mul count (Int64.of_int element_size) in
+    gen_load_immediate_to_reg ~gcx ~type_:count_param_mir_type total_size result_op
+  (* If count is a variable multiply by size before putting in argument register *)
+  | _ ->
+    let size = register_size_of_mir_value_type count_param_mir_type in
+    let count_op = gen_value ~gcx count_use in
+    (* Check for special case where element size is a single byte - no multiplication required *)
+    if element_size == 1 then
+      Gcx.emit ~gcx (`MovR size) [| result_op; count_op |]
+    else
+      let size_op = mk_vreg ~type_:count_param_mir_type in
+      gen_load_immediate_to_reg ~gcx ~type_:count_param_mir_type (Int64.of_int element_size) size_op;
+      Gcx.emit ~gcx (`Mul size) [| result_op; count_op; size_op |]
+
 (* Generate an immediate value loaded to a register. Only 16 bits can be moved in a single
    instruction, if more are required then additional movk instructions must be used. *)
 and gen_mov_immediate ~gcx (lit : Literal.t) : Operand.t =
@@ -850,54 +932,56 @@ and gen_mov_immediate ~gcx (lit : Literal.t) : Operand.t =
     mk_precolored ~type_ `ZR
   else
     let n = int64_of_literal lit in
-    let bytes = Bytes.create 8 in
-    Bytes.set_int64_le bytes 0 n;
-
-    (* Extract an unsigned 16 bit chunk from `n` starting at the given byte offset *)
-    let get_imm16_chunk bytes byte_offset =
-      let imm16 = Bytes.get_uint16_le bytes byte_offset in
-      mk_imm ~imm:(Imm16 imm16)
-    in
-
-    let register_size = register_size_of_mir_value_type type_ in
     let vreg = mk_vreg ~type_ in
-
-    let is_greater_than x y = Int64.compare x y != -1 in
-
-    (if is_greater_than n 0L then (
-      (* First 16 bit chunk is always loaded with a movz *)
-      Gcx.emit ~gcx (`MovI (register_size, Z)) [| vreg; get_imm16_chunk bytes 0; imm_0 |];
-
-      (* n >= 2^16 *)
-      if is_greater_than n 65536L then (
-        Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
-        (* n >= 2^32 *)
-        if is_greater_than n 4294967296L then (
-          Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
-          (* n >= 2^48 *)
-          if is_greater_than n 281474976710656L then
-            Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
-        )
-      )
-    ) else
-      (* First 16 bit chunk is always inverted and loaded with a movn to set high bytes to ones *)
-      let inverted_bytes = Bytes.create 8 in
-      Bytes.set_int64_le inverted_bytes 0 (Int64.lognot n);
-      Gcx.emit ~gcx (`MovI (register_size, N)) [| vreg; get_imm16_chunk inverted_bytes 0; imm_0 |];
-
-      (* n < -2^16 *)
-      if Integers.int64_less_than n (-65536L) then (
-        Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
-        (* n < -2^32 *)
-        if Integers.int64_less_than n (-4294967296L) then (
-          Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
-          (* n < -2^48 *)
-          if Integers.int64_less_than n (-281474976710656L) then
-            Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
-        )
-      ));
-
+    gen_load_immediate_to_reg ~gcx ~type_ n vreg;
     vreg
+
+and gen_load_immediate_to_reg ~gcx ~(type_ : Type.t) (n : Int64.t) (vreg : Operand.t) =
+  let bytes = Bytes.create 8 in
+  Bytes.set_int64_le bytes 0 n;
+
+  (* Extract an unsigned 16 bit chunk from `n` starting at the given byte offset *)
+  let get_imm16_chunk bytes byte_offset =
+    let imm16 = Bytes.get_uint16_le bytes byte_offset in
+    mk_imm ~imm:(Imm16 imm16)
+  in
+
+  let register_size = register_size_of_mir_value_type type_ in
+
+  let is_greater_than x y = Int64.compare x y != -1 in
+
+  if is_greater_than n 0L then (
+    (* First 16 bit chunk is always loaded with a movz *)
+    Gcx.emit ~gcx (`MovI (register_size, Z)) [| vreg; get_imm16_chunk bytes 0; imm_0 |];
+
+    (* n >= 2^16 *)
+    if is_greater_than n 65536L then (
+      Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
+      (* n >= 2^32 *)
+      if is_greater_than n 4294967296L then (
+        Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
+        (* n >= 2^48 *)
+        if is_greater_than n 281474976710656L then
+          Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
+      )
+    )
+  ) else
+    (* First 16 bit chunk is always inverted and loaded with a movn to set high bytes to ones *)
+    let inverted_bytes = Bytes.create 8 in
+    Bytes.set_int64_le inverted_bytes 0 (Int64.lognot n);
+    Gcx.emit ~gcx (`MovI (register_size, N)) [| vreg; get_imm16_chunk inverted_bytes 0; imm_0 |];
+
+    (* n < -2^16 *)
+    if Integers.int64_less_than n (-65536L) then (
+      Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
+      (* n < -2^32 *)
+      if Integers.int64_less_than n (-4294967296L) then (
+        Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
+        (* n < -2^48 *)
+        if Integers.int64_less_than n (-281474976710656L) then
+          Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
+      )
+    )
 
 and gen_value ~gcx (use : Use.t) =
   match use.value.value with

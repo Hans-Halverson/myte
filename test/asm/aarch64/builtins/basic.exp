@@ -1,0 +1,29 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.testMyteAlloc:
+  str x30, [sp, #-16]!
+  movz w0, #20
+  bl mytec_alloc
+  ldr x30, [sp], #16
+  ret
+test.testMyteCollect:
+  str x30, [sp, #-16]!
+  bl mytec_collect
+  ldr x30, [sp], #16
+  ret
+test.testMyteExit:
+  str x30, [sp, #-16]!
+  movz w0, #1
+  bl __myte_exit
+test.testMyteGetHeapSize:
+  str x30, [sp, #-16]!
+  bl mytec_get_heap_size
+  bl test.use$Long$
+  ldr x30, [sp], #16
+  ret
+test.use$Long$:
+  ret

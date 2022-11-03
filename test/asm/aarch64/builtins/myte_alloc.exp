@@ -1,0 +1,33 @@
+  .global _main
+
+  .text
+_main:
+  str x30, [sp, #-16]!
+  movz w0, #1
+  bl test.testMyteAllocLiteralCount
+  movz w0, #1
+  bl test.testMyteAllocVariableCount
+  mov w0, wzr
+  ldr x30, [sp], #16
+  ret
+test.testMyteAllocLiteralCount:
+  str x30, [sp, #-16]!
+  movz w0, #16
+  bl mytec_alloc
+  movz w0, #800
+  bl mytec_alloc
+  ldr x30, [sp], #16
+  ret
+test.testMyteAllocVariableCount:
+  stp x19, x30, [sp, #-16]!
+  mov w19, w0
+  mov w0, w19
+  bl mytec_alloc
+  movz w0, #4
+  mul w0, w19, w0
+  bl mytec_alloc
+  movz w0, #8
+  mul w0, w19, w0
+  bl mytec_alloc
+  ldp x19, x30, [sp], #16
+  ret

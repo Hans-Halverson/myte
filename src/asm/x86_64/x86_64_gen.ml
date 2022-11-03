@@ -1,7 +1,11 @@
 open Asm
 open X86_64_gen_context
 
+let init () = X86_64_builtin.init ()
+
 let gen ir =
+  init ();
+
   (* Generate virtual assembly *)
   let gcx = Gcx.mk () in
   X86_64_codegen.gen ~gcx ir;

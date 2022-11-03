@@ -1,0 +1,21 @@
+module test
+
+import std.memory.Array
+
+fun testMyteAllocLiteralCount(x: Int) {
+  // Total size fits in 8 bits
+  val arr1: Array<Long> = Array.new(2);
+  // Total size fits in 32 bits
+  val arr2: Array<Long> = Array.new(100);
+}
+
+fun testMyteAllocVariableCount(x: Int) {
+  val arr1: Array<Byte> = Array.new(x);
+  val arr2: Array<Int> = Array.new(x);
+  val arr3: Array<Long> = Array.new(x);
+}
+
+fun main() {
+  testMyteAllocLiteralCount(1);
+  testMyteAllocVariableCount(1);
+}

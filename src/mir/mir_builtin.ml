@@ -1,3 +1,4 @@
+open Basic_collections
 open Mir_type
 
 module Builtin = struct
@@ -10,6 +11,9 @@ module Builtin = struct
 
   let compare b1 b2 = String.compare b1.name b2.name
 end
+
+module MirBuiltinCollection = MakeCollection (Builtin)
+module MirBuiltinMap = MirBuiltinCollection.Map
 
 (*
     myte.builtin.alloc<T>(count: int): *T

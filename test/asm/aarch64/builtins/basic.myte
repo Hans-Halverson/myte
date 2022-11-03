@@ -1,0 +1,25 @@
+module test
+
+import std.gc
+import std.memory.Array
+import std.sys.exit
+
+fun use<T>(x: T) {}
+
+fun testMyteAlloc() {
+  val x: Array<Int> = Array.new(5);
+}
+
+fun testMyteExit() {
+  exit(1);
+}
+
+fun testMyteGetHeapSize() {
+  use(gc.getHeapSize());
+}
+
+fun testMyteCollect() {
+  gc.collect();
+}
+
+fun main() {}

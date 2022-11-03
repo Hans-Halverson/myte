@@ -997,10 +997,11 @@ and gen_instructions ~gcx ~ir ~block instructions =
     (match builtin_func.return_type with
     | None -> ()
     | Some return_mir_type ->
+      let return_size = operand_size_of_mir_value_type return_mir_type in
       let return_reg = calling_convention#calculate_return_register return_mir_type in
       let return_reg_op = mk_precolored ~type_:return_type return_reg in
       let return_op = operand_of_value_id ~type_:return_type result_id in
-      Gcx.emit ~gcx (`MovMM Size64) [| return_reg_op; return_op |]);
+      Gcx.emit ~gcx (`MovMM return_size) [| return_reg_op; return_op |]);
 
     gen_instructions rest_instructions
   (*
