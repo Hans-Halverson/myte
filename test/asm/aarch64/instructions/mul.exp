@@ -6,7 +6,7 @@ _main:
   ret
 test.mulByteImmReg:
   movz w1, #60
-  mul w0, w1, w0
+  mul w0, w0, w1
   ret
 test.mulByteRegImm:
   movz w1, #60
@@ -17,7 +17,7 @@ test.mulByteRegs:
   ret
 test.mulIntImmReg:
   movz w1, #257
-  mul w0, w1, w0
+  mul w0, w0, w1
   ret
 test.mulIntRegImm:
   movz w1, #257
@@ -29,7 +29,7 @@ test.mulIntRegs:
 test.mulLongImmReg:
   movz x1, #52428
   movk x1, #3276, lsl #16
-  mul x0, x1, x0
+  mul x0, x0, x1
   ret
 test.mulLongRegImm:
   movz x1, #52428
@@ -38,4 +38,22 @@ test.mulLongRegImm:
   ret
 test.mulLongRegs:
   mul x0, x0, x1
+  ret
+test.mulPowerOfTwo1:
+  lsl w0, w0, #1
+  ret
+test.mulPowerOfTwo2:
+  lsl w0, w0, #2
+  ret
+test.mulPowerOfTwo3:
+  lsl w0, w0, #3
+  ret
+test.mulPowerOfTwo4:
+  lsl w0, w0, #4
+  ret
+test.mulPowerOfTwo5:
+  lsl w0, w0, #7
+  ret
+test.mulPowerOfTwo6:
+  lsl w0, w0, #12
   ret

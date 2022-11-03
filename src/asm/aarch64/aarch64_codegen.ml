@@ -331,11 +331,18 @@ and gen_instructions ~gcx instructions =
    *)
   | { id = result_id; value = Instr { instr = Binary (Mul, left_val, right_val); type_; _ }; _ }
     :: rest_instructions ->
-    let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    let left_op = gen_value ~gcx left_val in
-    let right_op = gen_value ~gcx right_val in
-    Gcx.emit ~gcx (`Mul size) [| result_op; left_op; right_op |];
+    (match (left_val, right_val) with
+    | ({ value = { value = Lit lit; _ }; _ }, other_val)
+    | (other_val, { value = { value = Lit lit; _ }; _ }) ->
+      let n = int64_of_literal lit in
+      let reg_op = gen_value ~gcx other_val in
+      gen_mul_i ~gcx ~type_ ~result_op reg_op n
+    | _ ->
+      let size = register_size_of_mir_value_type type_ in
+      let left_op = gen_value ~gcx left_val in
+      let right_op = gen_value ~gcx right_val in
+      Gcx.emit ~gcx (`Mul size) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -807,6 +814,18 @@ and gen_zero_extended_value ~gcx (use : Use.t) =
     | X ->
       op)
 
+and gen_mul_i ~gcx ~type_ ~result_op reg_op n =
+  let size = register_size_of_mir_value_type type_ in
+  (* Optimize multiplication by power of two to a left shift *)
+  if Integers.is_power_of_two n then
+    let power_of_two = Integers.int64_ctz n in
+    let power_of_two_imm_op = mk_imm ~imm:(Imm8 (Int8.of_int power_of_two)) in
+    Gcx.emit ~gcx (`LslI size) [| result_op; reg_op; power_of_two_imm_op |]
+  else
+    let n_vreg = mk_vreg ~type_ in
+    gen_load_immediate_to_reg ~gcx ~type_ n n_vreg;
+    Gcx.emit ~gcx (`Mul size) [| result_op; reg_op; n_vreg |]
+
 and gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val =
   let size = register_size_of_mir_value_type type_ in
   let subregister_size = subregister_size_of_mir_value_type type_ in
@@ -920,9 +939,7 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
     if element_size == 1 then
       Gcx.emit ~gcx (`MovR size) [| result_op; count_op |]
     else
-      let size_op = mk_vreg ~type_:count_param_mir_type in
-      gen_load_immediate_to_reg ~gcx ~type_:count_param_mir_type (Int64.of_int element_size) size_op;
-      Gcx.emit ~gcx (`Mul size) [| result_op; count_op; size_op |]
+      gen_mul_i ~gcx ~type_:count_param_mir_type ~result_op count_op (Int64.of_int element_size)
 
 (* Generate an immediate value loaded to a register. Only 16 bits can be moved in a single
    instruction, if more are required then additional movk instructions must be used. *)

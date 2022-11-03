@@ -23,11 +23,9 @@ test.testMyteAllocVariableCount:
   mov w19, w0
   mov w0, w19
   bl mytec_alloc
-  movz w0, #4
-  mul w0, w19, w0
+  lsl w0, w19, #2
   bl mytec_alloc
-  movz w0, #8
-  mul w0, w19, w0
+  lsl w0, w19, #3
   bl mytec_alloc
   ldp x19, x30, [sp], #16
   ret
