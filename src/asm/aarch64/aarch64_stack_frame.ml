@@ -84,11 +84,11 @@ let write_function_prologue_and_epilogue (func : Function.t) =
     ) else
       let reg = List.hd reg_pair in
       add_prologue_instr
-        (`StrI (Size64, store_mode))
+        (`StrI (X, store_mode))
         [| mk_reg reg; mk_sp (); mk_imm16 ~n:store_offset |];
       add_epilogue_instr (fun _ ->
           mk_blockless_instr
-            (`LdrI (Size64, load_mode))
+            (`LdrI (Size64, X, false, load_mode))
             [| mk_reg reg; mk_sp (); mk_imm16 ~n:offset |])
   in
 

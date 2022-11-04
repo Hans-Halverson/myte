@@ -152,6 +152,11 @@ module AArch64 = struct
     (* Update base register after indexing *)
     | PostIndex
 
+  type addressing_extend =
+    | UXTW
+    | SXTW
+    | LSL
+
   type instr =
     (* Instruction Suffixes:
          R - register
@@ -168,11 +173,34 @@ module AArch64 = struct
       `MovR of register_size
     | (* LdrI/StrI Rd, [Rs, #imm] with any addressing mode.
          - (all modes) #imm must be between -256 and 255
-         - (32-bit offset) #imm must be a multiple of 4 between 0 and 16380
-         - (64-bit offset) #imm must be a multiple of 8 between 0 and 32760 *)
+         - (B) #imm must be between 0 and 4096
+         - (H) #imm must be a multiple of 2 between 0 and 8190
+         - (W) #imm must be a multiple of 4 between 0 and 16380
+         - (X) #imm must be a multiple of 8 between 0 and 32760
+
+         For signed loads the dest reg may be any register larger than the loaded size.
+         For unsigned loads the dest reg must be the smallest register that fits the loaded size.
+         For stores the source reg must be the smallest register that fits the stored size. *)
       `LdrI of
-      register_size * addressing_mode
-    | `StrI of register_size * addressing_mode
+      (* Dest reg size *)
+      register_size
+      * (* Size to load *) subregister_size
+      * (* Is signed *) bool
+      * (* Addressing mode *) addressing_mode
+    | `StrI of (* Stored size *) subregister_size * (* Addressing mode *) addressing_mode
+    | (* LdrR/StrR may have the following forms depending on number of operands supplied:
+         - Rd, [Rs]
+         - Rd, [Rs1, Rs2]
+         - Rd, [Rs1, Rs2, EXTEND #imm ] where #imm is a left shift of Rs2 and must be one of
+           0, 1, 2, 3. #imm is optional if EXTEND is UXTW or SXTW, but is required for LSL. *)
+      `LdrR of
+      (* Dest reg size *)
+      register_size
+      * (* Size to load *) subregister_size
+      * (* Is signed *) bool
+      * (* Extend of offset register *) addressing_extend
+    | `StrR of (* Stored size *)
+      subregister_size * (* Extend of offset register *) addressing_extend
     | (* Ldp/Stp Rd1, Rd2, [Rs, #imm] with any addressing mode. For 32-bit registers #imm is any
          multiple of 4 between -256 and 252, for 64-bit registers #imm is any multiple of 8
          between -512 and 504. *)
@@ -181,8 +209,12 @@ module AArch64 = struct
     | `Stp of register_size * addressing_mode
     | (* Add Rd, Rs, #imm12, LSL #shift where #shift is one of 0, 12 *)
       `AddI of register_size
-    | (* Add Rd, Rs1, Rs2 *)
-      `AddR of register_size
+    | (* AddR may have the followign forms depending on number of operands suplied:
+         - Add Rd, Rs1, Rs2
+         - Add Rd, Rs1, Rs2, EXTEND #imm where #imm is 0, 1, 2, 3, 4. Cannot use extend if
+           Rd or Rs1 are SP. *)
+      `AddR of
+      register_size * extend
     | (* Add Rd, Rs, #imm12, LSL #shift where #shift is one of 0, 12 *)
       `SubI of register_size
     | (* Add Rd, Rs1, Rs2 *)

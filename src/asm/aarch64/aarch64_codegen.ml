@@ -16,6 +16,10 @@ let imm_0 = mk_imm ~imm:(Imm8 (Int8.of_int 0))
 
 let imm_1 = mk_imm ~imm:(Imm8 (Int8.of_int 1))
 
+let imm_2 = mk_imm ~imm:(Imm8 (Int8.of_int 2))
+
+let imm_3 = mk_imm ~imm:(Imm8 (Int8.of_int 3))
+
 let imm_12 = mk_imm ~imm:(Imm8 (Int8.of_int 12))
 
 let imm_16 = mk_imm ~imm:(Imm8 (Int8.of_int 16))
@@ -286,6 +290,55 @@ and gen_instructions ~gcx instructions =
     failwith "Terminator instructions must be last instruction"
   (*
    * ===========================================
+   *                GetPointer
+   * ===========================================
+   *)
+  (* | ({ value = Instr { instr = GetPointer gp_inner_instr; _ }; _ } as gp_instr)
+       :: { value = Instr { instr = Load { value = load_ptr_value; _ }; _ }; _ }
+       :: rest_instructions
+       when load_ptr_value == gp_instr ->
+       gen_get_pointer ~gcx gp_instr gp_inner_instr;
+       gen_instructions rest_instructions
+     | ({ value = Instr { instr = GetPointer gp_inner_instr; _ }; _ } as gp_instr)
+       :: { value = Instr { instr = Store ({ value = store_ptr_value; _ }, store_arg_val); _ }; _ }
+       :: rest_instructions
+       when store_ptr_value == gp_instr ->
+       gen_get_pointer ~gcx gp_instr gp_inner_instr;
+       gen_instructions rest_instructions *)
+  | { id = result_id; value = Instr { instr = GetPointer gp_inner_instr; type_; _ }; _ }
+    :: rest_instructions ->
+    let size = register_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let gp_op = gen_get_pointer ~gcx gp_inner_instr in
+    Gcx.emit ~gcx (`MovR size) [| result_op; gp_op |];
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                   Load
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { instr = Load pointer; _ }; _ } :: rest_instructions ->
+    let type_ = pointer_value_element_type pointer.value in
+    let size = register_size_of_mir_value_type type_ in
+    let subregister_size = subregister_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let pointer_op = gen_value ~gcx pointer in
+    Gcx.emit ~gcx (`LdrR (size, subregister_size, true, LSL)) [| result_op; pointer_op |];
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                   Store
+   * ===========================================
+   *)
+  | { value = Instr { instr = Store (pointer, arg); _ }; _ } :: rest_instructions ->
+    let type_ = pointer_value_element_type pointer.value in
+    let subregister_size = subregister_size_of_mir_value_type type_ in
+    let pointer_op = gen_value ~gcx pointer in
+    let arg_op = gen_value ~gcx arg in
+    Gcx.emit ~gcx (`StrR (subregister_size, LSL)) [| arg_op; pointer_op |];
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
    *                   Add
    * ===========================================
    *)
@@ -293,17 +346,15 @@ and gen_instructions ~gcx instructions =
     :: rest_instructions ->
     let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    (match (gen_add_sub_value ~gcx left_val, gen_add_sub_value ~gcx right_val) with
-    | ({ value = Immediate _; _ }, { value = Immediate _; _ }) ->
-      failwith "Constants must be folded before codegen"
-    | ({ value = Immediate imm; _ }, reg_op)
-    | (reg_op, { value = Immediate imm; _ }) ->
-      let n = int64_of_immediate imm in
-      if Integers.int64_less_than n 0L then
-        gen_add_sub_i ~gcx (`SubI size) result_op reg_op (Int64.neg n)
-      else
-        gen_add_sub_i ~gcx (`AddI size) result_op reg_op n
-    | (reg_op1, reg_op2) -> Gcx.emit ~gcx (`AddR size) [| result_op; reg_op1; reg_op2 |]);
+    (match (left_val, right_val) with
+    | ({ value = { value = Lit lit; _ }; _ }, other_val)
+    | (other_val, { value = { value = Lit lit; _ }; _ }) ->
+      let reg_op = gen_value ~gcx other_val in
+      gen_add_n ~gcx ~result_op ~type_ reg_op (int64_of_literal lit)
+    | _ ->
+      let left_op = gen_value ~gcx left_val in
+      let right_op = gen_value ~gcx right_val in
+      Gcx.emit ~gcx (`AddR (size, noop_extend)) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -315,14 +366,11 @@ and gen_instructions ~gcx instructions =
     let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
     let left_op = gen_value ~gcx left_val in
-    (match gen_add_sub_value ~gcx right_val with
-    | { value = Immediate imm; _ } ->
-      let n = int64_of_immediate imm in
-      if Integers.int64_less_than n 0L then
-        gen_add_sub_i ~gcx (`AddI size) result_op left_op (Int64.neg n)
-      else
-        gen_add_sub_i ~gcx (`SubI size) result_op left_op n
-    | right_op -> Gcx.emit ~gcx (`SubR size) [| result_op; left_op; right_op |]);
+    (match right_val.value.value with
+    | Lit lit -> gen_sub_n ~gcx ~result_op ~type_ left_op (int64_of_literal lit)
+    | _ ->
+      let right_op = gen_value ~gcx right_val in
+      Gcx.emit ~gcx (`SubR size) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -367,7 +415,7 @@ and gen_instructions ~gcx instructions =
     let (left_op, right_op) = gen_sdiv ~gcx ~type_ ~result_op:div_result_op ~left_val ~right_val in
     Gcx.emit ~gcx (`MSub size) [| result_op; div_result_op; right_op; left_op |];
     gen_instructions rest_instructions
-    (*
+  (*
    * ===========================================
    *                   Neg
    * ===========================================
@@ -633,11 +681,7 @@ and gen_instructions ~gcx instructions =
       Gcx.emit ~gcx (`MovR return_size) [| return_op; return_reg_op |]);
 
     gen_instructions rest_instructions
-  | {
-      value = Instr { instr = GetPointer _ | Load _ | Store _ | IntToFloat _ | FloatToInt _; _ };
-      _;
-    }
-    :: _ ->
+  | { value = Instr { instr = IntToFloat _ | FloatToInt _; _ }; _ } :: _ ->
     failwith "Unimplemented MIR instruction"
   | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
     failwith "Phi nodes must be removed before asm gen"
@@ -747,6 +791,30 @@ and gen_cmp_cset ~gcx cond result_id left_val right_val =
   Gcx.emit ~gcx (`CSet (Size32, cond)) [| result_op |];
   cond
 
+and gen_add_n ~gcx ~result_op ~type_ reg_op n =
+  let size = register_size_of_mir_value_type type_ in
+  if is_in_add_sub_range n then
+    if Integers.int64_less_than n 0L then
+      gen_add_sub_i ~gcx (`SubI size) result_op reg_op (Int64.neg n)
+    else
+      gen_add_sub_i ~gcx (`AddI size) result_op reg_op n
+  else
+    let n_reg = mk_vreg ~type_ in
+    gen_load_immediate_to_reg ~gcx ~type_ n n_reg;
+    Gcx.emit ~gcx (`AddR (size, noop_extend)) [| result_op; reg_op; n_reg |]
+
+and gen_sub_n ~gcx ~result_op ~type_ reg_op n =
+  let size = register_size_of_mir_value_type type_ in
+  if is_in_add_sub_range n then
+    if Integers.int64_less_than n 0L then
+      gen_add_sub_i ~gcx (`AddI size) result_op reg_op (Int64.neg n)
+    else
+      gen_add_sub_i ~gcx (`SubI size) result_op reg_op n
+  else
+    let n_reg = mk_vreg ~type_ in
+    gen_load_immediate_to_reg ~gcx ~type_ n n_reg;
+    Gcx.emit ~gcx (`SubR size) [| result_op; reg_op; n_reg |]
+
 and gen_add_sub_i ~gcx instr dest_op reg_op n =
   (* n < 2^12 fits in a single add or sub instruction *)
   if Integers.int64_less_than n 4096L then
@@ -758,14 +826,17 @@ and gen_add_sub_i ~gcx instr dest_op reg_op n =
     Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm64 ~n:high_12_bits; imm_12 |];
     Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm64 ~n:low_12_bits; imm_0 |]
 
+(* -2^24 < n < 2^24 can be encoded as immediate in 1 or 2 add/sub instructions *)
+and is_in_add_sub_range n =
+  Integers.int64_less_than (-16777216L) n && Integers.int64_less_than n 16777216L
+
 (* Generate an operand that can be used in add or sub instructions. 24-bit immediates are allowed,
    but larger immediates must be loaded to a register. *)
 and gen_add_sub_value ~gcx (use : Use.t) : Operand.t =
   match use.value.value with
   | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) ->
     let n = int64_of_literal lit in
-    (* -2^24 < n < 2^24 can be encoded as immediate in 1 or 2 add/sub instructions *)
-    if Integers.int64_less_than (-16777216L) n && Integers.int64_less_than n 16777216L then
+    if is_in_add_sub_range n then
       mk_imm64 ~n
     else
       gen_mov_immediate ~gcx lit
@@ -940,6 +1011,117 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
       Gcx.emit ~gcx (`MovR size) [| result_op; count_op |]
     else
       gen_mul_i ~gcx ~type_:count_param_mir_type ~result_op count_op (Int64.of_int element_size)
+
+and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
+  let open Mir.Instruction.GetPointer in
+  let { pointer; pointer_offset; offsets } = get_pointer_instr in
+
+  (* Add address of root pointer *)
+  let pointer_reg =
+    match pointer.value.value with
+    | Lit (Global _) -> failwith "TODO: Handle globals"
+    | Lit (NullPointer _) -> failwith "TODO: Handle null pointer, since ZR cannot be base"
+    | _ -> gen_value ~gcx pointer
+  in
+
+  let base = ref pointer_reg in
+  let immediate_offset = ref None in
+  let scaled_reg_offset = ref None in
+
+  let emit_current_address_calculation () =
+    match (!immediate_offset, !scaled_reg_offset) with
+    | (None, None) -> ()
+    | (Some imm_offset, None) ->
+      let new_base = mk_vreg ~type_:Long in
+      gen_add_n ~gcx ~result_op:new_base ~type_:Long !base imm_offset;
+      base := new_base
+    | (None, Some (reg, reg_mir_type, scale)) ->
+      let new_base = mk_vreg ~type_:Long in
+      if scale == 1 then
+        Gcx.emit ~gcx (`AddR (Size64, noop_extend)) [| new_base; !base; reg |]
+      else
+        let subregister_size = subregister_size_of_mir_value_type reg_mir_type in
+        let extend = sign_extend_of_subregister_size subregister_size in
+        let shift_imm =
+          match scale with
+          | 2 -> imm_1
+          | 4 -> imm_2
+          | 8 -> imm_3
+          | _ -> failwith "Invalid scale"
+        in
+        Gcx.emit ~gcx (`AddR (Size64, extend)) [| new_base; !base; reg; shift_imm |]
+    | (Some _, Some _) -> failwith "Can only have one offset type"
+  in
+
+  let add_fixed_offset new_offset =
+    if !scaled_reg_offset != None then emit_current_address_calculation ();
+    match !immediate_offset with
+    | None -> immediate_offset := Some new_offset
+    | Some existing_offset ->
+      let combined_offset = Int64.add new_offset existing_offset in
+      immediate_offset := Some combined_offset
+  in
+
+  let add_scaled_register (reg, reg_mir_type) scale =
+    if !immediate_offset != None || !scaled_reg_offset != None then
+      emit_current_address_calculation ();
+    match scale with
+    | 1
+    | 2
+    | 4
+    | 8 ->
+      scaled_reg_offset := Some (reg, reg_mir_type, scale)
+    | _ ->
+      emit_current_address_calculation ();
+      let scaled_reg = mk_vreg ~type_:reg_mir_type in
+      gen_mul_i ~gcx ~type_:reg_mir_type ~result_op:scaled_reg reg (Int64.of_int scale);
+      scaled_reg_offset := Some (scaled_reg, reg_mir_type, 1)
+  in
+
+  (* The element type that the next offset calculation should be using *)
+  let current_element_type = ref (pointer_value_element_type pointer.value) in
+
+  let gen_offset (offset : use_offset) =
+    match offset with
+    | PointerIndex pointer_offset ->
+      let element_size =
+        match !current_element_type with
+        | Type.Array (mir_type, _)
+        | mir_type ->
+          size_of_mir_type ~agg_cache:gcx.agg_cache mir_type
+      in
+      (match pointer_offset.value.value with
+      | Lit lit ->
+        let num_elements = int64_of_literal lit in
+        if not (Int64.equal num_elements Int64.zero) then
+          let offset = Int64.mul num_elements (Int64.of_int element_size) in
+          add_fixed_offset offset
+      | _ ->
+        let num_elements_reg = gen_value ~gcx pointer_offset in
+        let num_elements_reg_mir_type = type_of_use pointer_offset in
+        add_scaled_register (num_elements_reg, num_elements_reg_mir_type) element_size)
+    | FieldIndex element_index ->
+      (match !current_element_type with
+      | Aggregate ({ Aggregate.elements; _ } as agg) ->
+        (* Find offset of aggregate element in aggregate's layout, add add it to address *)
+        let agg_layout = AggregateLayoutCache.get gcx.agg_cache agg in
+        let { AggregateElement.offset; _ } = AggregateLayout.get_element agg_layout element_index in
+        if offset <> 0 then add_fixed_offset (Int64.of_int offset);
+        (* Update current type to element type *)
+        let (_, element_type) = List.nth elements element_index in
+        current_element_type := element_type
+      | _ -> failwith "FieldIndex must index into aggregate type")
+  in
+
+  (* Visit all offsets *)
+  (match pointer_offset with
+  | Some pointer_offset -> gen_offset (PointerIndex pointer_offset)
+  | None -> ());
+  List.iter (fun offset -> gen_offset offset) offsets;
+
+  (* ignore (gcx, get_pointer_instr) *)
+  emit_current_address_calculation ();
+  !base
 
 (* Generate an immediate value loaded to a register. Only 16 bits can be moved in a single
    instruction, if more are required then additional movk instructions must be used. *)

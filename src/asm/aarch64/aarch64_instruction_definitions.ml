@@ -1,3 +1,4 @@
+open Aarch64_asm
 open Asm_instruction_definition
 
 let operands_rr =
@@ -62,7 +63,16 @@ let mov_r = { InstructionDef.operands = operands_rr }
 
 let add_i = { InstructionDef.operands = operands_add_sub_i }
 
-let add_r = { InstructionDef.operands = operands_rrr }
+let add_r =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Def; operand_type = Register };
+        { use = Use; operand_type = Register };
+        { use = Use; operand_type = Register };
+        { use = Use; operand_type = Immediate };
+      ];
+  }
 
 let sub_i = { InstructionDef.operands = operands_add_sub_i }
 
@@ -168,6 +178,28 @@ let str_i_pre_post =
       ];
   }
 
+let ldr_r =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Def; operand_type = Register };
+        { OperandDef.use = Use; operand_type = Register };
+        { OperandDef.use = Use; operand_type = Register };
+        { OperandDef.use = Use; operand_type = Immediate };
+      ];
+  }
+
+let str_r =
+  {
+    InstructionDef.operands =
+      [
+        { OperandDef.use = Use; operand_type = Register };
+        { OperandDef.use = Use; operand_type = Register };
+        { OperandDef.use = Use; operand_type = Register };
+        { OperandDef.use = Use; operand_type = Immediate };
+      ];
+  }
+
 let ldp_offset =
   {
     InstructionDef.operands =
@@ -260,32 +292,40 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `CmnI _ -> cmn_i
   | `CSet _ -> cset
   | `Sxt _ -> sxt
-  | `LdrI (_, Offset) -> ldr_i_offset
-  | `LdrI (_, (PreIndex | PostIndex)) -> ldr_i_pre_post
+  | `LdrI (_, _, _, Offset) -> ldr_i_offset
+  | `LdrI (_, _, _, (PreIndex | PostIndex)) -> ldr_i_pre_post
   | `StrI (_, Offset) -> str_i_offset
   | `StrI (_, (PreIndex | PostIndex)) -> str_i_pre_post
+  | `LdrR _ -> ldr_r
+  | `StrR _ -> str_r
   | `Ldp (_, Offset) -> ldp_offset
   | `Ldp (_, (PreIndex | PostIndex)) -> ldp_pre_post
   | `Stp (_, Offset) -> stp_offset
   | `Stp (_, (PreIndex | PostIndex)) -> stp_pre_post
   | `B -> b
   | `BCond _ -> b_cond
-  | `Cbz _
-  | `BL _ ->
-    bl
+  | `Cbz _ -> cbz
+  | `BL _ -> bl
   | `BLR _ -> blr
   | `Ret -> ret
-  | _ -> failwith "Unknown X86_64 instr"
+  | _ -> failwith "Unknown aarch64 instr"
 
 (* Return the register size of the i'th operand for this instruction. Only guaranteed to be
    accurate for register operands. *)
 let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
+  let size_of_address_extend (extend : AArch64.addressing_extend) : AArch64.register_size =
+    match extend with
+    | LSL -> Size64
+    | UXTW
+    | SXTW ->
+      Size32
+  in
   match instr with
   (* Instructions where all registers have the same size *)
   | `MovI (size, _)
   | `MovR size
   | `AddI size
-  | `AddR size
+  | `AddR (size, _)
   | `SubI size
   | `SubR size
   | `Mul size
@@ -321,10 +361,28 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
       size
     else
       Size32
-  | `LdrI (size, _)
-  | `StrI (size, _) ->
+  | `LdrI (size, _, _, _) ->
     if i == 0 then
       size
+    else
+      Size64
+  | `StrI (size, _) ->
+    if i == 0 then
+      register_size_of_subregister_size size
+    else
+      Size64
+  | `LdrR (size, _, _, extend) ->
+    if i == 0 then
+      size
+    else if i == 2 then
+      size_of_address_extend extend
+    else
+      Size64
+  | `StrR (size, extend) ->
+    if i == 0 then
+      register_size_of_subregister_size size
+    else if i == 2 then
+      size_of_address_extend extend
     else
       Size64
   | `Ldp (size, _)

@@ -82,6 +82,38 @@ let pp_immediate_address ~pcx ~buf (mode : AArch64.addressing_mode) reg_op imm_o
     add_string "], ";
     pp_operand imm_op
 
+let pp_offset_address
+    ~pcx ~buf (instr : instr) (operands : Operand.t array) (extend : AArch64.addressing_extend) =
+  let add_char = add_char ~buf in
+  let add_string = add_string ~buf in
+  let pp_operand i = pp_operand ~pcx ~buf ~size:(instr_register_size instr i) operands.(i) in
+  let num_operands = Array.length operands in
+  add_char '[';
+  pp_operand 1;
+  if num_operands >= 3 then (
+    add_string ", ";
+    pp_operand 2;
+    match extend with
+    | LSL ->
+      if num_operands == 4 && not (is_zero_immediate (cast_to_immediate operands.(3))) then (
+        add_string ", lsl ";
+        pp_operand 3
+      )
+    | UXTW ->
+      add_string ", uxtw";
+      if num_operands == 4 then (
+        add_char ' ';
+        pp_operand 3
+      )
+    | SXTW ->
+      add_string ", sxtw";
+      if num_operands == 4 then (
+        add_char ' ';
+        pp_operand 3
+      )
+  );
+  add_char ']'
+
 let string_of_cond (cond : AArch64.cond) =
   match cond with
   | EQ -> "eq"
@@ -91,8 +123,26 @@ let string_of_cond (cond : AArch64.cond) =
   | GT -> "gt"
   | GE -> "ge"
 
-let pp_instruction ~gcx ~pcx ~buf instr =
-  ignore gcx;
+let ldr_suffix (load_size : AArch64.subregister_size) (is_signed : bool) =
+  match (is_signed, load_size) with
+  | (_, X)
+  | (false, W) ->
+    ""
+  | (false, B) -> "b"
+  | (false, H) -> "h"
+  | (true, B) -> "sb"
+  | (true, H) -> "sh"
+  | (true, W) -> "sw"
+
+let str_suffix (store_size : AArch64.subregister_size) =
+  match store_size with
+  | X
+  | W ->
+    ""
+  | B -> "b"
+  | H -> "h"
+
+let pp_instruction ~pcx ~buf instr =
   let pp_operand = pp_operand ~pcx ~buf in
   pp_instr_debug_prefix ~buf ~instr;
   add_line ~buf (fun buf ->
@@ -143,16 +193,26 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_operand ~size operands.(1);
         pp_lsl_immediate ~size operands.(2)
-      | `LdrI (size, mode) ->
-        pp_op "ldr";
-        pp_operand ~size operands.(0);
+      | `LdrI (dest_size, load_size, is_signed, mode) ->
+        pp_op ("ldr" ^ ldr_suffix load_size is_signed);
+        pp_operand ~size:dest_size operands.(0);
         pp_args_separator ();
         pp_immediate_address ~pcx ~buf mode operands.(1) operands.(2)
-      | `StrI (size, mode) ->
-        pp_op "str";
-        pp_operand ~size operands.(0);
+      | `StrI (store_size, mode) ->
+        pp_op ("str" ^ str_suffix store_size);
+        pp_operand ~size:(instr_register_size instr.instr 0) operands.(0);
         pp_args_separator ();
         pp_immediate_address ~pcx ~buf mode operands.(1) operands.(2)
+      | `LdrR (dest_size, load_size, is_signed, extend) ->
+        pp_op ("ldr" ^ ldr_suffix load_size is_signed);
+        pp_operand ~size:dest_size operands.(0);
+        pp_args_separator ();
+        pp_offset_address ~pcx ~buf instr.instr operands extend
+      | `StrR (store_size, extend) ->
+        pp_op ("str" ^ str_suffix store_size);
+        pp_operand ~size:(instr_register_size instr.instr 0) operands.(0);
+        pp_args_separator ();
+        pp_offset_address ~pcx ~buf instr.instr operands extend
       | `Ldp (size, mode) ->
         pp_op "ldp";
         pp_operand ~size operands.(0);
@@ -175,9 +235,18 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_args_separator ();
         pp_operand ~size operands.(2);
         pp_lsl_immediate ~size operands.(3)
-      | `AddR _ ->
+      | `AddR (size, extend) ->
         pp_op "add";
-        pp_operands ()
+        pp_operand ~size operands.(0);
+        pp_args_separator ();
+        pp_operand ~size operands.(1);
+        pp_args_separator ();
+        pp_operand ~size operands.(2);
+        if Array.length operands == 4 then (
+          pp_args_separator ();
+          pp_extend ~buf extend;
+          pp_operand ~size operands.(3)
+        )
       | `SubI size ->
         pp_op "sub";
         pp_operand ~size operands.(0);
@@ -280,13 +349,13 @@ let pp_instruction ~gcx ~pcx ~buf instr =
         pp_operands ()
       | _ -> failwith "Unknown AArch64 instr")
 
-let pp_block ~gcx ~pcx ~buf (block : Block.t) =
+let pp_block ~pcx ~buf (block : Block.t) =
   (match pp_label ~pcx block with
   | None -> ()
   | Some label ->
     pp_label_debug_prefix ~buf block;
     add_label_line ~buf label);
-  iter_instructions block (pp_instruction ~gcx ~pcx ~buf)
+  iter_instructions block (pp_instruction ~pcx ~buf)
 
 let pp_program ~(gcx : Gcx.t) : string =
   let pcx = mk_pcx ~funcs:gcx.funcs in
@@ -298,6 +367,6 @@ let pp_program ~(gcx : Gcx.t) : string =
   (* Add text section *)
   add_blank_line ~buf;
   add_line ~buf (fun buf -> add_string ~buf ".text");
-  FunctionSet.iter (fun func -> List.iter (pp_block ~gcx ~pcx ~buf) func.Function.blocks) gcx.funcs;
+  FunctionSet.iter (fun func -> List.iter (pp_block ~pcx ~buf) func.Function.blocks) gcx.funcs;
 
   Buffer.contents buf

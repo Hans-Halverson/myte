@@ -20,3 +20,21 @@ let swap_cond_order cond =
   | GT -> LT
   | LE -> GE
   | GE -> LE
+
+let register_size_of_subregister_size (subregister_size : AArch64.subregister_size) :
+    AArch64.register_size =
+  match subregister_size with
+  | B
+  | H
+  | W ->
+    Size32
+  | X -> Size64
+
+let noop_extend : AArch64.extend = SXTX
+
+let sign_extend_of_subregister_size (subregister_size : AArch64.subregister_size) : AArch64.extend =
+  match subregister_size with
+  | B -> SXTB
+  | H -> SXTH
+  | W -> SXTW
+  | X -> SXTX
