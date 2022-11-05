@@ -15,6 +15,14 @@ test.testMyteCollect:
   bl mytec_collect
   ldr x30, [sp], #16
   ret
+test.testMyteCopy:
+  str x30, [sp, #-16]!
+  add x0, x1, #4
+  add x1, x2, #8
+  movz w2, #12
+  bl __myte_copy
+  ldr x30, [sp], #16
+  ret
 test.testMyteExit:
   str x30, [sp, #-16]!
   movz w0, #1

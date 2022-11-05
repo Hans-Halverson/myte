@@ -10,6 +10,10 @@ fun testMyteAlloc() {
   val x: Array<Int> = Array.new(5);
 }
 
+fun testMyteCopy(p1: Int, p2: Array<Int>, p3: Array<Int>) {
+  Array.copy(p2, 1, p3, 2, 3);
+}
+
 fun testMyteExit() {
   exit(1);
 }

@@ -6,7 +6,6 @@ open Mir_type
 
 (* Assmebly implemented functions *)
 
-(* TODO: Implement aarch64 myte_copy  *)
 let myte_copy_label = "__myte_copy"
 
 (* Syscall wrapper functions *)
