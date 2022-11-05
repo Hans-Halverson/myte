@@ -4,14 +4,8 @@
   .text
 
 main:
-  # Call main
   stp x29, x30, [sp, #-16]!
-  mov x29, sp
+#  bl mytec_runtime_init
+#  bl _myte_init
   bl _main
-  ldp x29, x30, [sp], #16
-
-  # Exit
-  mov X8, #93
-  mov X0, XZR
-  svc #0
-  
+  bl __myte_exit

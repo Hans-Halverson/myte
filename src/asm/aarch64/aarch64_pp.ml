@@ -45,7 +45,21 @@ let pp_operand ~pcx ~buf ~size op =
     pp_label_debug_prefix ~buf block;
     add_string ~buf (Option.get (pp_label ~pcx block))
   | Label label -> add_string ~buf label
-  | _ -> failwith "Printing operand not yet implemented"
+  (* The following operand types should be resolved before printing non-virtual asm *)
+  | StackSlot _ when Opts.dump_virtual_asm () ->
+    add_string ~buf "STACK_SLOT:";
+    add_string ~buf (string_of_int op.Operand.id)
+  | VirtualStackSlot when Opts.dump_virtual_asm () ->
+    add_string ~buf "VSLOT:";
+    add_string ~buf (string_of_int op.Operand.id)
+  | VirtualRegister when Opts.dump_virtual_asm () ->
+    add_char ~buf '%';
+    add_string ~buf (string_of_int op.id)
+  | X86_64_MemoryAddress _ -> failwith "x86_64 memory address not allowed in aarch64 assembly"
+  | VirtualRegister
+  | StackSlot _
+  | VirtualStackSlot ->
+    failwith "Must be resolved before printing"
 
 let pp_extend ~buf (extend : AArch64.extend) =
   let pp str =
@@ -249,8 +263,8 @@ let pp_instruction ~pcx ~buf instr =
         pp_args_separator ();
         pp_operand ~size operands.(2);
         if Array.length operands == 4 then (
-          pp_args_separator ();
           pp_extend ~buf extend;
+          add_char ~buf ' ';
           pp_operand ~size operands.(3)
         )
       | `SubI size ->

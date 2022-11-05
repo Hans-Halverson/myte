@@ -212,7 +212,7 @@ module AArch64 = struct
       `AdrP
     | (* Add Rd, Rs, #imm12, LSL #shift where #shift is one of 0, 12 *)
       `AddI of register_size
-    | (* AddR may have the followign forms depending on number of operands suplied:
+    | (* AddR may have the following forms depending on number of operands suplied:
          - Add Rd, Rs1, Rs2
          - Add Rd, Rs1, Rs2, EXTEND #imm where #imm is 0, 1, 2, 3, 4. Cannot use extend if
            Rd or Rs1 are SP. *)

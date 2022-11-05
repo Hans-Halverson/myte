@@ -335,7 +335,7 @@ and gen_instructions ~gcx instructions =
       let ldr = `LdrI (size, subregister_size, true, Offset) in
       Gcx.emit ~gcx ldr [| result_op; high_bits_reg; low_bits_offset |]
     | _ ->
-      let pointer_op = gen_value ~gcx pointer in
+      let pointer_op = gen_value ~gcx ~allow_zr:false pointer in
       Gcx.emit ~gcx (`LdrR (size, subregister_size, true, LSL)) [| result_op; pointer_op |]);
     gen_instructions rest_instructions
   (*
@@ -356,7 +356,7 @@ and gen_instructions ~gcx instructions =
       let str = `StrI (subregister_size, Offset) in
       Gcx.emit ~gcx str [| arg_op; high_bits_reg; low_bits_offset |]
     | _ ->
-      let pointer_op = gen_value ~gcx pointer in
+      let pointer_op = gen_value ~gcx ~allow_zr:false pointer in
       Gcx.emit ~gcx (`StrR (subregister_size, LSL)) [| arg_op; pointer_op |]);
     gen_instructions rest_instructions
   (*
@@ -371,11 +371,11 @@ and gen_instructions ~gcx instructions =
     (match (left_val, right_val) with
     | ({ value = { value = Lit lit; _ }; _ }, other_val)
     | (other_val, { value = { value = Lit lit; _ }; _ }) ->
-      let reg_op = gen_value ~gcx other_val in
+      let reg_op = gen_value ~gcx ~allow_zr:false other_val in
       gen_add_n ~gcx ~result_op ~type_ reg_op (int64_of_literal lit)
     | _ ->
-      let left_op = gen_value ~gcx left_val in
-      let right_op = gen_value ~gcx right_val in
+      let left_op = gen_value ~gcx ~allow_zr:false left_val in
+      let right_op = gen_value ~gcx ~allow_zr:false right_val in
       Gcx.emit ~gcx (`AddR (size, noop_extend)) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
   (*
@@ -387,11 +387,11 @@ and gen_instructions ~gcx instructions =
     :: rest_instructions ->
     let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    let left_op = gen_value ~gcx left_val in
+    let left_op = gen_value ~gcx ~allow_zr:false left_val in
     (match right_val.value.value with
     | Lit lit -> gen_sub_n ~gcx ~result_op ~type_ left_op (int64_of_literal lit)
     | _ ->
-      let right_op = gen_value ~gcx right_val in
+      let right_op = gen_value ~gcx ~allow_zr:false right_val in
       Gcx.emit ~gcx (`SubR size) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
   (*
@@ -458,12 +458,13 @@ and gen_instructions ~gcx instructions =
     ->
     let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    let arg_op = gen_value ~gcx arg in
-    if is_bool_value arg.value then (
+    (if is_bool_value arg.value then (
+      let arg_op = gen_value ~gcx ~allow_zr:false arg in
       Gcx.emit ~gcx (`CmpI size) [| arg_op; imm_0 |];
       Gcx.emit ~gcx (`CSet (size, EQ)) [| result_op |]
     ) else
-      Gcx.emit ~gcx (`Mvn size) [| result_op; arg_op |];
+      let arg_op = gen_value ~gcx arg in
+      Gcx.emit ~gcx (`Mvn size) [| result_op; arg_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -785,6 +786,7 @@ and gen_cmp_value ~gcx (use : Use.t) : Operand.t * bool =
     in
     (* Loaded immediates are always sign extended *)
     (op, true)
+  | Lit (NullPointer _) -> (imm_0, true)
   | _ ->
     let subregister_size = subregister_size_of_mir_value_type (type_of_use use) in
     let is_sext =
@@ -1046,7 +1048,10 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
         gen_adrp_and_low_bits ~gcx ~type_:(type_of_use pointer) name
       in
       (high_bits_reg, Some (LabelOffset low_bits_offset))
-    | Lit (NullPointer _) -> failwith "TODO: Handle null pointer, since ZR cannot be base"
+    | Lit (NullPointer _) ->
+      let null_pointer_reg = mk_vreg ~type_:Long in
+      gen_load_immediate_to_reg ~gcx ~type_:Long 0L null_pointer_reg;
+      (null_pointer_reg, None)
     | _ ->
       let pointer_reg = gen_value ~gcx pointer in
       (pointer_reg, None)
@@ -1170,9 +1175,9 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
 
 (* Generate an immediate value loaded to a register. Only 16 bits can be moved in a single
    instruction, if more are required then additional movk instructions must be used. *)
-and gen_mov_immediate ~gcx (lit : Literal.t) : Operand.t =
+and gen_mov_immediate ~gcx ?(allow_zr = true) (lit : Literal.t) : Operand.t =
   let type_ = type_of_literal lit in
-  if is_zero_literal lit then
+  if is_zero_literal lit && allow_zr then
     mk_precolored ~type_ `ZR
   else
     let n = int64_of_literal lit in
@@ -1236,9 +1241,9 @@ and gen_adrp_and_low_bits ~gcx ~type_ name =
   Gcx.emit ~gcx `AdrP [| vreg; mk_label_op ~label |];
   (vreg, mk_label_op ~label:(":lo12:" ^ label))
 
-and gen_value ~gcx (use : Use.t) =
+and gen_value ~gcx ?(allow_zr = true) (use : Use.t) =
   match use.value.value with
-  | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) -> gen_mov_immediate ~gcx lit
+  | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) -> gen_mov_immediate ~gcx ~allow_zr lit
   | Lit (Double _) -> failwith "TODO: Support floating point literals"
   | Lit (Function { name; _ })
   | Lit (Global { name; _ }) ->
@@ -1247,7 +1252,11 @@ and gen_value ~gcx (use : Use.t) =
     in
     Gcx.emit ~gcx (`AddI Size64) [| high_bits_reg; high_bits_reg; low_bits_offset; imm_0 |];
     high_bits_reg
-  | Lit (NullPointer _) -> mk_precolored ~type_:(Pointer Byte) `ZR
+  | Lit (NullPointer _) ->
+    if allow_zr then
+      mk_precolored ~type_:(Pointer Byte) `ZR
+    else
+      imm_0
   | Lit (ArrayString _)
   | Lit (ArrayVtable _) ->
     failwith "TODO: Cannot codegen array literals"

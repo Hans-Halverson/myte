@@ -48,6 +48,7 @@ class virtual use_def_visitor color_to_representative_operand =
     method visit_explicit_uses_and_defs instr =
       let resolve_register op =
         match op.Operand.value with
+        | PhysicalRegister (`ZR | `SP) -> None
         | PhysicalRegister reg -> Some (this#get_representative_register reg)
         | VirtualRegister -> Some op
         | _ -> None
