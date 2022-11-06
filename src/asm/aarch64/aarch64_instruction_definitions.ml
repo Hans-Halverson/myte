@@ -280,6 +280,10 @@ let fcmp_r =
       [{ use = Use; operand_type = Register }; { use = Use; operand_type = Register }];
   }
 
+let fcvtzs = { InstructionDef.operands = operands_rr }
+
+let scvtf = { InstructionDef.operands = operands_rr }
+
 let b = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
 let b_cond = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
@@ -348,6 +352,8 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `FNeg -> fneg
   | `FCmpZ -> fcmp_z
   | `FCmpR -> fcmp_r
+  | `FCvtZS _ -> fcvtzs
+  | `SCvtF _ -> scvtf
   | `B -> b
   | `BCond _ -> b_cond
   | `Cbz _ -> cbz
@@ -448,6 +454,16 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
       size
     else
       Size64
+  | `FCvtZS size ->
+    if i == 0 then
+      size
+    else
+      Size64
+  | `SCvtF size ->
+    if i == 0 then
+      Size64
+    else
+      size
   (* Instructions with no sized operands *)
   | `B
   | `BCond _

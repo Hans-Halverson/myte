@@ -1,0 +1,29 @@
+module test
+
+fun convertByteToDouble(x: Byte) {
+  use(x.toDouble());
+}
+
+fun convertIntToDouble(x: Int) {
+  use(x.toDouble());
+}
+
+fun convertLongToDouble(x: Long) {
+  use(x.toDouble());
+}
+
+fun convertDoubleToByte(x: Double) {
+  use(x.toByte());
+}
+
+fun convertDoubleToInt(x: Double) {
+  use(x.toInt());
+}
+
+fun convertDoubleToLong(x: Double) {
+  use(x.toLong());
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

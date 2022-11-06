@@ -1,0 +1,51 @@
+  .global _main
+
+  .text
+test.convertByteToDouble:
+  str x30, [sp, #-16]!
+  sxtb w0, w0
+  scvtf d0, w0
+  bl test.use$Double$
+  ldr x30, [sp], #16
+  ret
+test.convertDoubleToByte:
+  str x30, [sp, #-16]!
+  fcvtzs w0, d0
+  bl test.use$Byte$
+  ldr x30, [sp], #16
+  ret
+test.convertDoubleToInt:
+  str x30, [sp, #-16]!
+  fcvtzs w0, d0
+  bl test.use$Int$
+  ldr x30, [sp], #16
+  ret
+test.convertDoubleToLong:
+  str x30, [sp, #-16]!
+  fcvtzs x0, d0
+  bl test.use$Long$
+  ldr x30, [sp], #16
+  ret
+test.convertIntToDouble:
+  str x30, [sp, #-16]!
+  scvtf d0, w0
+  bl test.use$Double$
+  ldr x30, [sp], #16
+  ret
+test.convertLongToDouble:
+  str x30, [sp, #-16]!
+  scvtf d0, x0
+  bl test.use$Double$
+  ldr x30, [sp], #16
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.use$Byte$:
+  ret
+test.use$Double$:
+  ret
+test.use$Int$:
+  ret
+test.use$Long$:
+  ret

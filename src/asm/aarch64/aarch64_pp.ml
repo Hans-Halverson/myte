@@ -382,6 +382,12 @@ let pp_instruction ~pcx ~buf instr =
       | `FCmpR ->
         pp_op "fcmp";
         pp_operands ()
+      | `FCvtZS _ ->
+        pp_op "fcvtzs";
+        pp_operands ()
+      | `SCvtF _ ->
+        pp_op "scvtf";
+        pp_operands ()
       | `Ret -> pp_no_args_op "ret"
       | `B ->
         pp_op "b";

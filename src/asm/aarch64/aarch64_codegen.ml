@@ -724,8 +724,30 @@ and gen_instructions ~gcx instructions =
       gen_mov ~gcx ~type_:return_mir_type ~dest:return_op ~src:return_reg_op);
 
     gen_instructions rest_instructions
-  | { value = Instr { instr = IntToFloat _ | FloatToInt _; _ }; _ } :: _ ->
-    failwith "Unimplemented MIR instruction"
+  (*
+   * ===========================================
+   *                IntToFloat
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { type_; instr = IntToFloat arg_val; _ }; _ }
+    :: rest_instructions ->
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let int_reg_size = register_size_of_mir_use arg_val in
+    let arg_op = gen_sign_extended_value ~gcx arg_val in
+    Gcx.emit ~gcx (`SCvtF int_reg_size) [| result_op; arg_op |];
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *                FloatToInt
+   * ===========================================
+   *)
+  | { id = result_id; value = Instr { type_; instr = FloatToInt arg_val; _ }; _ }
+    :: rest_instructions ->
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    let int_reg_size = register_size_of_mir_value_type type_ in
+    let arg_op = gen_value ~gcx arg_val in
+    Gcx.emit ~gcx (`FCvtZS int_reg_size) [| result_op; arg_op |];
+    gen_instructions rest_instructions
   | { value = Instr { instr = Mir.Instruction.Phi _; _ }; _ } :: _ ->
     failwith "Phi nodes must be removed before asm gen"
   | { value = Instr { instr = Mir.Instruction.StackAlloc _; _ }; _ } :: _ ->

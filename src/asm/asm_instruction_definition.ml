@@ -289,6 +289,12 @@ module AArch64 = struct
       `FCmpZ
     | (* FCmpR Rs1, Rs2 *)
       `FCmpR
+    | (* FCvtZS Rd, Ds converts a floating point number to a signed integer *)
+      `FCvtZS of
+      (* Destination size *) register_size
+    | (* SCvtF Dd, Rs converts a signed integer to a floating pointer number *)
+      `SCvtF of
+      (* Source size *) register_size
     | (* Unconditional branch to label *)
       `B
     | (* Conditional branch to label *)
