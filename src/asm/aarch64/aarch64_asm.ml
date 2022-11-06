@@ -9,6 +9,9 @@ let invert_cond cond =
   | GT -> LE
   | LE -> GT
   | GE -> LT
+  | MI
+  | LS ->
+    failwith "Cannot invert condition code"
 
 (* Return the condition code that results from swapping the arguments *)
 let swap_cond_order cond =
@@ -20,6 +23,9 @@ let swap_cond_order cond =
   | GT -> LT
   | LE -> GE
   | GE -> LE
+  | MI
+  | LS ->
+    failwith "Cannot swap condition code order"
 
 let register_size_of_subregister_size (subregister_size : AArch64.subregister_size) :
     AArch64.register_size =

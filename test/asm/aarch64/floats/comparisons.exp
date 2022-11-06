@@ -1,0 +1,214 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.testCompareNegativeZero:
+  fcmp d0, #0.
+  b.eq .L0
+  b .L1
+.L0:
+  fcmp d0, #0.
+  cset w0, eq
+  b .L12
+.L1:
+  fcmp d0, #0.
+  b.ne .L2
+  b .L3
+.L2:
+  fcmp d0, #0.
+  cset w0, ne
+  b .L12
+.L3:
+  fcmp d0, #0.
+  b.mi .L4
+  b .L5
+.L4:
+  fcmp d0, #0.
+  cset w0, mi
+  b .L12
+.L5:
+  fcmp d0, #0.
+  b.ls .L6
+  b .L7
+.L6:
+  fcmp d0, #0.
+  cset w0, ls
+  b .L12
+.L7:
+  fcmp d0, #0.
+  b.gt .L8
+  b .L9
+.L8:
+  fcmp d0, #0.
+  cset w0, gt
+  b .L12
+.L9:
+  fcmp d0, #0.
+  b.ge .L10
+  b .L11
+.L10:
+  fcmp d0, #0.
+  cset w0, ge
+  b .L12
+.L11:
+  movz w0, #1
+.L12:
+  ret
+test.testCompareRegisterRegister:
+  fcmp d0, d1
+  b.eq .L13
+  b .L14
+.L13:
+  fcmp d0, d1
+  cset w0, eq
+  b .L25
+.L14:
+  fcmp d0, d1
+  b.ne .L15
+  b .L16
+.L15:
+  fcmp d0, d1
+  cset w0, ne
+  b .L25
+.L16:
+  fcmp d0, d1
+  b.mi .L17
+  b .L18
+.L17:
+  fcmp d0, d1
+  cset w0, mi
+  b .L25
+.L18:
+  fcmp d0, d1
+  b.ls .L19
+  b .L20
+.L19:
+  fcmp d0, d1
+  cset w0, ls
+  b .L25
+.L20:
+  fcmp d0, d1
+  b.gt .L21
+  b .L22
+.L21:
+  fcmp d0, d1
+  cset w0, gt
+  b .L25
+.L22:
+  fcmp d0, d1
+  b.ge .L23
+  b .L24
+.L23:
+  fcmp d0, d1
+  cset w0, ge
+  b .L25
+.L24:
+  movz w0, #1
+.L25:
+  ret
+test.testCompareRegisterZero:
+  fcmp d0, #0.
+  b.eq .L26
+  b .L27
+.L26:
+  fcmp d0, #0.
+  cset w0, eq
+  b .L38
+.L27:
+  fcmp d0, #0.
+  b.ne .L28
+  b .L29
+.L28:
+  fcmp d0, #0.
+  cset w0, ne
+  b .L38
+.L29:
+  fcmp d0, #0.
+  b.mi .L30
+  b .L31
+.L30:
+  fcmp d0, #0.
+  cset w0, mi
+  b .L38
+.L31:
+  fcmp d0, #0.
+  b.ls .L32
+  b .L33
+.L32:
+  fcmp d0, #0.
+  cset w0, ls
+  b .L38
+.L33:
+  fcmp d0, #0.
+  b.gt .L34
+  b .L35
+.L34:
+  fcmp d0, #0.
+  cset w0, gt
+  b .L38
+.L35:
+  fcmp d0, #0.
+  b.ge .L36
+  b .L37
+.L36:
+  fcmp d0, #0.
+  cset w0, ge
+  b .L38
+.L37:
+  movz w0, #1
+.L38:
+  ret
+test.testCompareZeroRegister:
+  fcmp d0, #0.
+  b.eq .L39
+  b .L40
+.L39:
+  fcmp d0, #0.
+  cset w0, eq
+  b .L51
+.L40:
+  fcmp d0, #0.
+  b.ne .L41
+  b .L42
+.L41:
+  fcmp d0, #0.
+  cset w0, ne
+  b .L51
+.L42:
+  fcmp d0, #0.
+  b.gt .L43
+  b .L44
+.L43:
+  fcmp d0, #0.
+  cset w0, gt
+  b .L51
+.L44:
+  fcmp d0, #0.
+  b.ge .L45
+  b .L46
+.L45:
+  fcmp d0, #0.
+  cset w0, ge
+  b .L51
+.L46:
+  fcmp d0, #0.
+  b.mi .L47
+  b .L48
+.L47:
+  fcmp d0, #0.
+  cset w0, mi
+  b .L51
+.L48:
+  fcmp d0, #0.
+  b.ls .L49
+  b .L50
+.L49:
+  fcmp d0, #0.
+  cset w0, ls
+  b .L51
+.L50:
+  movz w0, #1
+.L51:
+  ret

@@ -241,25 +241,29 @@ and gen_instructions ~gcx instructions =
    { value = Instr { instr = Branch { test; continue; jump }; _ }; _ };
   ]
     when result_id == test.value.id ->
-    let cond = cond_of_mir_comparison cmp in
+    let is_float_cmp = type_of_use left_val == Double in
     let cond =
       (* If the only use of the comparison is in this branch instruction, only need to generate
          a comparison instruction and use the current flags. *)
       if value_has_single_use left_val.user then
-        let swapped = gen_cmp ~gcx left_val right_val in
-        if swapped then
-          swap_cond_order cond
+        if is_float_cmp then
+          gen_float_cmp ~gcx ~cmp left_val right_val
         else
-          cond
-      (* Otherwise the result of the comparison is used elsewhere, so we must load to a register
-         with a CSet instruction. We can still emit a BCond directly off the current flags though. *)
+          gen_int_cmp ~gcx ~cmp left_val right_val
       else
-        gen_cmp_cset ~gcx cond result_id left_val right_val
+        (* Otherwise the result of the comparison is used elsewhere, so we must load to a register
+           with a CSet instruction. We can still emit a BCond directly off the current flags though. *)
+        gen_cmp_cset ~gcx cmp result_id left_val right_val
     in
-    (* Note that the condition code is inverted as we emit a BCond to the false branch *)
-    let cond = invert_cond cond in
-    Gcx.emit ~gcx (`BCond cond) [| block_op_of_mir_block ~gcx jump |];
-    Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx continue |]
+    if is_float_cmp then (
+      (* Float conditions are not inverted *)
+      Gcx.emit ~gcx (`BCond cond) [| block_op_of_mir_block ~gcx continue |];
+      Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx jump |]
+    ) else
+      (* Note that the condition code is inverted as we emit a BCond to the false branch *)
+      let cond = invert_cond cond in
+      Gcx.emit ~gcx (`BCond cond) [| block_op_of_mir_block ~gcx jump |];
+      Gcx.emit ~gcx `B [| block_op_of_mir_block ~gcx continue |]
   (*
    * ===========================================
    *                    Cmp
@@ -267,8 +271,7 @@ and gen_instructions ~gcx instructions =
    *)
   | { id = result_id; value = Instr { instr = Cmp (cmp, left_val, right_val); _ }; _ }
     :: rest_instructions ->
-    let cond = cond_of_mir_comparison cmp in
-    ignore (gen_cmp_cset ~gcx cond result_id left_val right_val);
+    ignore (gen_cmp_cset ~gcx cmp result_id left_val right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -744,23 +747,32 @@ and gen_mov_to_id ~gcx ~type_ result_id arg_val =
   let result_op = mk_vreg_of_value_id ~type_ result_id in
   gen_mov ~gcx ~type_ ~dest:result_op ~src:arg_op
 
-(* Generate a cmp instruction between two arguments. Return whether order was swapped.
+(* Generate a cmp instruction between two integer arguments. Return the condition code that should
+   be checked. May be different than the input MIR comparison as operands may have been swapped.
    All registers must be sign extended before comparison. *)
-and gen_cmp ~gcx left_val right_val =
+and gen_int_cmp ~gcx ~cmp left_val right_val =
   let mir_type = type_of_use left_val in
 
-  let (left_op, left_is_sext) = gen_cmp_value ~gcx left_val in
-  let (right_op, right_is_sext) = gen_cmp_value ~gcx right_val in
+  let (left_op, left_is_sext) = gen_int_cmp_value ~gcx left_val in
+  let (right_op, right_is_sext) = gen_int_cmp_value ~gcx right_val in
+
+  let cond_code ~swap =
+    let cond = int_cond_of_mir_comparison cmp in
+    if swap then
+      swap_cond_order cond
+    else
+      cond
+  in
 
   match (left_op.value, right_op.value) with
   | (Immediate _, Immediate _) -> failwith "Constants must be folded before codegen"
   (* Comparison to immediate - swap operands if necessary *)
   | (_, Immediate _) ->
-    gen_cmp_i ~gcx left_op right_op mir_type;
-    false
+    gen_int_cmp_i ~gcx left_op right_op mir_type;
+    cond_code ~swap:false
   | (Immediate _, _) ->
-    gen_cmp_i ~gcx right_op left_op mir_type;
-    true
+    gen_int_cmp_i ~gcx right_op left_op mir_type;
+    cond_code ~swap:true
   (* Comparison of registers - swap operands if only one needs sign extension *)
   | (_, _) ->
     let size = register_size_of_mir_value_type mir_type in
@@ -774,7 +786,7 @@ and gen_cmp ~gcx left_val right_val =
     in
     if (not left_is_sext) && right_is_sext then (
       Gcx.emit ~gcx (`CmpR (size, extend)) [| right_op; left_op |];
-      true
+      cond_code ~swap:true
     ) else
       let left_sext_op =
         if left_is_sext then
@@ -783,9 +795,9 @@ and gen_cmp ~gcx left_val right_val =
           gen_sign_extended_op ~gcx ~type_:mir_type left_op
       in
       Gcx.emit ~gcx (`CmpR (size, extend)) [| left_sext_op; right_op |];
-      false
+      cond_code ~swap:false
 
-and gen_cmp_i ~gcx reg_op imm_op mir_type =
+and gen_int_cmp_i ~gcx reg_op imm_op mir_type =
   let size = register_size_of_mir_value_type mir_type in
   let n = int64_of_immediate (cast_to_immediate imm_op) in
   let (instr, imm_op) =
@@ -799,7 +811,7 @@ and gen_cmp_i ~gcx reg_op imm_op mir_type =
 
 (* Generate an operand that can be used in cmp instructions. 12-bit immediates are allowed, larger
    immediates must be loaded to a register. Return operand and whether it is sign extended. *)
-and gen_cmp_value ~gcx (use : Use.t) : Operand.t * bool =
+and gen_int_cmp_value ~gcx (use : Use.t) : Operand.t * bool =
   match use.value.value with
   | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) ->
     let n = int64_of_literal lit in
@@ -826,17 +838,34 @@ and gen_cmp_value ~gcx (use : Use.t) : Operand.t * bool =
     in
     (gen_value ~gcx use, is_sext)
 
+(* Generate a cmp instruction between two float arguments. Return the condition code that should
+   be checked. May be different than the input MIR comparison as operands may have been swapped. *)
+and gen_float_cmp ~gcx ~cmp left_val right_val =
+  match (left_val.value.value, right_val.value.value) with
+  | (Lit (Double f), _) when Float.equal f 0.0 ->
+    let right_op = gen_value ~gcx right_val in
+    Gcx.emit ~gcx `FCmpZ [| right_op |];
+    float_cond_of_mir_comparison (swap_comparison_order cmp)
+  | (_, Lit (Double f)) when Float.equal f 0.0 ->
+    let left_op = gen_value ~gcx left_val in
+    Gcx.emit ~gcx `FCmpZ [| left_op |];
+    float_cond_of_mir_comparison cmp
+  | (_, _) ->
+    let left_op = gen_value ~gcx left_val in
+    let right_op = gen_value ~gcx right_val in
+    Gcx.emit ~gcx `FCmpR [| left_op; right_op |];
+    float_cond_of_mir_comparison cmp
+
 (* Generate a comparison and CSet instruction to load the result of the comparison to a register.
    Return the condition that was used in the cmp (may be different than the input condition code, as
    order of arguments may have been swapped). *)
-and gen_cmp_cset ~gcx cond result_id left_val right_val =
+and gen_cmp_cset ~gcx cmp result_id left_val right_val =
   let result_op = mk_vreg_of_value_id ~type_:Bool result_id in
-  let swapped = gen_cmp ~gcx left_val right_val in
   let cond =
-    if swapped then
-      swap_cond_order cond
+    if type_of_use left_val == Double then
+      gen_float_cmp ~gcx ~cmp left_val right_val
     else
-      cond
+      gen_int_cmp ~gcx ~cmp left_val right_val
   in
   Gcx.emit ~gcx (`CSet (Size32, cond)) [| result_op |];
   cond
@@ -1349,11 +1378,20 @@ and subregister_size_of_mir_value_type value_type =
   | Aggregate _ -> failwith "TODO: Cannot codegen aggregate structure literals"
   | Array _ -> failwith "TODO: Cannot codegen array literals"
 
-and cond_of_mir_comparison cmp =
+and int_cond_of_mir_comparison cmp =
   match cmp with
   | Mir.Instruction.Eq -> EQ
   | Neq -> NE
   | Lt -> LT
   | LtEq -> LE
+  | Gt -> GT
+  | GtEq -> GE
+
+and float_cond_of_mir_comparison cmp =
+  match cmp with
+  | Mir.Instruction.Eq -> EQ
+  | Neq -> NE
+  | Lt -> MI
+  | LtEq -> LS
   | Gt -> GT
   | GtEq -> GE

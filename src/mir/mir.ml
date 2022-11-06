@@ -452,6 +452,15 @@ let invert_comparison (comparison : Instruction.comparison) : Instruction.compar
   | Gt -> LtEq
   | GtEq -> Lt
 
+let swap_comparison_order (comparison : Instruction.comparison) : Instruction.comparison =
+  match comparison with
+  | Eq -> Eq
+  | Neq -> Neq
+  | Lt -> Gt
+  | LtEq -> GtEq
+  | Gt -> Lt
+  | GtEq -> LtEq
+
 let is_shift_op (op : Instruction.binary_operation) : bool =
   match op with
   | Shl

@@ -140,6 +140,8 @@ let string_of_cond (cond : AArch64.cond) =
   | LE -> "le"
   | GT -> "gt"
   | GE -> "ge"
+  | MI -> "mi"
+  | LS -> "ls"
 
 let ldr_suffix
     (dest_size : AArch64.register_size) (load_size : AArch64.subregister_size) (is_signed : bool) =
@@ -371,6 +373,14 @@ let pp_instruction ~pcx ~buf instr =
         pp_operands ()
       | `FNeg ->
         pp_op "fneg";
+        pp_operands ()
+      | `FCmpZ ->
+        pp_op "fcmp";
+        pp_operands ();
+        pp_args_separator ();
+        add_string "#0."
+      | `FCmpR ->
+        pp_op "fcmp";
         pp_operands ()
       | `Ret -> pp_no_args_op "ret"
       | `B ->

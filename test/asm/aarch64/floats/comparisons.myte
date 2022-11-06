@@ -1,0 +1,75 @@
+module test
+
+fun testCompareRegisterRegister(p1: Double, p2: Double): Bool {
+  if (p1 == p2) {
+    return p1 == p2;
+  } else if (p1 != p2) {
+    return p1 != p2;
+  } else if (p1 < p2) {
+    return p1 < p2;
+  } else if (p1 <= p2) {
+    return p1 <= p2;
+  } else if (p1 > p2) {
+    return p1 > p2;
+  } else if (p1 >= p2) {
+    return p1 >= p2;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareRegisterZero(p1: Double): Bool {
+  if (p1 == 0.0) {
+    return p1 == 0.0;
+  } else if (p1 != 0.0) {
+    return p1 != 0.0;
+  } else if (p1 < 0.0) {
+    return p1 < 0.0;
+  } else if (p1 <= 0.0) {
+    return p1 <= 0.0;
+  } else if (p1 > 0.0) {
+    return p1 > 0.0;
+  } else if (p1 >= 0.0) {
+    return p1 >= 0.0;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareZeroRegister(p1: Double): Bool {
+  if (0.0 == p1) {
+    return 0.0 == p1;
+  } else if (0.0 != p1) {
+    return 0.0 != p1;
+  } else if (0.0 < p1) {
+    return 0.0 < p1;
+  } else if (0.0 <= p1) {
+    return 0.0 <= p1;
+  } else if (0.0 > p1) {
+    return 0.0 > p1;
+  } else if (0.0 >= p1) {
+    return 0.0 >= p1;
+  } else {
+    return true;
+  }
+}
+
+fun testCompareNegativeZero(p1: Double): Bool {
+  if (p1 == (-0.0)) {
+    return p1 == (-0.0);
+  } else if (p1 != (-0.0)) {
+    return p1 != (-0.0);
+  } else if (p1 < (-0.0)) {
+    return p1 < (-0.0);
+  } else if (p1 <= (-0.0)) {
+    return p1 <= (-0.0);
+  } else if (p1 > (-0.0)) {
+    return p1 > (-0.0);
+  } else if (p1 >= (-0.0)) {
+    return p1 >= (-0.0);
+  } else {
+    return true;
+  }
+}
+
+fun main() {}

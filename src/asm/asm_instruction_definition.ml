@@ -133,6 +133,10 @@ module AArch64 = struct
     | LE
     | GT
     | GE
+    (* Minus, negative (N == 1) *)
+    | MI
+    (* Lower or same !(C == 1 && Z == 0) *)
+    | LS
 
   type extend =
     | UXTB
@@ -281,6 +285,10 @@ module AArch64 = struct
       `FDiv
     | (* FNeg Dd, Ds *)
       `FNeg
+    | (* FCmpZ Rs, #0.0 *)
+      `FCmpZ
+    | (* FCmpR Rs1, Rs2 *)
+      `FCmpR
     | (* Unconditional branch to label *)
       `B
     | (* Conditional branch to label *)

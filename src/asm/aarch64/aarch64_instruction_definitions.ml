@@ -272,6 +272,14 @@ let fdiv = { InstructionDef.operands = operands_rrr }
 
 let fneg = { InstructionDef.operands = operands_rr }
 
+let fcmp_z = { InstructionDef.operands = [{ use = Use; operand_type = Register }] }
+
+let fcmp_r =
+  {
+    InstructionDef.operands =
+      [{ use = Use; operand_type = Register }; { use = Use; operand_type = Register }];
+  }
+
 let b = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
 let b_cond = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
@@ -338,6 +346,8 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `FMul -> fmul
   | `FDiv -> fdiv
   | `FNeg -> fneg
+  | `FCmpZ -> fcmp_z
+  | `FCmpR -> fcmp_r
   | `B -> b
   | `BCond _ -> b_cond
   | `Cbz _ -> cbz
@@ -398,7 +408,9 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `FSub
   | `FMul
   | `FDiv
-  | `FNeg ->
+  | `FNeg
+  | `FCmpZ
+  | `FCmpR ->
     Size64
   (* Instructions with operands that have different register sizes *)
   | `Sxt (size, _) ->
