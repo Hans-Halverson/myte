@@ -30,7 +30,7 @@ test.mixedCalleeSaved2:
   fmov d8, d1
   mov w0, w19
   bl test.use$Int$
-  add d0, d9, d8
+  fadd d0, d9, d8
   bl test.use$Double$
   add w0, w19, w20
   ldp d8, d9, [sp, #24]
@@ -45,7 +45,7 @@ test.mixedCalleeSaved3:
   fmov d8, d1
   mov w0, w19
   bl test.use$Int$
-  add d0, d9, d8
+  fadd d0, d9, d8
   bl test.use$Double$
   mov w0, w19
   ldp d8, d9, [sp, #16]
@@ -127,7 +127,7 @@ test.spilledVectorCalleeSavedEven:
   fmov d9, d1
   fmov d0, d8
   bl test.use$Double$
-  add d0, d8, d9
+  fadd d0, d8, d9
   ldp d8, d9, [sp, #8]
   ldr x30, [sp], #32
   ret
@@ -147,13 +147,13 @@ test.spilledVectorCalleeSavedMany:
   fmov d8, d7
   fmov d0, d14
   bl test.use$Double$
-  add d0, d14, d15
-  add d0, d0, d13
-  add d0, d0, d12
-  add d0, d0, d11
-  add d0, d0, d10
-  add d0, d0, d9
-  add d0, d0, d8
+  fadd d0, d14, d15
+  fadd d0, d0, d13
+  fadd d0, d0, d12
+  fadd d0, d0, d11
+  fadd d0, d0, d10
+  fadd d0, d0, d9
+  fadd d0, d0, d8
   ldp d8, d9, [sp, #56]
   ldp d10, d11, [sp, #40]
   ldp d12, d13, [sp, #24]

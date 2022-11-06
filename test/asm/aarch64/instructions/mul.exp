@@ -15,6 +15,17 @@ test.mulByteRegImm:
 test.mulByteRegs:
   mul w0, w0, w1
   ret
+test.mulDoubleImmReg:
+  fmov d1, #5.
+  fmul d0, d1, d0
+  ret
+test.mulDoubleRegImm:
+  fmov d1, #5.
+  fmul d0, d0, d1
+  ret
+test.mulDoubleRegs:
+  fmul d0, d0, d1
+  ret
 test.mulIntImmReg:
   movz w1, #257
   mul w0, w0, w1

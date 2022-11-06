@@ -28,7 +28,7 @@ test.testReturnRegisterClobberAcrossCallFloat:
   bl test.testReturnsDouble
   fmov d8, d0
   bl test.testReturnsDouble
-  add d0, d8, d0
+  fadd d0, d8, d0
   ldr d8, [sp, #8]
   ldr x30, [sp], #16
   ret

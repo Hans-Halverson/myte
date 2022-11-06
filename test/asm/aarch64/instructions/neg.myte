@@ -3,5 +3,6 @@ module test
 fun negByteReg(x: Byte): Byte = -x
 fun negIntReg(x: Int): Int = -x
 fun negLongReg(x: Long): Long = -x
+fun negDoubleReg(x: Double): Double = -x
 
 fun main() {}

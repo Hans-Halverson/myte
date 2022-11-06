@@ -12,6 +12,10 @@ fun addLongRegs(x: Long, y: Long): Long = x + y
 fun addLongImmLeft(x: Long): Long = 60 + x
 fun addLongImmRight(x: Long): Long = x + 60
 
+fun addDoubleRegs(x: Double, y: Double): Double = x + y
+fun addDoubleRegImm(x: Double): Double = x + 1.0
+fun addDoubleImmReg(x: Double): Double = 1.0 + x
+
 fun addIntMaxSingleAdd(x: Int): Int = x + 4095
 fun addIntMinDoubleAdd(x: Int): Int = x + 4096
 fun addIntDoubleAdd(x: Int): Int = x + 927393

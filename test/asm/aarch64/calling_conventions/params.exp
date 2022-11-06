@@ -14,13 +14,13 @@ test.testEightArgFunction:
   add w0, w0, w7
   ret
 test.testEightArgFunctionFloat:
-  add d0, d0, d1
-  add d0, d0, d2
-  add d0, d0, d3
-  add d0, d0, d4
-  add d0, d0, d5
-  add d0, d0, d6
-  add d0, d0, d7
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
+  fadd d0, d0, d4
+  fadd d0, d0, d5
+  fadd d0, d0, d6
+  fadd d0, d0, d7
   ret
 test.testFiveArgFunction:
   add w0, w0, w1
@@ -29,10 +29,10 @@ test.testFiveArgFunction:
   add w0, w0, w4
   ret
 test.testFiveArgFunctionFloat:
-  add d0, d0, d1
-  add d0, d0, d2
-  add d0, d0, d3
-  add d0, d0, d4
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
+  fadd d0, d0, d4
   ret
 test.testFourArgFunction:
   add w0, w0, w1
@@ -40,9 +40,9 @@ test.testFourArgFunction:
   add w0, w0, w3
   ret
 test.testFourArgFunctionFloat:
-  add d0, d0, d1
-  add d0, d0, d2
-  add d0, d0, d3
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
   ret
 test.testOneArgFunction:
   ret
@@ -57,12 +57,12 @@ test.testSevenArgFunction:
   add w0, w0, w6
   ret
 test.testSevenArgFunctionFloat:
-  add d0, d0, d1
-  add d0, d0, d2
-  add d0, d0, d3
-  add d0, d0, d4
-  add d0, d0, d5
-  add d0, d0, d6
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
+  fadd d0, d0, d4
+  fadd d0, d0, d5
+  fadd d0, d0, d6
   ret
 test.testSixArgFunction:
   add w0, w0, w1
@@ -72,25 +72,25 @@ test.testSixArgFunction:
   add w0, w0, w5
   ret
 test.testSixArgFunctionFloat:
-  add d0, d0, d1
-  add d0, d0, d2
-  add d0, d0, d3
-  add d0, d0, d4
-  add d0, d0, d5
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
+  fadd d0, d0, d4
+  fadd d0, d0, d5
   ret
 test.testThreeArgFunction:
   add w0, w0, w1
   add w0, w0, w2
   ret
 test.testThreeArgFunctionFloat:
-  add d0, d0, d1
-  add d0, d0, d2
+  fadd d0, d0, d1
+  fadd d0, d0, d2
   ret
 test.testTwoArgFunction:
   add w0, w0, w1
   ret
 test.testTwoArgFunctionFloat:
-  add d0, d0, d1
+  fadd d0, d0, d1
   ret
 test.testZeroArgFunctionFloat:
   fmov d0, #1.

@@ -12,6 +12,10 @@ fun mulLongRegs(x: Long, y: Long): Long = x * y
 fun mulLongRegImm(x: Long): Long = x * 214748364
 fun mulLongImmReg(x: Long): Long = 214748364 * x
 
+fun mulDoubleRegs(x: Double, y: Double): Double = x * y
+fun mulDoubleRegImm(x: Double): Double = x * 5.0
+fun mulDoubleImmReg(x: Double): Double = 5.0 * x
+
 fun mulPowerOfTwo1(x: Int): Int = x * 2
 fun mulPowerOfTwo2(x: Int): Int = x * 4
 fun mulPowerOfTwo3(x: Int): Int = x * 8

@@ -357,6 +357,21 @@ let pp_instruction ~pcx ~buf instr =
       | `FMovR ->
         pp_op "fmov";
         pp_operands ()
+      | `FAdd ->
+        pp_op "fadd";
+        pp_operands ()
+      | `FSub ->
+        pp_op "fsub";
+        pp_operands ()
+      | `FMul ->
+        pp_op "fmul";
+        pp_operands ()
+      | `FDiv ->
+        pp_op "fdiv";
+        pp_operands ()
+      | `FNeg ->
+        pp_op "fneg";
+        pp_operands ()
       | `Ret -> pp_no_args_op "ret"
       | `B ->
         pp_op "b";

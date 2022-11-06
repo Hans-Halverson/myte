@@ -7,6 +7,9 @@ _main:
 test.negByteReg:
   neg w0, w0
   ret
+test.negDoubleReg:
+  fneg d0, d0
+  ret
 test.negIntReg:
   neg w0, w0
   ret

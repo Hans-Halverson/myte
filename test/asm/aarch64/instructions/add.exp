@@ -13,6 +13,17 @@ test.addByteNegImm:
 test.addByteRegs:
   add w0, w0, w1
   ret
+test.addDoubleImmReg:
+  fmov d1, #1.
+  fadd d0, d1, d0
+  ret
+test.addDoubleRegImm:
+  fmov d1, #1.
+  fadd d0, d0, d1
+  ret
+test.addDoubleRegs:
+  fadd d0, d0, d1
+  ret
 test.addIntByteLeft:
   add w0, w0, #60
   ret

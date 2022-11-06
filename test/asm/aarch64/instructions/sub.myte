@@ -12,6 +12,10 @@ fun subLongRegs(x: Long, y: Long): Long = x - y
 fun subLongImmLeft(x: Long): Long = 60 - x
 fun subLongImmRight(x: Long): Long = x - 60
 
+fun subDoubleRegs(x: Double, y: Double): Double = x - y
+fun subDoubleRegImm(x: Double): Double = x - 1.0
+fun subDoubleImmReg(x: Double): Double = 1.0 - x
+
 fun subIntMaxSingleSub(x: Int): Int = x - 4095
 fun subIntMinDoubleSub(x: Int): Int = x - 4096
 fun subIntDoubleSub(x: Int): Int = x - 927393

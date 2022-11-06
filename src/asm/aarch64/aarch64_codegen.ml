@@ -364,15 +364,20 @@ and gen_instructions ~gcx instructions =
     :: rest_instructions ->
     let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    (match (left_val, right_val) with
-    | ({ value = { value = Lit lit; _ }; _ }, other_val)
-    | (other_val, { value = { value = Lit lit; _ }; _ }) ->
-      let reg_op = gen_value ~gcx ~allow_zr:false other_val in
-      gen_add_n ~gcx ~result_op ~type_ reg_op (int64_of_literal lit)
-    | _ ->
+    (if type_ == Double then
       let left_op = gen_value ~gcx ~allow_zr:false left_val in
       let right_op = gen_value ~gcx ~allow_zr:false right_val in
-      Gcx.emit ~gcx (`AddR (size, noop_extend)) [| result_op; left_op; right_op |]);
+      Gcx.emit ~gcx `FAdd [| result_op; left_op; right_op |]
+    else
+      match (left_val, right_val) with
+      | ({ value = { value = Lit lit; _ }; _ }, other_val)
+      | (other_val, { value = { value = Lit lit; _ }; _ }) ->
+        let reg_op = gen_value ~gcx ~allow_zr:false other_val in
+        gen_add_n ~gcx ~result_op ~type_ reg_op (int64_of_literal lit)
+      | _ ->
+        let left_op = gen_value ~gcx ~allow_zr:false left_val in
+        let right_op = gen_value ~gcx ~allow_zr:false right_val in
+        Gcx.emit ~gcx (`AddR (size, noop_extend)) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -384,11 +389,15 @@ and gen_instructions ~gcx instructions =
     let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
     let left_op = gen_value ~gcx ~allow_zr:false left_val in
-    (match right_val.value.value with
-    | Lit lit -> gen_sub_n ~gcx ~result_op ~type_ left_op (int64_of_literal lit)
-    | _ ->
-      let right_op = gen_value ~gcx ~allow_zr:false right_val in
-      Gcx.emit ~gcx (`SubR size) [| result_op; left_op; right_op |]);
+    (if type_ == Double then
+      let right_op = gen_value ~gcx right_val in
+      Gcx.emit ~gcx `FSub [| result_op; left_op; right_op |]
+    else
+      match right_val.value.value with
+      | Lit lit -> gen_sub_n ~gcx ~result_op ~type_ left_op (int64_of_literal lit)
+      | _ ->
+        let right_op = gen_value ~gcx ~allow_zr:false right_val in
+        Gcx.emit ~gcx (`SubR size) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -398,17 +407,22 @@ and gen_instructions ~gcx instructions =
   | { id = result_id; value = Instr { instr = Binary (Mul, left_val, right_val); type_; _ }; _ }
     :: rest_instructions ->
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    (match (left_val, right_val) with
-    | ({ value = { value = Lit lit; _ }; _ }, other_val)
-    | (other_val, { value = { value = Lit lit; _ }; _ }) ->
-      let n = int64_of_literal lit in
-      let reg_op = gen_value ~gcx other_val in
-      gen_mul_i ~gcx ~type_ ~result_op reg_op n
-    | _ ->
-      let size = register_size_of_mir_value_type type_ in
+    (if type_ == Double then
       let left_op = gen_value ~gcx left_val in
       let right_op = gen_value ~gcx right_val in
-      Gcx.emit ~gcx (`Mul size) [| result_op; left_op; right_op |]);
+      Gcx.emit ~gcx `FMul [| result_op; left_op; right_op |]
+    else
+      match (left_val, right_val) with
+      | ({ value = { value = Lit lit; _ }; _ }, other_val)
+      | (other_val, { value = { value = Lit lit; _ }; _ }) ->
+        let n = int64_of_literal lit in
+        let reg_op = gen_value ~gcx other_val in
+        gen_mul_i ~gcx ~type_ ~result_op reg_op n
+      | _ ->
+        let size = register_size_of_mir_value_type type_ in
+        let left_op = gen_value ~gcx left_val in
+        let right_op = gen_value ~gcx right_val in
+        Gcx.emit ~gcx (`Mul size) [| result_op; left_op; right_op |]);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -418,7 +432,12 @@ and gen_instructions ~gcx instructions =
   | { id = result_id; value = Instr { instr = Binary (Div, left_val, right_val); type_; _ }; _ }
     :: rest_instructions ->
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    ignore (gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val);
+    if type_ == Double then
+      let left_op = gen_value ~gcx left_val in
+      let right_op = gen_value ~gcx right_val in
+      Gcx.emit ~gcx `FDiv [| result_op; left_op; right_op |]
+    else
+      ignore (gen_sdiv ~gcx ~type_ ~result_op ~left_val ~right_val);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -443,7 +462,10 @@ and gen_instructions ~gcx instructions =
     let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
     let arg_op = gen_value ~gcx arg in
-    Gcx.emit ~gcx (`Neg size) [| result_op; arg_op |];
+    if type_ == Double then
+      Gcx.emit ~gcx `FNeg [| result_op; arg_op |]
+    else
+      Gcx.emit ~gcx (`Neg size) [| result_op; arg_op |];
     gen_instructions rest_instructions
   (*
    * ===========================================

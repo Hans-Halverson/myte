@@ -1,5 +1,10 @@
   .global _main
 
+  .data
+  .balign 8
+_float$60.:
+  .quad 4633641066610819072
+
   .text
 test.divByteImmReg:
   movz w1, #60
@@ -25,6 +30,19 @@ test.divByteRegs:
   sxtb w2, w0
   sxtb w0, w1
   sdiv w0, w2, w0
+  ret
+test.divDoubleImmReg:
+  adrp x0, _float$60.
+  ldr d1, [x0, :lo12:_float$60.]
+  fdiv d0, d1, d0
+  ret
+test.divDoubleRegImm:
+  adrp x0, _float$60.
+  ldr d1, [x0, :lo12:_float$60.]
+  fdiv d0, d0, d1
+  ret
+test.divDoubleRegs:
+  fdiv d0, d0, d1
   ret
 test.divIntImmReg:
   movz w1, #257
