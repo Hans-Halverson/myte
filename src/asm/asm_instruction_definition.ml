@@ -267,6 +267,10 @@ module AArch64 = struct
     | (* Sign extend subregister (Byte, Halfword, or Word) to full register (W or X) *)
       `Sxt of
       register_size * subregister_size
+    | (* Fmov Dd, #imm where imm has a sign, 3 bit exponent, and 4 bit mantissa *)
+      `FMovI
+    | (* FMov Dd, Ds or FMov Dd, XZR *)
+      `FMovR
     | (* Unconditional branch to label *)
       `B
     | (* Conditional branch to label *)
@@ -304,9 +308,9 @@ and OperandDef : sig
     | UseDef
 
   and operand_type =
+    | Register
     | Immediate
     | MemoryAddress
-    | Register
     | RegMem
     | Block
     | Function

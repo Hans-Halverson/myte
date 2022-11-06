@@ -99,9 +99,8 @@ and gen_function ~gcx mir_func =
         match func.param_types.(i) with
         | ParamOnStack index -> mk_function_stack_argument ~arg_id ~index ~type_:param_mir_type
         | ParamInRegister reg ->
-          let size = register_size_of_mir_value_type type_ in
           let param_op = mk_virtual_register_of_value_id ~value_id:arg_id ~type_:param_mir_type in
-          Gcx.emit ~gcx (`MovR size) [| param_op; mk_precolored_of_operand reg param_op |];
+          gen_mov ~gcx ~type_ ~dest:param_op ~src:(mk_precolored_of_operand reg param_op);
           param_op)
       mir_func.params;
 
@@ -142,9 +141,8 @@ and gen_instructions ~gcx instructions =
           let arg_stack_slot_op =
             mk_function_argument_stack_slot ~func:gcx.current_func ~i:stack_slot_idx ~type_:arg_type
           in
-          let arg_size = register_size_of_mir_value_type arg_type in
           let arg_op = gen_value ~gcx arg_val in
-          Gcx.emit ~gcx (`MovR arg_size) [| arg_stack_slot_op; arg_op |])
+          gen_mov ~gcx ~type_:arg_type ~dest:arg_stack_slot_op ~src:arg_op)
       arg_vals;
     (* Then move function arguments that are passed in registers​ *)
     List.iteri
@@ -154,9 +152,9 @@ and gen_instructions ~gcx instructions =
         | ParamInRegister _ when is_zero_size_global arg_val -> ()
         | ParamInRegister reg ->
           let arg_op = gen_value ~gcx arg_val in
-          let arg_size = register_size_of_mir_use arg_val in
-          let precolored_reg = mk_precolored ~type_:(type_of_use arg_val) reg in
-          Gcx.emit ~gcx (`MovR arg_size) [| precolored_reg; arg_op |])
+          let arg_type = type_of_use arg_val in
+          let precolored_reg = mk_precolored ~type_:arg_type reg in
+          gen_mov ~gcx ~type_:arg_type ~dest:precolored_reg ~src:arg_op)
       arg_vals
   in
   match instructions with
@@ -172,7 +170,7 @@ and gen_instructions ~gcx instructions =
       _;
     }
     :: rest_instructions ->
-    gen_mov ~gcx ~type_ result_id arg_val;
+    gen_mov_to_id ~gcx ~type_ result_id arg_val;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -212,11 +210,10 @@ and gen_instructions ~gcx instructions =
       Gcx.emit ~gcx (`BLR (param_types, calling_convention)) [| func_op |]);
     (* Move result from return register to return operand *)
     (if has_return then
-      let return_size = register_size_of_mir_value_type type_ in
       let return_reg = calling_convention#calculate_return_register type_ in
       let return_reg_op = mk_precolored ~type_ return_reg in
       let result_op = mk_vreg_of_value_id ~type_ result_id in
-      Gcx.emit ~gcx (`MovR return_size) [| result_op; return_reg_op |]);
+      gen_mov ~gcx ~type_ ~dest:result_op ~src:return_reg_op);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -227,12 +224,12 @@ and gen_instructions ~gcx instructions =
     (match value with
     | None -> ()
     | Some value ->
-      let size = register_size_of_mir_use value in
       let calling_convention = gcx.current_func.calling_convention in
-      let return_reg = calling_convention#calculate_return_register (type_of_use value) in
-      let return_reg_op = mk_precolored ~type_:(type_of_use value) return_reg in
+      let return_reg_type = type_of_use value in
+      let return_reg = calling_convention#calculate_return_register return_reg_type in
+      let return_reg_op = mk_precolored ~type_:return_reg_type return_reg in
       let value_vreg = gen_value ~gcx value in
-      Gcx.emit ~gcx (`MovR size) [| return_reg_op; value_vreg |]);
+      gen_mov ~gcx ~type_:return_reg_type ~dest:return_reg_op ~src:value_vreg);
     Gcx.emit ~gcx `Ret [||]
   (*
    * ===========================================
@@ -311,10 +308,9 @@ and gen_instructions ~gcx instructions =
        gen_instructions rest_instructions *)
   | { id = result_id; value = Instr { instr = GetPointer gp_inner_instr; type_; _ }; _ }
     :: rest_instructions ->
-    let size = register_size_of_mir_value_type type_ in
     let result_op = mk_vreg_of_value_id ~type_ result_id in
     let gp_op = gen_get_pointer ~gcx gp_inner_instr in
-    Gcx.emit ~gcx (`MovR size) [| result_op; gp_op |];
+    gen_mov ~gcx ~type_ ~dest:result_op ~src:gp_op;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -550,7 +546,7 @@ and gen_instructions ~gcx instructions =
     :: rest_instructions ->
     (* Arithmetic right shift is a no-op on bools and cannot be represented by shr instruction *)
     (if is_bool_value target_val.value then
-      gen_mov ~gcx ~type_ result_id target_val
+      gen_mov_to_id ~gcx ~type_ result_id target_val
     else
       let size = register_size_of_mir_value_type type_ in
       let result_op = mk_vreg_of_value_id ~type_ result_id in
@@ -639,7 +635,7 @@ and gen_instructions ~gcx instructions =
     | B -> Gcx.emit ~gcx (`AndI size) [| result_op; arg_op; imm_byte_mask |]
     | H -> Gcx.emit ~gcx (`AndI size) [| result_op; arg_op; imm_half_word_mask |]
     | W -> Gcx.emit ~gcx (`AndI size) [| result_op; arg_op; imm_word_mask |]
-    | X -> Gcx.emit ~gcx (`MovR size) [| result_op; arg_op |]);
+    | X -> gen_mov ~gcx ~type_ ~dest:result_op ~src:arg_op);
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -697,11 +693,10 @@ and gen_instructions ~gcx instructions =
     (match builtin_func.return_type with
     | None -> ()
     | Some return_mir_type ->
-      let return_size = register_size_of_mir_value_type return_mir_type in
       let return_reg = calling_convention#calculate_return_register return_mir_type in
       let return_reg_op = mk_precolored ~type_:return_type return_reg in
       let return_op = mk_vreg_of_value_id ~type_:return_type result_id in
-      Gcx.emit ~gcx (`MovR return_size) [| return_op; return_reg_op |]);
+      gen_mov ~gcx ~type_:return_mir_type ~dest:return_op ~src:return_reg_op);
 
     gen_instructions rest_instructions
   | { value = Instr { instr = IntToFloat _ | FloatToInt _; _ }; _ } :: _ ->
@@ -712,11 +707,20 @@ and gen_instructions ~gcx instructions =
     failwith "StackAlloc instructions removed before asm gen"
   | { value = Lit _ | Argument _; _ } :: _ -> failwith "Expected instruction value"
 
-and gen_mov ~gcx ~type_ result_id arg_val =
+and gen_mov ~gcx ~type_ ~dest ~src =
   let size = register_size_of_mir_value_type type_ in
-  let result_op = mk_vreg_of_value_id ~type_ result_id in
+  let mov_instr =
+    if type_ == Double then
+      `FMovR
+    else
+      `MovR size
+  in
+  Gcx.emit ~gcx mov_instr [| dest; src |]
+
+and gen_mov_to_id ~gcx ~type_ result_id arg_val =
   let arg_op = gen_value ~gcx arg_val in
-  Gcx.emit ~gcx (`MovR size) [| result_op; arg_op |]
+  let result_op = mk_vreg_of_value_id ~type_ result_id in
+  gen_mov ~gcx ~type_ ~dest:result_op ~src:arg_op
 
 (* Generate a cmp instruction between two arguments. Return whether order was swapped.
    All registers must be sign extended before comparison. *)
@@ -1028,11 +1032,10 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
     gen_load_immediate_to_reg ~gcx ~type_:count_param_mir_type total_size result_op
   (* If count is a variable multiply by size before putting in argument register *)
   | _ ->
-    let size = register_size_of_mir_value_type count_param_mir_type in
     let count_op = gen_value ~gcx count_use in
     (* Check for special case where element size is a single byte - no multiplication required *)
     if element_size == 1 then
-      Gcx.emit ~gcx (`MovR size) [| result_op; count_op |]
+      gen_mov ~gcx ~type_:count_param_mir_type ~dest:result_op ~src:count_op
     else
       gen_mul_i ~gcx ~type_:count_param_mir_type ~result_op count_op (Int64.of_int element_size)
 
@@ -1232,6 +1235,27 @@ and gen_load_immediate_to_reg ~gcx ~(type_ : Type.t) (n : Int64.t) (vreg : Opera
       )
     )
 
+and aarch64_immediate_mantissa_mask = 0x0000FFFFFFFFFFFFL
+
+and is_fmov_float_immediate (n : Float.t) : bool =
+  let bits = Int64.bits_of_float n in
+  let exponent = Floats.get_exponent_of_bits bits in
+  if exponent >= -3 && exponent <= 4 then
+    Int64.equal (Int64.logand bits aarch64_immediate_mantissa_mask) 0L
+  else
+    false
+
+and gen_load_double_immediate_to_reg ~gcx (f : Float.t) (vreg : Operand.t) =
+  if Floats.is_positive_zero f then
+    Gcx.emit ~gcx `FMovR [| vreg; mk_precolored ~type_:Long `ZR |]
+  else if is_fmov_float_immediate f then
+    let float_imm = mk_float_imm ~f in
+    Gcx.emit ~gcx `FMovI [| vreg; float_imm |]
+  else
+    let float_label = Gcx.get_float_label ~gcx f in
+    let (high_bits_reg, low_bits_imm) = gen_adrp_and_low_bits ~gcx ~type_:Long float_label in
+    Gcx.emit ~gcx (`LdrI (Size64, X, true, Offset)) [| vreg; high_bits_reg; low_bits_imm |]
+
 (* Generate an AdrP instruction that loads the high bits of a label to a register. Also return
    the offset for the low 12 bits, which need to be added to the high bits register to form a
    complete address in an Add, Ldr, or Str instruction. *)
@@ -1244,7 +1268,10 @@ and gen_adrp_and_low_bits ~gcx ~type_ name =
 and gen_value ~gcx ?(allow_zr = true) (use : Use.t) =
   match use.value.value with
   | Lit ((Bool _ | Byte _ | Int _ | Long _) as lit) -> gen_mov_immediate ~gcx ~allow_zr lit
-  | Lit (Double _) -> failwith "TODO: Support floating point literals"
+  | Lit (Double f) ->
+    let vreg = mk_vreg ~type_:(type_of_use use) in
+    gen_load_double_immediate_to_reg ~gcx f vreg;
+    vreg
   | Lit (Function { name; _ })
   | Lit (Global { name; _ }) ->
     let (high_bits_reg, low_bits_offset) =

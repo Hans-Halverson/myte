@@ -1,0 +1,33 @@
+module test
+
+var global: Double = 7.0
+
+fun load0(): Double = 0.0
+fun loadNeg0(): Double = -0.0
+
+fun load1(): Double = 1.0
+fun load1Point5(): Double = 1.5
+fun load1Point6(): Double = 1.6
+fun load2(): Double = 2.0
+fun load2Point5(): Double = 2.5
+fun load2Point6(): Double = 2.6
+fun load3(): Double = 3.0
+fun load4(): Double = 4.0
+fun load31(): Double = 31.0
+fun load32(): Double = 32.0
+fun loadNeg1(): Double = -1.0
+fun loadNeg1Point5(): Double = -1.5
+fun loadNeg1Point6(): Double = -1.6
+fun loadNeg2(): Double = -2.0
+fun loadNeg2Point5(): Double = -2.5
+fun loadNeg2Point6(): Double = -2.6
+fun loadNeg3(): Double = -2.0
+fun loadNeg4(): Double = -4.0
+fun loadNeg31(): Double = -31.0
+fun loadNeg32(): Double = -32.0
+
+fun loadMany() {
+  val x: Vec<Double> = [1.0, 2.0, 1.0, 1.6, 2.0, 1.6, global];
+}
+
+fun main() {}

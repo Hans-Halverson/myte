@@ -1,0 +1,137 @@
+  .global _main
+
+  .data
+  .balign 8
+test.global:
+  .quad 4619567317775286272
+_float$1.6:
+  .quad 4609884578576439706
+_float$2.6:
+  .quad 4613037098315599053
+_float$32.:
+  .quad 4629700416936869888
+_float$$0.:
+  .quad -9223372036854775808
+_float$$1.6:
+  .quad -4613487458278336102
+_float$$2.6:
+  .quad -4610334938539176755
+_float$$32.:
+  .quad -4593671619917905920
+
+  .text
+test.load0:
+  fmov d0, xzr
+  ret
+test.load1:
+  fmov d0, #1.
+  ret
+test.load1Point5:
+  fmov d0, #1.5
+  ret
+test.load1Point6:
+  adrp x0, _float$1.6
+  ldr d0, [x0, :lo12:_float$1.6]
+  ret
+test.load2:
+  fmov d0, #2.
+  ret
+test.load2Point5:
+  fmov d0, #2.5
+  ret
+test.load2Point6:
+  adrp x0, _float$2.6
+  ldr d0, [x0, :lo12:_float$2.6]
+  ret
+test.load3:
+  fmov d0, #3.
+  ret
+test.load31:
+  fmov d0, #31.
+  ret
+test.load32:
+  adrp x0, _float$32.
+  ldr d0, [x0, :lo12:_float$32.]
+  ret
+test.load4:
+  fmov d0, #4.
+  ret
+test.loadMany:
+  stp x19, x30, [sp, #-16]!
+  movz w0, #56
+  bl mytec_alloc
+  mov x19, x0
+  fmov d0, #1.
+  str d0, [x19]
+  add x0, x19, #8
+  fmov d0, #2.
+  str d0, [x0]
+  add x0, x19, #16
+  fmov d0, #1.
+  str d0, [x0]
+  add x0, x19, #24
+  adrp x1, _float$1.6
+  ldr d0, [x1, :lo12:_float$1.6]
+  str d0, [x0]
+  add x0, x19, #32
+  fmov d0, #2.
+  str d0, [x0]
+  add x0, x19, #40
+  adrp x1, _float$1.6
+  ldr d0, [x1, :lo12:_float$1.6]
+  str d0, [x0]
+  adrp x0, test.global
+  ldr d0, [x0, :lo12:test.global]
+  add x0, x19, #48
+  str d0, [x0]
+  movz w0, #16
+  bl mytec_alloc
+  add x1, x0, #8
+  str x19, [x1]
+  movz w1, #7
+  str w1, [x0]
+  add x0, x0, #4
+  movz w1, #7
+  str w1, [x0]
+  ldp x19, x30, [sp], #16
+  ret
+test.loadNeg0:
+  adrp x0, _float$$0.
+  ldr d0, [x0, :lo12:_float$$0.]
+  ret
+test.loadNeg1:
+  fmov d0, #-1.
+  ret
+test.loadNeg1Point5:
+  fmov d0, #-1.5
+  ret
+test.loadNeg1Point6:
+  adrp x0, _float$$1.6
+  ldr d0, [x0, :lo12:_float$$1.6]
+  ret
+test.loadNeg2:
+  fmov d0, #-2.
+  ret
+test.loadNeg2Point5:
+  fmov d0, #-2.5
+  ret
+test.loadNeg2Point6:
+  adrp x0, _float$$2.6
+  ldr d0, [x0, :lo12:_float$$2.6]
+  ret
+test.loadNeg3:
+  fmov d0, #-2.
+  ret
+test.loadNeg31:
+  fmov d0, #-31.
+  ret
+test.loadNeg32:
+  adrp x0, _float$$32.
+  ldr d0, [x0, :lo12:_float$$32.]
+  ret
+test.loadNeg4:
+  fmov d0, #-4.
+  ret
+_main:
+  mov w0, wzr
+  ret

@@ -250,6 +250,18 @@ let stp_pre_post =
       ];
   }
 
+let fmov_i =
+  {
+    InstructionDef.operands =
+      [{ OperandDef.use = Def; operand_type = Register }; { use = Use; operand_type = Immediate }];
+  }
+
+let fmov_r =
+  {
+    InstructionDef.operands =
+      [{ OperandDef.use = Def; operand_type = Register }; { use = Use; operand_type = Register }];
+  }
+
 let b = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
 
 let b_cond = { InstructionDef.operands = [{ use = Use; operand_type = Block }] }
@@ -309,6 +321,8 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `Ldp (_, (PreIndex | PostIndex)) -> ldp_pre_post
   | `Stp (_, Offset) -> stp_offset
   | `Stp (_, (PreIndex | PostIndex)) -> stp_pre_post
+  | `FMovI -> fmov_i
+  | `FMovR -> fmov_r
   | `B -> b
   | `BCond _ -> b_cond
   | `Cbz _ -> cbz
@@ -362,7 +376,9 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
     size
   (* Registers must be 64 bits *)
   | `AdrP
-  | `BLR _ ->
+  | `BLR _
+  | `FMovI
+  | `FMovR ->
     Size64
   (* Instructions with operands that have different register sizes *)
   | `Sxt (size, _) ->

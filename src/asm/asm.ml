@@ -51,8 +51,10 @@ and Operand : sig
     | PhysicalRegister of Register.t
     (* This is a virtual register that has not yet been resolved *)
     | VirtualRegister
-    (* Immediate argument *)
+    (* Immediate *)
     | Immediate of immediate
+    (* Float immediate *)
+    | FloatImmediate of Float.t
     (* Memory address (which may contain vregs as the base, offset, or index) *)
     | X86_64_MemoryAddress of X86_64_MemoryAddress.t
     (* Direct reference to a function *)
@@ -92,6 +94,7 @@ end = struct
     | PhysicalRegister of Register.t
     | VirtualRegister
     | Immediate of immediate
+    | FloatImmediate of Float.t
     | X86_64_MemoryAddress of X86_64_MemoryAddress.t
     | Function of Function.t
     | Block of Block.t

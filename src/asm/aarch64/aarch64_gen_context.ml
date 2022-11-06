@@ -6,6 +6,7 @@ open Asm_codegen
 open Asm_instruction_definition
 open Asm_layout
 open Asm_register
+open Basic_collections
 open Mir_type
 
 module Gcx = struct
@@ -23,13 +24,23 @@ module Gcx = struct
     (* Map from physical register to a representative precolored register operand *)
     mutable color_to_op: Operand.t RegMap.t;
     agg_cache: AggregateLayoutCache.t;
+    mutable float_immediates: SSet.t;
   }
 
   let mk () =
     (* Initialize representative precolored operands, choosing arbitrary type *)
     let color_to_op =
       RegSet.fold
-        (fun reg color_to_op -> RegMap.add reg (mk_precolored ~type_:Type.Long reg) color_to_op)
+        (fun reg color_to_op ->
+          let type_ =
+            match reg with
+            | `ZR
+            | `SP ->
+              Type.Long
+            | _ when register_class reg == VectorClass -> Double
+            | _ -> Long
+          in
+          RegMap.add reg (mk_precolored ~type_ reg) color_to_op)
         all_registers
         RegMap.empty
     in
@@ -44,11 +55,14 @@ module Gcx = struct
       funcs = FunctionSet.empty;
       color_to_op;
       agg_cache = AggregateLayoutCache.mk ();
+      float_immediates = SSet.empty;
     }
 
   let finish_builders ~gcx =
     gcx.data <- Array.map List.rev gcx.data;
     gcx.bss <- Array.map List.rev gcx.bss
+
+  let add_data ~gcx init_data = add_data gcx.data init_data
 
   let get_block_from_mir_block ~gcx mir_block =
     match Mir.BlockMap.find_opt mir_block gcx.mir_block_to_block with
@@ -104,4 +118,14 @@ module Gcx = struct
     | (`Cbz _, [| _; { value = Block next_block; _ } |]) ->
       gcx.prev_blocks <- BlockMMap.add next_block current_block gcx.prev_blocks
     | _ -> ()
+
+  let get_float_label ~gcx n =
+    let float_string = Float.to_string n in
+    let literal_label = label_of_mir_label ("_float$" ^ float_string) in
+    if not (SSet.mem float_string gcx.float_immediates) then (
+      gcx.float_immediates <- SSet.add float_string gcx.float_immediates;
+      let value = ImmediateData (Imm64 (Int64.bits_of_float n)) in
+      add_data ~gcx { label = literal_label; value; size = 8; is_pointer = false }
+    );
+    literal_label
 end

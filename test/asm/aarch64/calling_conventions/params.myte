@@ -1,0 +1,57 @@
+module test
+
+// TODO: Implement stack argument writing and uncomment
+
+fun use<T>(x: T): T = x
+
+fun zeroArgFunction(): Int = 1
+fun testOneArgFunction(p1: Int): Int = p1
+fun testTwoArgFunction(p1: Int, p2: Int): Int = p1 + p2
+fun testThreeArgFunction(p1: Int, p2: Int, p3: Int): Int = p1 + p2 + p3
+fun testFourArgFunction(p1: Int, p2: Int, p3: Int, p4: Int): Int = p1 + p2 + p3 + p4
+fun testFiveArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int): Int = p1 + p2 + p3 + p4 + p5
+fun testSixArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int): Int = p1 + p2 + p3 + p4 + p5 + p6
+fun testSevenArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int): Int = p1 + p2 + p3 + p4 + p5 + p6 + p7
+fun testEightArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8
+// fun testNineArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int, p9: Int): Int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9
+// fun testTenArgFunction(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int, p9: Int, p10: Int): Int = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10
+
+fun testZeroArgFunctionFloat(): Double = 1.0
+fun testOneArgFunctionFloat(p1: Double): Double = p1
+fun testTwoArgFunctionFloat(p1: Double, p2: Double): Double = p1 + p2
+fun testThreeArgFunctionFloat(p1: Double, p2: Double, p3: Double): Double = p1 + p2 + p3
+fun testFourArgFunctionFloat(p1: Double, p2: Double, p3: Double, p4: Double): Double = p1 + p2 + p3 + p4
+fun testFiveArgFunctionFloat(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double): Double = p1 + p2 + p3 + p4 + p5
+fun testSixArgFunctionFloat(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double): Double = p1 + p2 + p3 + p4 + p5 + p6
+fun testSevenArgFunctionFloat(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double, p7: Double): Double = p1 + p2 + p3 + p4 + p5 + p6 + p7
+fun testEightArgFunctionFloat(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double, p7: Double, p8: Double): Double = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8
+// fun testNineArgFunctionFloat(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double,  p7: Double, p8: Double, p9: Double): Double = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9
+// fun testTenArgFunctionFloat(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double,  p7: Double, p8: Double, p9: Double, p10: Double): Double = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10
+
+// fun testMixedArgs(i1: Int, i2: Int, d1: Double, d2: Double, i3: Int, i4: Int, d3: Double, d4: Double, i5: Int, i6: Int, d5: Double, d6: Double, i7: Int, i8: Int, d7: Double, d8: Double, i9: Int, d9: Double, i10: Int, d10: Double) {
+//   val d = d1 + d2 + d3 + d4 + d5 + d6 + d7 + d8 + d9 + d10;
+//   val i = i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8 + i9 + i10;
+//   use(d);
+//   use(i);
+// }
+
+// fun passedInRegistersAndStackInt() {
+//   testTenArgFunction(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+// }
+
+// fun passedInRegistersAndStackFloat() {
+//   testTenArgFunctionFloat(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0);
+// }
+
+// fun testFunctionStackParamsOffsetByPushedCalleeSavedRegisters(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int, p9: Int, p10: Int, p11: Double, p12: Double, p13: Double, p14: Double, p15: Double, p16: Double, p17: Double, p18: Double, p19: Double, p20: Double): Int {
+//   use(p11 + p20);
+//   return p1 + p10;
+// }
+
+// fun testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int, p9: Int, p10: Int): Int {
+//   // There aren't enough callee saved registers so one parameter must be spilled
+//   use(3);
+//   return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10;
+// }
+
+fun main() {}

@@ -3,6 +3,7 @@ module test
 var b: Byte = 0
 var i: Int = 0
 var l: Long = 0
+var d: Double = 0.0
 var f: () -> Byte = getByte
 
 fun getByte(): Byte = 1
@@ -12,6 +13,7 @@ fun testReferencing(x: Int) {
   i;
   l;
   f;
+  d;
 
   i + x;
   i + i;

@@ -1,0 +1,42 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.testNestedReturnNoReturnRegisterMove:
+  str x30, [sp, #-16]!
+  bl test.testReturnsInMain
+  ldr x30, [sp], #16
+  ret
+test.testNestedReturnNoReturnRegisterMoveFloat:
+  str x30, [sp, #-16]!
+  bl test.testReturnsDouble
+  ldr x30, [sp], #16
+  ret
+test.testReturnRegisterClobberAcrossCall:
+  stp x19, x30, [sp, #-16]!
+  bl test.testReturnsInMain
+  mov w19, w0
+  bl test.testReturnsInMain
+  add w0, w19, w0
+  ldp x19, x30, [sp], #16
+  ret
+test.testReturnRegisterClobberAcrossCallFloat:
+  str x30, [sp, #-16]!
+  str d8, [sp, #8]
+  bl test.testReturnsDouble
+  fmov d8, d0
+  bl test.testReturnsDouble
+  add d0, d8, d0
+  ldr d8, [sp, #8]
+  ldr x30, [sp], #16
+  ret
+test.testReturnsDouble:
+  fmov d0, #1.
+  ret
+test.testReturnsInMain:
+  movz w0, #1
+  ret
+test.testReturnsInMain2:
+  ret

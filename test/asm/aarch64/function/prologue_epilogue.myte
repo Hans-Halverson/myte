@@ -6,19 +6,62 @@ fun isLeaf(x: Int, y: Int): Int = x + y
 // Non-leaf functions must save link register
 fun nonLeaf(x: Int) = use(x)
 
-fun spilledCalleeSavedOdd(x: Int): Int {
+fun spilledGeneralCalleeSavedOdd(x: Int): Int {
   use(x);
   return x;
 }
 
-fun spilledCalleeSavedEven(x: Int, y: Int): Int {
+fun spilledGeneralCalleeSavedEven(x: Int, y: Int): Int {
   use(x);
   return x + y;
 }
 
-fun spilledCalleeSavedMany(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int {
+fun spilledGeneralCalleeSavedMany(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int {
   use(p1);
   return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;
+}
+
+fun spilledVectorCalleeSavedOdd(x: Double): Double {
+  use(x);
+  return x;
+}
+
+fun spilledVectorCalleeSavedEven(x: Double, y: Double): Double {
+  use(x);
+  return x + y;
+}
+
+fun spilledVectorCalleeSavedMany(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double, p7: Double, p8: Double): Double {
+  use(p1);
+  return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;
+}
+
+fun mixedCalleeSaved1(p1: Int, p2: Double): Int {
+  use(p1);
+  use(p2);
+
+  return p1;
+}
+
+fun mixedCalleeSaved2(p1: Int, p2: Int, p3: Double, p4: Double): Int {
+  use(p1);
+  use(p3 + p4);
+
+  return p1 + p2;
+}
+
+fun mixedCalleeSaved3(p1: Int, p2: Double, p3: Double): Int {
+  use(p1);
+  use(p2 + p3);
+
+  return p1;
+}
+
+fun mixedCalleeSaved4(p1: Int, p2: Int, p3: Double): Int {
+  use(p1);
+  use(p3);
+
+  return p1 + p2;
 }
 
 fun use<T>(x: T) {}

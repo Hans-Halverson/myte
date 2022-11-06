@@ -62,10 +62,18 @@ module AArch64RegisterAllocatorContext = struct
     match instr with
     (* SP and ZR are do not count as moves to prevent them from being coalesced and placed in an
        instruction that does not allow them. *)
-    | { instr = `MovR _; operands = [| { value = PhysicalRegister (`ZR | `SP); _ }; _ |]; _ }
-    | { instr = `MovR _; operands = [| _; { value = PhysicalRegister (`ZR | `SP); _ } |]; _ } ->
+    | {
+        instr = `MovR _ | `FMovR;
+        operands = [| { value = PhysicalRegister (`ZR | `SP); _ }; _ |];
+        _;
+      }
+    | {
+        instr = `MovR _ | `FMovR;
+        operands = [| _; { value = PhysicalRegister (`ZR | `SP); _ } |];
+        _;
+      } ->
       None
-    | { instr = `MovR _; operands = [| dest_op; src_op |]; _ }
+    | { instr = `MovR _ | `FMovR; operands = [| dest_op; src_op |]; _ }
       when Operand.is_reg_value src_op
            && Operand.is_reg_value dest_op
            && get_class src_op == get_class dest_op ->

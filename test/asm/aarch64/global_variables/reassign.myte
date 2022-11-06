@@ -5,16 +5,18 @@ type Tup (Int)
 var b: Byte = 0
 var i: Int = 0
 var l: Long = 0
+var d: Double = 0.0
 var t: Tup = Tup (1)
 
-fun testReassignGlobals(x: Int, y: Long, z: Tup) {
+fun testReassignGlobals(x: Int, y: Long, a: Double, z: Tup) {
   b = 4;
   i = x;
   l = y * 13;
+  d = a;
   t = z;
   t = Tup (2);
 }
 
 fun main() {
-  testReassignGlobals(0, 0, Tup (0));
+  testReassignGlobals(0, 0, 0.0, Tup (0));
 }

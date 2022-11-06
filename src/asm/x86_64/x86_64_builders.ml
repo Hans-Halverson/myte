@@ -54,6 +54,7 @@ and operand_iter_reg_mem_operands
   | VirtualStackSlot ->
     f operand operand_def
   | Immediate _
+  | FloatImmediate _
   | Function _
   | Block _
   | Label _ ->

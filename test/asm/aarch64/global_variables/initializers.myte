@@ -4,6 +4,7 @@ module test
 val immConstantB: Byte = 125
 val immConstantI: Int = 125
 val immConstantL: Long = 125
+val immConstantD: Double = 1.0
 val immConstantF: () -> Byte = getByte
 
 // Mutable constants are put in data section and do not have init blocks
@@ -11,12 +12,14 @@ var constantB: Byte = 123
 var constantI: Int = 123
 var constantL: Long = 123
 var constantBool: Bool = true
+var constantD: Double = 1.0
 var constantF: () -> Byte = getByte
 
 // Non-constants are put in bss section and have init blocks
 val b: Byte = getByte()
 val i: Int = getInt()
 val l: Long = getLong()
+val d: Double = getDouble()
 val f: () -> Byte = getFunction()
 
 // Unused constants are not generated
@@ -25,6 +28,7 @@ val unused: Int = 999
 fun getByte(): Byte = 22
 fun getInt(): Int = 23
 fun getLong(): Long = 24
+fun getDouble(): Double = 25.0
 fun getFunction(): () -> Byte = getByte
 
 fun use<T>(x: T) {}
@@ -33,13 +37,16 @@ fun main() {
   use(immConstantB);
   use(immConstantI);
   use(immConstantL);
+  use(immConstantD);
   use(immConstantF);
   use(constantB);
   use(constantI);
   use(constantL);
+  use(constantD);
   use(constantF);
   use(b);
   use(i);
   use(l);
+  use(d);
   use(f);
 }

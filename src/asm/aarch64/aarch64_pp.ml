@@ -40,6 +40,9 @@ let pp_operand ~pcx ~buf ~size op =
       add_string ~buf (string_of_int op.id)
     )
   | Immediate imm -> pp_immediate ~buf imm
+  | FloatImmediate float ->
+    add_char ~buf '#';
+    add_string ~buf (Float.to_string float)
   | Function func -> add_string ~buf func.label
   | Block block ->
     pp_label_debug_prefix ~buf block;
@@ -349,6 +352,10 @@ let pp_instruction ~pcx ~buf instr =
           | X -> failwith "Invalid subregister size for sdiv"
         in
         pp_op ("sxt" ^ suffix);
+        pp_operands ()
+      | `FMovI
+      | `FMovR ->
+        pp_op "fmov";
         pp_operands ()
       | `Ret -> pp_no_args_op "ret"
       | `B ->

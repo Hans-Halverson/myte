@@ -1,4 +1,5 @@
 open Aarch64_gen_context
+open Aarch64_register
 open Asm
 open Asm_builders
 open Asm_instruction_definition
@@ -51,17 +52,29 @@ let write_function_prologue_and_epilogue (func : Function.t) =
   in
 
   (* Split callee saved registers into pairs so that load/store pair instructions can be used *)
-  let callee_saved_reg_spills =
-    RegSet.fold (fun acc reg -> acc :: reg) func.spilled_callee_saved_regs []
+  let (general_callee_saved_reg_spills, vector_callee_saved_reg_spills) =
+    RegSet.fold
+      (fun reg (general_regs, vector_regs) ->
+        match register_class reg with
+        | GeneralClass -> (reg :: general_regs, vector_regs)
+        | VectorClass -> (general_regs, reg :: vector_regs))
+      func.spilled_callee_saved_regs
+      ([], [])
   in
-  let callee_saved_reg_spills =
+  let general_callee_saved_reg_spills =
     if func.is_leaf then
-      callee_saved_reg_spills
+      general_callee_saved_reg_spills
     else
-      `R30 :: callee_saved_reg_spills
+      `R30 :: general_callee_saved_reg_spills
   in
-  let callee_saved_reg_spill_pairs = split_into_pairs callee_saved_reg_spills in
-  let reg_spill_size = List.length callee_saved_reg_spill_pairs * 16 in
+  let general_callee_saved_reg_spill_pairs = split_into_pairs general_callee_saved_reg_spills in
+  let vector_callee_saved_reg_spill_pairs = split_into_pairs vector_callee_saved_reg_spills in
+  let num_general_callee_saved_reg_spills = List.length general_callee_saved_reg_spills in
+  let total_number_callee_saved_reg_spills =
+    num_general_callee_saved_reg_spills + List.length vector_callee_saved_reg_spills
+  in
+  (* Round up to nearest power of 16 *)
+  let reg_spill_size = (total_number_callee_saved_reg_spills + 1) / 2 * 16 in
 
   let add_spilled_reg_store_load reg_pair is_first offset =
     (* The very first load/store pair should update the stack pointer with pre/post index mode.
@@ -92,17 +105,25 @@ let write_function_prologue_and_epilogue (func : Function.t) =
             [| mk_reg reg; mk_sp (); mk_imm16 ~n:offset |])
   in
 
-  (* Write first load/store pair which updates stack pointer *)
-  (match List_utils.hd_opt callee_saved_reg_spill_pairs with
+  (* Write first general register load/store pair which updates stack pointer *)
+  (match List_utils.hd_opt general_callee_saved_reg_spill_pairs with
   | None -> ()
   | Some reg_pair -> add_spilled_reg_store_load reg_pair true reg_spill_size);
 
-  (* Write all remaining load store pairs *)
+  (* Write all remaining general register load store pairs *)
   List.iteri
     (fun i reg_pair ->
       let offset = (i + 1) * 16 in
       add_spilled_reg_store_load reg_pair false offset)
-    (List_utils.tl_or_empty callee_saved_reg_spill_pairs)
+    (List_utils.tl_or_empty general_callee_saved_reg_spill_pairs);
+
+  (* Write all vector register load store pairs *)
+  let general_spill_offset = num_general_callee_saved_reg_spills * 8 in
+  List.iteri
+    (fun i reg_pair ->
+      let offset = (i * 16) + general_spill_offset in
+      add_spilled_reg_store_load reg_pair false offset)
+    vector_callee_saved_reg_spill_pairs
 
 let write_stack_frame ~(gcx : Gcx.t) =
   FunctionSet.iter (fun func -> write_function_prologue_and_epilogue func) gcx.funcs

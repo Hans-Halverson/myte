@@ -7,12 +7,72 @@ test.isLeaf:
 _main:
   mov w0, wzr
   ret
+test.mixedCalleeSaved1:
+  stp x19, x30, [sp, #-32]!
+  str d8, [sp, #16]
+  mov w19, w0
+  fmov d8, d0
+  mov w0, w19
+  bl test.use$Int$
+  fmov d0, d8
+  bl test.use$Double$
+  mov w0, w19
+  ldr d8, [sp, #16]
+  ldp x19, x30, [sp], #32
+  ret
+test.mixedCalleeSaved2:
+  stp x20, x30, [sp, #-48]!
+  str x19, [sp, #16]
+  stp d8, d9, [sp, #24]
+  mov w19, w0
+  mov w20, w1
+  fmov d9, d0
+  fmov d8, d1
+  mov w0, w19
+  bl test.use$Int$
+  add d0, d9, d8
+  bl test.use$Double$
+  add w0, w19, w20
+  ldp d8, d9, [sp, #24]
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #48
+  ret
+test.mixedCalleeSaved3:
+  stp x19, x30, [sp, #-32]!
+  stp d8, d9, [sp, #16]
+  mov w19, w0
+  fmov d9, d0
+  fmov d8, d1
+  mov w0, w19
+  bl test.use$Int$
+  add d0, d9, d8
+  bl test.use$Double$
+  mov w0, w19
+  ldp d8, d9, [sp, #16]
+  ldp x19, x30, [sp], #32
+  ret
+test.mixedCalleeSaved4:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  str d8, [sp, #24]
+  mov w19, w0
+  mov w20, w1
+  fmov d8, d0
+  mov w0, w19
+  bl test.use$Int$
+  fmov d0, d8
+  bl test.use$Double$
+  add w0, w19, w20
+  ldr d8, [sp, #24]
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
 test.nonLeaf:
   str x30, [sp, #-16]!
   bl test.use$Int$
   ldr x30, [sp], #16
   ret
-test.spilledCalleeSavedEven:
+test.spilledGeneralCalleeSavedEven:
   stp x20, x30, [sp, #-32]!
   str x19, [sp, #16]
   mov w19, w0
@@ -23,7 +83,7 @@ test.spilledCalleeSavedEven:
   ldr x19, [sp, #16]
   ldp x20, x30, [sp], #32
   ret
-test.spilledCalleeSavedMany:
+test.spilledGeneralCalleeSavedMany:
   stp x26, x30, [sp, #-80]!
   stp x24, x25, [sp, #16]
   stp x22, x23, [sp, #32]
@@ -52,13 +112,65 @@ test.spilledCalleeSavedMany:
   ldp x24, x25, [sp, #16]
   ldp x26, x30, [sp], #80
   ret
-test.spilledCalleeSavedOdd:
+test.spilledGeneralCalleeSavedOdd:
   stp x19, x30, [sp, #-16]!
   mov w19, w0
   mov w0, w19
   bl test.use$Int$
   mov w0, w19
   ldp x19, x30, [sp], #16
+  ret
+test.spilledVectorCalleeSavedEven:
+  str x30, [sp, #-32]!
+  stp d8, d9, [sp, #8]
+  fmov d8, d0
+  fmov d9, d1
+  fmov d0, d8
+  bl test.use$Double$
+  add d0, d8, d9
+  ldp d8, d9, [sp, #8]
+  ldr x30, [sp], #32
+  ret
+test.spilledVectorCalleeSavedMany:
+  str x30, [sp, #-80]!
+  stp d14, d15, [sp, #8]
+  stp d12, d13, [sp, #24]
+  stp d10, d11, [sp, #40]
+  stp d8, d9, [sp, #56]
+  fmov d14, d0
+  fmov d15, d1
+  fmov d13, d2
+  fmov d12, d3
+  fmov d11, d4
+  fmov d10, d5
+  fmov d9, d6
+  fmov d8, d7
+  fmov d0, d14
+  bl test.use$Double$
+  add d0, d14, d15
+  add d0, d0, d13
+  add d0, d0, d12
+  add d0, d0, d11
+  add d0, d0, d10
+  add d0, d0, d9
+  add d0, d0, d8
+  ldp d8, d9, [sp, #56]
+  ldp d10, d11, [sp, #40]
+  ldp d12, d13, [sp, #24]
+  ldp d14, d15, [sp, #8]
+  ldr x30, [sp], #80
+  ret
+test.spilledVectorCalleeSavedOdd:
+  str x30, [sp, #-16]!
+  str d8, [sp, #8]
+  fmov d8, d0
+  fmov d0, d8
+  bl test.use$Double$
+  fmov d0, d8
+  ldr d8, [sp, #8]
+  ldr x30, [sp], #16
+  ret
+test.use$Double$:
   ret
 test.use$Int$:
   ret

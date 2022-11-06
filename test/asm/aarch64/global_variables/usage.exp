@@ -10,6 +10,8 @@ test.i:
 _closure$test.getByte:
   .quad test.getByte
   .quad 0
+test.d:
+  .quad 0
 test.f:
   .quad _closure$test.getByte
 test.l:
@@ -36,6 +38,8 @@ test.testReferencing:
   ldr x1, [x1, :lo12:test.l]
   adrp x1, test.f
   ldr x1, [x1, :lo12:test.f]
+  adrp x1, test.d
+  ldr d0, [x1, :lo12:test.d]
   adrp x1, test.i
   ldr w1, [x1, :lo12:test.i]
   add w0, w1, w0

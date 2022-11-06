@@ -12,6 +12,8 @@ test.b:
 test.i:
   .long 0
   .balign 8
+test.d:
+  .quad 0
 test.l:
   .quad 0
 
@@ -24,6 +26,7 @@ _main:
   str wzr, [x2]
   mov w0, wzr
   mov x1, xzr
+  fmov d0, xzr
   bl test.testReassignGlobals
   mov w0, wzr
   ldr x30, [sp], #16
@@ -39,6 +42,8 @@ test.testReassignGlobals:
   mul x1, x1, x0
   adrp x0, test.l
   str x1, [x0, :lo12:test.l]
+  adrp x0, test.d
+  str d0, [x0, :lo12:test.d]
   adrp x0, test.t
   str x2, [x0, :lo12:test.t]
   movz w0, #4
