@@ -102,6 +102,8 @@ let int64_of_char char = Int64.of_int (int_of_char char)
 
 let int64_less_than x y = Int64.compare x y == -1
 
+let int64_less_than_equal x y = Int64.compare x y != 1
+
 let char_to_string char =
   if char = '"' then
     "\""

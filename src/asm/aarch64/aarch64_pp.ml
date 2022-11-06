@@ -89,8 +89,11 @@ let pp_immediate_address ~pcx ~buf (mode : AArch64.addressing_mode) reg_op imm_o
   pp_operand reg_op;
   match mode with
   | Offset ->
-    add_string ", ";
-    pp_operand imm_op;
+    (match imm_op.Operand.value with
+    | Immediate imm when is_zero_immediate imm -> ()
+    | _ ->
+      add_string ", ";
+      pp_operand imm_op);
     add_char ']'
   | PreIndex ->
     add_string ", ";
@@ -405,6 +408,9 @@ let pp_instruction ~pcx ~buf instr =
       | `BLR _ ->
         pp_op "blr";
         pp_operands ()
+      | `SpillUse _
+      | `SpillDef _ ->
+        failwith "Spill instructions must be replaced with loads and stores"
       | _ -> failwith "Unknown AArch64 instr")
 
 let pp_block ~pcx ~buf (block : Block.t) =

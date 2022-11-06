@@ -1,0 +1,155 @@
+module test
+
+import std.io.println
+
+fun cond(): Bool = true
+fun use<T>(x: T): T = x
+
+fun testSingleSpillUsingAllIntRegisters(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int, p9: Int): Int {
+  val p10 = p1 + p2;
+  val p11 = p1 + p3;
+  val p12 = p1 + p4;
+  val p13 = p1 + p5;
+  val p14 = p1 + p6;
+  val p15 = p2 + p3;
+  val p16 = p2 + p4;
+  val p17 = p2 + p5;
+  val p18 = p2 + p6;
+  val p19 = p2 + p7;
+
+  // Spill
+  val p20 = p2 + p8;
+
+  return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + p14 + p15 + p16 + p17 + p18 + p19 + p20;
+}
+
+fun testSingleSpillUsingAllDoubleRegisters(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double, p6: Double, p7: Double, p8: Double, p9: Double): Double {
+  val p10 = p1 + p2;
+  val p11 = p1 + p3;
+  val p12 = p1 + p4;
+  val p13 = p1 + p5;
+  val p14 = p1 + p6;
+  val p15 = p2 + p3;
+  val p16 = p2 + p4;
+  val p17 = p2 + p5;
+  val p18 = p2 + p6;
+  val p19 = p2 + p7;
+  val p20 = p2 + p8;
+  val p21 = p3 + p4;
+  val p22 = p3 + p5;
+  val p23 = p3 + p6;
+  val p24 = p3 + p7;
+  val p25 = p3 + p8;
+
+  // Spill
+  val p26 = p4 + p5;
+
+  return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + p14 + p15 + p16 + p17 + p18 + p19 + p20 + p21 + p22 + p23 + p24 + p25 + p26;
+}
+
+fun testCallerSavedRegistersSpilledAcrossFunctionCalls(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int {
+  // There aren't enough callee saved registers so one parameter must be spilled
+  val p9: Int = p1 + p2;
+  val p10: Int = p1 + p3;
+  val p11: Int = p1 + p4;
+  val p12: Int = p1 + p5;
+  use(3);
+  return p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12;
+}
+
+// TODO: Fix ineffecient spilling by prevent spilling of tiny live ranges
+// that are only used in successive instructions. May require SSA assembly.
+fun testSingleSpillUsingAllRegistersFromLocals(): Int {
+  val cond = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+  var x15 = 15;
+  var x16 = 16;
+  var x17 = 17;
+  var x18 = 18;
+  var x19 = 19;
+  var x20 = 20;
+  var x21 = 21;
+  var x22 = 22;
+  var x23 = 23;
+  var x24 = 24;
+  var x25 = 25;
+  var x26 = 26;
+  var x27 = 27;
+  var x28 = 28;
+  var x29 = 29;
+
+  // Spill
+  var x30 = 30;
+
+  if (cond) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+    x15 = 115;
+    x16 = 116;
+    x17 = 117;
+    x18 = 118;
+    x19 = 119;
+    x20 = 120;
+    x21 = 121;
+    x22 = 122;
+    x23 = 123;
+    x24 = 124;
+    x25 = 125;
+    x26 = 126;
+    x27 = 127;
+    x28 = 128;
+    x29 = 129;
+    x30 = 130;
+  }
+
+  return x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15 + x16 +
+    x17 + x18 + x19 + x20 + x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 + x30;
+}
+
+fun testRegisterClassesAreIndependent(): (Int, Double) {
+  val cond = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4.0;
+  var x5 = 5.0;
+  var x6 = 6.0;
+
+  if (cond) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104.0;
+    x5 = 105.0;
+    x6 = 106.0;
+  }
+
+  return (x1 + x2 + x3, x4 + x5 + x6);
+}
+
+fun main() {}

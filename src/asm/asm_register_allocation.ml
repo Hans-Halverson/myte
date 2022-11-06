@@ -457,7 +457,7 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
     freeze_moves ~ra vreg
 
   (* Choose a vreg from the spill worklist and freeze all the moves associated with it. Vreg can now
-     be simplified.*)
+     be simplified. *)
   let select_spill ~(ra : t) =
     (* Simple spill heuristic - minimize cost C where C = (#uses + #defs) / degree *)
     let heuristic_chosen_vreg =
@@ -465,7 +465,14 @@ module RegisterAllocator (Cx : REGISTER_ALLOCATOR_CONTEXT) = struct
         (fun vreg chosen_vreg_opt ->
           let num_use_defs = Float.of_int (OperandMap.find vreg ra.reg_num_use_defs) in
           let degree = Float.of_int (degree ~ra vreg) in
-          let cost = num_use_defs /. degree in
+          (* Added vreg have smallest possible live range and cannot be spilled, otherwise
+             register allocator would enter an infinite loop. *)
+          let cost =
+            if vreg.from_spill then
+              Float.max_float
+            else
+              num_use_defs /. degree
+          in
           match chosen_vreg_opt with
           | None -> Some (vreg, cost)
           | Some (_, chosen_cost) ->

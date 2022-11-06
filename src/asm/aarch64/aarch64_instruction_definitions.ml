@@ -300,6 +300,18 @@ let blr = { InstructionDef.operands = [{ use = Use; operand_type = Register }] }
 
 let ret = { InstructionDef.operands = [] }
 
+let spill_use =
+  {
+    InstructionDef.operands =
+      [{ use = Def; operand_type = Register }; { use = None; operand_type = Register }];
+  }
+
+let spill_def =
+  {
+    InstructionDef.operands =
+      [{ use = Use; operand_type = Register }; { use = None; operand_type = Register }];
+  }
+
 let instr_def (instr : instr) : InstructionDef.t =
   match instr with
   | `MovI _ -> mov_i
@@ -360,6 +372,8 @@ let instr_def (instr : instr) : InstructionDef.t =
   | `BL _ -> bl
   | `BLR _ -> blr
   | `Ret -> ret
+  | `SpillUse _ -> spill_use
+  | `SpillDef _ -> spill_def
   | _ -> failwith "Unknown aarch64 instr"
 
 (* Return the register size of the i'th operand for this instruction. Only guaranteed to be
@@ -403,7 +417,8 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
   | `CmpR (size, _)
   | `CmnI size
   | `CSet (size, _)
-  | `Cbz size ->
+  | `Cbz size
+  | `SpillUse (size, _, _) ->
     size
   (* Registers must be 64 bits *)
   | `AdrP
@@ -464,6 +479,7 @@ let instr_register_size (instr : instr) (i : int) : AArch64.register_size =
       Size64
     else
       size
+  | `SpillDef size -> register_size_of_subregister_size size
   (* Instructions with no sized operands *)
   | `B
   | `BCond _

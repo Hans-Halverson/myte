@@ -1,37 +1,22 @@
 open Asm
 open Asm_builders
-open Asm_instruction_definition
 open Basic_collections
 
 class virtual stack_coloring =
   object (this)
-    (* Apply a function to all operands of an instruction *)
-    method virtual iter_operands : Instruction.t -> (Operand.t -> OperandDef.t -> unit) -> unit
-
     (* Return the live out set for the blocks of this function *)
     method virtual calculate_live_out : Function.t -> Operand.t list BlockMap.t
 
+    (* Return the vslot uses and defs in this instruction *)
+    method virtual find_vslot_use_defs : Instruction.t -> OperandSet.t * OperandSet.t
+
     method liveness_analysis (func : Function.t) =
-      let find_vslot_use_defs (instr : Instruction.t) =
-        let uses = ref OperandSet.empty in
-        let defs = ref OperandSet.empty in
-
-        this#iter_operands instr (fun operand operand_def ->
-            match operand.value with
-            | VirtualStackSlot ->
-              if operand_is_use operand_def then uses := OperandSet.add operand !uses;
-              if operand_is_def operand_def then defs := OperandSet.add operand !defs
-            | _ -> ());
-
-        (!uses, !defs)
-      in
-
       let live_out = this#calculate_live_out func in
       let graph = ref OOMMap.empty in
       func_iter_blocks func (fun block ->
           let live = ref (BlockMap.find block live_out |> OperandSet.of_list) in
           iter_instructions_rev block (fun instr ->
-              let (vslot_uses, vslot_defs) = find_vslot_use_defs instr in
+              let (vslot_uses, vslot_defs) = this#find_vslot_use_defs instr in
               live := OperandSet.union vslot_defs !live;
               OperandSet.iter
                 (fun vslot_def ->

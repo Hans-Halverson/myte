@@ -1,0 +1,462 @@
+  .global _main
+
+  .text
+test.cond:
+  movz w0, #1
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.testMultipleInterferingSpillsInDifferentStackSlots:
+  stp x29, x30, [sp, #-96]!
+  stp x27, x28, [sp, #16]
+  stp x25, x26, [sp, #32]
+  stp x23, x24, [sp, #48]
+  stp x21, x22, [sp, #64]
+  stp x19, x20, [sp, #80]
+  sub sp, sp, #32
+  mov w27, w0
+  str w1, [sp]
+  str w2, [sp, #8]
+  str w3, [sp, #16]
+  str w4, [sp, #24]
+  mov w29, w5
+  mov w28, w6
+  mov w26, w7
+  cmp w27, #1
+  b.ne .L0
+  movz w25, #101
+  movz w24, #102
+  movz w23, #103
+  movz w22, #104
+  movz w21, #105
+  movz w20, #106
+  movz w19, #107
+  b .L1
+.L0:
+  movz w25, #1
+  movz w24, #2
+  movz w23, #3
+  movz w22, #4
+  movz w21, #5
+  movz w20, #6
+  movz w19, #7
+.L1:
+  movz w0, #3
+  bl test.use$Int$
+  add w0, w25, w24
+  add w0, w0, w23
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  add w1, w0, w27
+  ldr w0, [sp]
+  add w1, w1, w0
+  ldr w0, [sp, #8]
+  add w1, w1, w0
+  ldr w0, [sp, #16]
+  add w1, w1, w0
+  ldr w0, [sp, #24]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w26
+  add sp, sp, #32
+  ldp x19, x20, [sp, #80]
+  ldp x21, x22, [sp, #64]
+  ldp x23, x24, [sp, #48]
+  ldp x25, x26, [sp, #32]
+  ldp x27, x28, [sp, #16]
+  ldp x29, x30, [sp], #96
+  ret
+test.testNonInterferingSpillsReuseStackSlots:
+  stp x29, x30, [sp, #-96]!
+  stp x27, x28, [sp, #16]
+  stp x25, x26, [sp, #32]
+  stp x23, x24, [sp, #48]
+  stp x21, x22, [sp, #64]
+  stp x19, x20, [sp, #80]
+  sub sp, sp, #24
+  bl test.cond
+  cbz w0, .L2
+  movz w0, #101
+  str w0, [sp]
+  movz w0, #102
+  str w0, [sp, #8]
+  movz w0, #103
+  str w0, [sp, #16]
+  movz w29, #104
+  movz w28, #105
+  movz w27, #106
+  movz w26, #107
+  movz w25, #108
+  movz w24, #109
+  movz w23, #110
+  movz w22, #111
+  movz w21, #112
+  movz w20, #113
+  movz w19, #114
+  b .L3
+.L2:
+  movz w0, #1
+  str w0, [sp]
+  movz w0, #2
+  str w0, [sp, #8]
+  movz w0, #3
+  str w0, [sp, #16]
+  movz w29, #4
+  movz w28, #5
+  movz w27, #6
+  movz w26, #7
+  movz w25, #8
+  movz w24, #9
+  movz w23, #10
+  movz w22, #11
+  movz w21, #12
+  movz w20, #13
+  movz w19, #14
+.L3:
+  movz w0, #3
+  bl test.use$Int$
+  ldr w1, [sp]
+  ldr w0, [sp, #8]
+  add w1, w1, w0
+  ldr w0, [sp, #16]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w27
+  add w0, w0, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w0, w0, w23
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  bl test.cond
+  cbz w0, .L4
+  movz w0, #101
+  str w0, [sp]
+  movz w0, #102
+  str w0, [sp, #8]
+  movz w0, #103
+  str w0, [sp, #16]
+  movz w29, #104
+  movz w28, #105
+  movz w27, #106
+  movz w26, #107
+  movz w25, #108
+  movz w24, #109
+  movz w23, #110
+  movz w22, #111
+  movz w21, #112
+  movz w20, #113
+  movz w19, #114
+  b .L5
+.L4:
+  movz w0, #1
+  str w0, [sp]
+  movz w0, #2
+  str w0, [sp, #8]
+  movz w0, #3
+  str w0, [sp, #16]
+  movz w29, #4
+  movz w28, #5
+  movz w27, #6
+  movz w26, #7
+  movz w25, #8
+  movz w24, #9
+  movz w23, #10
+  movz w22, #11
+  movz w21, #12
+  movz w20, #13
+  movz w19, #14
+.L5:
+  movz w0, #3
+  bl test.use$Int$
+  ldr w1, [sp]
+  ldr w0, [sp, #8]
+  add w1, w1, w0
+  ldr w0, [sp, #16]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w27
+  add w0, w0, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w0, w0, w23
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  bl test.cond
+  cbz w0, .L6
+  movz w0, #101
+  str w0, [sp]
+  movz w0, #102
+  str w0, [sp, #8]
+  movz w0, #103
+  str w0, [sp, #16]
+  movz w29, #104
+  movz w28, #105
+  movz w27, #106
+  movz w26, #107
+  movz w25, #108
+  movz w24, #109
+  movz w23, #110
+  movz w22, #111
+  movz w21, #112
+  movz w20, #113
+  movz w19, #114
+  b .L7
+.L6:
+  movz w0, #1
+  str w0, [sp]
+  movz w0, #2
+  str w0, [sp, #8]
+  movz w0, #3
+  str w0, [sp, #16]
+  movz w29, #4
+  movz w28, #5
+  movz w27, #6
+  movz w26, #7
+  movz w25, #8
+  movz w24, #9
+  movz w23, #10
+  movz w22, #11
+  movz w21, #12
+  movz w20, #13
+  movz w19, #14
+.L7:
+  movz w0, #3
+  bl test.use$Int$
+  ldr w1, [sp]
+  ldr w0, [sp, #8]
+  add w1, w1, w0
+  ldr w0, [sp, #16]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w27
+  add w0, w0, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w0, w0, w23
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  movz w0, #77
+  add sp, sp, #24
+  ldp x19, x20, [sp, #80]
+  ldp x21, x22, [sp, #64]
+  ldp x23, x24, [sp, #48]
+  ldp x25, x26, [sp, #32]
+  ldp x27, x28, [sp, #16]
+  ldp x29, x30, [sp], #96
+  ret
+test.testPartialReuseStackSlots:
+  stp x29, x30, [sp, #-96]!
+  stp x27, x28, [sp, #16]
+  stp x25, x26, [sp, #32]
+  stp x23, x24, [sp, #48]
+  stp x21, x22, [sp, #64]
+  stp x19, x20, [sp, #80]
+  sub sp, sp, #32
+  bl test.cond
+  cbz w0, .L8
+  movz w0, #101
+  str w0, [sp]
+  movz w0, #102
+  str w0, [sp, #8]
+  movz w0, #103
+  str w0, [sp, #16]
+  movz w0, #104
+  str w0, [sp, #24]
+  movz w29, #105
+  movz w28, #106
+  movz w27, #107
+  movz w26, #108
+  movz w25, #109
+  movz w24, #110
+  movz w23, #111
+  movz w22, #112
+  movz w21, #113
+  movz w20, #114
+  movz w19, #115
+  b .L9
+.L8:
+  movz w0, #1
+  str w0, [sp]
+  movz w0, #2
+  str w0, [sp, #8]
+  movz w0, #3
+  str w0, [sp, #16]
+  movz w0, #4
+  str w0, [sp, #24]
+  movz w29, #5
+  movz w28, #6
+  movz w27, #7
+  movz w26, #8
+  movz w25, #9
+  movz w24, #10
+  movz w23, #11
+  movz w22, #12
+  movz w21, #13
+  movz w20, #14
+  movz w19, #15
+.L9:
+  movz w0, #3
+  bl test.use$Int$
+  ldr w1, [sp]
+  ldr w0, [sp, #8]
+  add w1, w1, w0
+  ldr w0, [sp, #16]
+  add w1, w1, w0
+  ldr w0, [sp, #24]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w27
+  add w0, w0, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w0, w0, w23
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  bl test.cond
+  cbz w0, .L10
+  movz w0, #101
+  str w0, [sp]
+  movz w0, #102
+  str w0, [sp, #8]
+  movz w0, #103
+  str w0, [sp, #16]
+  movz w29, #104
+  movz w28, #105
+  movz w27, #106
+  movz w26, #107
+  movz w25, #108
+  movz w24, #109
+  movz w23, #110
+  movz w22, #111
+  movz w21, #112
+  movz w20, #113
+  movz w19, #114
+  b .L11
+.L10:
+  movz w0, #1
+  str w0, [sp]
+  movz w0, #2
+  str w0, [sp, #8]
+  movz w0, #3
+  str w0, [sp, #16]
+  movz w29, #4
+  movz w28, #5
+  movz w27, #6
+  movz w26, #7
+  movz w25, #8
+  movz w24, #9
+  movz w23, #10
+  movz w22, #11
+  movz w21, #12
+  movz w20, #13
+  movz w19, #14
+.L11:
+  movz w0, #3
+  bl test.use$Int$
+  ldr w1, [sp]
+  ldr w0, [sp, #8]
+  add w1, w1, w0
+  ldr w0, [sp, #16]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w27
+  add w0, w0, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w0, w0, w23
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  bl test.cond
+  cbz w0, .L12
+  movz w0, #101
+  str w0, [sp]
+  movz w0, #102
+  str w0, [sp, #8]
+  movz w0, #103
+  str w0, [sp, #16]
+  movz w0, #104
+  str w0, [sp, #24]
+  movz w29, #105
+  movz w28, #106
+  movz w27, #107
+  movz w26, #108
+  movz w25, #109
+  movz w24, #110
+  movz w23, #111
+  movz w22, #112
+  movz w21, #113
+  movz w20, #114
+  movz w19, #115
+  b .L13
+.L12:
+  movz w0, #1
+  str w0, [sp]
+  movz w0, #2
+  str w0, [sp, #8]
+  movz w0, #3
+  str w0, [sp, #16]
+  movz w0, #4
+  str w0, [sp, #24]
+  movz w29, #5
+  movz w28, #6
+  movz w27, #7
+  movz w26, #8
+  movz w25, #9
+  movz w24, #10
+  movz w23, #11
+  movz w22, #12
+  movz w21, #13
+  movz w20, #14
+  movz w19, #15
+.L13:
+  movz w0, #3
+  bl test.use$Int$
+  ldr w1, [sp]
+  ldr w0, [sp, #8]
+  add w1, w1, w0
+  ldr w0, [sp, #16]
+  add w1, w1, w0
+  ldr w0, [sp, #24]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w27
+  add w0, w0, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w0, w0, w23
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  movz w0, #77
+  add sp, sp, #32
+  ldp x19, x20, [sp, #80]
+  ldp x21, x22, [sp, #64]
+  ldp x23, x24, [sp, #48]
+  ldp x25, x26, [sp, #32]
+  ldp x27, x28, [sp, #16]
+  ldp x29, x30, [sp], #96
+  ret
+test.use$Int$:
+  ret

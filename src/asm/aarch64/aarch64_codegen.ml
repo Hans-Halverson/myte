@@ -893,39 +893,48 @@ and gen_cmp_cset ~gcx cmp result_id left_val right_val =
   cond
 
 and gen_add_n ~gcx ~result_op ~type_ reg_op n =
+  gen_add_n_ ~emit:(Gcx.emit ~gcx) ~result_op ~type_ reg_op n
+
+and gen_add_n_ ~emit ~result_op ~type_ reg_op n =
   let size = register_size_of_mir_value_type type_ in
   if is_in_add_sub_range n then
     if Integers.int64_less_than n 0L then
-      gen_add_sub_i ~gcx (`SubI size) result_op reg_op (Int64.neg n)
+      gen_add_sub_i_ ~emit (`SubI size) result_op reg_op (Int64.neg n)
     else
-      gen_add_sub_i ~gcx (`AddI size) result_op reg_op n
+      gen_add_sub_i_ ~emit (`AddI size) result_op reg_op n
   else
     let n_reg = mk_vreg ~type_ in
-    gen_load_immediate_to_reg ~gcx ~type_ n n_reg;
-    Gcx.emit ~gcx (`AddR (size, noop_extend)) [| result_op; reg_op; n_reg |]
+    gen_load_immediate_to_reg_ ~emit ~type_ n n_reg;
+    emit (`AddR (size, noop_extend)) [| result_op; reg_op; n_reg |]
 
 and gen_sub_n ~gcx ~result_op ~type_ reg_op n =
+  gen_sub_n_ ~emit:(Gcx.emit ~gcx) ~result_op ~type_ reg_op n
+
+and gen_sub_n_ ~emit ~result_op ~type_ reg_op n =
   let size = register_size_of_mir_value_type type_ in
   if is_in_add_sub_range n then
     if Integers.int64_less_than n 0L then
-      gen_add_sub_i ~gcx (`AddI size) result_op reg_op (Int64.neg n)
+      gen_add_sub_i_ ~emit (`AddI size) result_op reg_op (Int64.neg n)
     else
-      gen_add_sub_i ~gcx (`SubI size) result_op reg_op n
+      gen_add_sub_i_ ~emit (`SubI size) result_op reg_op n
   else
     let n_reg = mk_vreg ~type_ in
-    gen_load_immediate_to_reg ~gcx ~type_ n n_reg;
-    Gcx.emit ~gcx (`SubR size) [| result_op; reg_op; n_reg |]
+    gen_load_immediate_to_reg_ ~emit ~type_ n n_reg;
+    emit (`SubR size) [| result_op; reg_op; n_reg |]
 
 and gen_add_sub_i ~gcx instr dest_op reg_op n =
+  gen_add_sub_i_ ~emit:(Gcx.emit ~gcx) instr dest_op reg_op n
+
+and gen_add_sub_i_ ~emit instr dest_op reg_op n =
   (* n < 2^12 fits in a single add or sub instruction *)
   if Integers.int64_less_than n 4096L then
-    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm64 ~n; imm_0 |]
+    emit instr [| dest_op; reg_op; mk_imm64 ~n; imm_0 |]
   else
     (* n >= 2^12 is split into two add or sub instructions for low and high 12-bit chunks *)
     let low_12_bits = Int64.logand n 4095L in
     let high_12_bits = Int64.shift_right n 12 |> Int64.logand 4095L in
-    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm64 ~n:high_12_bits; imm_12 |];
-    Gcx.emit ~gcx instr [| dest_op; reg_op; mk_imm64 ~n:low_12_bits; imm_0 |]
+    emit instr [| dest_op; reg_op; mk_imm64 ~n:high_12_bits; imm_12 |];
+    emit instr [| dest_op; reg_op; mk_imm64 ~n:low_12_bits; imm_0 |]
 
 (* -2^24 < n < 2^24 can be encoded as immediate in 1 or 2 add/sub instructions *)
 and is_in_add_sub_range n =
@@ -1112,6 +1121,38 @@ and gen_size_from_count_and_type ~gcx count_use count_param_type count_param_mir
     else
       gen_mul_i ~gcx ~type_:count_param_mir_type ~result_op count_op (Int64.of_int element_size)
 
+and is_in_ldr_str_immediate_range subregister_size n =
+  (* All sizes can load/store with offset -256 <= n <= 256 *)
+  (Integers.int64_less_than_equal (-256L) n && Integers.int64_less_than_equal n 255L)
+  || Integers.int64_less_than_equal 0L n
+     &&
+     (* Otherwise offset must be aligned and 0 <= n <= (4095 * (size in bytes)) *)
+     match subregister_size with
+     | B -> Integers.int64_less_than_equal n 4095L
+     | H -> Integers.int64_less_than_equal n 8190L && Int64.equal (Int64.logand n 1L) 0L
+     | W -> Integers.int64_less_than_equal n 16380L && Int64.equal (Int64.logand n 3L) 0L
+     | X -> Integers.int64_less_than_equal n 32760L && Int64.equal (Int64.logand n 7L) 0L
+
+and gen_ldr_offset_n_ ~emit ~result_op ~base_reg register_size subregister_size is_signed n =
+  if is_in_ldr_str_immediate_range subregister_size n then
+    emit
+      (`LdrI (register_size, subregister_size, is_signed, Offset))
+      [| result_op; base_reg; mk_imm64 ~n |]
+  else
+    let offset_reg = mk_vreg ~type_:Long in
+    gen_load_immediate_to_reg_ ~emit ~type_:Type.Long n offset_reg;
+    emit
+      (`LdrR (register_size, subregister_size, is_signed, LSL))
+      [| result_op; base_reg; offset_reg |]
+
+and gen_str_offset_n_ ~emit ~arg_op ~base_reg subregister_size n =
+  if is_in_ldr_str_immediate_range subregister_size n then
+    emit (`StrI (subregister_size, Offset)) [| arg_op; base_reg; mk_imm64 ~n |]
+  else
+    let offset_reg = mk_vreg ~type_:Long in
+    gen_load_immediate_to_reg_ ~emit ~type_:Type.Long n offset_reg;
+    emit (`StrR (subregister_size, LSL)) [| arg_op; base_reg; offset_reg |]
+
 and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in
   let { pointer; pointer_offset; offsets } = get_pointer_instr in
@@ -1262,6 +1303,9 @@ and gen_mov_immediate ~gcx ?(allow_zr = true) (lit : Literal.t) : Operand.t =
     vreg
 
 and gen_load_immediate_to_reg ~gcx ~(type_ : Type.t) (n : Int64.t) (vreg : Operand.t) =
+  gen_load_immediate_to_reg_ ~emit:(Gcx.emit ~gcx) ~type_ n vreg
+
+and gen_load_immediate_to_reg_ ~emit ~(type_ : Type.t) (n : Int64.t) (vreg : Operand.t) =
   let bytes = Bytes.create 8 in
   Bytes.set_int64_le bytes 0 n;
 
@@ -1277,34 +1321,34 @@ and gen_load_immediate_to_reg ~gcx ~(type_ : Type.t) (n : Int64.t) (vreg : Opera
 
   if is_greater_than n 0L then (
     (* First 16 bit chunk is always loaded with a movz *)
-    Gcx.emit ~gcx (`MovI (register_size, Z)) [| vreg; get_imm16_chunk bytes 0; imm_0 |];
+    emit (`MovI (register_size, Z)) [| vreg; get_imm16_chunk bytes 0; imm_0 |];
 
     (* n >= 2^16 *)
     if is_greater_than n 65536L then (
-      Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
+      emit (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
       (* n >= 2^32 *)
       if is_greater_than n 4294967296L then (
-        Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
+        emit (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
         (* n >= 2^48 *)
         if is_greater_than n 281474976710656L then
-          Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
+          emit (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
       )
     )
   ) else
     (* First 16 bit chunk is always inverted and loaded with a movn to set high bytes to ones *)
     let inverted_bytes = Bytes.create 8 in
     Bytes.set_int64_le inverted_bytes 0 (Int64.lognot n);
-    Gcx.emit ~gcx (`MovI (register_size, N)) [| vreg; get_imm16_chunk inverted_bytes 0; imm_0 |];
+    emit (`MovI (register_size, N)) [| vreg; get_imm16_chunk inverted_bytes 0; imm_0 |];
 
     (* n < -2^16 *)
     if Integers.int64_less_than n (-65536L) then (
-      Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
+      emit (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 2; imm_16 |];
       (* n < -2^32 *)
       if Integers.int64_less_than n (-4294967296L) then (
-        Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
+        emit (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 4; imm_32 |];
         (* n < -2^48 *)
         if Integers.int64_less_than n (-281474976710656L) then
-          Gcx.emit ~gcx (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
+          emit (`MovI (register_size, K)) [| vreg; get_imm16_chunk bytes 6; imm_48 |]
       )
     )
 

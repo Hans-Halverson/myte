@@ -4,6 +4,44 @@
 _main:
   mov w0, wzr
   ret
+test.passedInRegistersAndStackFloat:
+  str x30, [sp, #-16]!
+  sub sp, sp, #16
+  fmov d0, #9.
+  str d0, [sp]
+  fmov d0, #10.
+  str d0, [sp, #8]
+  fmov d0, #1.
+  fmov d1, #2.
+  fmov d2, #3.
+  fmov d3, #4.
+  fmov d4, #5.
+  fmov d5, #6.
+  fmov d6, #7.
+  fmov d7, #8.
+  bl test.testTenArgFunctionFloat
+  add sp, sp, #16
+  ldr x30, [sp], #16
+  ret
+test.passedInRegistersAndStackInt:
+  str x30, [sp, #-16]!
+  sub sp, sp, #16
+  movz w0, #9
+  str w0, [sp]
+  movz w0, #10
+  str w0, [sp, #8]
+  movz w0, #1
+  movz w1, #2
+  movz w2, #3
+  movz w3, #4
+  movz w4, #5
+  movz w5, #6
+  movz w6, #7
+  movz w7, #8
+  bl test.testTenArgFunction
+  add sp, sp, #16
+  ldr x30, [sp], #16
+  ret
 test.testEightArgFunction:
   add w0, w0, w1
   add w0, w0, w2
@@ -44,6 +82,113 @@ test.testFourArgFunctionFloat:
   fadd d0, d0, d2
   fadd d0, d0, d3
   ret
+test.testFunctionStackParamsOffsetByPushedCalleeSavedRegisters:
+  stp x19, x30, [sp, #-16]!
+  mov w19, w0
+  ldr d1, [sp, #40]
+  fadd d0, d0, d1
+  bl test.use$Double$
+  ldr w0, [sp, #24]
+  add w0, w19, w0
+  ldp x19, x30, [sp], #16
+  ret
+test.testFunctionStackParamsOffsetByStackFrameAndPushedCalleeSavedRegisters:
+  stp x29, x30, [sp, #-96]!
+  stp x27, x28, [sp, #16]
+  stp x25, x26, [sp, #32]
+  stp x23, x24, [sp, #48]
+  stp x21, x22, [sp, #64]
+  stp x19, x20, [sp, #80]
+  sub sp, sp, #8
+  mov w27, w0
+  mov w26, w1
+  mov w25, w2
+  mov w24, w3
+  mov w23, w4
+  str w5, [sp]
+  mov w29, w6
+  mov w28, w7
+  add w22, w27, w26
+  add w21, w26, w25
+  add w20, w25, w24
+  add w19, w24, w23
+  movz w0, #3
+  bl test.use$Int$
+  add w0, w27, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w1, w0, w23
+  ldr w0, [sp]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w1, w0, w28
+  ldr w0, [sp, #104]
+  add w1, w1, w0
+  ldr w0, [sp, #112]
+  add w0, w1, w0
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  add sp, sp, #8
+  ldp x19, x20, [sp, #80]
+  ldp x21, x22, [sp, #64]
+  ldp x23, x24, [sp, #48]
+  ldp x25, x26, [sp, #32]
+  ldp x27, x28, [sp, #16]
+  ldp x29, x30, [sp], #96
+  ret
+test.testMixedArgs:
+  stp x19, x30, [sp, #-16]!
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
+  fadd d0, d0, d4
+  fadd d0, d0, d5
+  fadd d0, d0, d6
+  fadd d1, d0, d7
+  ldr d0, [sp, #24]
+  fadd d1, d1, d0
+  ldr d0, [sp, #40]
+  fadd d0, d1, d0
+  add w0, w0, w1
+  add w0, w0, w2
+  add w0, w0, w3
+  add w0, w0, w4
+  add w0, w0, w5
+  add w0, w0, w6
+  add w1, w0, w7
+  ldr w0, [sp, #16]
+  add w1, w1, w0
+  ldr w0, [sp, #32]
+  add w19, w1, w0
+  bl test.use$Double$
+  mov w0, w19
+  bl test.use$Int$
+  ldp x19, x30, [sp], #16
+  ret
+test.testNineArgFunction:
+  add w0, w0, w1
+  add w0, w0, w2
+  add w0, w0, w3
+  add w0, w0, w4
+  add w0, w0, w5
+  add w0, w0, w6
+  add w1, w0, w7
+  ldr w0, [sp]
+  add w0, w1, w0
+  ret
+test.testNineArgFunctionFloat:
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
+  fadd d0, d0, d4
+  fadd d0, d0, d5
+  fadd d0, d0, d6
+  fadd d1, d0, d7
+  ldr d0, [sp]
+  fadd d0, d1, d0
+  ret
 test.testOneArgFunction:
   ret
 test.testOneArgFunctionFloat:
@@ -78,6 +223,32 @@ test.testSixArgFunctionFloat:
   fadd d0, d0, d4
   fadd d0, d0, d5
   ret
+test.testTenArgFunction:
+  add w0, w0, w1
+  add w0, w0, w2
+  add w0, w0, w3
+  add w0, w0, w4
+  add w0, w0, w5
+  add w0, w0, w6
+  add w1, w0, w7
+  ldr w0, [sp]
+  add w1, w1, w0
+  ldr w0, [sp, #8]
+  add w0, w1, w0
+  ret
+test.testTenArgFunctionFloat:
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
+  fadd d0, d0, d4
+  fadd d0, d0, d5
+  fadd d0, d0, d6
+  fadd d1, d0, d7
+  ldr d0, [sp]
+  fadd d1, d1, d0
+  ldr d0, [sp, #8]
+  fadd d0, d1, d0
+  ret
 test.testThreeArgFunction:
   add w0, w0, w1
   add w0, w0, w2
@@ -94,6 +265,10 @@ test.testTwoArgFunctionFloat:
   ret
 test.testZeroArgFunctionFloat:
   fmov d0, #1.
+  ret
+test.use$Double$:
+  ret
+test.use$Int$:
   ret
 test.zeroArgFunction:
   movz w0, #1

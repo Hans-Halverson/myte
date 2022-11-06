@@ -177,7 +177,7 @@ module AArch64 = struct
       `MovR of register_size
     | (* LdrI/StrI Rd, [Rs, #imm] with any addressing mode.
          - (all modes) #imm must be between -256 and 255
-         - (B) #imm must be between 0 and 4096
+         - (B) #imm must be between 0 and 4095
          - (H) #imm must be a multiple of 2 between 0 and 8190
          - (W) #imm must be a multiple of 4 between 0 and 16380
          - (X) #imm must be a multiple of 8 between 0 and 32760
@@ -307,6 +307,16 @@ module AArch64 = struct
       `BLR of
       param_types * calling_convention
     | `Ret
+    | (* Marker instructions for spills, will be replaced with loads and stores *)
+      (* SpillUse Rd, Rs where Rs is a stack slot operand. Read the value stored at that stack slot
+         into Rd. A use of a spilled stack slot operand. *)
+      `SpillUse of
+      (* Dest reg size *)
+      register_size * (* Size to load *) subregister_size * (* Is signed *) bool
+    | (* SpillDef Rs, Rd where Rd is a stack slot operand. Write Rs to that stack slot. A def of a
+         spilled stack slot operand.*)
+      `SpillDef of
+      (* Stored size *) subregister_size
     ]
 end
 
@@ -330,6 +340,7 @@ and OperandDef : sig
     | Use
     | Def
     | UseDef
+    | None
 
   and operand_type =
     | Register

@@ -1,0 +1,268 @@
+module test
+
+fun use<T>(x: T): T = x
+fun cond(): Bool = true
+
+fun testMultipleInterferingSpillsInDifferentStackSlots(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int {
+  // Create four spilled vars
+  var a = 1;
+  var b = 2;
+  var c = 3;
+  var d = 4;
+  var e = 5;
+  var f = 6;
+  var g = 7;
+
+  if (p1 == 1) {
+    a = 101;
+    b = 102;
+    c = 103;
+    d = 104;
+    e = 105;
+    f = 106;
+    g = 107;
+  }
+
+  use(3);
+
+  // All spilled vars used at same point, so interfere and must live in different stack slots
+  return a + b + c + d + e + f + g + p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;
+}
+
+// Create three individual spills in a sequence, all reuse the same stack slot
+fun testNonInterferingSpillsReuseStackSlots(): Int {
+  val cond1 = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+  
+  if (cond1) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+  }
+
+  use(3);
+
+  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
+
+  val cond2 = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+ 
+  if (cond2) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+  }
+
+  use(3);
+
+  val z2 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
+
+  val cond3 = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+ 
+  if (cond3) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+  }
+
+  use(3);
+
+  val z3 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
+
+  return 77;
+}
+
+// Create a quadruple spill then a triple spill then another quadruple spill
+fun testPartialReuseStackSlots(): Int {
+  val cond1 = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+  var x15 = 15;
+ 
+  if (cond1) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+    x15 = 115;
+  }
+
+  use(3);
+
+  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
+
+  val cond2 = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+ 
+  if (cond2) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+  }
+
+  use(3);
+
+  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14;
+
+  val cond3 = cond();
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+  var x15 = 15;
+ 
+  if (cond3) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+    x15 = 115;
+  }
+
+  use(3);
+
+  val z1 = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15;
+
+  return 77;
+}
+
+fun main() {}

@@ -92,8 +92,8 @@ module AArch64RegisterAllocatorContext = struct
   let get_use_defs_for_instruction cx instr _ = cx.find_use_defs instr
 
   let rewrite_spilled_program cx ~get_alias =
-    (* TODO: Rewrite program to account for spills *)
-    ignore (cx, get_alias)
+    let spill_writer = new Aarch64_spill_writer.spill_writer ~get_alias in
+    List.iter (fun block -> spill_writer#write_block_spills block) cx.func.blocks
 end
 
 module _ : REGISTER_ALLOCATOR_CONTEXT = AArch64RegisterAllocatorContext

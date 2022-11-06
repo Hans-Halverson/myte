@@ -44,6 +44,8 @@ and Operand : sig
     (* MIR type for this operand, only guaranteed to be accurate as necessary for tracking pointers
        into the heap. *)
     type_: Mir_type.Type.t;
+    (* Whether this operand resulted from a spill. If so this operand will not be spilled later. *)
+    mutable from_spill: bool;
   }
 
   and value =
@@ -88,6 +90,7 @@ end = struct
     id: id;
     mutable value: value;
     type_: Mir_type.Type.t;
+    mutable from_spill: bool;
   }
 
   and value =
@@ -102,7 +105,7 @@ end = struct
     | StackSlot of int
     | VirtualStackSlot
 
-  let mk ~id ~value ~type_ = { id; value; type_ }
+  let mk ~id ~value ~type_ = { id; value; type_; from_spill = false }
 
   let ops_by_id = ref IMap.empty
 

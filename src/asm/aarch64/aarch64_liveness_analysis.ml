@@ -101,20 +101,22 @@ class vslots_liveness_analyzer (func : Function.t) =
         prev_blocks <- BlockMMap.add next_block block prev_blocks
       | _ -> ());
 
-      (* First visit uses *)
-      instr_iter_all_operands instr (fun operand operand_def ->
-          if operand_is_use operand_def then use_blocks <- OBMMap.add operand instr.block use_blocks);
-
-      (* Then visit defs *)
-      instr_iter_all_operands instr (fun operand operand_def ->
-          match operand.value with
-          | VirtualStackSlot when operand_is_def operand_def ->
-            let block = instr.block in
-            if
-              OBMMap.contains operand block use_blocks
-              && not (OBMMap.contains operand block def_blocks)
-            then
-              use_before_def_blocks <- OBMMap.add operand block use_before_def_blocks;
-            def_blocks <- OBMMap.add operand block def_blocks
-          | _ -> ())
+      (* After register allocation vslots will only apper as the second argument of spill instructions *)
+      match instr.instr with
+      | `SpillUse _ ->
+        let operand = instr.operands.(1) in
+        if operand.value == VirtualStackSlot then
+          use_blocks <- OBMMap.add operand instr.block use_blocks
+      | `SpillDef _ ->
+        let operand = instr.operands.(1) in
+        if operand.value == VirtualStackSlot then (
+          let block = instr.block in
+          if
+            OBMMap.contains operand block use_blocks
+            && not (OBMMap.contains operand block def_blocks)
+          then
+            use_before_def_blocks <- OBMMap.add operand block use_before_def_blocks;
+          def_blocks <- OBMMap.add operand block def_blocks
+        )
+      | _ -> ()
   end

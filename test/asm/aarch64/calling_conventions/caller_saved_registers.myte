@@ -1,0 +1,103 @@
+module test
+
+fun use<T>(x: T): T = x
+
+// Default to caller saved registers if not crossing a function call
+fun testDefaultToCallerSaveRegisters(p: Int, cond: Bool): Int {
+  // TODO: Works but look into why unnecessary w0/w17 swap happens
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6; 
+  var x7 = 7;
+  var x8 = 8;
+  var x9 = 9;
+  var x10 = 10;
+  var x11 = 11;
+  var x12 = 12;
+  var x13 = 13;
+  var x14 = 14;
+  var x15 = 15;
+  var x16 = 16;
+  var x17 = 17;
+  var x18 = 18;
+
+  if (cond)  {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+    x7 = 107;
+    x8 = 108;
+    x9 = 109;
+    x10 = 110;
+    x11 = 111;
+    x12 = 112;
+    x13 = 113;
+    x14 = 114;
+    x15 = 115;
+    x16 = 116;
+    x17 = 117;
+    x18 = 118;
+  }
+
+  return x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18;
+}
+
+fun testDefaultToCalleeSaveRegistersIfAcrossFunctionCall(cond: Bool) {
+  // Placed in caller save register
+  var x = 1;
+  var y = 2;
+
+  if (cond) {
+    x = 101;
+    y = 102;
+  }
+
+  // Must be saved across function call
+  use(3);
+
+  // As it is used afterwards
+  use(x);
+  use(y);
+}
+
+fun callerSavedRegistersIntSavedAcrossFunctionCalls(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int): Int {
+  // Push callee saved registers then move caller saved args to them to pass this function call
+  use(3);
+  return p1 + p2 + p3 + p4 + p5;
+}
+
+fun callerSavedRegistersDoubleSavedAcrossFunctionCalls(p1: Double, p2: Double, p3: Double, p4: Double, p5: Double): Double {
+  // Move caller saved register to stack to pass the function call
+  use(3);
+  return p1 + p2 + p3 + p4 + p5;
+}
+
+fun callerSavedRegistersSavedAcrossFunctionCallsWithSpills(p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int): Int {
+  var x1 = 1;
+  var x2 = 2;
+  var x3 = 3;
+  var x4 = 4;
+  var x5 = 5;
+  var x6 = 6;
+
+  if (p1 == 1) {
+    x1 = 101;
+    x2 = 102;
+    x3 = 103;
+    x4 = 104;
+    x5 = 105;
+    x6 = 106;
+  }
+
+  use(3);
+
+  return x1 + x2 + x3 + x4 + x5 + x6 + p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;
+}
+
+fun main() {}

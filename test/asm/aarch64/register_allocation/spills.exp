@@ -1,0 +1,302 @@
+  .global _main
+
+  .data
+  .balign 8
+_float$104.:
+  .quad 4637018766331346944
+_float$105.:
+  .quad 4637089135075524608
+_float$106.:
+  .quad 4637159503819702272
+
+  .text
+test.cond:
+  movz w0, #1
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.testCallerSavedRegistersSpilledAcrossFunctionCalls:
+  stp x29, x30, [sp, #-96]!
+  stp x27, x28, [sp, #16]
+  stp x25, x26, [sp, #32]
+  stp x23, x24, [sp, #48]
+  stp x21, x22, [sp, #64]
+  stp x19, x20, [sp, #80]
+  sub sp, sp, #8
+  mov w27, w0
+  mov w26, w1
+  mov w25, w2
+  mov w24, w3
+  mov w23, w4
+  str w5, [sp]
+  mov w29, w6
+  mov w28, w7
+  add w22, w27, w26
+  add w21, w27, w25
+  add w20, w27, w24
+  add w19, w27, w23
+  movz w0, #3
+  bl test.use$Int$
+  add w0, w27, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w1, w0, w23
+  ldr w0, [sp]
+  add w0, w1, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  add sp, sp, #8
+  ldp x19, x20, [sp, #80]
+  ldp x21, x22, [sp, #64]
+  ldp x23, x24, [sp, #48]
+  ldp x25, x26, [sp, #32]
+  ldp x27, x28, [sp, #16]
+  ldp x29, x30, [sp], #96
+  ret
+test.testRegisterClassesAreIndependent:
+  stp x21, x30, [sp, #-64]!
+  stp x19, x20, [sp, #16]
+  stp d9, d10, [sp, #32]
+  str d8, [sp, #48]
+  bl test.cond
+  cbz w0, .L0
+  movz w21, #101
+  movz w20, #102
+  movz w19, #103
+  adrp x0, _float$104.
+  ldr d10, [x0, :lo12:_float$104.]
+  adrp x0, _float$105.
+  ldr d9, [x0, :lo12:_float$105.]
+  adrp x0, _float$106.
+  ldr d8, [x0, :lo12:_float$106.]
+  b .L1
+.L0:
+  movz w21, #1
+  movz w20, #2
+  movz w19, #3
+  fmov d10, #4.
+  fmov d9, #5.
+  fmov d8, #6.
+.L1:
+  movz w0, #16
+  bl mytec_alloc
+  add w1, w21, w20
+  add w1, w1, w19
+  str w1, [x0]
+  fadd d0, d10, d9
+  fadd d0, d0, d8
+  add x1, x0, #8
+  str d0, [x1]
+  ldr d8, [sp, #48]
+  ldp d9, d10, [sp, #32]
+  ldp x19, x20, [sp, #16]
+  ldp x21, x30, [sp], #64
+  ret
+test.testSingleSpillUsingAllDoubleRegisters:
+  str d8, [sp, #-16]!
+  fadd d8, d0, d1
+  fadd d31, d0, d2
+  fadd d30, d0, d3
+  fadd d29, d0, d4
+  fadd d28, d0, d5
+  fadd d27, d1, d2
+  fadd d26, d1, d3
+  fadd d25, d1, d4
+  fadd d24, d1, d5
+  fadd d23, d1, d6
+  fadd d22, d1, d7
+  fadd d21, d2, d3
+  fadd d20, d2, d4
+  fadd d19, d2, d5
+  fadd d18, d2, d6
+  fadd d17, d2, d7
+  fadd d16, d3, d4
+  fadd d0, d0, d1
+  fadd d0, d0, d2
+  fadd d0, d0, d3
+  fadd d0, d0, d4
+  fadd d0, d0, d5
+  fadd d0, d0, d6
+  fadd d1, d0, d7
+  ldr d0, [sp, #16]
+  fadd d0, d1, d0
+  fadd d0, d0, d8
+  fadd d0, d0, d31
+  fadd d0, d0, d30
+  fadd d0, d0, d29
+  fadd d0, d0, d28
+  fadd d0, d0, d27
+  fadd d0, d0, d26
+  fadd d0, d0, d25
+  fadd d0, d0, d24
+  fadd d0, d0, d23
+  fadd d0, d0, d22
+  fadd d0, d0, d21
+  fadd d0, d0, d20
+  fadd d0, d0, d19
+  fadd d0, d0, d18
+  fadd d0, d0, d17
+  fadd d0, d0, d16
+  ldr d8, [sp], #16
+  ret
+test.testSingleSpillUsingAllIntRegisters:
+  str x19, [sp, #-16]!
+  add w19, w0, w1
+  add w17, w0, w2
+  add w16, w0, w3
+  add w15, w0, w4
+  add w14, w0, w5
+  add w13, w1, w2
+  add w12, w1, w3
+  add w11, w1, w4
+  add w10, w1, w5
+  add w9, w1, w6
+  add w8, w1, w7
+  add w0, w0, w1
+  add w0, w0, w2
+  add w0, w0, w3
+  add w0, w0, w4
+  add w0, w0, w5
+  add w0, w0, w6
+  add w1, w0, w7
+  ldr w0, [sp, #16]
+  add w0, w1, w0
+  add w0, w0, w19
+  add w0, w0, w17
+  add w0, w0, w16
+  add w0, w0, w15
+  add w0, w0, w14
+  add w0, w0, w13
+  add w0, w0, w12
+  add w0, w0, w11
+  add w0, w0, w10
+  add w0, w0, w9
+  add w0, w0, w8
+  ldr x19, [sp], #16
+  ret
+test.testSingleSpillUsingAllRegistersFromLocals:
+  stp x29, x30, [sp, #-96]!
+  stp x27, x28, [sp, #16]
+  stp x25, x26, [sp, #32]
+  stp x23, x24, [sp, #48]
+  stp x21, x22, [sp, #64]
+  stp x19, x20, [sp, #80]
+  sub sp, sp, #24
+  bl test.cond
+  cbz w0, .L2
+  movz w0, #101
+  str w0, [sp]
+  movz w0, #102
+  str w0, [sp, #8]
+  movz w0, #103
+  str w0, [sp, #16]
+  movz w29, #104
+  movz w28, #105
+  movz w26, #106
+  movz w25, #107
+  movz w24, #108
+  movz w23, #109
+  movz w22, #110
+  movz w21, #111
+  movz w20, #112
+  movz w19, #113
+  movz w17, #114
+  movz w16, #115
+  movz w15, #116
+  movz w14, #117
+  movz w13, #118
+  movz w12, #119
+  movz w11, #120
+  movz w10, #121
+  movz w9, #122
+  movz w8, #123
+  movz w7, #124
+  movz w6, #125
+  movz w5, #126
+  movz w4, #127
+  movz w3, #128
+  movz w2, #129
+  movz w1, #130
+  b .L3
+.L2:
+  movz w0, #1
+  str w0, [sp]
+  movz w0, #2
+  str w0, [sp, #8]
+  movz w0, #3
+  str w0, [sp, #16]
+  movz w29, #4
+  movz w28, #5
+  movz w26, #6
+  movz w25, #7
+  movz w24, #8
+  movz w23, #9
+  movz w22, #10
+  movz w21, #11
+  movz w20, #12
+  movz w19, #13
+  movz w17, #14
+  movz w16, #15
+  movz w15, #16
+  movz w14, #17
+  movz w13, #18
+  movz w12, #19
+  movz w11, #20
+  movz w10, #21
+  movz w9, #22
+  movz w8, #23
+  movz w7, #24
+  movz w6, #25
+  movz w5, #26
+  movz w4, #27
+  movz w3, #28
+  movz w2, #29
+  movz w1, #30
+.L3:
+  ldr w27, [sp]
+  ldr w0, [sp, #8]
+  add w27, w27, w0
+  ldr w0, [sp, #16]
+  add w0, w27, w0
+  add w0, w0, w29
+  add w0, w0, w28
+  add w0, w0, w26
+  add w0, w0, w25
+  add w0, w0, w24
+  add w0, w0, w23
+  add w0, w0, w22
+  add w0, w0, w21
+  add w0, w0, w20
+  add w0, w0, w19
+  add w0, w0, w17
+  add w0, w0, w16
+  add w0, w0, w15
+  add w0, w0, w14
+  add w0, w0, w13
+  add w0, w0, w12
+  add w0, w0, w11
+  add w0, w0, w10
+  add w0, w0, w9
+  add w0, w0, w8
+  add w0, w0, w7
+  add w0, w0, w6
+  add w0, w0, w5
+  add w0, w0, w4
+  add w0, w0, w3
+  add w0, w0, w2
+  add w0, w0, w1
+  add sp, sp, #24
+  ldp x19, x20, [sp, #80]
+  ldp x21, x22, [sp, #64]
+  ldp x23, x24, [sp, #48]
+  ldp x25, x26, [sp, #32]
+  ldp x27, x28, [sp, #16]
+  ldp x29, x30, [sp], #96
+  ret
+test.use$Int$:
+  ret
