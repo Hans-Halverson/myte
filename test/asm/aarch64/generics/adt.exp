@@ -1,0 +1,68 @@
+  .global _main
+
+  .text
+_main:
+  mov w0, wzr
+  ret
+test.testBool:
+  stp x19, x30, [sp, #-16]!
+  movz w0, #8
+  bl mytec_alloc
+  mov x19, x0
+  movz w0, #1
+  str w0, [x19, #4]
+  movz w0, #1
+  strb w0, [x19]
+  strb wzr, [x19, #1]
+  ldr w0, [x19, #4]
+  bl test.useInt
+  ldrsb w0, [x19]
+  bl test.useBool
+  ldrsb w0, [x19, #1]
+  bl test.useBool
+  ldp x19, x30, [sp], #16
+  ret
+test.testInt:
+  stp x19, x30, [sp, #-16]!
+  movz w0, #12
+  bl mytec_alloc
+  mov x19, x0
+  movz w0, #1
+  str w0, [x19]
+  movz w0, #2
+  str w0, [x19, #4]
+  movz w0, #3
+  str w0, [x19, #8]
+  ldr w0, [x19]
+  bl test.useInt
+  ldr w0, [x19, #4]
+  bl test.useInt
+  ldr w0, [x19, #8]
+  bl test.useInt
+  ldp x19, x30, [sp], #16
+  ret
+test.testLong:
+  stp x19, x30, [sp, #-16]!
+  movz w0, #24
+  bl mytec_alloc
+  mov x19, x0
+  movz w0, #1
+  str w0, [x19]
+  movz x0, #5
+  str x0, [x19, #8]
+  movz x0, #6
+  str x0, [x19, #16]
+  ldr w0, [x19]
+  bl test.useInt
+  ldr x0, [x19, #8]
+  bl test.useLong
+  ldr x0, [x19, #16]
+  bl test.useLong
+  ldp x19, x30, [sp], #16
+  ret
+test.useBool:
+  ret
+test.useInt:
+  ret
+test.useLong:
+  ret

@@ -1,0 +1,133 @@
+module test
+
+import std.memory.Array
+
+type Tup1 (Int, Byte, Long)
+type Tup2 (Byte, Array<Int>)
+
+fun constantIndexing(
+  byteArray: Array<Byte>,
+  intArray: Array<Int>,
+  longArray: Array<Long>,
+  tupArray: Array<Tup1>,
+) {
+  byteArray[0];
+  byteArray[1];
+  byteArray[2];
+
+  intArray[0];
+  intArray[1];
+  intArray[2];
+
+  longArray[0];
+  longArray[1];
+  longArray[2];
+
+  tupArray[0];
+  tupArray[1];
+  tupArray[2];
+
+  // Assignment
+  byteArray[3] = 4;
+  longArray[5] = 6;
+}
+
+fun longConstantIndexing(intArray: Array<Int>) {
+  intArray[4294967296];
+}
+
+fun variableIndexing(
+  byteArray: Array<Byte>,
+  intArray: Array<Int>,
+  longArray: Array<Long>,
+  tupArray: Array<Tup1>,
+  x: Int,
+  y: Byte,
+) {
+  byteArray[x];
+  intArray[x];
+  longArray[x];
+  tupArray[x];
+
+  byteArray[y];
+  intArray[y];
+  longArray[y];
+  tupArray[y];
+}
+
+fun nestedIndexing(tup1Array: Array<Tup1>, t2: Tup2, x: Int) {
+  tup1Array[5][1];
+  t2[1][5];
+
+  tup1Array[x][1];
+  t2[1][x];
+}
+
+val intArray: Array<Int> = Array.new(10)
+
+fun indexIntoGlobal(x: Int) {
+  intArray[5];
+  intArray[x];
+
+  // Assignment
+  intArray[5] = 6;
+  intArray[x] = 7;
+}
+
+fun testByteConstantIndexing(array: Array<Byte>, x: Int) {
+  // Fits in ldr constant
+  use(array[0]);
+  use(array[1]);
+  use(array[2]);
+  use(array[4095]);
+
+  // Does not fit in ldr constant
+  use(array[4096]);
+
+  // Fits in ldr constant
+  use(array[-1]);
+  use(array[-256]);
+
+  // Does not fit in ldr constant
+  use(array[-257]);
+}
+
+fun testIntConstantIndexing(array: Array<Int>) {
+  // Fits in ldr constant
+  use(array[0]);
+  use(array[1]);
+  use(array[2]);
+  use(array[4095]);
+
+  // Does not fit in ldr constant
+  use(array[4096]);
+
+  // Fits in ldr constant
+  use(array[-1]);
+  use(array[-64]);
+
+  // Does not fit in ldr constant
+  use(array[-65]);
+}
+
+fun testLongConstantIndexing(array: Array<Long>) {
+  // Fits in ldr constant
+  use(array[0]);
+  use(array[1]);
+  use(array[2]);
+  use(array[4095]);
+
+  // Does not fit in ldr constant
+  use(array[4096]);
+
+  // Fits in ldr constant
+  use(array[-1]);
+  use(array[-32]);
+
+  // Does not fit in ldr constant
+  use(array[-33]);
+}
+
+fun use<T>(x: T) {}
+
+fun main() {}

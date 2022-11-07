@@ -1,0 +1,33 @@
+module test
+
+type Rec<T> { foo: Int, bar: T, baz: T }
+
+fun useBool(b: Bool) {}
+fun useInt(i: Int) {}
+fun useLong(l: Long) {}
+
+fun testBool() {
+  val r = Rec { foo: 1, bar: true, baz: false };
+
+  useInt(r.foo);
+  useBool(r.bar);
+  useBool(r.baz);
+}
+
+fun testInt() {
+  val r = Rec { foo: 1, bar: 2, baz: 3 };
+
+  useInt(r.foo);
+  useInt(r.bar);
+  useInt(r.baz);
+}
+
+fun testLong() {
+  val r = Rec { foo: 1, bar: 5, baz: 6 };
+
+  useInt(r.foo);
+  useLong(r.bar);
+  useLong(r.baz);
+}
+
+fun main() {}

@@ -1,0 +1,33 @@
+module test
+
+type Tup1 (Int, Long, Byte)
+type Rec1 { foo: Int, bar: Long, baz: Byte }
+
+fun simpleAccess(t1: Tup1, r1: Rec1, t2: (Byte, Byte, Byte)) {
+  t1[0];
+  t1[1];
+  t1[2];
+
+  r1.foo;
+  r1.bar;
+  r1.baz;
+
+  t2[0];
+  t2[1];
+  t2[2];
+}
+
+type Tup2 (Long, Tup3)
+type Tup3 (Int, Tup4)
+type Tup4 (Byte, Byte)
+
+fun nestedAccess(t2: Tup2) {
+  t2[1];
+  t2[1][1];
+  t2[1][1][1];
+}
+
+fun main() {
+  simpleAccess(Tup1 (0, 0, 0), Rec1 { foo: 0, bar: 0, baz: 0 }, (0, 0, 0));
+  nestedAccess(Tup2 (0, Tup3 (0, Tup4 (0, 0))));
+}

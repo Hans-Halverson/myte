@@ -16,6 +16,11 @@ type get_pointer_offset =
   | ImmediateOffset of Int64.t
   | LabelOffset of Operand.t
 
+type get_pointer_action =
+  | Load of (* Result reg *) Operand.t * (* Ldr args *) register_size * subregister_size * bool
+  | Store of (* Arg reg *) Operand.t * (* Str args *) subregister_size
+  | Move of Type.t * Operand.t
+
 let imm_0 = mk_imm ~imm:(Imm8 (Int8.of_int 0))
 
 let imm_1 = mk_imm ~imm:(Imm8 (Int8.of_int 1))
@@ -294,26 +299,42 @@ and gen_instructions ~gcx instructions =
     failwith "Terminator instructions must be last instruction"
   (*
    * ===========================================
+   *             GetPointer + Load
+   * ===========================================
+   *)
+  | ({ value = Instr { instr = GetPointer gp_inner_instr; _ }; _ } as gp_instr)
+    :: { id = result_id; value = Instr { instr = Load { value = load_ptr_value; _ }; _ }; _ }
+    :: rest_instructions
+    when load_ptr_value == gp_instr && value_has_single_use gp_instr ->
+    let type_ = pointer_value_element_type load_ptr_value in
+    let size = register_size_of_mir_value_type type_ in
+    let subregister_size = subregister_size_of_mir_value_type type_ in
+    let result_op = mk_vreg_of_value_id ~type_ result_id in
+    gen_get_pointer ~gcx (Load (result_op, size, subregister_size, true)) gp_inner_instr;
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
+   *             GetPointer + Store
+   * ===========================================
+   *)
+  | ({ value = Instr { instr = GetPointer gp_inner_instr; _ }; _ } as gp_instr)
+    :: { value = Instr { instr = Store ({ value = store_ptr_value; _ }, store_arg_val); _ }; _ }
+    :: rest_instructions
+    when store_ptr_value == gp_instr && value_has_single_use gp_instr ->
+    let type_ = pointer_value_element_type store_ptr_value in
+    let subregister_size = subregister_size_of_mir_value_type type_ in
+    let arg_op = gen_value ~gcx store_arg_val in
+    gen_get_pointer ~gcx (Store (arg_op, subregister_size)) gp_inner_instr;
+    gen_instructions rest_instructions
+  (*
+   * ===========================================
    *                GetPointer
    * ===========================================
    *)
-  (* | ({ value = Instr { instr = GetPointer gp_inner_instr; _ }; _ } as gp_instr)
-       :: { value = Instr { instr = Load { value = load_ptr_value; _ }; _ }; _ }
-       :: rest_instructions
-       when load_ptr_value == gp_instr ->
-       gen_get_pointer ~gcx gp_instr gp_inner_instr;
-       gen_instructions rest_instructions
-     | ({ value = Instr { instr = GetPointer gp_inner_instr; _ }; _ } as gp_instr)
-       :: { value = Instr { instr = Store ({ value = store_ptr_value; _ }, store_arg_val); _ }; _ }
-       :: rest_instructions
-       when store_ptr_value == gp_instr ->
-       gen_get_pointer ~gcx gp_instr gp_inner_instr;
-       gen_instructions rest_instructions *)
   | { id = result_id; value = Instr { instr = GetPointer gp_inner_instr; type_; _ }; _ }
     :: rest_instructions ->
     let result_op = mk_vreg_of_value_id ~type_ result_id in
-    let gp_op = gen_get_pointer ~gcx gp_inner_instr in
-    gen_mov ~gcx ~type_ ~dest:result_op ~src:gp_op;
+    gen_get_pointer ~gcx (Move (type_, result_op)) gp_inner_instr;
     gen_instructions rest_instructions
   (*
    * ===========================================
@@ -1132,6 +1153,16 @@ and is_in_ldr_str_immediate_range subregister_size n =
      | W -> Integers.int64_less_than_equal n 16380L && Int64.equal (Int64.logand n 3L) 0L
      | X -> Integers.int64_less_than_equal n 32760L && Int64.equal (Int64.logand n 7L) 0L
 
+and gen_ldr_offset_n ~gcx ~result_op ~base_reg register_size subregister_size is_signed n =
+  gen_ldr_offset_n_
+    ~emit:(Gcx.emit ~gcx)
+    ~result_op
+    ~base_reg
+    register_size
+    subregister_size
+    is_signed
+    n
+
 and gen_ldr_offset_n_ ~emit ~result_op ~base_reg register_size subregister_size is_signed n =
   if is_in_ldr_str_immediate_range subregister_size n then
     emit
@@ -1144,6 +1175,9 @@ and gen_ldr_offset_n_ ~emit ~result_op ~base_reg register_size subregister_size 
       (`LdrR (register_size, subregister_size, is_signed, LSL))
       [| result_op; base_reg; offset_reg |]
 
+and gen_str_offset_n ~gcx ~arg_op ~base_reg subregister_size n =
+  gen_str_offset_n_ ~emit:(Gcx.emit ~gcx) ~arg_op ~base_reg subregister_size n
+
 and gen_str_offset_n_ ~emit ~arg_op ~base_reg subregister_size n =
   if is_in_ldr_str_immediate_range subregister_size n then
     emit (`StrI (subregister_size, Offset)) [| arg_op; base_reg; mk_imm64 ~n |]
@@ -1152,7 +1186,8 @@ and gen_str_offset_n_ ~emit ~arg_op ~base_reg subregister_size n =
     gen_load_immediate_to_reg_ ~emit ~type_:Type.Long n offset_reg;
     emit (`StrR (subregister_size, LSL)) [| arg_op; base_reg; offset_reg |]
 
-and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
+and gen_get_pointer
+    ~gcx (action : get_pointer_action) (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   let open Mir.Instruction.GetPointer in
   let { pointer; pointer_offset; offsets } = get_pointer_instr in
 
@@ -1177,44 +1212,95 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   let immediate_offset = ref immediate_offset in
   let scaled_reg_offset = ref None in
 
-  let emit_current_address_calculation () =
-    let new_base =
-      match (!immediate_offset, !scaled_reg_offset) with
-      | (None, None) -> !base
-      | (Some (LabelOffset label_offset), None) ->
+  let emit_current_address_calculation action_opt =
+    let set_new_base new_base =
+      base := new_base;
+      immediate_offset := None;
+      scaled_reg_offset := None
+    in
+    match (!immediate_offset, !scaled_reg_offset) with
+    | (None, None) ->
+      (* If just the base, emit Ldr Rd, [Rs] *)
+      (match action_opt with
+      | Some (Load (result_op, size, subregister_size, is_signed)) ->
+        Gcx.emit ~gcx (`LdrR (size, subregister_size, is_signed, LSL)) [| result_op; !base |]
+      | Some (Store (arg_op, subregister_size)) ->
+        Gcx.emit ~gcx (`StrR (subregister_size, LSL)) [| arg_op; !base |]
+      (* Otherwise return the base address unchanged *)
+      | _ -> set_new_base !base)
+    | (Some (LabelOffset label_offset), None) ->
+      (* If a label offset, emit Ldr Rd, [Rs, label] *)
+      (match action_opt with
+      | Some (Load (result_op, size, subregister_size, is_signed)) ->
+        Gcx.emit
+          ~gcx
+          (`LdrI (size, subregister_size, is_signed, Offset))
+          [| result_op; !base; label_offset |]
+      | Some (Store (arg_op, subregister_size)) ->
+        Gcx.emit ~gcx (`StrI (subregister_size, Offset)) [| arg_op; !base; label_offset |]
+      (* Otherwise add label offset to base address *)
+      | _ ->
         let new_base = mk_vreg ~type_:Long in
         Gcx.emit ~gcx (`AddI Size64) [| new_base; !base; label_offset; imm_0 |];
-        new_base
-      | (Some (ImmediateOffset imm_offset), None) ->
+        set_new_base new_base)
+    | (Some (ImmediateOffset imm_offset), None) ->
+      (* If an immediate offset, emit Ldr Rd, [Rs, #offset] if offset in range, otherwise first
+         load the immediate into Ri then emit Ldr Rd, [Rs, Ri] *)
+      (match action_opt with
+      | Some (Load (result_op, size, subregister_size, is_signed)) ->
+        gen_ldr_offset_n ~gcx ~result_op ~base_reg:!base size subregister_size is_signed imm_offset
+      | Some (Store (arg_op, subregister_size)) ->
+        gen_str_offset_n ~gcx ~arg_op ~base_reg:!base subregister_size imm_offset
+      (* Otherwise add immediate offset to base address *)
+      | _ ->
         let new_base = mk_vreg ~type_:Long in
         gen_add_n ~gcx ~result_op:new_base ~type_:Long !base imm_offset;
-        new_base
-      | (None, Some (reg, reg_mir_type, scale)) ->
+        set_new_base new_base)
+    | (None, Some (index_reg, _, 1)) ->
+      (* If scaled by 1 this is the same as Ldr Rd, [Rs, R] *)
+      (match action_opt with
+      | Some (Load (result_op, size, subregister_size, is_signed)) ->
+        Gcx.emit
+          ~gcx
+          (`LdrR (size, subregister_size, is_signed, LSL))
+          [| result_op; !base; index_reg |]
+      | Some (Store (arg_op, subregister_size)) ->
+        Gcx.emit ~gcx (`StrR (subregister_size, LSL)) [| arg_op; !base; index_reg |]
+      (* Otherwise add unscaled index reg to base address *)
+      | _ ->
         let new_base = mk_vreg ~type_:Long in
-        (if scale == 1 then
-          Gcx.emit ~gcx (`AddR (Size64, noop_extend)) [| new_base; !base; reg |]
-        else
-          let subregister_size = subregister_size_of_mir_value_type reg_mir_type in
-          let extend = sign_extend_of_subregister_size subregister_size in
-          let shift_imm =
-            match scale with
-            | 2 -> imm_1
-            | 4 -> imm_2
-            | 8 -> imm_3
-            | _ -> failwith "Invalid scale"
-          in
-          Gcx.emit ~gcx (`AddR (Size64, extend)) [| new_base; !base; reg; shift_imm |]);
-        new_base
-      | (Some _, Some _) -> failwith "Can only have one offset type"
-    in
+        Gcx.emit ~gcx (`AddR (Size64, noop_extend)) [| new_base; !base; index_reg |];
+        set_new_base new_base)
+    | (None, Some (index_reg, reg_mir_type, scale)) ->
+      let subregister_size = subregister_size_of_mir_value_type reg_mir_type in
+      let extend = sign_extend_of_subregister_size subregister_size in
+      let shift_imm =
+        match scale with
+        | 2 -> imm_1
+        | 4 -> imm_2
+        | 8 -> imm_3
+        | _ -> failwith "Invalid scale"
+      in
 
-    base := new_base;
-    immediate_offset := None;
-    scaled_reg_offset := None
+      (* If scaled this is the same as Ldr Rd, [Rs, Ri, #shift] *)
+      (match action_opt with
+      | Some (Load (result_op, size, subregister_size, is_signed)) ->
+        Gcx.emit
+          ~gcx
+          (`LdrR (size, subregister_size, is_signed, LSL))
+          [| result_op; !base; index_reg; shift_imm |]
+      | Some (Store (arg_op, subregister_size)) ->
+        Gcx.emit ~gcx (`StrR (subregister_size, LSL)) [| arg_op; !base; index_reg; shift_imm |]
+      (* Otherwise add scaled reg in a single shifted add *)
+      | _ ->
+        let new_base = mk_vreg ~type_:Long in
+        Gcx.emit ~gcx (`AddR (Size64, extend)) [| new_base; !base; index_reg; shift_imm |];
+        set_new_base new_base)
+    | (Some _, Some _) -> failwith "Can only have one offset type"
   in
 
   let add_fixed_offset new_offset =
-    if !scaled_reg_offset != None then emit_current_address_calculation ();
+    if !scaled_reg_offset != None then emit_current_address_calculation None;
     match !immediate_offset with
     | None -> immediate_offset := Some (ImmediateOffset new_offset)
     (* Combine immediate offsets *)
@@ -1230,7 +1316,7 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
 
   let add_scaled_register (reg, reg_mir_type) scale =
     if !immediate_offset != None || !scaled_reg_offset != None then
-      emit_current_address_calculation ();
+      emit_current_address_calculation None;
     match scale with
     | 1
     | 2
@@ -1238,7 +1324,7 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
     | 8 ->
       scaled_reg_offset := Some (reg, reg_mir_type, scale)
     | _ ->
-      emit_current_address_calculation ();
+      emit_current_address_calculation None;
       let scaled_reg = mk_vreg ~type_:reg_mir_type in
       gen_mul_i ~gcx ~type_:reg_mir_type ~result_op:scaled_reg reg (Int64.of_int scale);
       scaled_reg_offset := Some (scaled_reg, reg_mir_type, 1)
@@ -1285,9 +1371,14 @@ and gen_get_pointer ~gcx (get_pointer_instr : Mir.Instruction.GetPointer.t) =
   | None -> ());
   List.iter (fun offset -> gen_offset offset) offsets;
 
-  (* ignore (gcx, get_pointer_instr) *)
-  emit_current_address_calculation ();
-  !base
+  (* Perform action with the loaded address *)
+  match action with
+  | Move (type_, result_op) ->
+    emit_current_address_calculation None;
+    gen_mov ~gcx ~type_ ~dest:result_op ~src:!base
+  | Load _
+  | Store _ ->
+    emit_current_address_calculation (Some action)
 
 (* Generate an immediate value loaded to a register. Only 16 bits can be moved in a single
    instruction, if more are required then additional movk instructions must be used. *)

@@ -1,0 +1,154 @@
+  .global _main
+
+  .bss
+  .balign 8
+test.intArray:
+  .skip 8
+
+  .text
+_myte_init:
+  str x30, [sp, #-16]!
+  movz w0, #40
+  bl mytec_alloc
+  adrp x1, test.intArray
+  str x0, [x1, :lo12:test.intArray]
+  ldr x30, [sp], #16
+  ret
+test.constantIndexing:
+  ldrsb w4, [x0]
+  ldrsb w4, [x0, #1]
+  ldrsb w4, [x0, #2]
+  ldr w4, [x1]
+  ldr w4, [x1, #4]
+  ldr w1, [x1, #8]
+  ldr x1, [x2]
+  ldr x1, [x2, #8]
+  ldr x1, [x2, #16]
+  ldr x1, [x3]
+  ldr x1, [x3, #8]
+  ldr x1, [x3, #16]
+  movz w1, #4
+  strb w1, [x0, #3]
+  movz x0, #6
+  str x0, [x2, #40]
+  ret
+test.indexIntoGlobal:
+  adrp x1, test.intArray
+  ldr x1, [x1, :lo12:test.intArray]
+  ldr w1, [x1, #20]
+  adrp x1, test.intArray
+  ldr x1, [x1, :lo12:test.intArray]
+  ldr w1, [x1, x0, lsl #2]
+  adrp x1, test.intArray
+  ldr x2, [x1, :lo12:test.intArray]
+  movz w1, #6
+  str w1, [x2, #20]
+  adrp x1, test.intArray
+  ldr x2, [x1, :lo12:test.intArray]
+  movz w1, #7
+  str w1, [x2, x0, lsl #2]
+  ret
+test.longConstantIndexing:
+  movz x1, #0
+  movk x1, #0, lsl #16
+  movk x1, #4, lsl #32
+  ldr w0, [x0, x1]
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.nestedIndexing:
+  ldr x3, [x0, #40]
+  ldrsb w3, [x3]
+  ldr x3, [x1, #8]
+  ldr w3, [x3, #20]
+  ldr x0, [x0, x2, lsl #3]
+  ldrsb w0, [x0]
+  ldr x0, [x1, #8]
+  ldr w0, [x0, x2, lsl #2]
+  ret
+test.testByteConstantIndexing:
+  stp x19, x30, [sp, #-16]!
+  mov x19, x0
+  ldrsb w0, [x19]
+  bl test.use$Byte$
+  ldrsb w0, [x19, #1]
+  bl test.use$Byte$
+  ldrsb w0, [x19, #2]
+  bl test.use$Byte$
+  ldrsb w0, [x19, #4095]
+  bl test.use$Byte$
+  movz x0, #4096
+  ldrsb w0, [x19, x0]
+  bl test.use$Byte$
+  ldrsb w0, [x19, #-1]
+  bl test.use$Byte$
+  ldrsb w0, [x19, #-256]
+  bl test.use$Byte$
+  movn x0, #256
+  ldrsb w0, [x19, x0]
+  bl test.use$Byte$
+  ldp x19, x30, [sp], #16
+  ret
+test.testIntConstantIndexing:
+  stp x19, x30, [sp, #-16]!
+  mov x19, x0
+  ldr w0, [x19]
+  bl test.use$Int$
+  ldr w0, [x19, #4]
+  bl test.use$Int$
+  ldr w0, [x19, #8]
+  bl test.use$Int$
+  ldr w0, [x19, #16380]
+  bl test.use$Int$
+  movz x0, #16384
+  ldr w0, [x19, x0]
+  bl test.use$Int$
+  ldr w0, [x19, #-4]
+  bl test.use$Int$
+  ldr w0, [x19, #-256]
+  bl test.use$Int$
+  movn x0, #259
+  ldr w0, [x19, x0]
+  bl test.use$Int$
+  ldp x19, x30, [sp], #16
+  ret
+test.testLongConstantIndexing:
+  stp x19, x30, [sp, #-16]!
+  mov x19, x0
+  ldr x0, [x19]
+  bl test.use$Long$
+  ldr x0, [x19, #8]
+  bl test.use$Long$
+  ldr x0, [x19, #16]
+  bl test.use$Long$
+  ldr x0, [x19, #32760]
+  bl test.use$Long$
+  movz x0, #32768
+  ldr x0, [x19, x0]
+  bl test.use$Long$
+  ldr x0, [x19, #-8]
+  bl test.use$Long$
+  ldr x0, [x19, #-256]
+  bl test.use$Long$
+  movn x0, #263
+  ldr x0, [x19, x0]
+  bl test.use$Long$
+  ldp x19, x30, [sp], #16
+  ret
+test.use$Byte$:
+  ret
+test.use$Int$:
+  ret
+test.use$Long$:
+  ret
+test.variableIndexing:
+  ldrsb w6, [x0, x4]
+  ldr w6, [x1, x4, lsl #2]
+  ldr x6, [x2, x4, lsl #3]
+  ldr x4, [x3, x4, lsl #3]
+  ldrsb w0, [x0, x5]
+  ldr w0, [x1, x5, lsl #2]
+  ldr x0, [x2, x5, lsl #3]
+  ldr x0, [x3, x5, lsl #3]
+  ret

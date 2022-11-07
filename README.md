@@ -6,6 +6,10 @@ Myte is an in-progress modern, general-purpose programming language. This reposi
 
 You can play around with the Myte language on the Myte Playground at https://mytelang.org/playground/.
 
+Myte is currently supported on the following systems:
+* macOS (x86_64)
+* Linux (x86_64 and ARM64)
+
 ## Building and testing the compiler
 
 The Myte compiler is written in OCaml (version 4.14.0) with some runtime components in C. To build the compiler from source and run its test suite, check out this repository and run the following commands from the `myte` repository's root directory.
@@ -76,7 +80,7 @@ Optimizations on MIR can be run once the SSA pass has been completed. At the mom
 
 ### Assembly Generation
 
-The final phase of the compiler is lowering destructed MIR to assembly. Myte currently supports generating `x86_64` assembly for both MacOS and Linux, contained in the [`src/asm/x86`](src/asm/x86) directory.
+The final phase of the compiler is lowering destructed MIR to assembly. Myte currently supports generating `x86_64` assembly for both MacOS and Linux, and `aarch64` assembly for Linux. Assembly generation is contained in the [`src/asm`](src/asm) directory.
 
 Assembly generation begins with a pass to generate "virtual assembly" from MIR, which is identical to the target assembly language but with unlimited virtual registers, only some of which are mapped directly to physical registers. Once virtual assembly has been generated, liveness information for each virtual register is determined and an interference graph between virtual registers is built. The register allocator then assigns physical registers to each virtual register using the strategy of iterated register coalescing, which attempts to eliminate as many copy instructions as possible from the program. When spills are determined, virtual registers are mapped to virtual stack slots and the program is rewritten to read/write from memory on uses of that virtual register.
 

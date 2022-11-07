@@ -11,11 +11,9 @@ test.Type.bar:
   str x30, [sp, #-16]!
   movz w0, #16
   bl mytec_alloc
-  add x1, x0, #8
-  str xzr, [x1]
+  str xzr, [x0, #8]
   str wzr, [x0]
-  add x1, x0, #4
-  str wzr, [x1]
+  str wzr, [x0, #4]
   ldr x30, [sp], #16
   ret
 test.Type.foo:
@@ -24,8 +22,7 @@ test.Type.foo:
 test.callMethodWithArgs:
   str x30, [sp, #-16]!
   ldr x1, [x0]
-  add x0, x0, #8
-  ldr x0, [x0]
+  ldr x0, [x0, #8]
   ldr x3, [x0]
   mov x0, x1
   movz w1, #1
@@ -36,10 +33,8 @@ test.callMethodWithArgs:
 test.callSimpleMethod:
   str x30, [sp, #-16]!
   ldr x1, [x0]
-  add x0, x0, #8
-  ldr x0, [x0]
-  add x0, x0, #8
-  ldr x2, [x0]
+  ldr x0, [x0, #8]
+  ldr x2, [x0, #8]
   mov x0, x1
   blr x2
   ldr x30, [sp], #16
@@ -62,10 +57,9 @@ test.testPromotion:
   movz w0, #16
   bl mytec_alloc
   str x19, [x0]
-  add x1, x0, #8
-  adrp x2, _vtable$test.Type$test.Trait
-  add x2, x2, :lo12:_vtable$test.Type$test.Trait
-  str x2, [x1]
+  adrp x1, _vtable$test.Type$test.Trait
+  add x1, x1, :lo12:_vtable$test.Type$test.Trait
+  str x1, [x0, #8]
   bl test.testCall
   ldp x19, x30, [sp], #16
   ret

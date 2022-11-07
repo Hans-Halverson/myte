@@ -63,36 +63,28 @@ test.loadMany:
   mov x19, x0
   fmov d0, #1.
   str d0, [x19]
-  add x0, x19, #8
   fmov d0, #2.
-  str d0, [x0]
-  add x0, x19, #16
+  str d0, [x19, #8]
   fmov d0, #1.
-  str d0, [x0]
-  add x0, x19, #24
-  adrp x1, _float$1.6
-  ldr d0, [x1, :lo12:_float$1.6]
-  str d0, [x0]
-  add x0, x19, #32
+  str d0, [x19, #16]
+  adrp x0, _float$1.6
+  ldr d0, [x0, :lo12:_float$1.6]
+  str d0, [x19, #24]
   fmov d0, #2.
-  str d0, [x0]
-  add x0, x19, #40
-  adrp x1, _float$1.6
-  ldr d0, [x1, :lo12:_float$1.6]
-  str d0, [x0]
+  str d0, [x19, #32]
+  adrp x0, _float$1.6
+  ldr d0, [x0, :lo12:_float$1.6]
+  str d0, [x19, #40]
   adrp x0, test.global
   ldr d0, [x0, :lo12:test.global]
-  add x0, x19, #48
-  str d0, [x0]
+  str d0, [x19, #48]
   movz w0, #16
   bl mytec_alloc
-  add x1, x0, #8
-  str x19, [x1]
+  str x19, [x0, #8]
   movz w1, #7
   str w1, [x0]
-  add x0, x0, #4
   movz w1, #7
-  str w1, [x0]
+  str w1, [x0, #4]
   ldp x19, x30, [sp], #16
   ret
 test.loadNeg0:

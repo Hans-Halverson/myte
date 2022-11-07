@@ -52,10 +52,9 @@ test.testBoolPromotion:
   bl mytec_alloc
   strb w20, [x0]
   str x0, [x19]
-  add x0, x19, #8
-  adrp x1, _vtable$std.bool.Bool$std.string.ToString
-  add x1, x1, :lo12:_vtable$std.bool.Bool$std.string.ToString
-  str x1, [x0]
+  adrp x0, _vtable$std.bool.Bool$std.string.ToString
+  add x0, x0, :lo12:_vtable$std.bool.Bool$std.string.ToString
+  str x0, [x19, #8]
   mov x0, x19
   bl test.useToString
   ldr x19, [sp, #16]
@@ -72,10 +71,9 @@ test.testBytePromotion:
   bl mytec_alloc
   strb w20, [x0]
   str x0, [x19]
-  add x0, x19, #8
-  adrp x1, _vtable$std.byte.Byte$std.string.ToString
-  add x1, x1, :lo12:_vtable$std.byte.Byte$std.string.ToString
-  str x1, [x0]
+  adrp x0, _vtable$std.byte.Byte$std.string.ToString
+  add x0, x0, :lo12:_vtable$std.byte.Byte$std.string.ToString
+  str x0, [x19, #8]
   mov x0, x19
   bl test.useToString
   ldr x19, [sp, #16]
@@ -92,10 +90,9 @@ test.testIntPromotion:
   bl mytec_alloc
   str w20, [x0]
   str x0, [x19]
-  add x0, x19, #8
-  adrp x1, _vtable$std.int.Int$std.string.ToString
-  add x1, x1, :lo12:_vtable$std.int.Int$std.string.ToString
-  str x1, [x0]
+  adrp x0, _vtable$std.int.Int$std.string.ToString
+  add x0, x0, :lo12:_vtable$std.int.Int$std.string.ToString
+  str x0, [x19, #8]
   mov x0, x19
   bl test.useToString
   ldr x19, [sp, #16]
@@ -112,10 +109,9 @@ test.testLongPromotion:
   bl mytec_alloc
   str x20, [x0]
   str x0, [x19]
-  add x0, x19, #8
-  adrp x1, _vtable$std.long.Long$std.string.ToString
-  add x1, x1, :lo12:_vtable$std.long.Long$std.string.ToString
-  str x1, [x0]
+  adrp x0, _vtable$std.long.Long$std.string.ToString
+  add x0, x0, :lo12:_vtable$std.long.Long$std.string.ToString
+  str x0, [x19, #8]
   mov x0, x19
   bl test.useToString
   ldr x19, [sp, #16]
@@ -125,18 +121,16 @@ test.testUnitPromotion:
   str x30, [sp, #-16]!
   movz w0, #16
   bl mytec_alloc
-  add x1, x0, #8
-  adrp x2, _vtable$std.unit.Unit$std.string.ToString
-  add x2, x2, :lo12:_vtable$std.unit.Unit$std.string.ToString
-  str x2, [x1]
+  adrp x1, _vtable$std.unit.Unit$std.string.ToString
+  add x1, x1, :lo12:_vtable$std.unit.Unit$std.string.ToString
+  str x1, [x0, #8]
   bl test.useToString
   ldr x30, [sp], #16
   ret
 test.useToString:
   str x30, [sp, #-16]!
   ldr x1, [x0]
-  add x0, x0, #8
-  ldr x0, [x0]
+  ldr x0, [x0, #8]
   ldr x2, [x0]
   mov x0, x1
   blr x2

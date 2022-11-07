@@ -1,0 +1,71 @@
+  .global _main
+
+  .text
+_main:
+  str x30, [sp, #-16]!
+  bl test.testTuple
+  bl test.testRecord
+  bl test.testNested
+  mov w0, wzr
+  ldr x30, [sp], #16
+  ret
+test.testNested:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  movz w0, #8
+  bl mytec_alloc
+  mov x20, x0
+  movz w0, #1
+  str w0, [x20, #4]
+  movz w0, #2
+  strb w0, [x20]
+  movz w0, #16
+  bl mytec_alloc
+  mov x19, x0
+  movz x0, #3
+  str x0, [x19, #8]
+  movz w0, #4
+  strb w0, [x19]
+  movz w0, #16
+  bl mytec_alloc
+  str x20, [x0]
+  str x19, [x0, #8]
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
+test.testRecord:
+  str x30, [sp, #-16]!
+  movz w0, #16
+  bl mytec_alloc
+  movz w1, #1
+  str w1, [x0, #4]
+  movz w1, #2
+  strb w1, [x0]
+  movz x1, #3
+  str x1, [x0, #8]
+  ldr x30, [sp], #16
+  ret
+test.testTuple:
+  str x30, [sp, #-16]!
+  movz w0, #12
+  bl mytec_alloc
+  movz w1, #1
+  str w1, [x0]
+  movz w1, #2
+  str w1, [x0, #4]
+  movz w1, #3
+  str w1, [x0, #8]
+  movz w0, #8
+  bl mytec_alloc
+  movz w1, #1
+  str w1, [x0, #4]
+  movz w1, #2
+  strb w1, [x0]
+  movz w0, #8
+  bl mytec_alloc
+  movz w1, #1
+  strb w1, [x0]
+  movz w1, #2
+  str w1, [x0, #4]
+  ldr x30, [sp], #16
+  ret

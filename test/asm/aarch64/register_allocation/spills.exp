@@ -90,8 +90,7 @@ test.testRegisterClassesAreIndependent:
   str w1, [x0]
   fadd d0, d10, d9
   fadd d0, d0, d8
-  add x1, x0, #8
-  str d0, [x1]
+  str d0, [x0, #8]
   ldr d8, [sp, #48]
   ldp d9, d10, [sp, #32]
   ldp x19, x20, [sp, #16]

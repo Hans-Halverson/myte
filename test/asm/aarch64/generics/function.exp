@@ -33,8 +33,7 @@ test.buildPair$Bool$Bool$:
   movz w0, #2
   bl mytec_alloc
   strb w20, [x0]
-  add x1, x0, #1
-  strb w19, [x1]
+  strb w19, [x0, #1]
   ldr x19, [sp, #16]
   ldp x20, x30, [sp], #32
   ret
@@ -46,8 +45,7 @@ test.buildPair$Bool$Int$:
   movz w0, #8
   bl mytec_alloc
   strb w20, [x0]
-  add x1, x0, #4
-  str w19, [x1]
+  str w19, [x0, #4]
   ldr x19, [sp, #16]
   ldp x20, x30, [sp], #32
   ret
@@ -59,8 +57,7 @@ test.buildPair$Int$Int$:
   movz w0, #8
   bl mytec_alloc
   str w20, [x0]
-  add x1, x0, #4
-  str w19, [x1]
+  str w19, [x0, #4]
   ldr x19, [sp, #16]
   ldp x20, x30, [sp], #32
   ret
