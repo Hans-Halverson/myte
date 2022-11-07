@@ -1,0 +1,99 @@
+  .global _main
+
+  .text
+test.getInt:
+  movz w0, #1
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.testAddOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  add w0, w0, #7
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testAndOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  and w0, w0, #7
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testArithmeticRightShiftOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  asr w0, w0, #7
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  movz w0, #6
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testDivideOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  movz w1, #7
+  sdiv w0, w0, w1
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testLeftShiftOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  lsl w0, w0, #7
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testLogicalRightShiftOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  lsr w0, w0, #7
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testMultiplyOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  movz w1, #7
+  mul w0, w0, w1
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testOrOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  orr w0, w0, #7
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testRemainderOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  movz w1, #7
+  sdiv w2, w0, w1
+  msub w0, w2, w1, w0
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testSubtractOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  sub w0, w0, #7
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.testXorOperatorAssign:
+  str x30, [sp, #-16]!
+  bl test.getInt
+  eor w0, w0, #7
+  bl test.useInt
+  ldr x30, [sp], #16
+  ret
+test.useInt:
+  ret

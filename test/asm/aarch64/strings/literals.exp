@@ -1,0 +1,56 @@
+  .global _main
+
+  .bss
+  .balign 8
+test.s:
+  .skip 8
+
+  .data
+.S0:
+  .ascii "foo"
+.S1:
+  .ascii "foobar"
+
+  .text
+_myte_init:
+  str x30, [sp, #-16]!
+  movz w0, #16
+  bl mytec_alloc
+  adrp x2, .S0
+  add x2, x2, :lo12:.S0
+  add x1, x0, #8
+  str x2, [x1]
+  movz w1, #3
+  str w1, [x0]
+  add x1, x0, #4
+  movz w2, #3
+  str w2, [x1]
+  adrp x1, test.s
+  str x0, [x1, :lo12:test.s]
+  ldr x30, [sp], #16
+  ret
+_main:
+  str x30, [sp, #-16]!
+  adrp x0, test.s
+  ldr x0, [x0, :lo12:test.s]
+  bl test.use$String$
+  mov w0, wzr
+  ldr x30, [sp], #16
+  ret
+test.test:
+  str x30, [sp, #-16]!
+  movz w0, #16
+  bl mytec_alloc
+  adrp x2, .S1
+  add x2, x2, :lo12:.S1
+  add x1, x0, #8
+  str x2, [x1]
+  movz w1, #6
+  str w1, [x0]
+  add x0, x0, #4
+  movz w1, #6
+  str w1, [x0]
+  ldr x30, [sp], #16
+  ret
+test.use$String$:
+  ret

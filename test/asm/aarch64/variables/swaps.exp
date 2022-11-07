@@ -1,0 +1,41 @@
+  .global _main
+
+  .text
+test.doubleSwap:
+  movz w3, #1
+  movz w4, #2
+  movz w0, #3
+  movz w2, #4
+.L0:
+  mov w1, w4
+  mov w4, w3
+  mov w3, w1
+  mov w1, w2
+  mov w2, w0
+  mov w0, w1
+  b .L0
+test.longSwap:
+  movz w0, #1
+  movz w4, #2
+  movz w3, #3
+  movz w2, #4
+.L1:
+  mov w1, w4
+  mov w4, w3
+  mov w3, w2
+  mov w2, w0
+  mov w0, w1
+  b .L1
+_main:
+  mov w0, wzr
+  ret
+test.swap:
+  movz w0, #1
+  movz w2, #2
+.L2:
+  mov w1, w2
+  mov w2, w0
+  mov w0, w1
+  b .L2
+test.use$Int$:
+  ret

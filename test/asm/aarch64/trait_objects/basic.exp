@@ -1,0 +1,71 @@
+  .global _main
+
+  .data
+  .balign 8
+_vtable$test.Type$test.Trait:
+  .quad test.Type.bar
+  .quad test.Type.foo
+
+  .text
+test.Type.bar:
+  str x30, [sp, #-16]!
+  movz w0, #16
+  bl mytec_alloc
+  add x1, x0, #8
+  str xzr, [x1]
+  str wzr, [x0]
+  add x1, x0, #4
+  str wzr, [x1]
+  ldr x30, [sp], #16
+  ret
+test.Type.foo:
+  movz w0, #1
+  ret
+test.callMethodWithArgs:
+  str x30, [sp, #-16]!
+  ldr x1, [x0]
+  add x0, x0, #8
+  ldr x0, [x0]
+  ldr x3, [x0]
+  mov x0, x1
+  movz w1, #1
+  movz w2, #1
+  blr x3
+  ldr x30, [sp], #16
+  ret
+test.callSimpleMethod:
+  str x30, [sp, #-16]!
+  ldr x1, [x0]
+  add x0, x0, #8
+  ldr x0, [x0]
+  add x0, x0, #8
+  ldr x2, [x0]
+  mov x0, x1
+  blr x2
+  ldr x30, [sp], #16
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.testCall:
+  stp x19, x30, [sp, #-16]!
+  mov x19, x0
+  mov x0, x19
+  bl test.callSimpleMethod
+  mov x0, x19
+  bl test.callMethodWithArgs
+  ldp x19, x30, [sp], #16
+  ret
+test.testPromotion:
+  stp x19, x30, [sp, #-16]!
+  mov x19, x0
+  movz w0, #16
+  bl mytec_alloc
+  str x19, [x0]
+  add x1, x0, #8
+  adrp x2, _vtable$test.Type$test.Trait
+  add x2, x2, :lo12:_vtable$test.Type$test.Trait
+  str x2, [x1]
+  bl test.testCall
+  ldp x19, x30, [sp], #16
+  ret

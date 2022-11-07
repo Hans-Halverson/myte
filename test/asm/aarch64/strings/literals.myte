@@ -1,0 +1,13 @@
+module test
+
+val s: String = "foo"
+
+fun test() {
+  "foobar";
+}
+
+fun use<T>(x: T): T = x
+
+fun main() {
+  use(s);
+}

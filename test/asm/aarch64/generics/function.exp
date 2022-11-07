@@ -1,0 +1,92 @@
+  .global _main
+
+  .text
+test.buildOption$Bool$:
+  stp x19, x30, [sp, #-16]!
+  mov w19, w0
+  movz w0, #1
+  bl mytec_alloc
+  strb w19, [x0]
+  ldp x19, x30, [sp], #16
+  ret
+test.buildOption$Int$:
+  stp x19, x30, [sp, #-16]!
+  mov w19, w0
+  movz w0, #4
+  bl mytec_alloc
+  str w19, [x0]
+  ldp x19, x30, [sp], #16
+  ret
+test.buildOption$Long$:
+  stp x19, x30, [sp, #-16]!
+  mov x19, x0
+  movz w0, #8
+  bl mytec_alloc
+  str x19, [x0]
+  ldp x19, x30, [sp], #16
+  ret
+test.buildPair$Bool$Bool$:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  mov w20, w0
+  mov w19, w1
+  movz w0, #2
+  bl mytec_alloc
+  strb w20, [x0]
+  add x1, x0, #1
+  strb w19, [x1]
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
+test.buildPair$Bool$Int$:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  mov w20, w0
+  mov w19, w1
+  movz w0, #8
+  bl mytec_alloc
+  strb w20, [x0]
+  add x1, x0, #4
+  str w19, [x1]
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
+test.buildPair$Int$Int$:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  mov w20, w0
+  mov w19, w1
+  movz w0, #8
+  bl mytec_alloc
+  str w20, [x0]
+  add x1, x0, #4
+  str w19, [x1]
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.testSingleTypeArg:
+  str x30, [sp, #-16]!
+  movz w0, #1
+  bl test.buildOption$Bool$
+  movz w0, #5
+  bl test.buildOption$Int$
+  movz x0, #6
+  bl test.buildOption$Long$
+  ldr x30, [sp], #16
+  ret
+test.testTwoTypeArgs:
+  str x30, [sp, #-16]!
+  movz w0, #1
+  movz w1, #1
+  bl test.buildPair$Int$Int$
+  movz w0, #1
+  movz w1, #1
+  bl test.buildPair$Bool$Int$
+  movz w0, #1
+  movz w1, #1
+  bl test.buildPair$Bool$Bool$
+  ldr x30, [sp], #16
+  ret

@@ -1,0 +1,144 @@
+  .global _main
+
+  .data
+  .balign 8
+_vtable$std.bool.Bool$std.string.ToString:
+  .quad _trampoline$std.bool.Bool.toString
+_vtable$std.byte.Byte$std.string.ToString:
+  .quad _trampoline$std.byte.Byte.toString
+_vtable$std.int.Int$std.string.ToString:
+  .quad _trampoline$std.int.Int.toString
+_vtable$std.long.Long$std.string.ToString:
+  .quad _trampoline$std.long.Long.toString
+_vtable$std.unit.Unit$std.string.ToString:
+  .quad std.unit.Unit.toString
+
+  .text
+_trampoline$std.bool.Bool.toString:
+  str x30, [sp, #-16]!
+  ldrsb w0, [x0]
+  bl std.bool.Bool.toString
+  ldr x30, [sp], #16
+  ret
+_trampoline$std.byte.Byte.toString:
+  str x30, [sp, #-16]!
+  ldrsb w0, [x0]
+  bl std.byte.Byte.toString
+  ldr x30, [sp], #16
+  ret
+_trampoline$std.int.Int.toString:
+  str x30, [sp, #-16]!
+  ldr w0, [x0]
+  bl std.int.Int.toString
+  ldr x30, [sp], #16
+  ret
+_trampoline$std.long.Long.toString:
+  str x30, [sp, #-16]!
+  ldr x0, [x0]
+  bl std.long.Long.toString
+  ldr x30, [sp], #16
+  ret
+_main:
+  mov w0, wzr
+  ret
+test.testBoolPromotion:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  mov w20, w0
+  movz w0, #16
+  bl mytec_alloc
+  mov x19, x0
+  movz w0, #1
+  bl mytec_alloc
+  strb w20, [x0]
+  str x0, [x19]
+  add x0, x19, #8
+  adrp x1, _vtable$std.bool.Bool$std.string.ToString
+  add x1, x1, :lo12:_vtable$std.bool.Bool$std.string.ToString
+  str x1, [x0]
+  mov x0, x19
+  bl test.useToString
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
+test.testBytePromotion:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  mov w20, w0
+  movz w0, #16
+  bl mytec_alloc
+  mov x19, x0
+  movz w0, #1
+  bl mytec_alloc
+  strb w20, [x0]
+  str x0, [x19]
+  add x0, x19, #8
+  adrp x1, _vtable$std.byte.Byte$std.string.ToString
+  add x1, x1, :lo12:_vtable$std.byte.Byte$std.string.ToString
+  str x1, [x0]
+  mov x0, x19
+  bl test.useToString
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
+test.testIntPromotion:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  mov w20, w0
+  movz w0, #16
+  bl mytec_alloc
+  mov x19, x0
+  movz w0, #4
+  bl mytec_alloc
+  str w20, [x0]
+  str x0, [x19]
+  add x0, x19, #8
+  adrp x1, _vtable$std.int.Int$std.string.ToString
+  add x1, x1, :lo12:_vtable$std.int.Int$std.string.ToString
+  str x1, [x0]
+  mov x0, x19
+  bl test.useToString
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
+test.testLongPromotion:
+  stp x20, x30, [sp, #-32]!
+  str x19, [sp, #16]
+  mov x20, x0
+  movz w0, #16
+  bl mytec_alloc
+  mov x19, x0
+  movz w0, #8
+  bl mytec_alloc
+  str x20, [x0]
+  str x0, [x19]
+  add x0, x19, #8
+  adrp x1, _vtable$std.long.Long$std.string.ToString
+  add x1, x1, :lo12:_vtable$std.long.Long$std.string.ToString
+  str x1, [x0]
+  mov x0, x19
+  bl test.useToString
+  ldr x19, [sp, #16]
+  ldp x20, x30, [sp], #32
+  ret
+test.testUnitPromotion:
+  str x30, [sp, #-16]!
+  movz w0, #16
+  bl mytec_alloc
+  add x1, x0, #8
+  adrp x2, _vtable$std.unit.Unit$std.string.ToString
+  add x2, x2, :lo12:_vtable$std.unit.Unit$std.string.ToString
+  str x2, [x1]
+  bl test.useToString
+  ldr x30, [sp], #16
+  ret
+test.useToString:
+  str x30, [sp, #-16]!
+  ldr x1, [x0]
+  add x0, x0, #8
+  ldr x0, [x0]
+  ldr x2, [x0]
+  mov x0, x1
+  blr x2
+  ldr x30, [sp], #16
+  ret
