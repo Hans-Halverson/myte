@@ -46,9 +46,17 @@ fun testToInt() {
   assertEqual(toInt(-1.0), -1);
   assertEqual(toInt(2147483647.0), 2147483647);
   assertEqual(toInt(-2147483648.0), -2147483648);
-  assertEqual(toInt(2147483648.0), -2147483648);
-  assertEqual(toInt(2147483649.0), -2147483648);
-  assertEqual(toInt(2147483650.0), -2147483648);
+  // TODO: Standardize out of bounds floating point conversion
+  //
+  // x86_64 values:
+  // assertEqual(toInt(2147483648.0), -2147483648);
+  // assertEqual(toInt(2147483649.0), -2147483648);
+  // assertEqual(toInt(2147483650.0), -2147483648);
+  //
+  // AArch64 values:
+  // assertEqual(toInt(2147483648.0), 2147483647);
+  // assertEqual(toInt(2147483649.0), 2147483647);
+  // assertEqual(toInt(2147483650.0), 2147483647);
   assertEqual(toInt(-2147483649.0), -2147483648);
   assertEqual(toInt(-2147483650.0), -2147483648);
 }

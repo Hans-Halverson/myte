@@ -18,6 +18,16 @@ test.l:
   .quad 0
 
   .text
+_myte_init:
+  str x30, [sp, #-16]!
+  movz w0, #4
+  bl mytec_alloc
+  movz w1, #1
+  str w1, [x0]
+  adrp x1, test.t
+  str x0, [x1, :lo12:test.t]
+  ldr x30, [sp], #16
+  ret
 _main:
   str x30, [sp, #-16]!
   movz w0, #4

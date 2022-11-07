@@ -703,12 +703,11 @@ and gen_instructions ~gcx instructions =
         gen_call_arguments param_types pointer_args;
         gen_size_from_count_and_type ~gcx count_arg param_types.(2) count_mir_type element_mir_ty;
         param_types
-      ) else
+      ) else (
         (* Generic case for all other builtins *)
-        let param_mir_types = List.map type_of_use args in
-        let param_types = calling_convention#calculate_param_types param_mir_types in
-        gen_call_arguments param_types args;
-        param_types
+        gen_call_arguments builtin_func.param_types args;
+        builtin_func.param_types
+      )
     in
 
     (* Call builtin function *)

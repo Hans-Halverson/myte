@@ -64,7 +64,7 @@ let () =
         Asm_tests.suite ~bin ~record ~cross;
         Cli_tests.suite ~bin ~record;
         Program_tests.suite ~bin ~record ~cross;
-        Self_tests.suite;
+        Self_tests.suite ~cross;
       ]
   in
   let collated_results = Collate.collate_results suite_results in

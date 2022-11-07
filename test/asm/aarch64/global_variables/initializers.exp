@@ -36,6 +36,25 @@ test.immConstantF:
   .quad _closure$test.getByte
 
   .text
+_myte_init:
+  str x30, [sp, #-16]!
+  bl test.getByte
+  adrp x1, test.b
+  strb w0, [x1, :lo12:test.b]
+  bl test.getDouble
+  adrp x0, test.d
+  str d0, [x0, :lo12:test.d]
+  bl test.getFunction
+  adrp x1, test.f
+  str x0, [x1, :lo12:test.f]
+  bl test.getInt
+  adrp x1, test.i
+  str w0, [x1, :lo12:test.i]
+  bl test.getLong
+  adrp x1, test.l
+  str x0, [x1, :lo12:test.l]
+  ldr x30, [sp], #16
+  ret
 test.getByte:
   movz w0, #22
   ret
