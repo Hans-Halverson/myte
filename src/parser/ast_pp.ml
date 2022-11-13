@@ -239,13 +239,28 @@ and node_of_attributes attributes =
     List (List.map node_of_attribute attributes)
 
 and node_of_attribute attribute =
-  let { Attribute.loc; items } = attribute in
-  node "Attribute" loc [("items", List (List.map node_of_attribute_item items))]
+  let { Attribute.loc; name; params } = attribute in
+  node
+    "Attribute"
+    loc
+    [("name", node_of_identifier name); ("params", List (List.map node_of_attribute_param params))]
 
-and node_of_attribute_item item =
-  let open Attribute in
-  match item with
-  | Identifier id -> node_of_identifier id
+and node_of_attribute_param param =
+  let open Attribute.Param in
+  match param with
+  | Attribute attribute -> node_of_attribute attribute
+  | Pair pair -> node_of_attribute_param_pair pair
+
+and node_of_attribute_param_pair pair =
+  let { Attribute.Pair.loc; key; value } = pair in
+  node "Pair" loc [("key", node_of_identifier key); ("value", node_of_attribute_literal value)]
+
+and node_of_attribute_literal lit =
+  let open Attribute.Literal in
+  match lit with
+  | Bool lit -> node_of_bool_literal lit
+  | Int lit -> node_of_int_literal lit
+  | String lit -> node_of_string_literal lit
 
 and node_of_import import =
   let open Module.Import in

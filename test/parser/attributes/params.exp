@@ -1,0 +1,549 @@
+test/parser/attributes/params.myte
+{
+  node: Module,
+  loc: 1:0-28:12,
+  name: {
+    node: ModuleName,
+    loc: 1:0-1:11,
+    name: {
+      node: ScopedIdentifier,
+      loc: 1:7-1:11,
+      scopes: [],
+      name: {
+        node: Identifier,
+        loc: 1:7-1:11,
+        name: "test",
+      },
+    },
+  },
+  imports: [],
+  toplevels: [
+    {
+      node: Function,
+      loc: 3:0-4:12,
+      name: {
+        node: Identifier,
+        loc: 4:4-4:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 4:10-4:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 3:2-3:11,
+          name: {
+            node: Identifier,
+            loc: 3:2-3:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Attribute,
+              loc: 3:5-3:10,
+              name: {
+                node: Identifier,
+                loc: 3:5-3:10,
+                name: "Attr1",
+              },
+              params: [],
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 6:0-7:12,
+      name: {
+        node: Identifier,
+        loc: 7:4-7:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 7:10-7:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 6:2-6:12,
+          name: {
+            node: Identifier,
+            loc: 6:2-6:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Attribute,
+              loc: 6:5-6:10,
+              name: {
+                node: Identifier,
+                loc: 6:5-6:10,
+                name: "Attr1",
+              },
+              params: [],
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 9:0-10:12,
+      name: {
+        node: Identifier,
+        loc: 10:4-10:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 10:10-10:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 9:2-9:25,
+          name: {
+            node: Identifier,
+            loc: 9:2-9:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Attribute,
+              loc: 9:5-9:10,
+              name: {
+                node: Identifier,
+                loc: 9:5-9:10,
+                name: "Attr1",
+              },
+              params: [],
+            },
+            {
+              node: Attribute,
+              loc: 9:12-9:17,
+              name: {
+                node: Identifier,
+                loc: 9:12-9:17,
+                name: "Attr2",
+              },
+              params: [],
+            },
+            {
+              node: Attribute,
+              loc: 9:19-9:24,
+              name: {
+                node: Identifier,
+                loc: 9:19-9:24,
+                name: "Attr3",
+              },
+              params: [],
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 12:0-13:12,
+      name: {
+        node: Identifier,
+        loc: 13:4-13:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 13:10-13:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 12:2-12:26,
+          name: {
+            node: Identifier,
+            loc: 12:2-12:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Attribute,
+              loc: 12:5-12:10,
+              name: {
+                node: Identifier,
+                loc: 12:5-12:10,
+                name: "Attr1",
+              },
+              params: [],
+            },
+            {
+              node: Attribute,
+              loc: 12:12-12:17,
+              name: {
+                node: Identifier,
+                loc: 12:12-12:17,
+                name: "Attr2",
+              },
+              params: [],
+            },
+            {
+              node: Attribute,
+              loc: 12:19-12:24,
+              name: {
+                node: Identifier,
+                loc: 12:19-12:24,
+                name: "Attr3",
+              },
+              params: [],
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 15:0-16:12,
+      name: {
+        node: Identifier,
+        loc: 16:4-16:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 16:10-16:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 15:2-15:23,
+          name: {
+            node: Identifier,
+            loc: 15:2-15:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Pair,
+              loc: 15:5-15:22,
+              key: {
+                node: Identifier,
+                loc: 15:5-15:10,
+                name: "Attr1",
+              },
+              value: {
+                node: StringLiteral,
+                loc: 15:13-15:22,
+                value: "Literal",
+              },
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 18:0-19:12,
+      name: {
+        node: Identifier,
+        loc: 19:4-19:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 19:10-19:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 18:2-18:24,
+          name: {
+            node: Identifier,
+            loc: 18:2-18:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Pair,
+              loc: 18:5-18:22,
+              key: {
+                node: Identifier,
+                loc: 18:5-18:10,
+                name: "Attr1",
+              },
+              value: {
+                node: StringLiteral,
+                loc: 18:13-18:22,
+                value: "Literal",
+              },
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 21:0-22:12,
+      name: {
+        node: Identifier,
+        loc: 22:4-22:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 22:10-22:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 21:2-21:29,
+          name: {
+            node: Identifier,
+            loc: 21:2-21:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Pair,
+              loc: 21:5-21:14,
+              key: {
+                node: Identifier,
+                loc: 21:5-21:10,
+                name: "Attr1",
+              },
+              value: {
+                node: IntLiteral,
+                loc: 21:13-21:14,
+                raw: "1",
+              },
+            },
+            {
+              node: Pair,
+              loc: 21:16-21:28,
+              key: {
+                node: Identifier,
+                loc: 21:16-21:21,
+                name: "Attr1",
+              },
+              value: {
+                node: BoolLiteral,
+                loc: 21:24-21:28,
+                value: true,
+              },
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 24:0-25:12,
+      name: {
+        node: Identifier,
+        loc: 25:4-25:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 25:10-25:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 24:2-24:40,
+          name: {
+            node: Identifier,
+            loc: 24:2-24:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Attribute,
+              loc: 24:5-24:10,
+              name: {
+                node: Identifier,
+                loc: 24:5-24:10,
+                name: "Attr1",
+              },
+              params: [],
+            },
+            {
+              node: Pair,
+              loc: 24:12-24:21,
+              key: {
+                node: Identifier,
+                loc: 24:12-24:17,
+                name: "Attr2",
+              },
+              value: {
+                node: IntLiteral,
+                loc: 24:20-24:21,
+                raw: "7",
+              },
+            },
+            {
+              node: Attribute,
+              loc: 24:23-24:28,
+              name: {
+                node: Identifier,
+                loc: 24:23-24:28,
+                name: "Attr3",
+              },
+              params: [],
+            },
+            {
+              node: Pair,
+              loc: 24:30-24:39,
+              key: {
+                node: Identifier,
+                loc: 24:30-24:35,
+                name: "Attr4",
+              },
+              value: {
+                node: IntLiteral,
+                loc: 24:38-24:39,
+                raw: "8",
+              },
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 27:0-28:12,
+      name: {
+        node: Identifier,
+        loc: 28:4-28:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 28:10-28:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 27:2-27:31,
+          name: {
+            node: Identifier,
+            loc: 27:2-27:4,
+            name: "If",
+          },
+          params: [
+            {
+              node: Attribute,
+              loc: 27:5-27:30,
+              name: {
+                node: Identifier,
+                loc: 27:5-27:8,
+                name: "Not",
+              },
+              params: [
+                {
+                  node: Attribute,
+                  loc: 27:9-27:29,
+                  name: {
+                    node: Identifier,
+                    loc: 27:9-27:11,
+                    name: "Or",
+                  },
+                  params: [
+                    {
+                      node: Attribute,
+                      loc: 27:12-27:17,
+                      name: {
+                        node: Identifier,
+                        loc: 27:12-27:17,
+                        name: "Attr1",
+                      },
+                      params: [],
+                    },
+                    {
+                      node: Pair,
+                      loc: 27:19-27:28,
+                      key: {
+                        node: Identifier,
+                        loc: 27:19-27:24,
+                        name: "Attr2",
+                      },
+                      value: {
+                        node: IntLiteral,
+                        loc: 27:27-27:28,
+                        raw: "2",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+  ],
+}

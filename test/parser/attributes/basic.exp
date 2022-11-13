@@ -1,7 +1,7 @@
 test/parser/attributes/basic.myte
 {
   node: Module,
-  loc: 1:0-26:12,
+  loc: 1:0-31:12,
   name: {
     node: ModuleName,
     loc: 1:0-1:11,
@@ -37,14 +37,13 @@ test/parser/attributes/basic.myte
       attributes: [
         {
           node: Attribute,
-          loc: 3:0-3:7,
-          items: [
-            {
-              node: Identifier,
-              loc: 3:2-3:6,
-              name: "Attr",
-            },
-          ],
+          loc: 3:2-3:6,
+          name: {
+            node: Identifier,
+            loc: 3:2-3:6,
+            name: "Attr",
+          },
+          params: [],
         },
       ],
       is_public: false,
@@ -70,36 +69,33 @@ test/parser/attributes/basic.myte
       attributes: [
         {
           node: Attribute,
-          loc: 6:0-6:8,
-          items: [
-            {
-              node: Identifier,
-              loc: 6:2-6:7,
-              name: "First",
-            },
-          ],
+          loc: 6:2-6:7,
+          name: {
+            node: Identifier,
+            loc: 6:2-6:7,
+            name: "First",
+          },
+          params: [],
         },
         {
           node: Attribute,
-          loc: 7:0-7:9,
-          items: [
-            {
-              node: Identifier,
-              loc: 7:2-7:8,
-              name: "Second",
-            },
-          ],
+          loc: 7:2-7:8,
+          name: {
+            node: Identifier,
+            loc: 7:2-7:8,
+            name: "Second",
+          },
+          params: [],
         },
         {
           node: Attribute,
-          loc: 8:0-8:8,
-          items: [
-            {
-              node: Identifier,
-              loc: 8:2-8:7,
-              name: "Third",
-            },
-          ],
+          loc: 8:2-8:7,
+          name: {
+            node: Identifier,
+            loc: 8:2-8:7,
+            name: "Third",
+          },
+          params: [],
         },
       ],
       is_public: false,
@@ -125,24 +121,33 @@ test/parser/attributes/basic.myte
       attributes: [
         {
           node: Attribute,
-          loc: 11:0-11:22,
-          items: [
-            {
-              node: Identifier,
-              loc: 11:2-11:7,
-              name: "Attr1",
-            },
-            {
-              node: Identifier,
-              loc: 11:9-11:14,
-              name: "Attr2",
-            },
-            {
-              node: Identifier,
-              loc: 11:16-11:21,
-              name: "Attr3",
-            },
-          ],
+          loc: 11:2-11:7,
+          name: {
+            node: Identifier,
+            loc: 11:2-11:7,
+            name: "Attr1",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 11:9-11:14,
+          name: {
+            node: Identifier,
+            loc: 11:9-11:14,
+            name: "Attr2",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 11:16-11:21,
+          name: {
+            node: Identifier,
+            loc: 11:16-11:21,
+            name: "Attr3",
+          },
+          params: [],
         },
       ],
       is_public: false,
@@ -168,24 +173,145 @@ test/parser/attributes/basic.myte
       attributes: [
         {
           node: Attribute,
-          loc: 14:0-14:23,
-          items: [
-            {
-              node: Identifier,
-              loc: 14:2-14:7,
-              name: "Attr1",
-            },
-            {
-              node: Identifier,
-              loc: 14:9-14:14,
-              name: "Attr2",
-            },
-            {
-              node: Identifier,
-              loc: 14:16-14:21,
-              name: "Attr3",
-            },
-          ],
+          loc: 14:2-14:7,
+          name: {
+            node: Identifier,
+            loc: 14:2-14:7,
+            name: "Attr1",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 14:9-14:14,
+          name: {
+            node: Identifier,
+            loc: 14:9-14:14,
+            name: "Attr2",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 14:16-14:21,
+          name: {
+            node: Identifier,
+            loc: 14:16-14:21,
+            name: "Attr3",
+          },
+          params: [],
+        },
+      ],
+      is_public: false,
+      is_static: false,
+      is_override: false,
+    },
+    {
+      node: Function,
+      loc: 17:0-20:12,
+      name: {
+        node: Identifier,
+        loc: 20:4-20:7,
+        name: "foo",
+      },
+      params: [],
+      body: {
+        node: Block,
+        loc: 20:10-20:12,
+        statements: [],
+      },
+      return: None,
+      type_params: [],
+      attributes: [
+        {
+          node: Attribute,
+          loc: 17:2-17:7,
+          name: {
+            node: Identifier,
+            loc: 17:2-17:7,
+            name: "Attr1",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 17:9-17:14,
+          name: {
+            node: Identifier,
+            loc: 17:9-17:14,
+            name: "Attr2",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 17:16-17:21,
+          name: {
+            node: Identifier,
+            loc: 17:16-17:21,
+            name: "Attr3",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 18:2-18:7,
+          name: {
+            node: Identifier,
+            loc: 18:2-18:7,
+            name: "Attr4",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 18:9-18:14,
+          name: {
+            node: Identifier,
+            loc: 18:9-18:14,
+            name: "Attr5",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 18:16-18:21,
+          name: {
+            node: Identifier,
+            loc: 18:16-18:21,
+            name: "Attr6",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 19:2-19:7,
+          name: {
+            node: Identifier,
+            loc: 19:2-19:7,
+            name: "Attr7",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 19:9-19:14,
+          name: {
+            node: Identifier,
+            loc: 19:9-19:14,
+            name: "Attr8",
+          },
+          params: [],
+        },
+        {
+          node: Attribute,
+          loc: 19:16-19:21,
+          name: {
+            node: Identifier,
+            loc: 19:16-19:21,
+            name: "Attr9",
+          },
+          params: [],
         },
       ],
       is_public: false,
@@ -194,33 +320,33 @@ test/parser/attributes/basic.myte
     },
     {
       node: VariableDeclaration,
-      loc: 17:0-18:16,
+      loc: 22:0-23:16,
       kind: Immutable,
       pattern: {
         node: ScopedIdentifier,
-        loc: 18:4-18:7,
+        loc: 23:4-23:7,
         scopes: [],
         name: {
           node: Identifier,
-          loc: 18:4-18:7,
+          loc: 23:4-23:7,
           name: "foo",
         },
       },
       init: {
         node: IntLiteral,
-        loc: 18:15-18:16,
+        loc: 23:15-23:16,
         raw: "1",
       },
       annot: {
         node: IdentifierType,
-        loc: 18:9-18:12,
+        loc: 23:9-23:12,
         name: {
           node: ScopedIdentifier,
-          loc: 18:9-18:12,
+          loc: 23:9-23:12,
           scopes: [],
           name: {
             node: Identifier,
-            loc: 18:9-18:12,
+            loc: 23:9-23:12,
             name: "Int",
           },
         },
@@ -229,61 +355,59 @@ test/parser/attributes/basic.myte
       attributes: [
         {
           node: Attribute,
-          loc: 17:0-17:7,
-          items: [
-            {
-              node: Identifier,
-              loc: 17:2-17:6,
-              name: "Attr",
-            },
-          ],
+          loc: 22:2-22:6,
+          name: {
+            node: Identifier,
+            loc: 22:2-22:6,
+            name: "Attr",
+          },
+          params: [],
         },
       ],
       is_public: false,
     },
     {
       node: TypeDeclaration,
-      loc: 20:0-23:6,
+      loc: 25:0-28:6,
       name: {
         node: Identifier,
-        loc: 21:5-21:8,
+        loc: 26:5-26:8,
         name: "Foo",
       },
       type_params: [],
       variants: [
         {
           node: Identifier,
-          loc: 22:4-22:6,
+          loc: 27:4-27:6,
           name: "E1",
         },
         {
           node: Identifier,
-          loc: 23:4-23:6,
+          loc: 28:4-28:6,
           name: "E2",
         },
       ],
       attributes: [
         {
           node: Attribute,
-          loc: 20:0-20:7,
-          items: [
-            {
-              node: Identifier,
-              loc: 20:2-20:6,
-              name: "Attr",
-            },
-          ],
+          loc: 25:2-25:6,
+          name: {
+            node: Identifier,
+            loc: 25:2-25:6,
+            name: "Attr",
+          },
+          params: [],
         },
       ],
       is_public: false,
     },
     {
       node: TraitDeclaration,
-      loc: 25:0-26:12,
+      loc: 30:0-31:12,
       kind: Trait,
       name: {
         node: Identifier,
-        loc: 26:6-26:9,
+        loc: 31:6-31:9,
         name: "Foo",
       },
       type_params: [],
@@ -292,14 +416,13 @@ test/parser/attributes/basic.myte
       attributes: [
         {
           node: Attribute,
-          loc: 25:0-25:7,
-          items: [
-            {
-              node: Identifier,
-              loc: 25:2-25:6,
-              name: "Attr",
-            },
-          ],
+          loc: 30:2-30:6,
+          name: {
+            node: Identifier,
+            loc: 30:2-30:6,
+            name: "Attr",
+          },
+          params: [],
         },
       ],
       is_public: false,

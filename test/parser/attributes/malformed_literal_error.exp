@@ -1,0 +1,4 @@
+Error: Unexpected token `Foo`, expected attribute literal
+test/parser/attributes/malformed_literal_error.myte:3:13-16
+ 3 | @(If(Attr1 = Foo))
+   |              ^^^

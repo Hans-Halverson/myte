@@ -236,7 +236,7 @@ methods Parser {
 
   fun parseToplevel(): ast.Toplevel {
     val startLoc = this.loc;
-    val attributes = this.parseAttributes();
+    val attributes = this.parseAttributeAnnotations();
     val isPublic = this.maybeParsePublic();
     return match (this.token) {
       | token.Fun ->
@@ -264,19 +264,15 @@ methods Parser {
       false
     }
   
-  fun parseAttributes(): Vec<ast.Attribute> {
+  fun parseAttributeAnnotations(): Vec<ast.Attribute> {
     val attributes: Vec<ast.Attribute> = [];
 
     while (this.token match token.At) {
-      var startLoc = this.loc;
       this.advance();
       this.expect(token.LeftParen);
 
-      val items: Vec<ast.AttributeItem> = [];
-
       while (this.token != token.RightParen) {
-        val startLoc = this.loc;
-        items.push(this.parseAttributeItem());
+        attributes.push(this.parseAttribute());
 
         match (this.token) {
           | token.RightParen -> ()
@@ -286,17 +282,73 @@ methods Parser {
       }
 
       this.advance();
-      val loc = this.currentLoc(startLoc);
-      val attribute = ast.Attribute { loc, items };
-      attributes.push(attribute);
     }
 
     return attributes;
   }
 
-  fun parseAttributeItem(): ast.AttributeItem {
-    return ast.AttributeItem (this.parseIdentifier());
+  fun parseAttribute(): ast.Attribute {
+    val startLoc = this.loc;
+    val name = this.parseIdentifier();
+
+    val params: Vec<ast.AttributeParam> = [];
+
+    if (this.token == token.LeftParen) {
+      this.advance();
+      while (this.token != token.RightParen) {
+        params.push(this.parseAttributeParam());
+        
+        match (this.token) {
+          | token.RightParen -> ()
+          | token.Comma -> this.advance()
+          | _ -> this.expect(token.RightParen)
+        }
+      }
+
+      this.advance();
+    }
+
+    val loc = this.currentLoc(startLoc);
+
+    return ast.Attribute { loc, name, params };
   }
+
+  fun parseAttributeParam(): ast.AttributeParam {
+    val startLoc = this.loc;
+    val attr = this.parseAttribute();
+
+    return match (attr, this.token) {
+      | (ast.Attribute { name, params, ... }, token.Equals) when params.size == 0 -> {
+        this.advance();
+        val value = this.parseAttributeLiteral();
+        val loc = this.currentLoc(startLoc);
+
+        ast.APPair (ast.AttributePair { loc, key: name, value })
+      }
+      | _ -> ast.APAttribute (attr)
+    };
+  }
+
+  fun parseAttributeLiteral(): ast.AttributeLiteral =
+    match (this.token) {
+      | token.BoolLiteral (value) -> {
+        val loc = this.loc;
+        this.advance();
+        ast.ALBool (ast.BoolLiteral { loc, value })
+      }
+      | token.IntLiteral { raw, base } -> {
+        val loc = this.loc;
+        this.advance();
+        ast.ALInt (ast.IntLiteral { loc, raw, base })
+      }
+      | token.StringLiteral (value) -> {
+        val loc = this.loc;
+        this.advance();
+        ast.ALString (ast.StringLiteral { loc, value })
+      }
+      | token -> fatal(error.MalformedAttributeLiteral { token }, this.loc)
+    }
+
 
   fun parseIdentifier(): ast.Identifier {
     match (this.token) {
@@ -680,7 +732,7 @@ methods Parser {
     while (this.token != token.RightBrace) {
       val startLoc = this.loc;
 
-      val attributes = this.parseAttributes();
+      val attributes = this.parseAttributeAnnotations();
       val isPublic = this.maybeParsePublic();
 
       val isOverride = this.token == token.Override;

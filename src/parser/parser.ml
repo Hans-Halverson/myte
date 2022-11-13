@@ -165,7 +165,7 @@ and parse_toplevel env =
   let open Module in
   let marker = mark_loc env in
   let pub_loc = Env.loc env in
-  let attributes = parse_attributes env in
+  let attributes = parse_attribute_annotations env in
   let is_public = maybe_parse_public env in
   match Env.token env with
   | T_VAL
@@ -197,36 +197,85 @@ and maybe_parse_public env =
   ) else
     false
 
-and parse_attributes env =
+and parse_attribute_annotations env =
+  let rec maybe_parse_attribute_annotation acc =
+    match Env.token env with
+    | T_AT ->
+      Env.advance env;
+      Env.expect env T_LEFT_PAREN;
+      let rec parse_attributes acc =
+        match Env.token env with
+        | T_RIGHT_PAREN ->
+          Env.advance env;
+          acc
+        | _ ->
+          let attribute = parse_attribute env in
+          begin
+            match Env.token env with
+            | T_RIGHT_PAREN -> ()
+            | T_COMMA -> Env.advance env
+            | _ -> Env.expect env T_RIGHT_PAREN
+          end;
+          parse_attributes (attribute :: acc)
+      in
+      maybe_parse_attribute_annotation (parse_attributes acc)
+    | _ -> List.rev acc
+  in
+  maybe_parse_attribute_annotation []
+
+and parse_attribute env =
+  let marker = mark_loc env in
+  let name = parse_identifier env in
   match Env.token env with
-  | T_AT ->
-    let marker = mark_loc env in
+  | T_LEFT_PAREN ->
     Env.advance env;
-    Env.expect env T_LEFT_PAREN;
-    let rec parse_items env =
+    let rec parse_params acc =
       match Env.token env with
       | T_RIGHT_PAREN ->
         Env.advance env;
-        []
+        List.rev acc
       | _ ->
-        let item = parse_attribute_item env in
-        begin
-          match Env.token env with
-          | T_RIGHT_PAREN -> ()
-          | T_COMMA -> Env.advance env
-          | _ -> Env.expect env T_RIGHT_PAREN
-        end;
-        item :: parse_items env
+        let param = parse_attribute_param env in
+        (match Env.token env with
+        | T_RIGHT_PAREN -> ()
+        | T_COMMA -> Env.advance env
+        | _ -> Env.expect env T_RIGHT_PAREN);
+        parse_params (param :: acc)
     in
-    let items = parse_items env in
+    let params = parse_params [] in
     let loc = marker env in
-    let attribute = { Attribute.loc; items } in
-    attribute :: parse_attributes env
-  | _ -> []
+    { Attribute.loc; name; params }
+  | _ ->
+    let loc = marker env in
+    { Attribute.loc; name; params = [] }
 
-and parse_attribute_item env =
-  let id = parse_identifier env in
-  Attribute.Identifier id
+and parse_attribute_param env =
+  let marker = mark_loc env in
+  let attribute = parse_attribute env in
+  match (attribute, Env.token env) with
+  | ({ name; params = []; _ }, T_EQUALS) ->
+    Env.advance env;
+    let value = parse_attribute_literal env in
+    let loc = marker env in
+    Attribute.Param.Pair { loc; key = name; value }
+  | _ -> Attribute.Param.Attribute attribute
+
+and parse_attribute_literal env =
+  match Env.token env with
+  (* Literals in declaration patterns are allowed *)
+  | T_BOOL_LITERAL value ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Attribute.Literal.Bool { Expression.BoolLiteral.loc; value }
+  | T_INT_LITERAL (raw, base) ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Attribute.Literal.Int { Expression.IntLiteral.loc; raw; base }
+  | T_STRING_LITERAL value ->
+    let loc = Env.loc env in
+    Env.advance env;
+    Attribute.Literal.String { Expression.StringLiteral.loc; value }
+  | token -> Parse_error.fatal (Env.loc env, MalformedAttributeLiteral token)
 
 and parse_statement env =
   let open Statement in
@@ -1539,7 +1588,7 @@ and parse_trait_declaration ~kind ~attributes ~is_public env marker =
   let implemented = parse_implemented [] |> List.rev in
   let rec parse_methods acc =
     let marker = mark_loc env in
-    let attributes = parse_attributes env in
+    let attributes = parse_attribute_annotations env in
     let is_public = maybe_parse_public env in
     let is_override =
       match Env.token env with

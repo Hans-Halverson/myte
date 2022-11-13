@@ -688,11 +688,31 @@ end =
   ScopedIdentifier
 
 and Attribute : sig
+  module Literal : sig
+    type t =
+      | Bool of Expression.BoolLiteral.t
+      | Int of Expression.IntLiteral.t
+      | String of Expression.StringLiteral.t
+  end
+
+  module Pair : sig
+    type t = {
+      loc: Loc.t;
+      key: Identifier.t;
+      value: Literal.t;
+    }
+  end
+
+  module Param : sig
+    type t =
+      | Attribute of Attribute.t
+      | Pair of Pair.t
+  end
+
   type t = {
     loc: Loc.t;
-    items: item list;
+    name: Identifier.t;
+    params: Param.t list;
   }
-
-  and item = Identifier of Identifier.t
 end =
   Attribute

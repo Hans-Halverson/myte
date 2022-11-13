@@ -50,10 +50,24 @@ pub type ScopedIdentifier {
 
 pub type Attribute {
   pub loc: Loc,
-  pub items: Vec<AttributeItem>,
+  pub name: Identifier,
+  pub params: Vec<AttributeParam>,
 }
 
-pub type AttributeItem (Identifier)
+pub type AttributeParam =
+  | APAttribute (Attribute)
+  | APPair (AttributePair)
+
+pub type AttributePair {
+  pub loc: Loc,
+  pub key: Identifier,
+  pub value: AttributeLiteral,
+}
+
+pub type AttributeLiteral =
+  | ALBool (BoolLiteral)
+  | ALInt (IntLiteral)
+  | ALString (StringLiteral)
 
 /* 
  * ============================

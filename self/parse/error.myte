@@ -25,6 +25,7 @@ pub type ParseError =
   | MalformedMethodsItem { token: Token }
   | MalformedType { token: Token }
   | MalformedPattern { token: Token }
+  | MalformedAttributeLiteral { token: Token }
   | MissingModule { token: Token }
   | EmptyRecord
   | EmptyTuple
@@ -81,6 +82,7 @@ methods ParseError {
       | MalformedMethodsItem { token } -> `Unexpected token \`${token}\`, expected start of method`
       | MalformedType { token } -> `Unexpected token \`${token}\`, expected start of type`
       | MalformedPattern { token } -> `Unexpected token \`${token}\`, expected start of pattern`
+      | MalformedAttributeLiteral { token } -> `Unexpected token \`${token}\`, expected attribute literal`
       | MissingModule { token } ->
         `File must start with a module declaration. Found \`${token}\` but expected \`module\`.`
       | EmptyRecord -> "Record must have at least one field"

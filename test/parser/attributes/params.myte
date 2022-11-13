@@ -1,0 +1,28 @@
+module test
+
+@(If(Attr1))
+fun foo() {}
+
+@(If(Attr1,))
+fun foo() {}
+
+@(If(Attr1, Attr2, Attr3))
+fun foo() {}
+
+@(If(Attr1, Attr2, Attr3,))
+fun foo() {}
+
+@(If(Attr1 = "Literal"))
+fun foo() {}
+
+@(If(Attr1 = "Literal",))
+fun foo() {}
+
+@(If(Attr1 = 1, Attr1 = true))
+fun foo() {}
+
+@(If(Attr1, Attr2 = 7, Attr3, Attr4 = 8))
+fun foo() {}
+
+@(If(Not(Or(Attr1, Attr2 = 2))))
+fun foo() {}

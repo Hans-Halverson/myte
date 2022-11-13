@@ -27,9 +27,6 @@ let add_attribute ~(store : AttributeStore.t) (loc : Loc.t) (attribute : Attribu
 let add_error ~(store : AttributeStore.t) (loc : Loc.t) (error : Analyze_error.t) =
   store.errors <- (loc, error) :: store.errors
 
-let iter_attribute_items (attributes : Ast.Attribute.t list) (f : Ast.Attribute.item -> unit) =
-  List.iter (fun { Ast.Attribute.items; _ } -> List.iter f items) attributes
-
 let visit_builtin_attribute ~(store : AttributeStore.t) ~add_attribute ~module_ ~loc =
   if Module.in_stdlib module_ then
     add_attribute ~store Attribute.Builtin
@@ -39,13 +36,16 @@ let visit_builtin_attribute ~(store : AttributeStore.t) ~add_attribute ~module_ 
 let add_function_attributes
     ~(store : AttributeStore.t) ~(module_ : Module.t) (func : Ast.Function.t) =
   let add_attribute ~store attribute = add_attribute ~store func.name.loc attribute in
-  iter_attribute_items func.attributes (fun item ->
-      match item with
-      | Ast.Attribute.Identifier { name = "Builtin"; loc } ->
+  List.iter
+    (fun attr ->
+      let open Ast.Attribute in
+      match attr with
+      | { name = { loc; name = "Builtin" }; _ } ->
         visit_builtin_attribute ~store ~add_attribute ~module_ ~loc
-      | Identifier { name = "Inline"; _ } -> add_attribute ~store Attribute.Inline
-      | Identifier { name = "NoInline"; _ } -> add_attribute ~store Attribute.NoInline
+      | { name = { name = "Inline"; _ }; _ } -> add_attribute ~store Attribute.Inline
+      | { name = { name = "NoInline"; _ }; _ } -> add_attribute ~store Attribute.NoInline
       | _ -> ())
+    func.attributes
 
 let add_general_attributes
     ~(store : AttributeStore.t)
@@ -53,11 +53,14 @@ let add_general_attributes
     (loc : Loc.t)
     (attributes : Ast.Attribute.t list) =
   let add_attribute ~store attribute = add_attribute ~store loc attribute in
-  iter_attribute_items attributes (fun item ->
-      match item with
-      | Ast.Attribute.Identifier { name = "Builtin"; loc } ->
+  List.iter
+    (fun attr ->
+      let open Ast.Attribute in
+      match attr with
+      | { name = { loc; name = "Builtin" }; _ } ->
         visit_builtin_attribute ~store ~add_attribute ~module_ ~loc
       | _ -> ())
+    attributes
 
 let get_attributes ~(store : AttributeStore.t) (loc : Loc.t) : Attribute.t list =
   match LocMap.find_opt loc store.attributes with

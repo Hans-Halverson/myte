@@ -376,13 +376,35 @@ fun nodeOfAttributes(attributes: Vec<ast.Attribute>): PrintNode {
 }
 
 fun nodeOfAttribute(attribute: ast.Attribute): PrintNode {
-  val ast.Attribute { loc, items } = attribute;
-  return Node { name: "Attribute", loc, fields: [("items", List(items.map(nodeOfAttributeItem)))] };
+  val ast.Attribute { loc, name, params } = attribute;
+  return Node {
+    name: "Attribute",
+    loc,
+    fields: [("name", nodeOfIdentifier(name)), ("params", List(params.map(nodeOfAttributeParam)))],
+  };
 }
 
-fun nodeOfAttributeItem(item: ast.AttributeItem): PrintNode {
-  return nodeOfIdentifier(item[0]);
+fun nodeOfAttributeParam(param: ast.AttributeParam): PrintNode =
+  match (param) {
+    | ast.APAttribute (attr) -> nodeOfAttribute(attr)
+    | ast.APPair (pair) -> nodeOfAttributeParamPair(pair)
+  }
+
+fun nodeOfAttributeParamPair(pair: ast.AttributePair): PrintNode {
+  val ast.AttributePair { loc, key, value } = pair;
+  return Node {
+    name: "Pair",
+    loc,
+    fields: [("key", nodeOfIdentifier(key)), ("value", nodeOfAttributeLiteral(value))],
+  };
 }
+
+fun nodeOfAttributeLiteral(lit: ast.AttributeLiteral): PrintNode =
+  match (lit) {
+    | ast.ALBool (lit) -> nodeOfBoolLiteral(lit)
+    | ast.ALInt (lit) -> nodeOfIntLiteral(lit)
+    | ast.ALString (lit) -> nodeOfStringLiteral(lit)
+  }
 
 fun nodeOfStatement(stmt: ast.Statement): PrintNode =
   match (stmt) {

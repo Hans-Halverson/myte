@@ -1,0 +1,4 @@
+module test
+
+@(If(Attr1 = Foo))
+fun foo() {}

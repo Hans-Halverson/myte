@@ -34,7 +34,5 @@
 - IR Generation (In Progress)
 - Compile IR (TODO)
   - LLVM IR backend
-  - custom x86-64 backend
-  - custom arm64 backend
   - custom wasm backend
   - Convert to bytecode and write VM

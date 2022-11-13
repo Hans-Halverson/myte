@@ -16,6 +16,7 @@ type t =
   | MalformedPattern of Token.t
   | MalformedFunctionBody of Token.t
   | MalformedType of Token.t
+  | MalformedAttributeLiteral of Token.t
   | MissingModule of Token.t
   | InvalidAssignmentPattern
   | LiteralInPattern
@@ -75,6 +76,8 @@ let to_string error =
     Printf.sprintf "Unexpected token `%s`, expected start of function body" (Token.to_string actual)
   | MalformedType actual ->
     Printf.sprintf "Unexpected token `%s`, expected start of type" (Token.to_string actual)
+  | MalformedAttributeLiteral actual ->
+    Printf.sprintf "Unexpected token `%s`, expected attribute literal" (Token.to_string actual)
   | MissingModule actual ->
     Printf.sprintf
       "File must start with a module declaration. Found `%s` but expected `module`."
