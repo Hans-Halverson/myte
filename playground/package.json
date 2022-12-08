@@ -23,7 +23,7 @@
     "@babel/preset-react": "7.16.0",
     "babel-loader": "8.2.3",
     "css-loader": "6.5.1",
-    "express": "4.17.1",
+    "express": "4.18.2",
     "file-loader": "6.2.0",
     "monaco-editor-webpack-plugin": "6.0.0",
     "node-fetch": "2.6.7",
